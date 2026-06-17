@@ -1,0 +1,166 @@
+/* ============================================================
+ * jiha.tech — feuille d'impression / PDF
+ * Imprime la langue active uniquement, met les schémas au net,
+ * affiche les URL des liens externes, gère la pagination.
+ * ============================================================ */
+
+@media print {
+
+  /* — Réglage page — */
+  @page {
+    size: A4;
+    margin: 18mm 16mm 22mm 16mm;
+
+    /* Pied de page */
+    @bottom-left {
+      content: "jiha.tech — Guide Vaultwarden";
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 8pt;
+      color: #555;
+    }
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 8pt;
+      color: #555;
+    }
+  }
+
+  /* — Force fond papier, couleurs sombres pour l'encre — */
+  :root, :root[data-theme="dark"] {
+    --bg:        #ffffff;
+    --bg-elev:   #f7f1e0;
+    --bg-soft:   #f0e9d2;
+    --fg:        #000000;
+    --fg-soft:   #1a1a1a;
+    --fg-mute:   #555555;
+    --line:        rgba(0, 0, 0, 0.18);
+    --line-strong: rgba(0, 0, 0, 0.40);
+    --accent:      #a36b00;          /* ambre assombri imprimable */
+    --accent-soft: #c98d10;
+    --accent-deep: #6a4500;
+    --term-bg:   #f7f1e0;            /* terminal CLAIR à l'impression */
+    --term-fg:   #1a1a1a;
+  }
+
+  /* — Mode "écran-only" à masquer — */
+  .topbar,
+  .cta-banner,
+  nav.toc,
+  .pdf-block,
+  .cta-strong,
+  body::before,            /* scanlines */
+  .term-bar .copy-btn {
+    display: none !important;
+  }
+
+  /* — Layout : pleine largeur, plus de grille — */
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+  .layout { display: block; max-width: none; padding: 0; gap: 0; }
+  main { display: block; }
+
+  /* — Titres — */
+  h1 { font-size: 22pt; margin: 0 0 0.6rem; }
+  h2 { font-size: 15pt; margin: 1.5rem 0 0.6rem; page-break-after: avoid; break-after: avoid; }
+  h3 { font-size: 12pt; margin: 1rem 0 0.4rem; page-break-after: avoid; break-after: avoid; }
+  .section-tag { font-size: 7pt; }
+  .section-tag::before { content: ""; }
+  .hero { padding: 0 0 1rem; border-bottom: 1px solid #000; margin-bottom: 1rem; }
+  .hero .prompt { display: none; }
+  .hero h1 em { color: #a36b00; }
+  .hero-meta { font-size: 8.5pt; gap: 0.5rem 1.5rem; }
+
+  /* — Code & terminal : pleine largeur, fond clair — */
+  pre {
+    background: #f7f1e0 !important;
+    color: #000 !important;
+    border: 1px solid #b8a878 !important;
+    border-left: 3px solid #a36b00 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    box-shadow: none;
+  }
+  pre .term-bar { background: #ece4c8 !important; border-color: #b8a878 !important; }
+  pre .term-bar .dot { display: none; }
+  pre .term-bar .title { color: #555 !important; }
+  pre code { color: #000 !important; padding: 0.65rem 0.85rem !important; white-space: pre-wrap; word-wrap: break-word; font-size: 8.5pt; }
+
+  code:not(pre code) {
+    background: #f3edd9 !important;
+    color: #000 !important;
+    border: 1px solid #c8b888 !important;
+  }
+
+  /* — Schémas : fond blanc, traits noirs — */
+  figure.schema {
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    padding: 0.8rem !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  figure.schema svg { max-width: 100%; }
+  figcaption { color: #333 !important; border-top-color: #aaa !important; font-size: 9pt; }
+
+  /* — Liens : URL affichée pour les externes — */
+  a { color: #6a4500 !important; text-decoration: underline; }
+  a[href^="http"]::after {
+    content: " ⟨" attr(href) "⟩";
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 8.5pt;
+    color: #777;
+    word-break: break-all;
+  }
+  /* Pas d'URL pour les ancres internes */
+  a[href^="#"]::after { content: ""; }
+
+  /* — Tableau — */
+  table { font-size: 9pt; }
+  th, td { border-bottom: 1px solid #aaa !important; }
+  th { color: #000 !important; }
+
+  /* — Step & callouts — */
+  .step {
+    background: #f7f1e0 !important;
+    border: 1px solid #b8a878 !important;
+    border-left: 3px solid #a36b00 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .step-num { color: #6a4500 !important; }
+  .pitfall {
+    background: #fdf6dc !important;
+    border-left: 3px solid #b08a08 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* — Guide-links (next) — */
+  .guide-link {
+    background: #f7f1e0 !important;
+    border: 1px solid #b8a878 !important;
+    color: #000 !important;
+  }
+  .guide-link .badge { color: #555 !important; border-color: #aaa !important; }
+  .guide-link.coming-soon { color: #777 !important; }
+
+  /* — Pas de coupure dans un bloc — */
+  pre, figure, .step, .pitfall, table { page-break-inside: avoid; break-inside: avoid; }
+
+  /* — Footer page mode papier — */
+  footer.page-footer {
+    background: transparent !important;
+    border-top: 1px solid #000;
+    padding-top: 0.75rem;
+    color: #333 !important;
+    font-size: 8.5pt;
+  }
+  footer.page-footer .footer-logo svg { color: #000; }
+}

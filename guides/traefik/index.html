@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique — jiha.tech</title>
+  <title data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS — jiha.tech</title>
+  <meta name="description" content="Guide Traefik v3 : reverse proxy avec HTTPS Let&#39;s Encrypt automatique, découverte Docker, dashboard sécurisé." data-lang="fr">
+  <meta name="description" content="Traefik v3 guide: reverse proxy with automatic Let&#39;s Encrypt HTTPS, Docker discovery, secured dashboard." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Traefik v3 — Reverse proxy avec HTTPS automatique">
+  <meta property="og:description" content="Guide Traefik v3 : reverse proxy avec HTTPS Let&#39;s Encrypt automatique, découverte Docker, dashboard sécurisé.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/traefik/">
+  <link rel="canonical" href="https://jiha.tech/guides/traefik/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="traefik">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/traefik</div>
+    <div class="prompt" data-lang="en">~/guides/traefik</div>
+    <h1 data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</h1>
+    <h1 data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</h1>
+    <p class="tagline" data-lang="fr">Un reverse proxy moderne qui détecte tes services Docker et leur sert un certificat HTTPS valide, sans rien configurer à la main.</p>
+    <p class="tagline" data-lang="en">A modern reverse proxy that auto-detects your Docker services and hands them a valid HTTPS certificate — no manual config.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 60 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>v3.3</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-16</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 60 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>v3.3</strong></div>
+  <div><span>Last review</span><strong>2026-06-16</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Sans reverse proxy, ton homelab ressemble à ça : <code>http://192.168.1.10:8080</code> (Vaultwarden), <code>http://192.168.1.10:32400</code> (Plex), <code>http://192.168.1.10:9090</code> (Prometheus). Imbuvable, dangereux (HTTP), impossible à partager.</p>
+<p><strong>Traefik</strong> résout tout ça d&#39;un coup :</p>
+<ul><li>URLs propres : <code>https://vault.exemple.com</code>, <code>https://photos.exemple.com</code>.</li><li>HTTPS automatique via Let&#39;s Encrypt, renouvellement compris.</li><li>Découverte automatique de tes services via labels Docker.</li><li>Pas un port à mapper manuellement.</li></ul>
+<p>C&#39;est <strong>le prérequis</strong> de toute la suite de ta plateforme self-hostée.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu veux exposer plusieurs services derrière un domaine que tu contrôles, en HTTPS, sans configurer Nginx à la main pour chaque ajout.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas de nom de domaine que tu contrôles → soit en acheter un (5-10€/an chez OVH, Namecheap), soit utiliser un DDNS gratuit (DuckDNS) avec un DNS challenge.</li><li>Tu veux un GUI clic-clic pour gérer le proxy → Nginx Proxy Manager est plus simple (mais moins puissant).</li><li>Tu n&#39;as qu&#39;un seul service à exposer → Caddy est plus simple.</li></ul>
+</div>
+<div data-lang="en"><p>Without a reverse proxy, your homelab looks like this: <code>http://192.168.1.10:8080</code> (Vaultwarden), <code>http://192.168.1.10:32400</code> (Plex), <code>http://192.168.1.10:9090</code> (Prometheus). Ugly, unsafe (HTTP), impossible to share.</p>
+<p><strong>Traefik</strong> solves all of that in one move:</p>
+<ul><li>Clean URLs: <code>https://vault.example.com</code>, <code>https://photos.example.com</code>.</li><li>Automatic HTTPS via Let&#39;s Encrypt, renewals included.</li><li>Auto-discovery of your services via Docker labels.</li><li>Not a single port to map by hand.</li></ul>
+<p>It&#39;s <strong>the prerequisite</strong> for the rest of your self-hosted platform.</p>
+<p><strong>Who it&#39;s for:</strong> you want to expose several services behind a domain you control, in HTTPS, without configuring Nginx by hand for every new addition.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t have a domain you control → either buy one (5-10€/yr at OVH, Namecheap), or use a free DDNS (DuckDNS) with a DNS challenge.</li><li>You want a click-and-go GUI for the proxy → Nginx Proxy Manager is simpler (but less powerful).</li><li>You only have one service to expose → Caddy is simpler.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Le rôle d&#39;un <strong>reverse proxy</strong> et pourquoi il est indispensable en self-hosting.</li><li>Le concept d&#39;<strong>ACME</strong> et de <strong>Let&#39;s Encrypt</strong> (HTTPS gratuit).</li><li>La différence <strong>TLS challenge</strong> vs <strong>HTTP challenge</strong> vs <strong>DNS challenge</strong> pour les certificats.</li><li>Comment Traefik <strong>découvre tes services</strong> via labels Docker.</li><li>Sécuriser le <strong>dashboard Traefik</strong> avec basic auth.</li><li>Le pattern d&#39;un <strong>réseau Docker partagé</strong> entre Traefik et tes apps.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know:</p>
+<ul><li>The role of a <strong>reverse proxy</strong> and why it&#39;s essential for self-hosting.</li><li>The concept of <strong>ACME</strong> and <strong>Let&#39;s Encrypt</strong> (free HTTPS).</li><li>The difference between <strong>TLS challenge</strong>, <strong>HTTP challenge</strong>, and <strong>DNS challenge</strong> for certificates.</li><li>How Traefik <strong>discovers your services</strong> via Docker labels.</li><li>How to secure the <strong>Traefik dashboard</strong> with basic auth.</li><li>The pattern of a <strong>shared Docker network</strong> between Traefik and your apps.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li><strong>Docker + Docker Compose</strong> maîtrisés (cycle <code>up -d</code>, healthchecks, volumes, networks).</li><li>Un <strong>nom de domaine</strong> que tu contrôles (ex. <code>exemple.com</code>).</li><li>La capacité de pointer un (sous-)domaine vers l&#39;IP publique de ton serveur (enregistrement DNS de type A).</li><li>Les <strong>ports 80 et 443 ouverts</strong> depuis Internet vers ton serveur (port-forward sur ta box, ou serveur VPS).</li></ul>
+<p>⚠️ <strong>Spécificité importante</strong> : pour le HTTPS via Let&#39;s Encrypt en mode &quot;TLS challenge&quot;, <strong>le port 443 doit être joignable depuis Internet</strong>. Si tu es derrière un CGNAT (4G, certaines fibres), c&#39;est impossible — utilise un <strong>DNS challenge</strong> (Cloudflare gratuit) ou un tunnel (Cloudflare Tunnel).</p>
+</div>
+<div data-lang="en"><p>You need:</p>
+<ul><li>Solid <strong>Docker + Docker Compose</strong> skills (the <code>up -d</code> cycle, healthchecks, volumes, networks).</li><li>A <strong>domain name</strong> you control (e.g. <code>example.com</code>).</li><li>The ability to point a (sub)domain at your server&#39;s public IP (DNS A record).</li><li><strong>Ports 80 and 443 open</strong> from the Internet to your server (port-forward on your router, or a VPS).</li></ul>
+<p>⚠️ <strong>Important caveat:</strong> for HTTPS via Let&#39;s Encrypt in &quot;TLS challenge&quot; mode, <strong>port 443 must be reachable from the Internet</strong>. If you&#39;re behind CGNAT (4G, some fiber providers), that won&#39;t work — use a <strong>DNS challenge</strong> (Cloudflare free tier) or a tunnel (Cloudflare Tunnel) instead.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">03</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">04</span>
+    <span class="title-line" data-lang="fr">Docker Compose</span>
+    <span class="title-line" data-lang="en">Docker Compose</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Architecture cible — Traefik termine HTTPS sur le port 443, lit les labels des conteneurs Docker pour savoir où router chaque hôte, et tout passe par un seul réseau Docker partagé <code>proxy</code>. Pas de port à mapper, pas de Nginx à configurer.</p>
+</div>
+<div data-lang="en"><p>Target architecture — Traefik terminates HTTPS on port 443, reads the Docker container labels to know where to route each host, and everything flows through a single shared Docker network <code>proxy</code>. No ports to map, no Nginx to configure.</p>
+</div>
+
+<figure class="schema" id="figure-traefik-architecture">
+  
+<svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="schema-traefik-title">
+  <title id="schema-traefik-title">Architecture Traefik — reverse proxy avec HTTPS auto</title>
+  <defs>
+    <marker id="arr-tr" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .box-accent { fill: #ffb627; stroke: #c98d10; stroke-width: 1.5; }
+    .box-soft { fill: #1e3a5f; stroke: #1e3a5f; stroke-width: 1.5; }
+    .label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; fill: currentColor; font-weight: 600; }
+    .label-on-fill { fill: #0d1117; }
+    .label-on-blue { fill: #f5f0e6; }
+    .sub { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; fill: currentColor; opacity: 0.65; }
+    .sub-on-fill { fill: #0d1117; opacity: 0.7; }
+    .sub-on-blue { fill: #d1d9e0; opacity: 0.85; }
+    .arrow-line { stroke: currentColor; stroke-width: 1.5; fill: none; marker-end: url(#arr-tr); }
+    .net { stroke: #ffb627; stroke-dasharray: 5,3; stroke-width: 1.5; fill: none; }
+  </style>
+
+  <!-- Internet -->
+  <text class="label" x="380" y="22" text-anchor="middle">Internet</text>
+
+  <!-- Routeur -->
+  <rect class="box" x="280" y="36" width="200" height="44" rx="3"/>
+  <text class="label" x="380" y="56" text-anchor="middle" data-lang="fr">Routeur / Box</text>
+  <text class="label" x="380" y="56" text-anchor="middle" data-lang="en">Router</text>
+  <text class="sub" x="380" y="72" text-anchor="middle">forward :80 / :443</text>
+  <path class="arrow-line" d="M 380 80 L 380 105"/>
+
+  <!-- Traefik -->
+  <rect class="box-accent" x="240" y="108" width="280" height="76" rx="3"/>
+  <text class="label label-on-fill" x="380" y="132" text-anchor="middle">Traefik v3</text>
+  <text class="sub sub-on-fill"   x="380" y="148" text-anchor="middle" data-lang="fr">reverse proxy · HTTPS auto · :80 :443</text>
+  <text class="sub sub-on-fill"   x="380" y="148" text-anchor="middle" data-lang="en">reverse proxy · auto HTTPS · :80 :443</text>
+  <text class="sub sub-on-fill"   x="380" y="164" text-anchor="middle" data-lang="fr">dashboard sécurisé · basic auth</text>
+  <text class="sub sub-on-fill"   x="380" y="164" text-anchor="middle" data-lang="en">secured dashboard · basic auth</text>
+  <text class="sub sub-on-fill"   x="380" y="178" text-anchor="middle">acme.json (Let's Encrypt)</text>
+
+  <!-- réseau proxy -->
+  <rect class="net" x="100" y="210" width="560" height="120" rx="4"/>
+  <text class="sub" x="115" y="228" data-lang="fr">réseau Docker partagé · proxy (external)</text>
+  <text class="sub" x="115" y="228" data-lang="en">shared Docker network · proxy (external)</text>
+
+  <!-- Connexions -->
+  <path class="arrow-line" d="M 340 184 L 220 245"/>
+  <path class="arrow-line" d="M 380 184 L 380 245"/>
+  <path class="arrow-line" d="M 420 184 L 540 245"/>
+
+  <!-- Service apps -->
+  <rect class="box-soft" x="135" y="248" width="170" height="64" rx="3"/>
+  <text class="label label-on-blue" x="220" y="270" text-anchor="middle">Vaultwarden</text>
+  <text class="sub sub-on-blue"   x="220" y="286" text-anchor="middle" data-lang="fr">labels traefik.*</text>
+  <text class="sub sub-on-blue"   x="220" y="286" text-anchor="middle" data-lang="en">traefik.* labels</text>
+  <text class="sub sub-on-blue"   x="220" y="302" text-anchor="middle">Host(`vault.exemple.com`)</text>
+
+  <rect class="box-soft" x="295" y="248" width="170" height="64" rx="3"/>
+  <text class="label label-on-blue" x="380" y="270" text-anchor="middle">whoami</text>
+  <text class="sub sub-on-blue"   x="380" y="286" text-anchor="middle">traefik/whoami</text>
+  <text class="sub sub-on-blue"   x="380" y="302" text-anchor="middle">Host(`whoami.exemple.com`)</text>
+
+  <rect class="box-soft" x="455" y="248" width="170" height="64" rx="3"/>
+  <text class="label label-on-blue" x="540" y="270" text-anchor="middle">Immich</text>
+  <text class="sub sub-on-blue"   x="540" y="286" text-anchor="middle" data-lang="fr">… etc.</text>
+  <text class="sub sub-on-blue"   x="540" y="286" text-anchor="middle" data-lang="en">… etc.</text>
+  <text class="sub sub-on-blue"   x="540" y="302" text-anchor="middle">Host(`photos.exemple.com`)</text>
+
+  <!-- Socket Docker -->
+  <text class="sub" x="40" y="148" data-lang="fr">socket Docker (:ro)</text>
+  <text class="sub" x="40" y="148" data-lang="en">Docker socket (:ro)</text>
+  <text class="sub" x="40" y="162" data-lang="fr">→ découverte automatique</text>
+  <text class="sub" x="40" y="162" data-lang="en">→ auto-discovery</text>
+  <path class="arrow-line" d="M 180 155 L 235 145"/>
+
+  <!-- Légende droite -->
+  <text class="sub" x="660" y="148" text-anchor="end" data-lang="fr">aucun port exposé</text>
+  <text class="sub" x="660" y="148" text-anchor="end" data-lang="en">no ports exposed</text>
+  <text class="sub" x="660" y="162" text-anchor="end" data-lang="fr">sur les apps</text>
+  <text class="sub" x="660" y="162" text-anchor="end" data-lang="en">on the apps</text>
+
+  <text class="sub" x="380" y="360" text-anchor="middle" data-lang="fr">un seul certificat Let's Encrypt par sous-domaine (TLS challenge)</text>
+  <text class="sub" x="380" y="360" text-anchor="middle" data-lang="en">one Let's Encrypt certificate per subdomain (TLS challenge)</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Traefik écoute :80 et :443, expose un dashboard sécurisé sur <code>traefik.exemple.com</code>, et route les apps via le réseau Docker partagé <code>proxy</code>.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Traefik listens on :80 and :443, exposes a secured dashboard on <code>traefik.example.com</code>, and routes apps through the shared <code>proxy</code> Docker network.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li><strong>Un seul service expose des ports</strong> — Traefik lui-même (80 et 443). Tes apps n&#39;exposent rien sur l&#39;hôte.</li><li><strong>Découverte automatique</strong> — Traefik lit le socket Docker (<code>/var/run/docker.sock:ro</code>) et trouve les services à exposer en lisant leurs labels <code>traefik.*</code>.</li><li><strong><code>proxy</code> est <code>external: true</code></strong> — il est créé une fois (<code>docker network create proxy</code>) puis réutilisé par toutes tes stacks. C&#39;est le point de rendez-vous.</li><li><strong>TLS challenge ≠ DNS challenge</strong> — TLS = Let&#39;s Encrypt te contacte sur :443 pour prouver que c&#39;est bien ton serveur. DNS = tu prouves via un enregistrement TXT. Le DNS challenge permet les certificats wildcard <code>*.exemple.com</code> ; le TLS challenge non.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li><strong>Only one service exposes ports</strong> — Traefik itself (80 and 443). Your apps expose nothing on the host.</li><li><strong>Auto-discovery</strong> — Traefik reads the Docker socket (<code>/var/run/docker.sock:ro</code>) and finds services to expose by reading their <code>traefik.*</code> labels.</li><li><strong><code>proxy</code> is <code>external: true</code></strong> — it&#39;s created once (<code>docker network create proxy</code>) and reused by every stack. It&#39;s the meeting point.</li><li><strong>TLS challenge ≠ DNS challenge</strong> — TLS = Let&#39;s Encrypt contacts you on :443 to prove you own the server. DNS = you prove it by setting a TXT record. The DNS challenge allows wildcard certificates <code>*.example.com</code>; the TLS challenge does not.</li></ul>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Configurer le DNS pour pointer <code>traefik.exemple.com</code> (dashboard) et un wildcard <code>*.exemple.com</code> (apps) vers l&#39;IP publique de ton serveur.</p>
+<p><strong>🤔 Pourquoi un wildcard DNS ?</strong> Permet de créer des sous-domaines comme <code>vault.exemple.com</code>, <code>photos.exemple.com</code> sans toucher au DNS à chaque ajout.</p>
+<p><strong>Attention au piège — wildcard DNS ≠ certificat wildcard :</strong> ce wildcard est seulement au niveau <em>DNS</em> (routage). Avec le TLS challenge configuré dans ce guide, Traefik génère un <strong>certificat séparé par sous-domaine</strong> (un pour <code>vault.</code>, un pour <code>photos.</code>…), pas un seul certificat <code>*.exemple.com</code>. Pour un vrai certificat wildcard unique, il faut le <strong>DNS challenge</strong> (voir section &quot;Et après ?&quot;). Pour un homelab, un certif par sous-domaine fonctionne parfaitement.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Configure DNS so that <code>traefik.example.com</code> (dashboard) and a wildcard <code>*.example.com</code> (apps) point to your server&#39;s public IP.</p>
+<p><strong>🤔 Why a wildcard DNS record?</strong> It lets you create subdomains like <code>vault.example.com</code>, <code>photos.example.com</code> without touching DNS each time.</p>
+<p><strong>Watch the trap — wildcard DNS ≠ wildcard certificate:</strong> this wildcard is only at the <em>DNS</em> level (routing). With the TLS challenge configured in this guide, Traefik generates <strong>one certificate per subdomain</strong> (one for <code>vault.</code>, one for <code>photos.</code>…), not a single <code>*.example.com</code> certificate. For a real single wildcard certificate, you need the <strong>DNS challenge</strong> (see &quot;What&#39;s next?&quot;). For a homelab, one cert per subdomain works perfectly.</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>A    traefik.exemple.com    →    &lt;public IP of your server&gt;
+A    *.exemple.com          →    &lt;public IP of your server&gt;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>dig traefik.exemple.com +short
+# Doit afficher / Should print your public IP</code></pre>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le réseau Docker partagé qui servira de point de rendez-vous entre Traefik et toutes tes apps.</p>
+<p><strong>🤔 Pourquoi un network externe ?</strong> Toutes tes futures stacks (Vaultwarden, Immich, etc.) s&#39;y rattacheront via <code>external: true</code>. Sans ce réseau commun, Traefik ne peut pas joindre les conteneurs des autres stacks.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the shared Docker network that will be the meeting point between Traefik and all your apps.</p>
+<p><strong>🤔 Why an external network?</strong> Every future stack (Vaultwarden, Immich, etc.) will attach to it via <code>external: true</code>. Without that shared network, Traefik can&#39;t reach containers from other stacks.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create proxy</code></pre>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Préparer la structure de fichiers et le fichier <code>acme.json</code> qui stockera tes certificats.</p>
+<p><strong>🤔 Pourquoi <code>chmod 600</code> sur <code>acme.json</code> ?</strong> Ce fichier contiendra tes certificats et <strong>clés privées</strong>. Let&#39;s Encrypt (via Traefik) refuse de l&#39;utiliser s&#39;il n&#39;est pas en <code>600</code> (lisible seulement par toi). C&#39;est une protection de base contre une lecture accidentelle par un autre utilisateur du serveur.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set up the file structure and the <code>acme.json</code> file that will store your certificates.</p>
+<p><strong>🤔 Why <code>chmod 600</code> on <code>acme.json</code>?</strong> This file will hold your certificates and <strong>private keys</strong>. Let&#39;s Encrypt (via Traefik) refuses to use it if it&#39;s not <code>600</code> (readable only by you). It&#39;s a basic safeguard against accidental reads by another user on the server.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/traefik/{data,logs}
+cd ~/traefik
+touch data/acme.json
+chmod 600 data/acme.json</code></pre>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le <code>compose.yaml</code> qui décrit Traefik, son routage interne, son dashboard sécurisé et son intégration Let&#39;s Encrypt.</p>
+<p><strong>🤔 Pourquoi chaque option du <code>command:</code> ?</strong></p>
+<ul><li><code>providers.docker.exposedbydefault=false</code> — <strong>important.</strong> Sans ça, Traefik exposerait <em>tous</em> tes conteneurs Docker automatiquement. Avec <code>false</code>, il n&#39;expose que ceux qui ont <code>traefik.enable=true</code>. Pattern <em>explicit &gt; implicit</em>.</li><li><code>tlschallenge=true</code> — Let&#39;s Encrypt valide la propriété du domaine via le port 443. Simple, mais nécessite que :443 soit ouvert depuis Internet.</li><li><code>api@internal</code> — service spécial interne pour le dashboard. À ne <strong>jamais</strong> exposer sans auth.</li><li><code>socket:ro</code> — Traefik lit (read-only) le socket Docker pour découvrir les conteneurs. Le <code>:ro</code> est important : il limite la casse en cas de compromission.</li><li><code>redirections.entrypoint.to=websecure</code> — tout trafic HTTP est redirigé en HTTPS. Standard moderne, pas négociable.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <code>compose.yaml</code> that describes Traefik, its internal routing, its secured dashboard, and Let&#39;s Encrypt integration.</p>
+<p><strong>🤔 Why each option in <code>command:</code>?</strong></p>
+<ul><li><code>providers.docker.exposedbydefault=false</code> — <strong>important.</strong> Without it, Traefik would expose <em>all</em> your Docker containers automatically. With <code>false</code>, it only exposes those with <code>traefik.enable=true</code>. The <em>explicit &gt; implicit</em> pattern.</li><li><code>tlschallenge=true</code> — Let&#39;s Encrypt verifies domain ownership via port 443. Simple, but requires :443 reachable from the Internet.</li><li><code>api@internal</code> — internal special service for the dashboard. <strong>Never</strong> expose it without auth.</li><li><code>socket:ro</code> — Traefik reads the Docker socket (read-only) to discover containers. The <code>:ro</code> matters: it limits the damage if the container is compromised.</li><li><code>redirections.entrypoint.to=websecure</code> — all HTTP traffic is redirected to HTTPS. Modern standard, non-negotiable.</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano ~/traefik/compose.yaml</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      # Logs
+      - &quot;--log.level=INFO&quot;
+      - &quot;--accesslog=true&quot;
+      # API + dashboard
+      - &quot;--api.dashboard=true&quot;
+      # Docker discovery
+      - &quot;--providers.docker=true&quot;
+      - &quot;--providers.docker.exposedbydefault=false&quot;
+      # Entrypoints
+      - &quot;--entrypoints.web.address=:80&quot;
+      - &quot;--entrypoints.websecure.address=:443&quot;
+      # Global HTTP → HTTPS redirection
+      - &quot;--entrypoints.web.http.redirections.entrypoint.to=websecure&quot;
+      - &quot;--entrypoints.web.http.redirections.entrypoint.scheme=https&quot;
+      # Let&#39;s Encrypt (TLS challenge)
+      - &quot;--certificatesresolvers.le.acme.email=${ACME_EMAIL}&quot;
+      - &quot;--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json&quot;
+      - &quot;--certificatesresolvers.le.acme.tlschallenge=true&quot;
+    ports:
+      - &quot;80:80&quot;
+      - &quot;443:443&quot;
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/acme.json:/letsencrypt/acme.json
+      - ./logs:/logs
+    networks:
+      - proxy
+    labels:
+      - &quot;traefik.enable=true&quot;
+      # Dashboard routing
+      - &quot;traefik.http.routers.dashboard.rule=Host(`traefik.exemple.com`)&quot;
+      - &quot;traefik.http.routers.dashboard.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.dashboard.tls.certresolver=le&quot;
+      - &quot;traefik.http.routers.dashboard.service=api@internal&quot;
+      # Basic auth on the dashboard
+      - &quot;traefik.http.routers.dashboard.middlewares=auth&quot;
+      - &quot;traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH}&quot;
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p>Puis <code>~/traefik/.env</code> (on remplit <code>TRAEFIK_AUTH</code> à l&#39;étape 5) :</p>
+</div>
+<div data-lang="en"><p>Then <code>~/traefik/.env</code> (we fill in <code>TRAEFIK_AUTH</code> at step 5):</p>
+</div>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code>ACME_EMAIL=ton@email.com
+# Generated with / Généré avec : htpasswd -nB admin
+# In a .env file: paste the hash AS-IS, do NOT double the $ (see step 5)
+TRAEFIK_AUTH=admin:$2y$05$xxxxxxxxxxxxxxx...</code></pre>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer le hash basic auth qui protège le dashboard, et bien comprendre où le coller.</p>
+<p><strong>🤔 Pourquoi un hash et pas le mot de passe en clair ?</strong> Même principe qu&#39;<code>ADMIN_TOKEN</code> côté Vaultwarden : si ton <code>.env</code> fuit (ou se retrouve dans Git par erreur), le mot de passe reste protégé. C&#39;est le standard <code>htpasswd</code> / Apache.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate the basic auth hash that protects the dashboard — and understand precisely where to paste it.</p>
+<p><strong>🤔 Why a hash, not a clear password?</strong> Same principle as Vaultwarden&#39;s <code>ADMIN_TOKEN</code>: if your <code>.env</code> leaks (or ends up in Git by mistake), the password stays protected. It&#39;s the standard <code>htpasswd</code> / Apache format.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install apache2-utils    # or / ou : brew install httpd
+htpasswd -nB admin
+# Type your password, copy the output / Tape ton mot de passe, copie la sortie</code></pre>
+<div data-lang="fr"><p>Tu obtiens quelque chose comme <code>admin:$2y$05$abcdefgh...</code>.</p>
+<p>⚠️ <strong>Point qui piège tout le monde — où coller ce hash ?</strong></p>
+<ul><li><strong>Dans un fichier <code>.env</code></strong> (notre cas, via <code>${TRAEFIK_AUTH}</code>) : colle le hash <strong>tel quel</strong>, sans rien doubler. Compose n&#39;interprète pas les <code>$</code> à l&#39;intérieur d&#39;une <em>valeur</em> venant du <code>.env</code> :</li></ul>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code>TRAEFIK_AUTH=admin:$2y$05$abcdefgh...</code></pre>
+<ul><li><strong>Directement dans le <code>compose.yaml</code></strong> (en dur dans un label) : là il faut <strong>doubler</strong> chaque <code>$</code> en <code>$$</code>, car Compose interprète les <code>$</code> du fichier compose lui-même :</li></ul>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- &quot;traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$05$$abcdefgh...&quot;</code></pre>
+<p>Comme on utilise un <code>.env</code> dans ce guide, <strong>ne double pas</strong>.</p>
+</div>
+<div data-lang="en"><p>You&#39;ll get something like <code>admin:$2y$05$abcdefgh...</code>.</p>
+<p>⚠️ <strong>The pitfall that catches everyone — where to paste this hash?</strong></p>
+<ul><li><strong>In a <code>.env</code> file</strong> (our case, via <code>${TRAEFIK_AUTH}</code>): paste the hash <strong>as-is</strong>, do not double anything. Compose doesn&#39;t interpret <code>$</code> inside a <em>value</em> coming from <code>.env</code>:</li></ul>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code>TRAEFIK_AUTH=admin:$2y$05$abcdefgh...</code></pre>
+<ul><li><strong>Directly in <code>compose.yaml</code></strong> (hardcoded in a label): there you must <strong>double</strong> each <code>$</code> as <code>$$</code>, because Compose interprets <code>$</code> in the compose file itself:</li></ul>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- &quot;traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$05$$abcdefgh...&quot;</code></pre>
+<p>Since we use a <code>.env</code> here, <strong>don&#39;t double</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer Traefik et observer les logs pour confirmer qu&#39;il démarre proprement et négocie son certificat.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch Traefik and watch the logs to confirm clean startup and certificate negotiation.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/traefik
+docker compose up -d
+docker compose logs -f</code></pre>
+<div data-lang="fr"><p>Cherche dans les logs :</p>
+<ul><li><code>Configuration loaded from flags.</code></li><li>pas de <code>panic</code>.</li><li>éventuellement des messages ACME : la première fois, Traefik demande le certif au démarrage du premier service.</li></ul>
+<p><strong>✅ Vérification :</strong></p>
+<ol><li><code>https://traefik.exemple.com</code> → page de login basic auth, puis dashboard Traefik.</li><li>Cadenas vert dans le navigateur (certificat Let&#39;s Encrypt valide).</li></ol>
+</div>
+<div data-lang="en"><p>Look for in the logs:</p>
+<ul><li><code>Configuration loaded from flags.</code></li><li>no <code>panic</code>.</li><li>possibly ACME messages: the first time, Traefik requests the cert when the first service starts.</li></ul>
+<p><strong>✅ Check:</strong></p>
+<ol><li><code>https://traefik.example.com</code> → basic auth login, then the Traefik dashboard.</li><li>Green padlock in the browser (valid Let&#39;s Encrypt certificate).</li></ol>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Tester avec un service jetable <code>whoami</code> pour confirmer la mécanique de routage end-to-end avant de brancher de vrais services.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Test with a disposable <code>whoami</code> service to confirm the end-to-end routing mechanic before plugging in real services.</p>
+</div>
+<div data-lang="fr"><p>Ajoute ce service dans un nouveau compose, ou directement dans le compose Traefik :</p>
+</div>
+<div data-lang="en"><p>Add this service in a new compose file, or directly in the Traefik compose:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    networks:
+      - proxy
+    labels:
+      - &quot;traefik.enable=true&quot;
+      - &quot;traefik.http.routers.whoami.rule=Host(`whoami.exemple.com`)&quot;
+      - &quot;traefik.http.routers.whoami.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.whoami.tls.certresolver=le&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>https://whoami.exemple.com</code> répond avec les infos du conteneur, en HTTPS valide. Si oui : <strong>bravo, tu as un reverse proxy fonctionnel.</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>https://whoami.example.com</code> responds with container info, in valid HTTPS. If yes: <strong>congratulations, you have a working reverse proxy.</strong></p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mémoriser le pattern réutilisable que tu vas appliquer à tous tes futurs services.</p>
+<p>Pour exposer n&#39;importe quel service derrière Traefik, ajoute juste à son <code>compose.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Memorize the reusable pattern you&#39;ll apply to every future service.</p>
+<p>To expose any service behind Traefik, just add the following to its <code>compose.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  monservice:
+    image: ...
+    networks:
+      - proxy
+    labels:
+      - &quot;traefik.enable=true&quot;
+      - &quot;traefik.http.routers.monservice.rule=Host(`mon.exemple.com`)&quot;
+      - &quot;traefik.http.routers.monservice.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.monservice.tls.certresolver=le&quot;
+      - &quot;traefik.http.services.monservice.loadbalancer.server.port=80&quot;
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p>C&#39;est tout. Pas de ports exposés, pas de config Nginx, pas de cron pour renouveler les certifs. C&#39;est <em>exactement</em> ce pattern que tu retrouveras dans le guide Vaultwarden (étape 6).</p>
+</div>
+<div data-lang="en"><p>That&#39;s it. No exposed ports, no Nginx config, no cron job to renew the certs. This is <em>exactly</em> the pattern you&#39;ll see in the Vaultwarden guide (step 6).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. « Unable to obtain ACME certificate ».</strong> Causes fréquentes : DNS pas encore propagé (attendre 10-30 min) ; port 443 non ouvert depuis Internet (tester <code>curl https://&lt;ton-ip&gt;</code> depuis dehors) ; tu as utilisé <code>acme.caserver=staging</code> et obtenu un faux certif (à enlever après tests, et purger <code>acme.json</code>).</p>
+<p><strong>2. « Too many requests » de Let&#39;s Encrypt.</strong> Tu as fait trop d&#39;essais ratés. Let&#39;s Encrypt limite à <strong>5 certificats par domaine et par semaine</strong>. Pendant tes tests, utilise l&#39;environnement staging : <code>--certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory</code>. Les certifs staging ne sont pas valides dans les navigateurs (warning) mais sans limite.</p>
+<p><strong>3. Tu modifies une config et <code>docker compose restart</code> ne suffit pas.</strong> Mêmes pièges que pour Compose : <code>restart</code> ne relit pas <code>command:</code> ni les labels. Toujours <code>up -d</code> après modif.</p>
+<p><strong>4. Le dashboard est accessible sans auth.</strong> Tu as oublié la middleware <code>auth</code> sur le router, ou ton hash est mauvais. <strong>Anti-pattern absolu : exposer le dashboard sans auth.</strong></p>
+<p><strong>5. Tu mets <code>--api.insecure=true</code> &quot;pour debug&quot; et tu l&#39;oublies.</strong> Cela expose le dashboard sur le port 8080 sans aucune auth. <strong>Très dangereux.</strong> À retirer immédiatement après debug local.</p>
+<p><strong>6. Erreur 404 sur un nouveau service.</strong> Vérifie dans l&#39;ordre : (a) <code>traefik.enable=true</code> est bien là ; (b) le service est sur le réseau <code>proxy</code> ; (c) le DNS est OK ; (d) le router est défini avec un <code>entrypoints=websecure</code>.</p>
+<p><strong>7. Wildcard certificat impossible avec TLS challenge.</strong> Si tu veux un <code>*.exemple.com</code> en certificat <strong>unique</strong>, il faut <strong>obligatoirement</strong> passer en DNS challenge (config plus complexe, dépend de ton registrar — Cloudflare le rend simple).</p>
+</div>
+<div data-lang="en"><p><strong>1. &quot;Unable to obtain ACME certificate&quot;.</strong> Common causes: DNS not yet propagated (wait 10–30 min); port 443 not open from the Internet (test <code>curl https://&lt;your-ip&gt;</code> from outside); you used <code>acme.caserver=staging</code> and got a fake cert (remove after testing and wipe <code>acme.json</code>).</p>
+<p><strong>2. &quot;Too many requests&quot; from Let&#39;s Encrypt.</strong> You did too many failed attempts. Let&#39;s Encrypt caps <strong>5 certificates per domain per week</strong>. During testing, use the staging environment: <code>--certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory</code>. Staging certs aren&#39;t valid in browsers (warning) but have no rate limit.</p>
+<p><strong>3. You change a config and <code>docker compose restart</code> isn&#39;t enough.</strong> Same trap as Compose: <code>restart</code> doesn&#39;t re-read <code>command:</code> or labels. Always <code>up -d</code> after a change.</p>
+<p><strong>4. The dashboard is accessible without auth.</strong> You forgot the <code>auth</code> middleware on the router, or your hash is wrong. <strong>Absolute anti-pattern: exposing the dashboard without auth.</strong></p>
+<p><strong>5. You add <code>--api.insecure=true</code> &quot;for debugging&quot; and forget it.</strong> This exposes the dashboard on port 8080 with no auth at all. <strong>Very dangerous.</strong> Remove immediately after local debugging.</p>
+<p><strong>6. 404 on a new service.</strong> Check in order: (a) <code>traefik.enable=true</code> is present; (b) the service is on the <code>proxy</code> network; (c) DNS is OK; (d) the router has <code>entrypoints=websecure</code>.</p>
+<p><strong>7. Wildcard certificate impossible with TLS challenge.</strong> If you want a single <code>*.example.com</code> certificate, you <strong>must</strong> switch to a DNS challenge (more complex config, depends on your registrar — Cloudflare makes it simple).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li><code>https://traefik.exemple.com</code> charge le dashboard après auth, cadenas vert.</li><li><code>https://whoami.exemple.com</code> répond, cadenas vert.</li><li><code>curl -I http://whoami.exemple.com</code> retourne <code>301</code> (redirect vers HTTPS).</li><li><code>docker compose logs traefik</code> ne contient pas de <code>error</code>.</li><li>Tu peux ajouter un nouveau service en <strong>5 minutes</strong> juste en ajoutant des labels.</li></ul>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li><code>https://traefik.example.com</code> loads the dashboard after auth, green padlock.</li><li><code>https://whoami.example.com</code> responds, green padlock.</li><li><code>curl -I http://whoami.example.com</code> returns <code>301</code> (redirect to HTTPS).</li><li><code>docker compose logs traefik</code> contains no <code>error</code>.</li><li>You can add a new service in <strong>5 minutes</strong> just by adding labels.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Trois prolongements naturels, du plus utile au plus avancé :</p>
+<ol><li><strong>Vaultwarden</strong> — premier vrai service derrière Traefik, et qui te montrera pourquoi tu as fait tout ça.</li><li><strong>Immich</strong> — photos self-hosted, alternative crédible à Google Photos, réutilise exactement la même mécanique de labels.</li><li><strong>Middleware Traefik avancée</strong> — headers de sécurité (HSTS, CSP), rate limiting, IP whitelist. Optionnel mais propre.</li><li><strong>DNS challenge Cloudflare</strong> — pour les certificats wildcard unique. Indispensable pour un homelab sérieux qui veut beaucoup de sous-domaines.</li></ol>
+</div>
+<div data-lang="en"><p>Three natural next steps, from most useful to most advanced:</p>
+<ol><li><strong>Vaultwarden</strong> — first real service behind Traefik, and the one that will show you why you did all this.</li><li><strong>Immich</strong> — self-hosted photos, a credible alternative to Google Photos, reusing the exact same labels mechanic.</li><li><strong>Advanced Traefik middlewares</strong> — security headers (HSTS, CSP), rate limiting, IP whitelist. Optional but clean.</li><li><strong>Cloudflare DNS challenge</strong> — for single wildcard certificates. A must for any serious homelab that wants many subdomains.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../vaultwarden/">
+    <span class="num">06</span>
+    <span class="title-line" data-lang="fr">Vaultwarden — Ton gestionnaire de mots de passe self-hosté</span>
+    <span class="title-line" data-lang="en">Vaultwarden — Your self-hosted password manager</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">07</span>
+    <span class="title-line" data-lang="fr">Immich — Ton Google Photos auto-hébergé</span>
+    <span class="title-line" data-lang="en">Immich — Your self-hosted Google Photos</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire pour gérer Traefik au quotidien et ajouter un service.</p>
+</div>
+<div data-lang="en"><p>Cheat sheet to operate Traefik day-to-day and add a service.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+cd ~/traefik
+docker compose up -d                  # démarrer / start
+docker compose ps                     # statut / status
+docker compose logs -f traefik        # suivre les logs / follow logs
+docker compose down                   # arrêter / stop (acme.json préservé / preserved)
+
+# Forcer un recharge propre / Force a clean reload
+docker compose up -d                  # toujours après une modif de compose ou .env
+
+# Inspecter le routage / Inspect routing
+# → dashboard : https://traefik.exemple.com (HTTP &gt; Routers / Services / Middlewares)
+
+# Nouveau service derrière Traefik / Add a new service behind Traefik
+# (dans son propre compose.yaml / in its own compose.yaml)
+#
+# networks:        →   proxy: (external: true)
+# labels:          →   traefik.enable=true
+#                      traefik.http.routers.X.rule=Host(`X.exemple.com`)
+#                      traefik.http.routers.X.entrypoints=websecure
+#                      traefik.http.routers.X.tls.certresolver=le
+#                      traefik.http.services.X.loadbalancer.server.port=&lt;port interne&gt;
+
+# Reset complet ACME (après une erreur durable)
+docker compose down
+&gt; data/acme.json                       # vide le fichier sans le supprimer
+chmod 600 data/acme.json
+docker compose up -d</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://doc.traefik.io/traefik/">Documentation officielle Traefik v3</a> — la référence absolue.</li><li><a href="https://github.com/awesome-traefik/awesome-traefik">Awesome Traefik</a> — communauté, plugins, exemples.</li><li><a href="https://doc.traefik.io/traefik/migration/v2-to-v3/">Guide officiel migration v2 → v3</a> — si tu pars d&#39;une stack v2.</li><li><a href="https://technotim.live/posts/traefik-3-docker-certificates/">Techno Tim — Traefik 3 hands-on</a> — tuto vidéo complémentaire.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://doc.traefik.io/traefik/">Official Traefik v3 docs</a> — the absolute reference.</li><li><a href="https://github.com/awesome-traefik/awesome-traefik">Awesome Traefik</a> — community, plugins, examples.</li><li><a href="https://doc.traefik.io/traefik/migration/v2-to-v3/">Official v2 → v3 migration guide</a> — if you&#39;re coming from a v2 stack.</li><li><a href="https://technotim.live/posts/traefik-3-docker-certificates/">Techno Tim — Traefik 3 hands-on</a> — companion video tutorial.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« 404 page not found » sur tous les domaines.</strong> Probablement aucun router ne match l&#39;hôte. Va sur le dashboard Traefik → onglet HTTP → Routers. Vérifie qu&#39;il y a un router avec la bonne <code>rule=Host(...)</code>. Si non, ton label est mal écrit ou ton conteneur n&#39;est pas sur le réseau <code>proxy</code>.</p>
+<p><strong>« Bad Gateway » 502.</strong> Traefik trouve le router mais ne peut pas joindre le service. Vérifie : (a) le label <code>traefik.http.services.X.loadbalancer.server.port</code> pointe bien sur le <strong>port interne</strong> du conteneur (pas le port hôte) ; (b) le service est bien sur le réseau <code>proxy</code>.</p>
+<p><strong>Certificat expiré ou pas renouvelé.</strong> Traefik renouvelle ~30 jours avant expiration. Si problème : vérifier les logs Traefik au moment du renouvellement. Avec le <strong>TLS challenge</strong> (notre config), c&#39;est le <strong>port 443</strong> qui doit rester joignable depuis Internet — le port 80 ne sert qu&#39;à la redirection HTTP→HTTPS. Avec un <strong>HTTP challenge</strong> (variante), ce serait l&#39;inverse (port 80 requis pour le challenge).</p>
+<p><strong>Le dashboard demande l&#39;auth puis boucle / refuse le mot de passe.</strong> Hash basic auth mal géré. Refais <code>htpasswd -nB admin</code>. Rappel de l&#39;étape 5 : dans un <code>.env</code>, colle le hash <strong>tel quel</strong> ; ce n&#39;est que si tu le mets <strong>directement dans le <code>compose.yaml</code></strong> qu&#39;il faut doubler les <code>$</code> en <code>$$</code>.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;404 page not found&quot; on every domain.</strong> Likely no router matches the host. Open the Traefik dashboard → HTTP tab → Routers. Confirm a router exists with the right <code>rule=Host(...)</code>. If not, your label is wrong or your container isn&#39;t on the <code>proxy</code> network.</p>
+<p><strong>&quot;Bad Gateway&quot; 502.</strong> Traefik finds the router but can&#39;t reach the service. Check: (a) the <code>traefik.http.services.X.loadbalancer.server.port</code> label points at the <strong>container&#39;s internal port</strong> (not the host port); (b) the service is on the <code>proxy</code> network.</p>
+<p><strong>Certificate expired or not renewed.</strong> Traefik renews ~30 days before expiry. If broken: check the Traefik logs at renewal time. With the <strong>TLS challenge</strong> (our config), it&#39;s <strong>port 443</strong> that must stay reachable from the Internet — port 80 only serves the HTTP→HTTPS redirect. With an <strong>HTTP challenge</strong> (variant), it would be the other way around (port 80 required for the challenge).</p>
+<p><strong>Dashboard prompts auth then loops / rejects the password.</strong> Mishandled basic auth hash. Re-run <code>htpasswd -nB admin</code>. Reminder from step 5: in a <code>.env</code>, paste the hash <strong>as-is</strong>; it&#39;s only when you put it <strong>directly in the <code>compose.yaml</code></strong> that you must double the <code>$</code> to <code>$$</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Vaultwarden — Ton gestionnaire de mots de passe self-hosté — jiha.tech</title>
+  <title data-lang="en">Vaultwarden — Your self-hosted password manager — jiha.tech</title>
+  <meta name="description" content="Guide pas-à-pas pour héberger Vaultwarden : Docker, HTTPS, sauvegardes." data-lang="fr">
+  <meta name="description" content="Step-by-step guide to self-host Vaultwarden: Docker, HTTPS, backups." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Vaultwarden — Ton gestionnaire de mots de passe self-hosté">
+  <meta property="og:description" content="Guide pas-à-pas pour héberger Vaultwarden : Docker, HTTPS, sauvegardes.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/vaultwarden/">
+  <link rel="canonical" href="https://jiha.tech/guides/vaultwarden/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="vaultwarden">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/vaultwarden</div>
+    <div class="prompt" data-lang="en">~/guides/vaultwarden</div>
+    <h1 data-lang="fr">Vaultwarden — Ton gestionnaire de mots de passe self-hosté</h1>
+    <h1 data-lang="en">Vaultwarden — Your self-hosted password manager</h1>
+    <p class="tagline" data-lang="fr">Déploie ton propre serveur compatible Bitwarden, léger et privé.</p>
+    <p class="tagline" data-lang="en">Deploy your own lightweight, private Bitwarden-compatible server.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 45 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>1.34.1</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-16</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 45 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>1.34.1</strong></div>
+  <div><span>Last review</span><strong>2026-06-16</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Vaultwarden est une réécriture open-source du serveur Bitwarden, en Rust. Il fait <strong>la même chose que Bitwarden</strong> (vault chiffré, sync multi-appareils, partage, 2FA) mais consomme <strong>10 à 20× moins de ressources</strong> — un Raspberry Pi suffit largement.</p>
+<p>Ce guide te montre comment le déployer en Docker, le mettre derrière un reverse proxy avec HTTPS valide, et le sécuriser correctement (panel admin, signups, sauvegardes).</p>
+<p><strong>Pour qui c&#39;est :</strong> quelqu&#39;un qui veut héberger ses mots de passe lui-même, soit pour la souveraineté, soit pour apprendre la stack self-hosting &quot;sérieuse&quot; sur un cas d&#39;usage critique.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as <strong>pas</strong> de reverse proxy avec HTTPS — les clients officiels Bitwarden refusent toute connexion non-HTTPS valide. Pas négociable.</li><li>Tu n&#39;as <strong>pas</strong> de stratégie de sauvegarde — perdre <code>vw-data/</code> = perdre <strong>tous</strong> tes mots de passe sans récupération possible.</li><li>Tu cherches une solution &quot;zéro maintenance&quot; — un password manager self-hosté est une responsabilité réelle.</li></ul>
+<p>Si l&#39;un des trois te concerne, mieux vaut rester sur Bitwarden cloud ou Proton Pass pour l&#39;instant. Pas de honte, c&#39;est un bon arbitrage.</p>
+</div>
+<div data-lang="en"><p>Vaultwarden is an open-source rewrite of the Bitwarden server in Rust. It does <strong>the same job as Bitwarden</strong> (encrypted vault, multi-device sync, sharing, 2FA) but uses <strong>10–20× fewer resources</strong> — a Raspberry Pi is more than enough.</p>
+<p>This guide shows you how to deploy it with Docker, put it behind a reverse proxy with valid HTTPS, and lock it down properly (admin panel, signups, backups).</p>
+<p><strong>Who it&#39;s for:</strong> someone who wants to host their passwords themselves, either for sovereignty or to learn a &quot;serious&quot; self-hosting stack on a critical use case.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You <strong>don&#39;t</strong> have a reverse proxy with HTTPS — official Bitwarden clients refuse any non-HTTPS connection. Non-negotiable.</li><li>You <strong>don&#39;t</strong> have a backup strategy — losing <code>vw-data/</code> means losing <strong>every</strong> password with no recovery.</li><li>You want a &quot;zero maintenance&quot; solution — a self-hosted password manager is a real responsibility.</li></ul>
+<p>If any of those apply, stick with Bitwarden cloud or Proton Pass for now. No shame — it&#39;s a sound trade-off.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Lancer un service Docker avec une <strong>base de données persistante</strong> (volume monté), et comprendre pourquoi ce volume est ta vraie donnée précieuse — pas le conteneur.</li><li>Configurer un service via <strong>variables d&#39;environnement</strong> (pattern universel en Docker).</li><li>Connecter un service à un <strong>reverse proxy externe</strong> via un Docker network partagé.</li><li>Sécuriser un <strong>panel admin</strong> avec un token Argon2id hashé.</li><li>Désactiver les inscriptions ouvertes (<code>SIGNUPS_ALLOWED</code>) une fois ton compte créé.</li><li>Mettre en place une <strong>sauvegarde minimale</strong> — et comprendre pourquoi c&#39;est non-négociable.</li></ul>
+<p>Tu manipuleras au passage : <code>docker compose</code>, healthchecks, environment variables, networks, volumes, secrets de base.</p>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Run a Docker service with a <strong>persistent database</strong> (mounted volume) and understand why that volume is your real valuable data — not the container.</li><li>Configure a service via <strong>environment variables</strong> (a universal Docker pattern).</li><li>Connect a service to an <strong>external reverse proxy</strong> through a shared Docker network.</li><li>Secure an <strong>admin panel</strong> with an Argon2id-hashed token.</li><li>Disable open signups (<code>SIGNUPS_ALLOWED</code>) once your account is created.</li><li>Set up a <strong>minimal backup</strong> — and understand why it&#39;s non-negotiable.</li></ul>
+<p>Along the way you&#39;ll handle: <code>docker compose</code>, healthchecks, environment variables, networks, volumes, basic secrets.</p>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Une aisance en <strong>ligne de commande Linux</strong> (<code>cd</code>, <code>nano</code>/<code>vim</code>, <code>ls</code>, <code>sudo</code>).</li><li><strong>Docker et Docker Compose</strong> installés et fonctionnels.</li><li>La notion de ce qu&#39;est un <strong>conteneur, une image, un volume</strong>.</li><li>Un <strong>reverse proxy avec HTTPS</strong> qui tourne déjà (Traefik recommandé).</li><li>Un <strong>nom de domaine</strong> (ou sous-domaine) que tu contrôles, pointant vers ton serveur.</li></ul>
+<p><strong>Pourquoi le reverse proxy est non-négociable :</strong> les clients Bitwarden (web, desktop, mobile, extension) <strong>refusent activement</strong> toute connexion qui n&#39;est pas en HTTPS avec un certificat valide. Sans reverse proxy, tu pourras techniquement déployer Vaultwarden, mais tu ne pourras pas l&#39;utiliser sérieusement. C&#39;est <em>par design</em>, pour ta sécurité.</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>Comfort with the <strong>Linux command line</strong> (<code>cd</code>, <code>nano</code>/<code>vim</code>, <code>ls</code>, <code>sudo</code>).</li><li><strong>Docker and Docker Compose</strong> installed and working.</li><li>A grasp of what a <strong>container, image, and volume</strong> are.</li><li>A <strong>reverse proxy with HTTPS</strong> already running (Traefik recommended).</li><li>A <strong>domain name</strong> (or subdomain) you control, pointed at your server.</li></ul>
+<p><strong>Why the reverse proxy is non-negotiable:</strong> Bitwarden clients (web, desktop, mobile, extension) <strong>actively refuse</strong> any connection that isn&#39;t HTTPS with a valid certificate. Without a reverse proxy you can technically deploy Vaultwarden, but you won&#39;t be able to use it seriously. It&#39;s <em>by design</em>, for your security.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">03</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">04</span>
+    <span class="title-line" data-lang="fr">Docker Compose</span>
+    <span class="title-line" data-lang="en">Docker Compose</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">05</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Voici ce qu&#39;on va construire — un service Vaultwarden derrière Traefik, branché sur un volume disque qui contient toute ta donnée précieuse.</p>
+</div>
+<div data-lang="en"><p>Here&#39;s what we&#39;re building — a Vaultwarden service behind Traefik, hooked up to a disk volume that holds all your valuable data.</p>
+</div>
+
+<figure class="schema" id="figure-architecture">
+  
+<svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="schema-arch-title">
+  <title id="schema-arch-title">Architecture Vaultwarden derrière Traefik</title>
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .box-accent { fill: #ffb627; stroke: #c98d10; stroke-width: 1.5; }
+    .box-data { fill: #50c878; stroke: #2c8c4f; stroke-width: 1.5; }
+    .label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; fill: currentColor; font-weight: 600; }
+    .label-on-fill { fill: #0d1117; }
+    .sub { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; fill: currentColor; opacity: 0.65; }
+    .sub-on-fill { fill: #0d1117; opacity: 0.7; }
+    .arrow-line { stroke: currentColor; stroke-width: 1.5; fill: none; marker-end: url(#arr); }
+    .net { stroke: #ffb627; stroke-dasharray: 5,3; stroke-width: 1.5; fill: none; }
+  </style>
+
+  <!-- Internet -->
+  <text class="label" x="380" y="28" text-anchor="middle" data-lang="fr">Internet</text>
+  <text class="label" x="380" y="28" text-anchor="middle" data-lang="en">Internet</text>
+  <path class="arrow-line" d="M 380 40 L 380 70"/>
+
+  <!-- Traefik -->
+  <rect class="box" x="260" y="74" width="240" height="68" rx="3"/>
+  <text class="label" x="380" y="100" text-anchor="middle">Traefik</text>
+  <text class="sub"   x="380" y="118" text-anchor="middle">HTTPS · Let's Encrypt · :443</text>
+  <text class="sub"   x="380" y="132" text-anchor="middle" data-lang="fr">reverse proxy</text>
+  <text class="sub"   x="380" y="132" text-anchor="middle" data-lang="en">reverse proxy</text>
+
+  <!-- Réseau proxy (dashed box) -->
+  <rect class="net" x="190" y="160" width="380" height="120" rx="4"/>
+  <text class="sub" x="200" y="178" data-lang="fr">réseau Docker · proxy (external)</text>
+  <text class="sub" x="200" y="178" data-lang="en">Docker network · proxy (external)</text>
+
+  <path class="arrow-line" d="M 380 142 L 380 190"/>
+
+  <!-- Vaultwarden -->
+  <rect class="box-accent" x="270" y="195" width="220" height="68" rx="3"/>
+  <text class="label label-on-fill" x="380" y="220" text-anchor="middle">Vaultwarden</text>
+  <text class="sub sub-on-fill"   x="380" y="238" text-anchor="middle">vaultwarden/server:1.34.1</text>
+  <text class="sub sub-on-fill"   x="380" y="252" text-anchor="middle">:80 → /alive (healthcheck)</text>
+
+  <!-- Volume -->
+  <path class="arrow-line" d="M 380 263 L 380 295"/>
+  <rect class="box-data" x="240" y="298" width="280" height="50" rx="3"/>
+  <text class="label" x="380" y="318" text-anchor="middle" data-lang="fr">Volume disque · ./vw-data/</text>
+  <text class="label" x="380" y="318" text-anchor="middle" data-lang="en">Disk volume · ./vw-data/</text>
+  <text class="sub"   x="380" y="334" text-anchor="middle">db.sqlite3 · rsa_key.* · attachments/</text>
+
+  <!-- Side labels -->
+  <text class="sub" x="22"  y="240" data-lang="fr">conteneur jetable</text>
+  <text class="sub" x="22"  y="240" data-lang="en">disposable container</text>
+  <text class="sub" x="22"  y="254" data-lang="fr">tu peux le recréer</text>
+  <text class="sub" x="22"  y="254" data-lang="en">you can recreate it</text>
+
+  <text class="sub" x="640" y="320" data-lang="fr">TA donnée précieuse</text>
+  <text class="sub" x="640" y="320" data-lang="en">your real data</text>
+  <text class="sub" x="640" y="334" data-lang="fr">backup obligatoire</text>
+  <text class="sub" x="640" y="334" data-lang="en">backup is mandatory</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Architecture cible : Traefik termine HTTPS, route vers Vaultwarden via le réseau Docker <code>proxy</code>, et la persistance vit dans le volume <code>./vw-data/</code>.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Target architecture: Traefik terminates HTTPS, routes to Vaultwarden through the <code>proxy</code> Docker network, and persistence lives in the <code>./vw-data/</code> volume.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li>Le <strong>conteneur</strong> est jetable : tu peux le détruire et le recréer à volonté.</li><li>Le <strong>volume</strong> <code>./vw-data/</code> contient la base SQLite chiffrée, les clés RSA et les pièces jointes. <strong>C&#39;est ta vraie donnée.</strong> Le perdre = tout perdre.</li><li>Le <strong>réseau <code>proxy</code></strong> est <em>externe</em> : il existe avant Vaultwarden (créé par Traefik). Vaultwarden s&#39;y attache pour être joignable par le reverse proxy, <strong>sans exposer un seul port</strong> sur l&#39;hôte.</li><li>Le <strong>panel admin</strong> s&#39;authentifie avec un <strong>mot de passe</strong> que toi tu connais. Ce que ton <code>.env</code> stocke, c&#39;est son <strong>hash Argon2id</strong> — pas le mot de passe lui-même.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li>The <strong>container</strong> is disposable: you can destroy and recreate it at will.</li><li>The <strong>volume</strong> <code>./vw-data/</code> holds the encrypted SQLite database, RSA keys, and attachments. <strong>That&#39;s your real data.</strong> Lose it = lose everything.</li><li>The <strong><code>proxy</code> network</strong> is <em>external</em>: it exists before Vaultwarden (created by Traefik). Vaultwarden attaches to it so the reverse proxy can reach it <strong>without exposing a single port</strong> on the host.</li><li>The <strong>admin panel</strong> authenticates with a <strong>password</strong> that only you know. What <code>.env</code> stores is its <strong>Argon2id hash</strong> — not the password itself.</li></ul>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Préparer le terrain — un dossier dédié au service avec un sous-dossier pour la donnée persistante.</p>
+<p><strong>🤔 Pourquoi ?</strong> Tout ce qui sera dans <code>vw-data/</code> (base SQLite chiffrée, clés RSA, pièces jointes) survivra à la destruction/recréation du conteneur. C&#39;est ta vraie donnée. Le conteneur, lui, est jetable.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prepare the ground — a dedicated folder for the service with a sub-folder for persistent data.</p>
+<p><strong>🤔 Why?</strong> Everything in <code>vw-data/</code> (encrypted SQLite database, RSA keys, attachments) survives container destruction/recreation. That&#39;s your real data. The container itself is disposable.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/vaultwarden/vw-data
+cd ~/vaultwarden</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pwd          # /home/&lt;toi&gt;/vaultwarden
+ls -la       # doit montrer le dossier vw-data</code></pre>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer le token admin sous forme de hash Argon2id.</p>
+<p><strong>🤔 Pourquoi ?</strong> Le panel admin de Vaultwarden permet de gérer tous les utilisateurs et la config. Si quelqu&#39;un trouve ce token, il a les clés du royaume. En stockant un <strong>hash</strong> Argon2id et pas le mot de passe en clair, même si ton <code>.env</code> fuite (ou est dans Git par erreur), le secret reste protégé. C&#39;est exactement le même principe que pour les mots de passe utilisateurs en base de données.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate the admin token as an Argon2id hash.</p>
+<p><strong>🤔 Why?</strong> The Vaultwarden admin panel manages all users and config. If someone gets this token, they own the kingdom. By storing an Argon2id <strong>hash</strong> rather than the password in clear text, even if your <code>.env</code> leaks (or ends up in Git by mistake), the secret stays protected. Same principle as user passwords in a database.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm -it vaultwarden/server:1.34.1 /vaultwarden hash</code></pre>
+<div data-lang="fr"><p>L&#39;outil te demande un mot de passe, te demande de le confirmer, puis affiche un hash de la forme :</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>$argon2id$v=19$m=65540,t=3,p=4$...</code></pre>
+<p><strong>Garde précieusement :</strong></p>
+<ul><li>Le mot de passe en clair (toi tu le retiens / le mets dans ton password manager temporaire).</li><li>Le hash complet, qu&#39;on va coller dans <code>.env</code>.</li></ul>
+<p><strong>✅ Vérification :</strong> le hash commence bien par <code>$argon2id$</code>. Sinon → vieille version, mets à jour l&#39;image.</p>
+</div>
+<div data-lang="en"><p>The tool prompts for a password, asks you to confirm it, then prints a hash like:</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>$argon2id$v=19$m=65540,t=3,p=4$...</code></pre>
+<p><strong>Keep both safe:</strong></p>
+<ul><li>The clear-text password (memorize it / put it in your temporary password manager).</li><li>The full hash, which we&#39;ll paste into <code>.env</code>.</li></ul>
+<p><strong>✅ Check:</strong> the hash starts with <code>$argon2id$</code>. If not → old version, update the image.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le fichier <code>.env</code> avec la config sensible, hors <code>docker-compose.yml</code>.</p>
+<p><strong>🤔 Pourquoi ?</strong></p>
+<ul><li><code>DOMAIN</code> : Vaultwarden l&#39;utilise pour générer correctement les URLs dans les emails et certains tokens. Mauvaise valeur → des fonctions cassent <strong>silencieusement</strong>.</li><li>Séparer config et <code>docker-compose.yml</code> permet de versionner le compose en Git <strong>sans</strong> committer tes secrets.</li><li><code>SIGNUPS_ALLOWED=true</code> est <strong>temporaire</strong> — on le passera à <code>false</code> après création de ton compte.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <code>.env</code> file with sensitive config, kept out of <code>docker-compose.yml</code>.</p>
+<p><strong>🤔 Why?</strong></p>
+<ul><li><code>DOMAIN</code>: Vaultwarden uses it to generate proper URLs in emails and certain tokens. Wrong value → features break <strong>silently</strong>.</li><li>Splitting config from <code>docker-compose.yml</code> lets you Git-version the compose file <strong>without</strong> committing your secrets.</li><li><code>SIGNUPS_ALLOWED=true</code> is <strong>temporary</strong> — we&#39;ll flip it to <code>false</code> after creating your account.</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano .env</code></pre>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code># Le domaine PUBLIC où ton instance sera accessible (HTTPS obligatoire)
+DOMAIN=https://vault.exemple.com
+
+# Hash Argon2id généré à l&#39;étape 2 — colle-le TEL QUEL :
+#  - PAS de guillemets autour
+#  - NE double PAS les $ (on utilise env_file, pas d&#39;interpolation ${...})
+ADMIN_TOKEN=$argon2id$v=19$m=65540,t=3,p=4$...
+
+# Autoriser les inscriptions PENDANT le setup initial uniquement
+SIGNUPS_ALLOWED=true
+
+# Logs : info en prod, debug pendant le setup
+LOG_LEVEL=info</code></pre>
+<div data-lang="fr"><p>⚠️ <strong>Le piège n°1 de Vaultwarden — l&#39;<code>ADMIN_TOKEN</code></strong> : les <code>$</code> du hash Argon2id provoquent un comportement différent selon comment tu passes la variable :</p>
+<ul><li><strong>Via <code>env_file:</code> (notre cas)</strong> → colle le hash brut, <strong>sans guillemets, sans doubler les <code>$</code></strong>.</li><li><strong>Via <code>environment:</code> avec interpolation <code>${ADMIN_TOKEN}</code></strong> → là il faut <strong>doubler</strong> chaque <code>$</code> en <code>$$</code>.</li><li>Des <strong>guillemets simples</strong> mal placés dans le <code>.env</code> peuvent finir <em>dans</em> la valeur et casser silencieusement l&#39;accès admin.</li></ul>
+<p>Pour vérifier que le token est bien passé, une fois le conteneur lancé :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose exec vaultwarden printenv ADMIN_TOKEN</code></pre>
+<p>La sortie doit afficher <strong>exactement</strong> ton hash : commence par <code>$argon2id$</code>, pas de <code>$$</code>, pas de guillemets.</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat .env
+# Doit afficher les 4 variables, le hash commence par $argon2id$</code></pre>
+</div>
+<div data-lang="en"><p>⚠️ <strong>Vaultwarden&#39;s pitfall #1 — <code>ADMIN_TOKEN</code></strong>: the <code>$</code> characters in the Argon2id hash behave differently depending on how you pass the variable:</p>
+<ul><li><strong>Via <code>env_file:</code> (our case)</strong> → paste the raw hash, <strong>no quotes, do NOT double the <code>$</code></strong>.</li><li><strong>Via <code>environment:</code> with <code>${ADMIN_TOKEN}</code> interpolation</strong> → there you must <strong>double</strong> each <code>$</code> as <code>$$</code>.</li><li>Stray <strong>single quotes</strong> in <code>.env</code> can end up <em>inside</em> the value and silently break admin access.</li></ul>
+<p>To confirm the token is passed correctly, once the container is running:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose exec vaultwarden printenv ADMIN_TOKEN</code></pre>
+<p>The output must show <strong>exactly</strong> your hash: starts with <code>$argon2id$</code>, no <code>$$</code>, no quotes.</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat .env
+# Should show the 4 variables, hash starting with $argon2id$</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le <code>docker-compose.yml</code> qui décrit ton service.</p>
+<p><strong>🤔 Pourquoi chacune des lignes ?</strong></p>
+<ul><li><code>image: vaultwarden/server:1.34.1</code> → on <strong>pinne</strong> une version précise. <code>:latest</code> rend tes mises à jour imprévisibles. Avec une version explicite, tu décides quand mettre à jour, et tu sais quoi rollback si ça casse.</li><li><code>restart: unless-stopped</code> → le conteneur redémarre tout seul après un crash ou un reboot, mais reste arrêté si toi tu l&#39;as arrêté volontairement.</li><li><code>env_file: .env</code> → toute la config sensible est externalisée.</li><li><code>volumes: ./vw-data:/data</code> → <strong>le</strong> point critique. Tout ce que Vaultwarden écrit (db, clés, pièces jointes) va sur ton disque hôte. Sans ça, à la première recréation, tu perds tout.</li><li><code>networks: proxy (external: true)</code> → on suppose que Traefik utilise déjà un réseau Docker nommé <code>proxy</code>. <code>external: true</code> = &quot;ce réseau existe déjà, ne le crée pas, attache-toi à lui&quot;. C&#39;est ce qui permet à Traefik de joindre Vaultwarden <strong>sans exposer aucun port</strong> sur l&#39;hôte.</li><li><code>healthcheck</code> → Docker peut interroger l&#39;endpoint <code>/alive</code> pour savoir si le service est vraiment fonctionnel (pas juste &quot;le process tourne&quot;). Utile pour Traefik, pour le monitoring, pour debug rapide.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <code>docker-compose.yml</code> that describes your service.</p>
+<p><strong>🤔 Why each line?</strong></p>
+<ul><li><code>image: vaultwarden/server:1.34.1</code> → we <strong>pin</strong> a precise version. <code>:latest</code> makes updates unpredictable. With an explicit version you decide when to update, and you know what to roll back if something breaks.</li><li><code>restart: unless-stopped</code> → the container restarts itself after a crash or reboot, but stays stopped if you stopped it deliberately.</li><li><code>env_file: .env</code> → all sensitive config is externalized.</li><li><code>volumes: ./vw-data:/data</code> → <strong>the</strong> critical point. Everything Vaultwarden writes (db, keys, attachments) lands on your host disk. Without this, the first recreation wipes you out.</li><li><code>networks: proxy (external: true)</code> → we assume Traefik already uses a Docker network called <code>proxy</code>. <code>external: true</code> means &quot;this network already exists, don&#39;t create it, attach to it&quot;. That&#39;s what lets Traefik reach Vaultwarden <strong>without exposing a single port</strong> on the host.</li><li><code>healthcheck</code> → Docker can poll the <code>/alive</code> endpoint to know if the service is actually functional (not just &quot;the process is running&quot;). Useful for Traefik, monitoring, and quick debugging.</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano docker-compose.yml</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  vaultwarden:
+    image: vaultwarden/server:1.34.1
+    container_name: vaultwarden
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./vw-data:/data
+    networks:
+      - proxy
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;wget&quot;, &quot;--quiet&quot;, &quot;--tries=1&quot;, &quot;--spider&quot;, &quot;http://localhost:80/alive&quot;]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Doit afficher la config interprétée, sans erreur de syntaxe</code></pre>
+<p>Si tu vois <code>service &quot;vaultwarden&quot; refers to undefined network proxy</code> → ton réseau <code>proxy</code> n&#39;existe pas. Crée-le : <code>docker network create proxy</code> (ou repasse par ton guide Traefik).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Should print the parsed config, no syntax errors</code></pre>
+<p>If you see <code>service &quot;vaultwarden&quot; refers to undefined network proxy</code> → your <code>proxy</code> network doesn&#39;t exist. Create it: <code>docker network create proxy</code> (or go back through the Traefik guide).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer le service en arrière-plan.</p>
+<p><strong>🤔 Pourquoi <code>-d</code> ?</strong> <code>-d</code> = detached, le conteneur tourne en arrière-plan. Sans cette option, tu serais attaché aux logs et un <code>Ctrl+C</code> arrêterait le service. En prod on est toujours en <code>-d</code>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch the service in the background.</p>
+<p><strong>🤔 Why <code>-d</code>?</strong> <code>-d</code> = detached, the container runs in the background. Without it you&#39;d be attached to the logs and a <code>Ctrl+C</code> would stop the service. In production you&#39;re always in <code>-d</code>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# STATUS doit afficher &quot;Up X seconds (healthy)&quot; après ~30 secondes</code></pre>
+<p>Tu peux aussi consulter les logs :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose logs -f vaultwarden</code></pre>
+<p>Tu dois voir des lignes comme <code>Rocket has launched from http://0.0.0.0:80</code>. Pas d&#39;erreur, pas de panic. <code>Ctrl+C</code> pour sortir des logs (ça n&#39;arrête PAS le conteneur, grâce au <code>-d</code> précédent).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# STATUS should show &quot;Up X seconds (healthy)&quot; after ~30 seconds</code></pre>
+<p>You can also tail the logs:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose logs -f vaultwarden</code></pre>
+<p>You should see lines like <code>Rocket has launched from http://0.0.0.0:80</code>. No errors, no panic. <code>Ctrl+C</code> to exit the logs (this does NOT stop the container, thanks to the earlier <code>-d</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Connecter Traefik à Vaultwarden via des labels Docker.</p>
+<p><strong>🤔 Pourquoi des labels et pas des ports exposés ?</strong> En mode &quot;Traefik orchestré&quot;, on n&#39;expose <strong>aucun port</strong> sur l&#39;hôte. Traefik lit les labels Docker, comprend qu&#39;il doit router <code>vault.exemple.com</code> vers le port 80 du conteneur, et fait le boulot HTTPS pour toi. C&#39;est plus sûr (aucun port direct exposé) et plus propre (toute la config est avec le service).</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Wire Traefik to Vaultwarden using Docker labels.</p>
+<p><strong>🤔 Why labels and not exposed ports?</strong> In &quot;Traefik-orchestrated&quot; mode, we expose <strong>no port</strong> on the host. Traefik reads Docker labels, figures out it should route <code>vault.exemple.com</code> to port 80 of the container, and handles HTTPS for you. Safer (no direct port exposed) and cleaner (all config lives next to the service).</p>
+</div>
+<p>Ajoute / Add — within the <code>vaultwarden</code> service in <code>docker-compose.yml</code> :</p>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    labels:
+      - &quot;traefik.enable=true&quot;
+      - &quot;traefik.http.routers.vaultwarden.rule=Host(`vault.exemple.com`)&quot;
+      - &quot;traefik.http.routers.vaultwarden.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.vaultwarden.tls.certresolver=le&quot;
+      - &quot;traefik.http.services.vaultwarden.loadbalancer.server.port=80&quot;</code></pre>
+<div data-lang="fr"><p>⚠️ Le nom du <code>certresolver</code> (<code>le</code>) doit correspondre <strong>exactement</strong> à celui défini dans ta config Traefik (voir le guide Traefik, où on l&#39;a nommé <code>le</code>). Si tu l&#39;as appelé autrement, adapte ici — sinon tu auras une erreur &quot;certificate resolver not found&quot;.</p>
+<p>Applique :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d</code></pre>
+<p>(Docker détecte le changement et recrée le conteneur sans rien perdre — grâce au volume.)</p>
+<p><strong>✅ Vérification :</strong> dans ton navigateur, va sur <code>https://vault.exemple.com</code>. Tu dois voir la page d&#39;accueil Vaultwarden, avec un cadenas vert. Si le cadenas est rouge ou la page ne charge pas → c&#39;est Traefik qui pose problème, pas Vaultwarden.</p>
+</div>
+<div data-lang="en"><p>⚠️ The <code>certresolver</code> name (<code>le</code>) must match <strong>exactly</strong> the one defined in your Traefik config (in the Traefik guide we named it <code>le</code>). If you named it something else, adjust here — otherwise you&#39;ll get a &quot;certificate resolver not found&quot; error.</p>
+<p>Apply:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d</code></pre>
+<p>(Docker detects the change and recreates the container without losing anything — thanks to the volume.)</p>
+<p><strong>✅ Check:</strong> in your browser, go to <code>https://vault.exemple.com</code>. You should see the Vaultwarden home page with a green padlock. If the padlock is red or the page won&#39;t load → Traefik is the problem, not Vaultwarden.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton compte utilisateur, puis fermer les inscriptions publiques.</p>
+<p><strong>🤔 Pourquoi fermer les inscriptions ?</strong> Tant que <code>SIGNUPS_ALLOWED=true</code>, n&#39;importe qui qui découvre l&#39;URL de ton Vaultwarden peut s&#39;y créer un compte. Aucun mot de passe ne lui sera révélé (chiffrement client), mais il consommera tes ressources et polluera ton instance. Une fois tes comptes créés, on ferme la porte.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your user account, then close public signups.</p>
+<p><strong>🤔 Why close signups?</strong> As long as <code>SIGNUPS_ALLOWED=true</code>, anyone who discovers your Vaultwarden URL can create an account. No passwords get exposed (client-side encryption), but they&#39;ll eat your resources and clutter your instance. Once your accounts exist, we shut the door.</p>
+</div>
+<div data-lang="fr"><p><strong>Action 1.</strong> Crée ton compte via l&#39;interface web (clique &quot;Create account&quot;, remplis email + mot de passe maître <strong>fort</strong> — tu ne pourras pas le récupérer en cas d&#39;oubli).</p>
+<p><strong>Action 2.</strong> Édite <code>.env</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Action 1.</strong> Create your account through the web UI (click &quot;Create account&quot;, fill in email + a <strong>strong</strong> master password — there&#39;s no recovery if you forget it).</p>
+<p><strong>Action 2.</strong> Edit <code>.env</code>:</p>
+</div>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code>SIGNUPS_ALLOWED=false</code></pre>
+<div data-lang="fr"><p><strong>Action 3.</strong> Applique :</p>
+</div>
+<div data-lang="en"><p><strong>Action 3.</strong> Apply:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> déconnecte-toi, va sur la page d&#39;accueil. Le bouton &quot;Create account&quot; doit avoir disparu.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> log out, go to the home page. The &quot;Create account&quot; button must be gone.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Sauvegarde quotidienne automatique, avec un snapshot cohérent de la base SQLite.</p>
+<p><strong>🤔 Pourquoi <code>.backup</code> SQLite plutôt qu&#39;un simple <code>cp</code> ?</strong> Si tu copies <code>db.sqlite3</code> pendant une écriture en cours, ton backup est potentiellement corrompu. La commande <code>.backup</code> de SQLite crée un snapshot <strong>cohérent</strong> même service actif. On l&#39;exécute depuis le <code>sqlite3</code> de <strong>l&#39;hôte</strong> (et non dans le conteneur) car l&#39;image Vaultwarden, minimale, ne contient pas ce binaire.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Daily automatic backup, with a consistent SQLite snapshot.</p>
+<p><strong>🤔 Why SQLite <code>.backup</code> rather than a plain <code>cp</code>?</strong> If you copy <code>db.sqlite3</code> while it&#39;s being written to, your backup may be corrupted. SQLite&#39;s <code>.backup</code> command takes a <strong>consistent</strong> snapshot even while the service is live. We run it via the <strong>host&#39;s</strong> <code>sqlite3</code> (not inside the container) because the minimal Vaultwarden image doesn&#39;t ship that binary.</p>
+</div>
+<div data-lang="fr"><p>Crée <code>~/vaultwarden/backup.sh</code> :</p>
+</div>
+<div data-lang="en"><p>Create <code>~/vaultwarden/backup.sh</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>#!/bin/bash
+set -e
+
+BACKUP_DIR=&quot;$HOME/backups/vaultwarden&quot;
+DATA_DIR=&quot;$HOME/vaultwarden/vw-data&quot;
+DATE=$(date +%Y%m%d-%H%M%S)
+mkdir -p &quot;$BACKUP_DIR&quot;
+
+# Snapshot cohérent de la base SQLite avec le sqlite3 de l&#39;HÔTE
+# (l&#39;image Vaultwarden ne contient PAS le binaire sqlite3)
+sqlite3 &quot;$DATA_DIR/db.sqlite3&quot; &quot;.backup &#39;$DATA_DIR/db-backup.sqlite3&#39;&quot;
+
+# Archive l&#39;ensemble du volume (db snapshot + clés RSA + pièces jointes + config)
+tar -czf &quot;$BACKUP_DIR/vw-$DATE.tar.gz&quot; -C &quot;$HOME/vaultwarden&quot; vw-data
+
+# Nettoie le snapshot temporaire
+rm -f &quot;$DATA_DIR/db-backup.sqlite3&quot;
+
+# Garde uniquement les 14 dernières sauvegardes
+ls -tp &quot;$BACKUP_DIR&quot;/vw-*.tar.gz | tail -n +15 | xargs -r rm --
+
+echo &quot;✓ Backup OK : vw-$DATE.tar.gz&quot;</code></pre>
+<div data-lang="fr"><p>Installe <code>sqlite3</code> sur l&#39;hôte si besoin : <code>sudo apt install sqlite3</code> (Debian/Ubuntu).</p>
+<p>Rends-le exécutable, programme-le en cron :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>chmod +x ~/vaultwarden/backup.sh
+crontab -e
+# Ajoute :
+0 3 * * * /home/&lt;toi&gt;/vaultwarden/backup.sh &gt;&gt; /home/&lt;toi&gt;/vaultwarden/backup.log 2&gt;&amp;1</code></pre>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>~/vaultwarden/backup.sh
+ls -la ~/backups/vaultwarden/
+# Tu dois voir le fichier vw-YYYYMMDD-HHMMSS.tar.gz</code></pre>
+<p>⚠️ <strong>Cette sauvegarde est locale.</strong> Une vraie stratégie implique aussi de la copier ailleurs (autre disque, cloud chiffré).</p>
+</div>
+<div data-lang="en"><p>Install <code>sqlite3</code> on the host if needed: <code>sudo apt install sqlite3</code> (Debian/Ubuntu).</p>
+<p>Make it executable, schedule it via cron:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>chmod +x ~/vaultwarden/backup.sh
+crontab -e
+# Add:
+0 3 * * * /home/&lt;you&gt;/vaultwarden/backup.sh &gt;&gt; /home/&lt;you&gt;/vaultwarden/backup.log 2&gt;&amp;1</code></pre>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>~/vaultwarden/backup.sh
+ls -la ~/backups/vaultwarden/
+# You should see vw-YYYYMMDD-HHMMSS.tar.gz</code></pre>
+<p>⚠️ <strong>This backup is local.</strong> A real strategy also copies it elsewhere (another disk, encrypted cloud).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Le panel <code>/admin</code> refuse ton mot de passe (le piège n°1).</strong> Presque toujours un souci de format de l&#39;<code>ADMIN_TOKEN</code>. Rappels : via <code>env_file</code>, le hash se colle <strong>brut</strong> (pas de guillemets, pas de <code>$$</code>) ; via <code>environment: ${...}</code>, il faut <strong>doubler</strong> les <code>$</code>. Vérifie avec <code>docker compose exec vaultwarden printenv ADMIN_TOKEN</code> — la sortie doit être exactement ton hash, commençant par <code>$argon2id$</code>, sans <code>$$</code> ni guillemets. Et rappelle-toi : sur <code>/admin</code> tu tapes ton <strong>mot de passe</strong>, pas le hash.</p>
+<p><strong>2. Le client refuse de se connecter — &quot;Failed to fetch&quot;.</strong> Quasi toujours un problème HTTPS : certificat invalide, mauvais <code>DOMAIN</code> dans <code>.env</code>, ou tu accèdes en HTTP. Les clients Bitwarden refusent activement HTTP. Solution : vérifier <code>https://vault.exemple.com</code> dans un navigateur, le cadenas doit être vert sans warning.</p>
+<p><strong>3. Tu modifies <code>.env</code> mais rien ne change.</strong> Le conteneur lit <code>.env</code> <strong>au démarrage</strong>. Tout changement nécessite <code>docker compose up -d</code> (qui recrée le conteneur). Un <code>docker restart</code> ne relit pas <code>.env</code>.</p>
+<p><strong>4. Les emails (invitations, reset) ne partent pas.</strong> Par défaut, Vaultwarden n&#39;envoie aucun email. Pour activer : ajouter les variables SMTP (<code>SMTP_HOST</code>, <code>SMTP_FROM</code>, <code>SMTP_USERNAME</code>, <code>SMTP_PASSWORD</code>…). Si tu utilises Gmail, il te faut un <strong>App Password</strong>, pas ton mot de passe normal.</p>
+<p><strong>5. Tu utilises <code>image: vaultwarden/server:latest</code> et tu te réveilles avec un service cassé.</strong> Une mise à jour majeure peut introduire un breaking change. Toujours pinner une version (<code>:1.34.1</code>). Mettre à jour = changer le tag explicitement, après avoir lu les release notes.</p>
+<p><strong>6. Tu déploies sur Raspberry Pi et le conteneur crashe au démarrage.</strong> Vérifie l&#39;architecture : <code>docker pull vaultwarden/server:1.34.1</code> doit télécharger une variante <code>arm64</code> ou <code>arm/v7</code>. L&#39;image multi-arch officielle gère ça automatiquement, mais si tu utilises un fork tiers, ce n&#39;est pas garanti.</p>
+<p><strong>7. Tu perds ton mot de passe maître.</strong> Il n&#39;y a <strong>aucune procédure de récupération</strong>. C&#39;est by design (zéro-knowledge). Note ton mot de passe maître hors-ligne (papier dans un coffre, par exemple) avant de mettre des choses sérieuses dans ton vault.</p>
+</div>
+<div data-lang="en"><p><strong>1. The <code>/admin</code> panel refuses your password (pitfall #1).</strong> Almost always an <code>ADMIN_TOKEN</code> format issue. Reminders: via <code>env_file</code>, paste the hash <strong>raw</strong> (no quotes, no <code>$$</code>); via <code>environment: ${...}</code>, you must <strong>double</strong> each <code>$</code>. Verify with <code>docker compose exec vaultwarden printenv ADMIN_TOKEN</code> — the output must be exactly your hash, starting with <code>$argon2id$</code>, no <code>$$</code>, no quotes. And remember: on <code>/admin</code> you type your <strong>password</strong>, not the hash.</p>
+<p><strong>2. The client refuses to connect — &quot;Failed to fetch&quot;.</strong> Nearly always an HTTPS issue: invalid certificate, wrong <code>DOMAIN</code> in <code>.env</code>, or you&#39;re hitting HTTP. Bitwarden clients actively refuse HTTP. Fix: check <code>https://vault.exemple.com</code> in a browser, the padlock must be green with no warning.</p>
+<p><strong>3. You change <code>.env</code> but nothing changes.</strong> The container reads <code>.env</code> <strong>at startup</strong>. Any change requires <code>docker compose up -d</code> (which recreates the container). A <code>docker restart</code> does NOT re-read <code>.env</code>.</p>
+<p><strong>4. Emails (invitations, reset) don&#39;t go out.</strong> By default, Vaultwarden sends no email. To enable: add the SMTP variables (<code>SMTP_HOST</code>, <code>SMTP_FROM</code>, <code>SMTP_USERNAME</code>, <code>SMTP_PASSWORD</code>…). If you use Gmail you need an <strong>App Password</strong>, not your normal one.</p>
+<p><strong>5. You use <code>image: vaultwarden/server:latest</code> and wake up to a broken service.</strong> A major update can introduce a breaking change. Always pin a version (<code>:1.34.1</code>). Updating = changing the tag explicitly, after reading the release notes.</p>
+<p><strong>6. You deploy on a Raspberry Pi and the container crashes on startup.</strong> Check the architecture: <code>docker pull vaultwarden/server:1.34.1</code> must download an <code>arm64</code> or <code>arm/v7</code> variant. The official multi-arch image handles this automatically, but if you use a third-party fork it isn&#39;t guaranteed.</p>
+<p><strong>7. You lose your master password.</strong> There is <strong>no recovery procedure</strong>. By design (zero-knowledge). Write your master password down offline (paper in a safe, for example) before putting serious stuff in your vault.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li><code>docker compose ps</code> montre <code>vaultwarden</code> en <code>Up X (healthy)</code>.</li><li><code>https://vault.exemple.com</code> charge la page de connexion avec cadenas vert.</li><li>Tu peux te connecter à ton compte depuis l&#39;extension Bitwarden de ton navigateur (en configurant le serveur custom dans les paramètres).</li><li>Le bouton &quot;Create account&quot; a disparu de la page d&#39;accueil.</li><li><code>~/vaultwarden/backup.sh</code> produit une archive <code>.tar.gz</code> sans erreur.</li><li>Le panel admin <code>https://vault.exemple.com/admin</code> t&#39;accepte avec ton <strong>mot de passe</strong> (pas le hash).</li></ul>
+<p>Si les 6 sont cochés, tu as un Vaultwarden <strong>propre, sécurisé et sauvegardé</strong>. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li><code>docker compose ps</code> shows <code>vaultwarden</code> as <code>Up X (healthy)</code>.</li><li><code>https://vault.exemple.com</code> loads the sign-in page with a green padlock.</li><li>You can log in from the Bitwarden browser extension (configure the custom server in the extension settings).</li><li>The &quot;Create account&quot; button has disappeared from the home page.</li><li><code>~/vaultwarden/backup.sh</code> produces a <code>.tar.gz</code> archive without error.</li><li>The admin panel at <code>https://vault.exemple.com/admin</code> accepts your <strong>password</strong> (not the hash).</li></ul>
+<p>If all 6 are ticked, you have a <strong>clean, secure, and backed-up</strong> Vaultwarden. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Trois prolongements naturels, du plus utile au plus avancé :</p>
+<ol><li><strong>Surveiller ton service</strong> — pour être prévenu si Vaultwarden tombe (et pas le découvrir quand tu en as besoin en urgence).</li><li><strong>Héberger d&#39;autres services</strong> — Immich pour tes photos, par exemple, qui réutilise exactement la même stack (Docker Compose + Traefik + volume).</li><li><strong>Activer SMTP</strong> — permet les invitations, le reset de mot de passe, les notifications de connexion. Voir doc officielle (lien ci-dessous), section &quot;SMTP&quot;.</li></ol>
+</div>
+<div data-lang="en"><p>Three natural extensions, from most useful to most advanced:</p>
+<ol><li><strong>Monitor your service</strong> — so you&#39;re warned if Vaultwarden goes down (instead of discovering it when you urgently need it).</li><li><strong>Host more services</strong> — Immich for your photos, for example, which reuses the exact same stack (Docker Compose + Traefik + volume).</li><li><strong>Enable SMTP</strong> — enables invitations, password reset, sign-in notifications. See the official docs (link below), &quot;SMTP&quot; section.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">08</span>
+    <span class="title-line" data-lang="fr">Prometheus + Grafana — Monitoring de ton homelab</span>
+    <span class="title-line" data-lang="en">Prometheus + Grafana — Homelab monitoring</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link coming-soon" href="#">
+    <span class="num">07</span>
+    <span class="title-line" data-lang="fr">Immich — Ton Google Photos auto-hébergé</span>
+    <span class="title-line" data-lang="en">Immich — Your self-hosted Google Photos</span>
+    <span data-lang="fr"><span class="badge">bientôt</span></span>
+    <span data-lang="en"><span class="badge">soon</span></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés pour gérer ton instance au quotidien.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet to operate your instance day-to-day.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+docker compose up -d              # démarrer / start
+docker compose ps                 # statut / status
+docker compose logs -f vaultwarden # suivre les logs / follow logs
+docker compose down               # arrêter / stop (volume préservé / preserved)
+docker compose pull               # récupérer une nouvelle image / pull a newer image
+
+# Inspecter / Inspect
+docker compose exec vaultwarden printenv ADMIN_TOKEN   # vérifier l&#39;env / check env
+docker compose exec vaultwarden /vaultwarden hash       # regénérer un hash / regenerate a hash
+
+# Mettre à jour / Update (après lecture des release notes)
+# 1. éditer image: vaultwarden/server:&lt;nouvelle-version&gt; dans docker-compose.yml
+# 2. apply:
+docker compose pull &amp;&amp; docker compose up -d
+
+# Sauvegarde manuelle / Manual backup
+~/vaultwarden/backup.sh
+
+# Restauration / Restore (volume DOWN avant)
+docker compose down
+tar -xzf ~/backups/vaultwarden/vw-YYYYMMDD-HHMMSS.tar.gz -C ~/vaultwarden/
+docker compose up -d</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://github.com/dani-garcia/vaultwarden/wiki">Documentation officielle Vaultwarden (wiki)</a> — la référence absolue.</li><li><a href="https://github.com/dani-garcia/vaultwarden/blob/main/.env.template">Variables d&#39;environnement complètes</a> — toutes les options possibles.</li><li><a href="https://github.com/dani-garcia/vaultwarden/wiki">Comparaison Vaultwarden vs Bitwarden cloud</a> — article du wiki officiel.</li><li><a href="https://www.reddit.com/r/selfhosted/">Communauté self-hosted</a> — r/selfhosted, retours d&#39;expérience réels.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://github.com/dani-garcia/vaultwarden/wiki">Official Vaultwarden documentation (wiki)</a> — the absolute reference.</li><li><a href="https://github.com/dani-garcia/vaultwarden/blob/main/.env.template">Full environment variables</a> — every available option.</li><li><a href="https://github.com/dani-garcia/vaultwarden/wiki">Vaultwarden vs Bitwarden cloud comparison</a> — article on the official wiki.</li><li><a href="https://www.reddit.com/r/selfhosted/">Self-hosted community</a> — r/selfhosted, real-world feedback.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« unhealthy » dans <code>docker compose ps</code>.</strong> Le healthcheck échoue. <code>docker compose logs --tail=50 vaultwarden</code>. Causes fréquentes : <code>wget</code> absent de l&#39;image (ancienne version → enlève le healthcheck), volume non accessible en écriture (permissions sur <code>vw-data/</code>).</p>
+<p><strong>« Permission denied » sur <code>vw-data/</code>.</strong> Le conteneur tourne sous un utilisateur interne qui n&#39;a peut-être pas les droits sur ton dossier hôte. <code>sudo chown -R 1000:1000 vw-data/</code> (l&#39;UID 1000 est l&#39;utilisateur par défaut dans l&#39;image).</p>
+<p><strong>« Cannot connect » depuis l&#39;extension de navigateur.</strong> Vérifie que dans les paramètres de l&#39;extension, le serveur custom est bien <code>https://vault.exemple.com</code> (avec le <code>https://</code>, sans slash final). Vérifie aussi que ton DNS résout bien depuis ta machine cliente, pas seulement depuis le serveur.</p>
+<p><strong>Le panel <code>/admin</code> renvoie 404.</strong> Probablement <code>ADMIN_TOKEN</code> non défini dans <code>.env</code>. Sans token, le panel admin est désactivé pour des raisons de sécurité. Re-vérifie ton <code>.env</code>, refais l&#39;étape 2 si nécessaire.</p>
+<p><strong>« Failed to fetch » sur les clients mobile/desktop.</strong> Cause n°1 absolue : HTTPS pas propre. Test :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>curl -I https://vault.exemple.com</code></pre>
+<p>Tu dois avoir un <code>HTTP/2 200</code> et <strong>aucun warning</strong> de certificat. Si curl râle sur le certif, ton client Bitwarden râlera aussi.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;unhealthy&quot; in <code>docker compose ps</code>.</strong> The healthcheck fails. <code>docker compose logs --tail=50 vaultwarden</code>. Common causes: <code>wget</code> missing from the image (old version → remove the healthcheck), volume not writable (permissions on <code>vw-data/</code>).</p>
+<p><strong>&quot;Permission denied&quot; on <code>vw-data/</code>.</strong> The container runs as an internal user that may not have rights on your host folder. <code>sudo chown -R 1000:1000 vw-data/</code> (UID 1000 is the image&#39;s default user).</p>
+<p><strong>&quot;Cannot connect&quot; from the browser extension.</strong> Check that the extension&#39;s custom server is exactly <code>https://vault.exemple.com</code> (with the <code>https://</code>, no trailing slash). Also confirm your DNS resolves from your client machine, not just from the server.</p>
+<p><strong><code>/admin</code> panel returns 404.</strong> Probably <code>ADMIN_TOKEN</code> not set in <code>.env</code>. Without the token, the admin panel is disabled for safety. Re-check your <code>.env</code>, redo step 2 if needed.</p>
+<p><strong>&quot;Failed to fetch&quot; on mobile/desktop clients.</strong> The number-one cause: bad HTTPS. Test:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>curl -I https://vault.exemple.com</code></pre>
+<p>You should see <code>HTTP/2 200</code> and <strong>no</strong> certificate warning. If curl complains about the cert, your Bitwarden client will too.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
