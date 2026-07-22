@@ -1,0 +1,43 @@
+name: Resync platform (Vercel deploy hook)
+
+# Quand le contenu du parcours change sur main, on déclenche un rebuild de la
+# plateforme jiha.tech (repo jiha-formation) : elle resynchronise le contenu
+# depuis ce repo au build (scripts/sync-content.mjs). Fini les redeploys manuels.
+#
+# Pré-requis : créer un Deploy Hook côté Vercel
+#   Project (jiha-formation) → Settings → Git → Deploy Hooks → Create Hook
+#   (branche : main). Copier l'URL et la stocker dans ce repo :
+#   Settings → Secrets and variables → Actions → New secret
+#   Name = VERCEL_DEPLOY_HOOK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content/**"
+      - "guides.json"
+      - "assets/**"
+      - "config.json"
+  workflow_dispatch:
+
+jobs:
+  trigger-vercel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Vercel deploy hook
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::VERCEL_DEPLOY_HOOK non configuré — resync ignoré."
+            exit 0
+          fi
+          echo "→ déclenchement du rebuild plateforme…"
+          code=$(curl -sS -X POST -o /tmp/resp.json -w "%{http_code}" "$HOOK")
+          echo "HTTP $code"
+          cat /tmp/resp.json || true
+          # Vercel répond 201 (job créé). Tout 2xx est un succès.
+          case "$code" in
+            2*) echo "✓ rebuild déclenché." ;;
+            *)  echo "::error::Vercel a répondu $code"; exit 1 ;;
+          esac
