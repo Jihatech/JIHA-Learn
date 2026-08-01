@@ -101,6 +101,8 @@ Avant de commencer :
 - Ta **clé SSH** (générée au module Ansible) et de quoi éditer du YAML.
 
 ⚠️ **Sécurité & budget :** un serveur exposé sur Internet est **scanné en permanence**. Le durcissement (phase 2) n'est pas optionnel. Et pense à **détruire le VPS** à la fin si tu ne le gardes pas, pour ne pas payer dans le vide.
+
+⏱️ **C'est un projet étalé** (propagation DNS, debug Let's Encrypt, Ansible) : compte plusieurs sessions sur quelques jours, pas une seule soirée.
 :::
 
 :::lang en
@@ -112,6 +114,8 @@ Before you start:
 - Your **SSH key** (generated in the Ansible module) and something to edit YAML.
 
 ⚠️ **Security & budget:** a server exposed on the Internet is **scanned constantly**. Hardening (phase 2) is not optional. And remember to **destroy the VPS** at the end if you're not keeping it, to avoid paying for nothing.
+
+⏱️ **This is a spread-out project** (DNS propagation, Let's Encrypt debugging, Ansible): plan several sessions over a few days, not a single evening.
 :::
 
 ## concepts
@@ -160,7 +164,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **Objectif.** Obtenir un Ubuntu 24.04 accessible en SSH.
 
-**🤔 Pourquoi Ubuntu LTS ?** Support long (5 ans), énorme communauté, la distribution la plus documentée pour le self-hosting. Choisis le plus petit format (1-2 vCPU, 2-4 Go RAM suffisent pour ce projet).
+**🤔 Pourquoi Ubuntu LTS ?** Support long (5 ans), énorme communauté, la distribution la plus documentée pour le self-hosting. Prends un format modeste mais **4 Go de RAM minimum** : les services de la phase 5 **plus** le monitoring de la phase 6 en ont besoin (un 2 Go partira en *OOM*).
 
 **Marche à suivre :** crée le VPS chez ton hébergeur, en **ajoutant ta clé SSH publique** dès la création (évite la connexion par mot de passe). Note l'**IP publique**. Connecte-toi : `ssh root@<IP>`.
 
@@ -172,7 +176,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **Goal.** Get an Ubuntu 24.04 reachable over SSH.
 
-**🤔 Why Ubuntu LTS?** Long support (5 years), huge community, the most documented distro for self-hosting. Pick the smallest size (1-2 vCPU, 2-4 GB RAM is plenty for this project).
+**🤔 Why Ubuntu LTS?** Long support (5 years), huge community, the most documented distro for self-hosting. Pick a modest size but **4 GB RAM minimum**: the phase 5 services **plus** the phase 6 monitoring need it (a 2 GB box will *OOM*).
 
 **Steps:** create the VPS at your provider, **adding your public SSH key** at creation time (avoid password login). Note the **public IP**. Connect: `ssh root@<IP>`.
 
@@ -190,10 +194,10 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **À accomplir :**
 
-- Crée un **utilisateur non-root** avec `sudo` ; copie-lui ta clé SSH (`ssh-copy-id` ou manuellement).
-- **Désactive** la connexion SSH par mot de passe **et** le login `root` (`/etc/ssh/sshd_config` : `PasswordAuthentication no`, `PermitRootLogin no`), puis `systemctl restart ssh`.
-- Active le **pare-feu** : `ufw allow OpenSSH`, `ufw allow 80,443/tcp`, `ufw enable`.
-- Installe **fail2ban** (bannit les IP qui brute-forcent SSH).
+- Crée un **utilisateur non-root** avec `sudo` ; copie-lui ta clé SSH (`ssh-copy-id` ou manuellement). ⚠️ **Avant de couper quoi que ce soit**, garde ta session ouverte et **teste `ssh <toi>@<IP>` dans un AUTRE terminal** — c'est ici qu'on se verrouille dehors.
+- **Désactive** la connexion par mot de passe **et** le login `root` : `PasswordAuthentication no`, `PermitRootLogin no`. ⚠️ Sur une image cloud, un fichier `/etc/ssh/sshd_config.d/50-cloud-init.conf` **surcharge** le fichier principal — édite-le aussi, ou crée ton propre `/etc/ssh/sshd_config.d/99-hardening.conf`. Applique avec `sudo systemctl restart ssh.service` (SSH est socket-activé sur 24.04) et **vérifie que c'est pris** : `sudo sshd -T | grep -Ei 'passwordauth|permitroot'`.
+- Active le **pare-feu** dans cet ordre (sinon tu te coupes SSH) : `ufw allow OpenSSH`, `ufw allow 80,443/tcp`, **puis** `ufw enable`.
+- Installe **fail2ban**. Sur Ubuntu 24.04, il n'y a plus de `/var/log/auth.log` (tout est dans le journal systemd) : mets `backend = systemd` dans la jail `sshd` (`/etc/fail2ban/jail.local`), sinon elle ne démarre pas.
 - Active les **mises à jour de sécurité automatiques** (`unattended-upgrades`).
 
 **📦 Livrable :** `ssh root@<IP>` **échoue** désormais, `ssh <toi>@<IP>` marche par clé ; `sudo ufw status` montre les règles ; `fail2ban-client status sshd` tourne.
@@ -208,10 +212,10 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **To accomplish:**
 
-- Create a **non-root user** with `sudo`; copy your SSH key to it (`ssh-copy-id` or manually).
-- **Disable** SSH password login **and** `root` login (`/etc/ssh/sshd_config`: `PasswordAuthentication no`, `PermitRootLogin no`), then `systemctl restart ssh`.
-- Enable the **firewall**: `ufw allow OpenSSH`, `ufw allow 80,443/tcp`, `ufw enable`.
-- Install **fail2ban** (bans IPs that brute-force SSH).
+- Create a **non-root user** with `sudo`; copy your SSH key to it (`ssh-copy-id` or manually). ⚠️ **Before disabling anything**, keep your session open and **test `ssh <you>@<IP>` in ANOTHER terminal** — this is where people lock themselves out.
+- **Disable** password login **and** `root` login: `PasswordAuthentication no`, `PermitRootLogin no`. ⚠️ On a cloud image, a `/etc/ssh/sshd_config.d/50-cloud-init.conf` file **overrides** the main config — edit it too, or create your own `/etc/ssh/sshd_config.d/99-hardening.conf`. Apply with `sudo systemctl restart ssh.service` (SSH is socket-activated on 24.04) and **verify it took effect**: `sudo sshd -T | grep -Ei 'passwordauth|permitroot'`.
+- Enable the **firewall** in this order (otherwise you cut off SSH): `ufw allow OpenSSH`, `ufw allow 80,443/tcp`, **then** `ufw enable`.
+- Install **fail2ban**. On Ubuntu 24.04 there's no more `/var/log/auth.log` (everything is in the systemd journal): set `backend = systemd` in the `sshd` jail (`/etc/fail2ban/jail.local`), otherwise it won't start.
 - Enable **automatic security updates** (`unattended-upgrades`).
 
 **📦 Deliverable:** `ssh root@<IP>` now **fails**, `ssh <you>@<IP>` works via key; `sudo ufw status` shows the rules; `fail2ban-client status sshd` runs.
@@ -254,6 +258,8 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **À accomplir :** installe Docker + Compose sur le VPS, déploie ton reverse proxy (Traefik, Caddy ou Nginx Proxy Manager) avec le **challenge Let's Encrypt HTTP** (ports 80/443 ouverts), et branche un premier service de test (ex. `whoami` ou une page statique) sur `homelab.tondomaine.xyz`.
 
+💡 **Tâtonne d'abord avec le staging Let's Encrypt** (certificats de test, non valides dans le navigateur, mais **sans rate-limit**). Une fois le routage et le DNS bons, bascule en production — LE limite à ~5 échecs/heure, et on les épuise vite en debug.
+
 **📦 Livrable :** `https://homelab.tondomaine.xyz` s'ouvre avec un **cadenas valide** (certificat Let's Encrypt) et affiche ton service.
 :::
 
@@ -265,6 +271,8 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 **🤔 What changes vs local:** this time, Let's Encrypt issues a **valid public certificate** (no more `mkcert`, no more browser warning), because your domain truly resolves to the server. It's the reward for phases 2-3.
 
 **To accomplish:** install Docker + Compose on the VPS, deploy your reverse proxy (Traefik, Caddy or Nginx Proxy Manager) with the **Let's Encrypt HTTP challenge** (ports 80/443 open), and wire a first test service (e.g. `whoami` or a static page) on `homelab.yourdomain.xyz`.
+
+💡 **Experiment with the Let's Encrypt staging environment first** (test certificates, invalid in the browser, but **no rate limit**). Once routing and DNS are right, switch to production — LE caps at ~5 failures/hour, and debugging burns through them fast.
 
 **📦 Deliverable:** `https://homelab.yourdomain.xyz` opens with a **valid padlock** (Let's Encrypt certificate) and shows your service.
 :::
@@ -278,7 +286,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **🤔 Pourquoi automatiser ?** Tu *peux* tout faire à la main en SSH. Mais le vrai réflexe DevOps — et ce qui impressionne un recruteur — c'est un **playbook Ansible** qui rejoue **tout** depuis ta machine : « je détruis le VPS, j'en recrée un, je relance le playbook, et 10 minutes plus tard tout est de nouveau debout ». C'est la reproductibilité.
 
-**À accomplir :** déploie **deux services** de ton choix derrière le proxy (ex. **Vaultwarden** + **Immich**, ou une app web + sa base), chacun sur son sous-domaine, avec **volumes** pour les données. Bonus fort : décris tout le déploiement en **Ansible** (inventaire = ton VPS).
+**À accomplir :** déploie **deux services** de ton choix derrière le proxy — par ex. **Vaultwarden** (léger) + une app web ou **Uptime-Kuma** — chacun sur son sous-domaine, avec **volumes** pour les données. *(Immich est superbe mais gourmand : ~4 Go pour lui seul, réserve-le à un VPS mieux doté.)* ⚠️ Tant que ce VPS est un **bac à sable voué à la destruction**, n'y mets **pas de vrais mots de passe** dans Vaultwarden. Bonus fort : décris tout le déploiement en **Ansible** (inventaire = ton VPS).
 
 **📦 Livrable :** deux services accessibles en HTTPS sur leurs sous-domaines, avec données qui **survivent** à un redémarrage. Bonus : le playbook Ansible qui les déploie.
 :::
@@ -290,7 +298,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **🤔 Why automate?** You *can* do it all by hand over SSH. But the real DevOps reflex — and what impresses a recruiter — is an **Ansible playbook** that replays **everything** from your machine: "I destroy the VPS, recreate one, re-run the playbook, and 10 minutes later everything is back up". That's reproducibility.
 
-**To accomplish:** deploy **two services** of your choice behind the proxy (e.g. **Vaultwarden** + **Immich**, or a web app + its database), each on its subdomain, with **volumes** for the data. Strong bonus: describe the whole deployment in **Ansible** (inventory = your VPS).
+**To accomplish:** deploy **two services** of your choice behind the proxy — e.g. **Vaultwarden** (lightweight) + a web app or **Uptime-Kuma** — each on its subdomain, with **volumes** for the data. *(Immich is great but hungry: ~4 GB for it alone, save it for a beefier VPS.)* ⚠️ While this VPS is a **disposable sandbox**, do **not** put real passwords in Vaultwarden. Strong bonus: describe the whole deployment in **Ansible** (inventory = your VPS).
 
 **📦 Deliverable:** two services reachable over HTTPS on their subdomains, with data that **survives** a restart. Bonus: the Ansible playbook that deploys them.
 :::
@@ -332,7 +340,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **À accomplir :**
 
-1. Mets en place une **sauvegarde automatisée** (cron) des volumes de données et des configs, idéalement vers un stockage **hors du VPS** (S3/Backblaze, ou ta machine via `rsync`).
+1. Mets en place une **sauvegarde automatisée** (cron) des volumes de données et des configs, idéalement vers un stockage **hors du VPS** (S3/Backblaze, ou ta machine via `rsync`). ⚠️ Pour une **base de données**, ne copie pas le volume « à chaud » (risque de sauvegarde corrompue) : fais un `pg_dump`/dump applicatif, ou arrête le service le temps du snapshot.
 2. Fais le **drill, chronomètre en main** : détruis délibérément un service (supprime son conteneur **et son volume**), puis restaure-le depuis la dernière sauvegarde. Mesure le temps.
 3. Vérifie que les **données d'avant sont bien là** (une entrée que tu avais créée).
 
@@ -348,7 +356,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **To accomplish:**
 
-1. Set up an **automated backup** (cron) of the data volumes and configs, ideally to storage **off the VPS** (S3/Backblaze, or your machine via `rsync`).
+1. Set up an **automated backup** (cron) of the data volumes and configs, ideally to storage **off the VPS** (S3/Backblaze, or your machine via `rsync`). ⚠️ For a **database**, don't copy the volume "hot" (risk of a corrupt backup): do a `pg_dump`/application dump, or stop the service during the snapshot.
 2. Do the **drill, stopwatch in hand**: deliberately destroy a service (remove its container **and its volume**), then restore it from the last backup. Measure the time.
 3. Verify the **prior data is really there** (an entry you had created).
 
@@ -370,7 +378,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **6. Oublier de documenter.** Sans README, ton projet n'est pas reproductible — et pas montrable. La doc fait partie du livrable, pas un extra.
 
-**7. Laisser tourner (et payer) le VPS après coup.** Si tu ne le gardes pas, détruis-le proprement une fois le drill validé et documenté.
+**7. Laisser tourner (et payer) le VPS après coup — ou le détruire sans avoir rien gardé.** Ton livrable de portfolio, ce n'est pas le serveur : ce sont les **preuves**. **Avant** de détruire le VPS, capture tout — captures d'écran, un court screencast du drill, et tes configs/playbooks **anonymisés** poussés sur GitHub avec le README. Puis détruis-le proprement.
 :::
 
 :::lang en
@@ -386,7 +394,7 @@ The project unfolds in 7 phases. Each has a verifiable **deliverable**. Go in or
 
 **6. Forgetting to document.** Without a README, your project isn't reproducible — and not showable. Docs are part of the deliverable, not an extra.
 
-**7. Leaving the VPS running (and billing) afterward.** If you're not keeping it, destroy it cleanly once the drill is validated and documented.
+**7. Leaving the VPS running (and billing) afterward — or destroying it with nothing kept.** Your portfolio deliverable isn't the server: it's the **evidence**. **Before** destroying the VPS, capture everything — screenshots, a short screencast of the drill, and your **anonymized** configs/playbooks pushed to GitHub with the README. Then destroy it cleanly.
 :::
 
 ## success
@@ -403,6 +411,8 @@ Le projet est réussi — et **présentable** — quand :
 - [ ] Un **README** documente l'architecture, le déploiement et la procédure de restauration.
 
 **Évaluation (soutenance) :** présente ton architecture, montre les services en ligne, et **fais la démonstration du drill** — c'est lui qui prouve la compétence. Ce dépôt (README + playbooks + captures) devient une **pièce maîtresse de ton portfolio** DevOps.
+
+*(Version dégradée locale : la case « HTTPS public » ne peut pas être cochée — `mkcert` ne donne pas de cadenas public. Documente ce choix honnêtement ; tout le reste reste valable.)*
 :::
 
 :::lang en
@@ -417,6 +427,8 @@ The project is a success — and **presentable** — when:
 - [ ] A **README** documents the architecture, deployment and restore procedure.
 
 **Evaluation (defense):** present your architecture, show the services online, and **demonstrate the drill** — that's what proves the skill. This repo (README + playbooks + screenshots) becomes a **centerpiece of your DevOps portfolio**.
+
+*(Local degraded version: the "public HTTPS" box can't be ticked — `mkcert` gives no public padlock. Document that choice honestly; everything else still holds.)*
 :::
 
 ## next
