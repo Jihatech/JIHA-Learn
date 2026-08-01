@@ -99,10 +99,11 @@ Tu dois avoir :
 - Un **environnement Linux sur ta machine**, au choix :
   - **Linux natif** (Ubuntu, Debian, Fedora…) — idéal ;
   - **Windows + WSL2** — installe Ubuntu (`wsl --install`) ;
-  - **macOS** — la plupart des commandes existent, mais certaines (`ip`, `systemctl`, `apt`) sont propres à Linux : préfère une **VM Ubuntu** (Multipass : `multipass launch --name lab`) pour ce guide.
+  - **macOS** — certaines commandes (`ip`, `systemctl`, `apt`) sont propres à Linux : fais ce guide dans une **VM Ubuntu**. Avec Multipass : `brew install --cask multipass`, puis `multipass launch --name lab` et enfin `multipass shell lab` pour entrer dans la VM (c'est là que tu tapes les commandes du guide).
 - Un compte utilisateur **normal** (pas root) avec les droits `sudo` — c'est le cas par défaut sur une install desktop/WSL.
+- Un **éditeur en terminal** : `nano` est présent presque partout (sinon `sudo apt install -y nano`). On s'en sert pour créer des fichiers.
 
-⚠️ **WSL2 et systemd :** l'étape sur `systemd` suppose qu'il est actif. Sur WSL, vérifie que ton `/etc/wsl.conf` contient `[boot]\nsystemd=true`, puis `wsl --shutdown` et rouvre le terminal.
+⚠️ **WSL2 et systemd :** l'étape sur `systemd` suppose qu'il est actif. Sur WSL, édite `/etc/wsl.conf` (`sudo nano /etc/wsl.conf`) pour qu'il contienne les **deux lignes ci-dessous**, puis lance `wsl --shutdown` dans PowerShell et rouvre ton terminal.
 :::
 
 :::lang en
@@ -112,11 +113,18 @@ You should have:
 - A **Linux environment on your machine**, one of:
   - **Native Linux** (Ubuntu, Debian, Fedora…) — ideal;
   - **Windows + WSL2** — install Ubuntu (`wsl --install`);
-  - **macOS** — most commands exist, but some (`ip`, `systemctl`, `apt`) are Linux-specific: prefer an **Ubuntu VM** (Multipass: `multipass launch --name lab`) for this guide.
+  - **macOS** — some commands (`ip`, `systemctl`, `apt`) are Linux-specific: do this guide in an **Ubuntu VM**. With Multipass: `brew install --cask multipass`, then `multipass launch --name lab` and finally `multipass shell lab` to enter the VM (that's where you type the guide's commands).
 - A **normal user** account (not root) with `sudo` rights — the default on a desktop/WSL install.
+- A **terminal editor**: `nano` is present almost everywhere (otherwise `sudo apt install -y nano`). We'll use it to create files.
 
-⚠️ **WSL2 and systemd:** the `systemd` step assumes it's active. On WSL, make sure `/etc/wsl.conf` contains `[boot]\nsystemd=true`, then run `wsl --shutdown` and reopen the terminal.
+⚠️ **WSL2 and systemd:** the `systemd` step assumes it's active. On WSL, edit `/etc/wsl.conf` (`sudo nano /etc/wsl.conf`) so it contains the **two lines below**, then run `wsl --shutdown` in PowerShell and reopen your terminal.
 :::
+
+```ini
+# /etc/wsl.conf
+[boot]
+systemd=true
+```
 
 ## concepts
 
@@ -304,8 +312,9 @@ We'll start a dummy background process, find it, and stop it:
 
 ```bash
 sleep 600 &                   # un process qui dort 10 min, en arrière-plan / a process sleeping 10 min, in the background
-ps aux | grep sleep           # le retrouver (note son PID) / find it (note its PID)
-kill <PID>                    # SIGTERM : arrêt propre / clean stop
+ps aux | grep sleep           # le retrouver / find it
+pgrep sleep                   # son PID, directement / its PID, directly
+kill <PID>                    # SIGTERM : arrêt propre (remplace <PID>) / clean stop (replace <PID>)
 # s'il résiste seulement : kill -9 <PID>   # SIGKILL, en dernier recours / last resort
 ```
 
@@ -324,7 +333,7 @@ kill <PID>                    # SIGTERM : arrêt propre / clean stop
 
 **🤔 Pourquoi `systemd` ?** C'est le **gestionnaire de services** de la quasi-totalité des Linux modernes. Il démarre les services au boot, les redémarre s'ils tombent, et centralise leurs journaux (`journalctl`). Chaque base de données, chaque serveur web que tu déploieras est un service `systemd`.
 
-On observe le service de **journalisation** `cron` (présent presque partout) :
+On observe le service de **planification** `cron` (l'ordonnanceur de tâches, présent presque partout) :
 :::
 
 :::lang en
@@ -342,13 +351,13 @@ sudo journalctl -u cron -n 20 --no-pager   # ses 20 dernières lignes de log / i
 ```
 
 :::lang fr
-**✅ Vérification :** `systemctl status cron` affiche une ligne `Active: active (running)` en vert. Retiens les verbes : `start`, `stop`, `restart`, `enable` (au boot), `disable`, `status`. C'est le même quatuor pour **tous** les services.
+**✅ Vérification :** `systemctl status cron` affiche une ligne `Active: active (running)` en vert. Si l'affichage ouvre un pager, tape `q` pour en sortir. Retiens les verbes : `start`, `stop`, `restart`, `enable` (au boot), `disable`, `status`. C'est le même quatuor pour **tous** les services.
 
 ⚠️ **Sur WSL :** si `systemctl` répond « System has not been booted with systemd », c'est que systemd n'est pas activé — voir la note WSL des prérequis.
 :::
 
 :::lang en
-**✅ Check:** `systemctl status cron` shows a green `Active: active (running)` line. Remember the verbs: `start`, `stop`, `restart`, `enable` (at boot), `disable`, `status`. It's the same quartet for **every** service.
+**✅ Check:** `systemctl status cron` shows a green `Active: active (running)` line. If the output opens a pager, press `q` to exit. Remember the verbs: `start`, `stop`, `restart`, `enable` (at boot), `disable`, `status`. It's the same quartet for **every** service.
 
 ⚠️ **On WSL:** if `systemctl` replies "System has not been booted with systemd", then systemd isn't enabled — see the WSL note in the prerequisites.
 :::
@@ -402,6 +411,7 @@ sudo apt remove -y tree       # le désinstaller / uninstall it
 :::
 
 ```bash
+sudo apt install -y dnsutils curl   # dig + curl si absents / if missing (Fedora : bind-utils curl)
 ip a                          # tes interfaces et adresses IP / your interfaces and IP addresses
 sudo ss -tlnp                 # ports TCP en écoute + le process associé / listening TCP ports + the owning process
 dig +short example.com        # résolution DNS / DNS resolution
@@ -409,11 +419,11 @@ curl -s https://example.com | head -n 5   # une requête HTTP / an HTTP request
 ```
 
 :::lang fr
-**✅ Vérification :** `ip a` montre au moins `lo` (127.0.0.1) et une interface avec ton IP locale (ex. `192.168.x.x`). `dig +short example.com` renvoie une ou plusieurs IP. `curl` affiche du HTML.
+**✅ Vérification :** `ip a` montre au moins `lo` (127.0.0.1) et une interface avec ton IP locale (ex. `192.168.x.x`, ou `172.x` sous WSL2). `dig +short example.com` renvoie une ou plusieurs IP. `curl` affiche du HTML.
 :::
 
 :::lang en
-**✅ Check:** `ip a` shows at least `lo` (127.0.0.1) and an interface with your local IP (e.g. `192.168.x.x`). `dig +short example.com` returns one or more IPs. `curl` prints HTML.
+**✅ Check:** `ip a` shows at least `lo` (127.0.0.1) and an interface with your local IP (e.g. `192.168.x.x`, or `172.x` on WSL2). `dig +short example.com` returns one or more IPs. `curl` prints HTML.
 :::
 
 ### step-09
@@ -423,7 +433,7 @@ curl -s https://example.com | head -n 5   # une requête HTTP / an HTTP request
 
 **🤔 Pourquoi un script ?** Automatiser, c'est le cœur du DevOps. Un script, c'est juste une suite de commandes que tu sais déjà taper, enregistrée dans un fichier exécutable. Tu réutilises **exactement** ce que tu viens d'apprendre : permissions (`chmod +x`), le shebang, et quelques commandes système.
 
-Crée `bilan.sh` :
+Crée `bilan.sh` avec un éditeur — `nano bilan.sh`, colle le contenu, puis `Ctrl+O` `Entrée` pour enregistrer et `Ctrl+X` pour quitter (ne colle pas directement dans le terminal : on veut un **fichier**) :
 :::
 
 :::lang en
@@ -431,7 +441,7 @@ Crée `bilan.sh` :
 
 **🤔 Why a script?** Automating is the heart of DevOps. A script is just a sequence of commands you already know how to type, saved in an executable file. You reuse **exactly** what you just learned: permissions (`chmod +x`), the shebang, and a few system commands.
 
-Create `bilan.sh`:
+Create `bilan.sh` with an editor — `nano bilan.sh`, paste the content, then `Ctrl+O` `Enter` to save and `Ctrl+X` to quit (don't paste straight into the terminal: we want a **file**):
 :::
 
 ```bash
