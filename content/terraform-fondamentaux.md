@@ -284,7 +284,7 @@ terraform apply               # relance : "No changes." / re-run: "No changes."
 
 **🤔 Pourquoi ?** Coder le port `8080` en dur t'oblige à éditer le code pour chaque environnement. Une **variable** externalise ce choix ; une **output** expose une valeur utile (ici l'URL) après `apply`, réutilisable par un autre outil ou un humain.
 
-Crée `variables.tf` et `outputs.tf` :
+Crée `variables.tf`, `outputs.tf` et `terraform.tfvars` :
 :::
 
 :::lang en
@@ -292,7 +292,7 @@ Crée `variables.tf` et `outputs.tf` :
 
 **🤔 Why?** Hardcoding port `8080` forces you to edit the code for every environment. A **variable** externalizes that choice; an **output** exposes a useful value (here the URL) after `apply`, reusable by another tool or a human.
 
-Create `variables.tf` and `outputs.tf`:
+Create `variables.tf`, `outputs.tf` and `terraform.tfvars`:
 :::
 
 ```hcl
@@ -315,25 +315,46 @@ output "url" {
 }
 ```
 
-:::lang fr
-Remplace les valeurs en dur dans `main.tf` par les variables (`name = "nginx:${var.nginx_tag}"` et `external = var.external_port`), puis :
-:::
-
-:::lang en
-Replace the hardcoded values in `main.tf` with the variables (`name = "nginx:${var.nginx_tag}"` and `external = var.external_port`), then:
-:::
-
-```bash
-terraform apply -var="external_port=9090"
-terraform output url          # affiche http://localhost:9090
+```hcl
+# terraform.tfvars — Terraform lit ce fichier automatiquement / Terraform reads this file automatically
+external_port = 9090
+nginx_tag     = "1.27"
 ```
 
 :::lang fr
-**✅ Vérification :** le `plan` montre un `~` (modification) sur le conteneur pour changer le port, et `terraform output url` renvoie `http://localhost:9090`. Le `curl` sur ce port répond.
+Mets à jour `main.tf` pour utiliser les variables (le bloc `terraform`/`provider` du step-01 reste inchangé) :
 :::
 
 :::lang en
-**✅ Check:** the `plan` shows a `~` (change) on the container to switch the port, and `terraform output url` returns `http://localhost:9090`. A `curl` on that port responds.
+Update `main.tf` to use the variables (the `terraform`/`provider` block from step-01 stays unchanged):
+:::
+
+```hcl
+resource "docker_image" "nginx" {
+  name = "nginx:${var.nginx_tag}"
+}
+
+resource "docker_container" "web" {
+  name  = "tf-web"
+  image = docker_image.nginx.image_id
+  ports {
+    internal = 80
+    external = var.external_port
+  }
+}
+```
+
+```bash
+terraform apply         # lit terraform.tfvars (port 9090) / reads terraform.tfvars (port 9090)
+terraform output url    # http://localhost:9090
+```
+
+:::lang fr
+**✅ Vérification :** le `plan` montre que le conteneur est **remplacé** (`-/+`, avec la ligne `forces replacement`) — un conteneur Docker est quasi immuable, Terraform le recrée pour changer son port. Après `apply`, `terraform output url` renvoie `http://localhost:9090` et le `curl` sur ce port répond.
+:::
+
+:::lang en
+**✅ Check:** the `plan` shows the container is **replaced** (`-/+`, with the `forces replacement` line) — a Docker container is nearly immutable, Terraform recreates it to change its port. After `apply`, `terraform output url` returns `http://localhost:9090` and a `curl` on that port responds.
 :::
 
 ### step-05
@@ -341,26 +362,34 @@ terraform output url          # affiche http://localhost:9090
 :::lang fr
 **Objectif.** Observer le **graphe de dépendances** en changeant l'image.
 
-**🤔 Pourquoi certaines modifs recréent-elles la ressource ?** Changer le port se fait « en place » (`~`). Mais changer l'**image** d'un conteneur impose de le **remplacer** (`-/+` : détruire puis recréer) — un conteneur ne change pas d'image à chaud. Terraform le sait et te le montre dans le plan. Lis toujours le plan pour repérer les remplacements.
+**🤔 `~` (en place) vs `-/+` (remplacement) ?** Sur beaucoup de ressources cloud, un changement se fait **en place** (`~`). Mais un conteneur Docker est **quasi immuable** : changer son image (comme son port à l'étape précédente) impose de le **remplacer** (`-/+` : détruire puis recréer). L'important ici, c'est le **graphe** : la nouvelle image est créée **avant** que le conteneur soit recréé. Lis toujours le plan pour repérer les remplacements.
 :::
 
 :::lang en
 **Goal.** Observe the **dependency graph** by changing the image.
 
-**🤔 Why do some changes recreate the resource?** Changing the port happens "in place" (`~`). But changing a container's **image** forces a **replace** (`-/+`: destroy then recreate) — a container can't swap images live. Terraform knows this and shows it in the plan. Always read the plan to spot replacements.
+**🤔 `~` (in place) vs `-/+` (replacement)?** On many cloud resources, a change happens **in place** (`~`). But a Docker container is **nearly immutable**: changing its image (like its port in the previous step) forces a **replace** (`-/+`: destroy then recreate). What matters here is the **graph**: the new image is created **before** the container is recreated. Always read the plan to spot replacements.
 :::
 
-```bash
-terraform plan -var="nginx_tag=1.26"    # note le "-/+ destroy and then create replacement"
-terraform apply -var="nginx_tag=1.26" -auto-approve
-```
-
 :::lang fr
-**✅ Vérification :** le `plan` affiche `1 to add, 0 to change, 1 to destroy` (ou un `-/+`) sur le conteneur, et une nouvelle image `nginx:1.26` à créer. Terraform a géré l'ordre : image d'abord, conteneur ensuite. *(`-auto-approve` saute la confirmation — pratique pour itérer, à éviter en prod.)*
+Change `nginx_tag` à `1.26` dans `terraform.tfvars`, puis :
 :::
 
 :::lang en
-**✅ Check:** the `plan` shows `1 to add, 0 to change, 1 to destroy` (or a `-/+`) on the container, and a new `nginx:1.26` image to create. Terraform handled the order: image first, container next. *(`-auto-approve` skips confirmation — handy to iterate, avoid in prod.)*
+Change `nginx_tag` to `1.26` in `terraform.tfvars`, then:
+:::
+
+```bash
+terraform plan          # cherche la ligne "forces replacement" / look for the "forces replacement" line
+terraform apply -auto-approve
+```
+
+:::lang fr
+**✅ Vérification :** le `plan` annonce une nouvelle image `nginx:1.26` à **créer** et le conteneur à **remplacer** (`-/+ forces replacement`). Terraform gère l'ordre tout seul : l'image d'abord, le conteneur ensuite — c'est le graphe de dépendances. *(`-auto-approve` saute la confirmation — pratique pour itérer, à éviter en prod.)*
+:::
+
+:::lang en
+**✅ Check:** the `plan` announces a new `nginx:1.26` image to **create** and the container to **replace** (`-/+ forces replacement`). Terraform handles the order itself: the image first, the container next — that's the dependency graph. *(`-auto-approve` skips confirmation — handy to iterate, avoid in prod.)*
 :::
 
 ### step-06
@@ -407,11 +436,11 @@ output "url" { value = "http://localhost:${var.external_port}" }
 ```
 
 :::lang fr
-Appelle le module deux fois depuis un nouveau `main.tf` racine (garde le bloc `terraform`/`provider` du step-01) :
+**Remplace tout le contenu de `main.tf`** : garde uniquement le bloc `terraform`/`provider` (step-01), **supprime les deux `resource`** `docker_image`/`docker_container`, et ajoute les deux appels de `module` ci-dessous. *(Supprime aussi `variables.tf`, `outputs.tf` et `terraform.tfvars` de la racine : le module porte désormais ses propres variables et outputs.)*
 :::
 
 :::lang en
-Call the module twice from a new root `main.tf` (keep the `terraform`/`provider` block from step-01):
+**Replace the entire contents of `main.tf`**: keep only the `terraform`/`provider` block (step-01), **delete the two `resource`s** `docker_image`/`docker_container`, and add the two `module` calls below. *(Also delete `variables.tf`, `outputs.tf` and `terraform.tfvars` from the root: the module now carries its own variables and outputs.)*
 :::
 
 ```hcl
@@ -559,7 +588,8 @@ Terraform cheat sheet.
 # Cycle de vie / Lifecycle
 terraform init          # télécharge les providers / download providers
 terraform plan          # montre le diff (toujours lire !) / show the diff (always read!)
-terraform apply         # applique / apply        terraform destroy   # supprime tout / remove all
+terraform apply         # applique / apply
+terraform destroy       # supprime tout / remove all
 terraform apply -var="port=9090"      # passer une variable / pass a variable
 
 # State
@@ -598,6 +628,7 @@ resource "docker_container" "web" {
 - [Provider Docker (registry)](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) — toutes les ressources `docker_*`.
 - [Terraform Associate — préparation](https://developer.hashicorp.com/terraform/tutorials/certification-003) — la certification que ce module prépare.
 - [Style HCL & bonnes pratiques](https://developer.hashicorp.com/terraform/language/style) — conventions officielles.
+- **Pour compléter la prépa Associate** : `data` sources, `count`/`for_each`, fonctions et expressions, `import`, workspaces, et backends distants (S3, Terraform Cloud).
 :::
 
 :::lang en
@@ -605,6 +636,7 @@ resource "docker_container" "web" {
 - [Docker provider (registry)](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) — all the `docker_*` resources.
 - [Terraform Associate — preparation](https://developer.hashicorp.com/terraform/tutorials/certification-003) — the certification this module prepares for.
 - [HCL style & best practices](https://developer.hashicorp.com/terraform/language/style) — official conventions.
+- **To round out the Associate prep**: `data` sources, `count`/`for_each`, functions and expressions, `import`, workspaces, and remote backends (S3, Terraform Cloud).
 :::
 
 ## troubleshooting
