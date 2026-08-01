@@ -97,7 +97,7 @@ By the end of this guide, you'll know how to:
 Tu dois avoir :
 
 - Le guide **Docker fondamentaux** acquis (image, conteneur, port — prérequis dur).
-- **Docker** installé et fonctionnel (k3d fait tourner le cluster dans Docker).
+- **Docker** installé, fonctionnel **et lancé** (Docker Desktop ouvert sur macOS/Windows) : k3d fait tourner le cluster dans Docker, donc `k3d cluster create` échoue si Docker ne tourne pas.
 - **k3d** et **kubectl** installés :
 :::
 
@@ -105,7 +105,7 @@ Tu dois avoir :
 You should have:
 
 - The **Docker fundamentals** guide under your belt (image, container, port — hard prerequisite).
-- **Docker** installed and working (k3d runs the cluster inside Docker).
+- **Docker** installed, working **and running** (Docker Desktop open on macOS/Windows): k3d runs the cluster inside Docker, so `k3d cluster create` fails if Docker isn't running.
 - **k3d** and **kubectl** installed:
 :::
 
@@ -169,26 +169,30 @@ We'll go like this: local cluster → first deployment → self-healing → scal
 **Objectif.** Créer un cluster local et vérifier que `kubectl` lui parle.
 
 **🤔 Pourquoi `-p "8080:80@loadbalancer"` ?** k3d embarque un load balancer. Cette option mappe le **port 8080 de ta machine** vers le port 80 du load balancer du cluster — on s'en servira à l'étape 5 pour joindre notre service depuis le navigateur.
+
+**🤔 Et `--disable=traefik` ?** k3s installe un Ingress Traefik par défaut, qui **occuperait le port 80** et entrerait en conflit avec notre propre Service à l'étape 5. On le retire ici (on apprendra Traefik dans un guide dédié).
 :::
 
 :::lang en
 **Goal.** Create a local cluster and check that `kubectl` talks to it.
 
 **🤔 Why `-p "8080:80@loadbalancer"`?** k3d ships a load balancer. This option maps **port 8080 on your machine** to the cluster load balancer's port 80 — we'll use it in step 5 to reach our service from the browser.
+
+**🤔 And `--disable=traefik`?** k3s installs a Traefik Ingress by default, which **would occupy port 80** and conflict with our own Service in step 5. We remove it here (we'll learn Traefik in a dedicated guide).
 :::
 
 ```bash
-k3d cluster create devlab -p "8080:80@loadbalancer"
+k3d cluster create devlab -p "8080:80@loadbalancer" --k3s-arg "--disable=traefik@server:0"
 kubectl get nodes            # les nœuds du cluster / the cluster nodes
-kubectl get pods -A          # tout ce qui tourne déjà (système) / everything already running (system)
+kubectl get pods -A          # les pods système déjà en place / the system pods already in place
 ```
 
 :::lang fr
-**✅ Vérification :** `kubectl get nodes` liste un nœud `k3d-devlab-server-0` en statut `Ready`. `kubectl get pods -A` montre les pods système (`coredns`, `traefik`, etc.) dans le namespace `kube-system`. Ton cluster est vivant.
+**✅ Vérification :** `kubectl get nodes` liste un nœud `k3d-devlab-server-0` en statut `Ready`. `kubectl get pods -A` montre les pods système (`coredns`, `local-path-provisioner`, `metrics-server`) dans le namespace `kube-system` — **pas** de traefik, puisqu'on l'a désactivé. Ton cluster est vivant.
 :::
 
 :::lang en
-**✅ Check:** `kubectl get nodes` lists a `k3d-devlab-server-0` node in `Ready` status. `kubectl get pods -A` shows system pods (`coredns`, `traefik`, etc.) in the `kube-system` namespace. Your cluster is alive.
+**✅ Check:** `kubectl get nodes` lists a `k3d-devlab-server-0` node in `Ready` status. `kubectl get pods -A` shows system pods (`coredns`, `local-path-provisioner`, `metrics-server`) in the `kube-system` namespace — **no** traefik, since we disabled it. Your cluster is alive.
 :::
 
 ### step-02
@@ -290,12 +294,12 @@ kubectl get pods -l app=web             # relance vite : un nouveau apparaît / 
 ```bash
 kubectl scale deployment web --replicas=5    # impératif, pour tester / imperative, to test
 kubectl get pods -l app=web                  # 5 pods maintenant / 5 pods now
-# Bonne pratique : remets replicas: 3 dans deployment.yaml, puis / Best practice: set replicas: 3 in deployment.yaml, then:
+# Bonne pratique : mets replicas: 3 dans deployment.yaml, puis / Best practice: set replicas: 3 in deployment.yaml, then:
 kubectl apply -f deployment.yaml
 ```
 
 :::lang fr
-**✅ Vérification :** après le `scale`, `kubectl get pods -l app=web` montre 5 pods. Après avoir remis `replicas: 3` dans le YAML et refait `apply`, le deployment converge à `3/3` (Kubernetes supprime 2 pods). Le manifeste gagne toujours.
+**✅ Vérification :** après le `scale`, `kubectl get pods -l app=web` montre 5 pods. Après avoir mis `replicas: 3` dans le YAML et refait `apply`, le deployment converge à `3/3` (Kubernetes supprime 2 pods). Le manifeste gagne toujours.
 :::
 
 :::lang en
@@ -372,11 +376,11 @@ kubectl create configmap web-home \
 ```
 
 :::lang fr
-Ajoute le montage au `deployment.yaml` (sous `spec.template.spec`, à côté de `containers`) :
+Dans `deployment.yaml`, **remplace tout le bloc `containers:`** par le bloc ci-dessous (il ajoute `volumeMounts` au conteneur et un `volumes:` frère de `containers`, tous deux sous `spec.template.spec`) :
 :::
 
 :::lang en
-Add the mount to `deployment.yaml` (under `spec.template.spec`, next to `containers`):
+In `deployment.yaml`, **replace the entire `containers:` block** with the block below (it adds `volumeMounts` to the container and a `volumes:` sibling of `containers`, both under `spec.template.spec`):
 :::
 
 ```yaml
@@ -506,7 +510,7 @@ La suite logique :
 1. **Traefik** — l'*Ingress controller* de facto : router plusieurs services K8s derrière un nom de domaine et du HTTPS.
 2. Plus loin : le **projet homelab**, où tu combines tout (Terraform provisionne, Ansible configure, Kubernetes orchestre).
 
-Pour la **prépa CKA/CKAD**, creuse ensuite : namespaces, `requests`/`limits`, sondes (`liveness`/`readiness`), volumes persistants (PV/PVC), Ingress, RBAC, Jobs/CronJobs.
+Pour la **prépa CKA/CKAD**, creuse ensuite : namespaces, `requests`/`limits`, sondes (`liveness`/`readiness`), volumes persistants (PV/PVC), Ingress, RBAC, Jobs/CronJobs. Entraîne-toi aussi à générer des manifestes en **impératif** (`kubectl create deploy web --image=nginx:1.27 --dry-run=client -o yaml`) — un gain de temps décisif au CKAD chronométré.
 :::
 
 :::lang en
@@ -515,7 +519,7 @@ The logical next steps:
 1. **Traefik** — the de-facto *Ingress controller*: route several K8s services behind a domain name and HTTPS.
 2. Further along: the **homelab project**, where you combine everything (Terraform provisions, Ansible configures, Kubernetes orchestrates).
 
-For **CKA/CKAD prep**, dig next into: namespaces, `requests`/`limits`, probes (`liveness`/`readiness`), persistent volumes (PV/PVC), Ingress, RBAC, Jobs/CronJobs.
+For **CKA/CKAD prep**, dig next into: namespaces, `requests`/`limits`, probes (`liveness`/`readiness`), persistent volumes (PV/PVC), Ingress, RBAC, Jobs/CronJobs. Also practice generating manifests **imperatively** (`kubectl create deploy web --image=nginx:1.27 --dry-run=client -o yaml`) — a decisive time-saver on the timed CKAD.
 :::
 
 ## cheatsheet
@@ -530,7 +534,7 @@ kubectl cheat sheet.
 
 ```bash
 # Cluster (k3d)
-k3d cluster create devlab -p "8080:80@loadbalancer"   # créer / create
+k3d cluster create devlab -p "8080:80@loadbalancer" --k3s-arg "--disable=traefik@server:0"   # créer / create
 k3d cluster delete devlab                              # supprimer / delete
 kubectl get nodes                                      # les nœuds / the nodes
 
