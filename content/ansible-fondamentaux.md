@@ -108,7 +108,8 @@ You should have:
 :::
 
 ```bash
-sudo apt install -y ansible        # Debian/Ubuntu (Fedora : sudo dnf install ansible)
+sudo apt install -y ansible        # Debian/Ubuntu
+# Fedora : sudo dnf install ansible   ·   macOS : brew install ansible
 ansible --version                  # vérifie l'install / check the install
 ```
 
@@ -202,7 +203,9 @@ ansible localhost -m setup -c local | head -n 20   # les "facts" : infos collect
 :::lang fr
 **Objectif.** Écrire ton premier **playbook** et **vivre l'idempotence**. C'est **l'étape clé du guide.**
 
-**🤔 Pourquoi `become` ?** Installer un paquet exige les droits root : `become: true` fait l'équivalent d'un `sudo`. On décrit l'état voulu (« `tree` est présent »), pas la commande.
+**🤔 Pourquoi `become` ?** Installer un paquet exige les droits root : `become: true` fait l'équivalent d'un `sudo`. On décrit l'état voulu (« `tree` est présent »), pas la commande. Le module `package` est **générique** (il choisit `apt` ou `dnf` selon la distro).
+
+⚠️ **Cette étape locale suppose Linux** (Debian/Ubuntu ou Fedora). Sur **macOS**, saute-la : tu retrouveras exactement la même leçon d'idempotence à l'étape 3, sur la VM Ubuntu.
 
 Crée `local.yml` (avec `nano local.yml`) :
 :::
@@ -210,7 +213,9 @@ Crée `local.yml` (avec `nano local.yml`) :
 :::lang en
 **Goal.** Write your first **playbook** and **live idempotence**. This is **the key step of the guide.**
 
-**🤔 Why `become`?** Installing a package requires root: `become: true` does the equivalent of `sudo`. We describe the desired state ("`tree` is present"), not the command.
+**🤔 Why `become`?** Installing a package requires root: `become: true` does the equivalent of `sudo`. We describe the desired state ("`tree` is present"), not the command. The `package` module is **generic** (it picks `apt` or `dnf` depending on the distro).
+
+⚠️ **This local step assumes Linux** (Debian/Ubuntu or Fedora). On **macOS**, skip it: you'll get the exact same idempotence lesson in step 3, on the Ubuntu VM.
 
 Create `local.yml` (with `nano local.yml`):
 :::
@@ -222,10 +227,9 @@ Create `local.yml` (with `nano local.yml`):
   become: true
   tasks:
     - name: tree est installé
-      ansible.builtin.apt:
+      ansible.builtin.package:
         name: tree
         state: present
-        update_cache: true
 ```
 
 ```bash
@@ -247,6 +251,8 @@ ansible-playbook local.yml --ask-become-pass   # demande ton mot de passe sudo /
 
 **🤔 Pourquoi une VM et plus localhost ?** Parce que le vrai métier, c'est gérer des machines **à distance**. Multipass te donne un Ubuntu jetable ; on y injecte ta clé publique via `cloud-init` pour qu'Ansible s'y connecte en SSH sans mot de passe.
 
+⚠️ **Windows/WSL2 :** Multipass tourne côté Windows (Hyper-V) et joindre sa VM en SSH *depuis l'intérieur de WSL2* pose des soucis réseau. Le plus simple : fais ce module **sur du Linux natif ou une VM Linux**. (Sur macOS et Linux, Multipass fonctionne directement.)
+
 Crée `cloud-init.yaml` en **collant ta clé publique** (celle affichée aux prérequis) :
 :::
 
@@ -254,6 +260,8 @@ Crée `cloud-init.yaml` en **collant ta clé publique** (celle affichée aux pr�
 **Goal.** Create a **real local VM** and manage it over SSH — the model of a remote server, on your machine.
 
 **🤔 Why a VM and no longer localhost?** Because the real job is managing machines **remotely**. Multipass gives you a disposable Ubuntu; we inject your public key via `cloud-init` so Ansible connects over SSH without a password.
+
+⚠️ **Windows/WSL2:** Multipass runs on the Windows side (Hyper-V) and reaching its VM over SSH *from inside WSL2* causes networking issues. Simplest: do this module **on native Linux or a Linux VM**. (On macOS and Linux, Multipass works directly.)
 
 Create `cloud-init.yaml`, **pasting your public key** (the one shown in the prerequisites):
 :::
@@ -270,16 +278,16 @@ multipass info web | grep IPv4        # relève l'IP de la VM / note the VM's IP
 ```
 
 :::lang fr
-Crée l'inventaire `inventory.ini` avec l'IP relevée :
+Crée l'inventaire `inventory.ini` en remplaçant `<IP-DE-TA-VM>` par l'IP relevée. L'option `StrictHostKeyChecking=accept-new` accepte l'empreinte SSH au **premier contact** (sans elle, le tout premier `ping` échoue en `UNREACHABLE`) :
 :::
 
 :::lang en
-Create the inventory `inventory.ini` with the IP you noted:
+Create the inventory `inventory.ini`, replacing `<IP-DE-TA-VM>` with the IP you noted. The `StrictHostKeyChecking=accept-new` option accepts the SSH fingerprint on **first contact** (without it, the very first `ping` fails with `UNREACHABLE`):
 :::
 
 ```ini
 [web]
-192.168.64.10 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519
+<IP-DE-TA-VM> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
 ```
 
 ```bash
@@ -332,7 +340,7 @@ Create `web.yml`:
 
 ```bash
 ansible-playbook -i inventory.ini web.yml
-curl http://192.168.64.10          # remplace par l'IP de ta VM / replace with your VM's IP
+curl http://<IP-DE-TA-VM>          # remplace par l'IP de ta VM / replace with your VM's IP
 ```
 
 :::lang fr
@@ -367,17 +375,32 @@ Create the template `index.html.j2`:
 ```
 
 :::lang fr
-Ajoute une variable et une tâche `template` à `web.yml` (sous `hosts: web`, avant `tasks:` ajoute le bloc `vars`, et une tâche) :
+Mets à jour `web.yml` avec le playbook **complet** ci-dessous (on ajoute le bloc `vars` et la tâche `template`) :
 :::
 
 :::lang en
-Add a variable and a `template` task to `web.yml` (under `hosts: web`, before `tasks:` add the `vars` block, and a task):
+Update `web.yml` with the **complete** playbook below (we add the `vars` block and the `template` task):
 :::
 
 ```yaml
+- name: Serveur web
+  hosts: web
+  become: true
   vars:
     theme: "jiha.tech"
-  # ... dans tasks: / inside tasks:
+  tasks:
+    - name: nginx est installé
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: nginx tourne et démarre au boot
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
     - name: page d'accueil personnalisée
       ansible.builtin.template:
         src: index.html.j2
@@ -386,15 +409,15 @@ Add a variable and a `template` task to `web.yml` (under `hosts: web`, before `t
 
 ```bash
 ansible-playbook -i inventory.ini web.yml
-curl http://192.168.64.10
+curl http://<IP-DE-TA-VM>
 ```
 
 :::lang fr
-**✅ Vérification :** le `curl` renvoie maintenant « Bienvenue sur web » (le hostname de la VM) et le thème. Ansible a rendu le template avec les bonnes valeurs.
+**✅ Vérification :** le `curl` renvoie maintenant « Bienvenue sur web » (le hostname de la VM) et le thème. Ansible a rendu le template avec les bonnes valeurs. *(`ansible_hostname` provient des* facts*, collectés automatiquement — ne désactive pas `gather_facts`.)*
 :::
 
 :::lang en
-**✅ Check:** the `curl` now returns "Bienvenue sur web" (the VM's hostname) and the theme. Ansible rendered the template with the right values.
+**✅ Check:** the `curl` now returns "Bienvenue sur web" (the VM's hostname) and the theme. Ansible rendered the template with the right values. *(`ansible_hostname` comes from the* facts*, gathered automatically — don't disable `gather_facts`.)*
 :::
 
 ### step-06
@@ -453,9 +476,31 @@ Add a `notify` to the template task in `web.yml`, and a `handlers` block:
 
 ```bash
 ansible-galaxy init roles/webserver      # crée le squelette du rôle / scaffold the role
-# déplace tes tâches -> roles/webserver/tasks/main.yml
-# ton template     -> roles/webserver/templates/index.html.j2
-# ton handler      -> roles/webserver/handlers/main.yml
+```
+
+:::lang fr
+Répartis ton code dans les fichiers du rôle. **Attention :** dans un rôle, `tasks/main.yml` contient la **liste des tâches directement** (sans l'en-tête `- name/hosts/tasks:`), et le template va dans `templates/` (Ansible l'y trouve tout seul) :
+:::
+
+:::lang en
+Split your code across the role's files. **Note:** in a role, `tasks/main.yml` holds the **task list directly** (without the `- name/hosts/tasks:` header), and the template goes in `templates/` (Ansible finds it there automatically):
+:::
+
+```yaml
+# roles/webserver/tasks/main.yml
+- name: nginx est installé
+  ansible.builtin.apt: { name: nginx, state: present, update_cache: true }
+- name: nginx tourne et démarre au boot
+  ansible.builtin.service: { name: nginx, state: started, enabled: true }
+- name: page d'accueil personnalisée
+  ansible.builtin.template: { src: index.html.j2, dest: /var/www/html/index.html }
+  notify: redémarrer nginx
+
+# roles/webserver/handlers/main.yml
+- name: redémarrer nginx
+  ansible.builtin.service: { name: nginx, state: restarted }
+
+# roles/webserver/templates/index.html.j2  (déplace le fichier existant ici / move the existing file here)
 ```
 
 :::lang fr
