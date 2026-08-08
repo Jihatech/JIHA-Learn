@@ -267,19 +267,24 @@ resource "docker_container" "worker" {
     external = 9000 + count.index
   }
 }
+
+output "worker_names" {
+  value = docker_container.worker[*].name   # splat : la liste des noms / splat: the list of names
+}
 ```
 
 ```bash
 terraform apply -auto-approve
+terraform output worker_names         # ["worker-0","worker-1","worker-2"] (via splat)
 terraform state list | grep worker    # worker[0], worker[1], worker[2]
 ```
 
 :::lang fr
-**✅ Vérification :** trois conteneurs `worker-0/1/2` tournent (ports 9000-9002). Dans le state, ils sont indexés **par position** : `docker_container.worker[0]`, `[1]`, `[2]`. Retiens ce détail — c'est le piège de l'étape suivante.
+**✅ Vérification :** trois conteneurs `worker-0/1/2` tournent (ports 9000-9002), et `terraform output worker_names` renvoie `["worker-0","worker-1","worker-2"]` grâce à l'opérateur **splat** `[*]` (une liste construite depuis toutes les instances `count`). Dans le state, ils sont indexés **par position** : `docker_container.worker[0]`, `[1]`, `[2]`. Retiens ce détail — c'est le piège de l'étape suivante.
 :::
 
 :::lang en
-**✅ Check:** three `worker-0/1/2` containers run (ports 9000-9002). In state they're indexed **by position**: `docker_container.worker[0]`, `[1]`, `[2]`. Remember this — it's the pitfall in the next step.
+**✅ Check:** three `worker-0/1/2` containers run (ports 9000-9002), and `terraform output worker_names` returns `["worker-0","worker-1","worker-2"]` thanks to the **splat** operator `[*]` (a list built from all `count` instances). In state they're indexed **by position**: `docker_container.worker[0]`, `[1]`, `[2]`. Remember this — it's the pitfall in the next step.
 :::
 
 ### step-03
@@ -318,11 +323,11 @@ terraform state list | grep site      # site["blog"], site["shop"]
 ```
 
 :::lang fr
-**✅ Vérification :** deux conteneurs `site-blog` (8081) et `site-shop` (8082) tournent, indexés **par clé** : `docker_container.site["blog"]`. Preuve du gain : retire `shop` de `var.sites` et `terraform plan` → **seul** `site["shop"]` est détruit, `site["blog"]` est intact. Refais l'inverse pour t'en convaincre. *(Remets `shop` avant de continuer.)*
+**✅ Vérification :** deux conteneurs `site-blog` (8081) et `site-shop` (8082) tournent, indexés **par clé** : `docker_container.site["blog"]`. Preuve du gain : retire `shop` du `default` de `var.sites` (édite `main.tf`) puis `terraform plan` → **seul** `site["shop"]` est détruit, `site["blog"]` est intact. Refais l'inverse pour t'en convaincre. *(Remets `shop` avant de continuer.)*
 :::
 
 :::lang en
-**✅ Check:** two containers `site-blog` (8081) and `site-shop` (8082) run, indexed **by key**: `docker_container.site["blog"]`. Proof of the gain: remove `shop` from `var.sites` and `terraform plan` → **only** `site["shop"]` is destroyed, `site["blog"]` is untouched. Do the reverse to convince yourself. *(Put `shop` back before continuing.)*
+**✅ Check:** two containers `site-blog` (8081) and `site-shop` (8082) run, indexed **by key**: `docker_container.site["blog"]`. Proof of the gain: remove `shop` from `var.sites`'s `default` (edit `main.tf`) then `terraform plan` → **only** `site["shop"]` is destroyed, `site["blog"]` is untouched. Do the reverse to convince yourself. *(Put `shop` back before continuing.)*
 :::
 
 ### step-04
@@ -522,7 +527,7 @@ Tu sais que c'est bon quand…
 - [ ] Tu choisis `count` **ou** `for_each` en connaissance de cause (identité = `for_each`).
 - [ ] Tu déclines une ressource depuis une **map** avec `each.key`/`each.value`.
 - [ ] Tu écris une condition et une boucle `for`, et tu les testes dans `terraform console`.
-- [ ] Tu piochates les bonnes **fonctions** au lieu de bricoler.
+- [ ] Tu pioches les bonnes **fonctions** au lieu de bricoler.
 - [ ] Tu lis l'existant avec une **data source**.
 - [ ] Tu génères des blocs imbriqués avec **`dynamic`**.
 
@@ -577,7 +582,8 @@ for_each = var.map_ou_set    # -> ressource["clé"], each.key / each.value
 var.prod ? "a" : "b"                       # condition / conditional
 [for x in liste : x + 1]                   # for -> liste / list
 { for k, v in map : k => upper(v) }        # for -> map
-docker_container.site[*].name              # splat -> liste des noms / list of names
+docker_container.worker[*].name            # splat (ressources count) -> liste / splat (count) -> list
+[for s in docker_container.site : s.name]  # équivalent pour for_each (map) / for_each equivalent
 
 # Fonctions utiles / Useful functions
 length()  merge()  lookup(m, k, defaut)  coalesce()  join()  keys()  values()  toset()
@@ -588,7 +594,10 @@ data "docker_registry_image" "x" { name = "nginx:1.27" }
 # Bloc dynamic / dynamic block
 dynamic "ports" {
   for_each = var.liste
-  content { internal = 80, external = ports.value }
+  content {
+    internal = 80
+    external = ports.value
+  }
 }
 ```
 
