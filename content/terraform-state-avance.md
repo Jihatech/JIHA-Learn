@@ -223,7 +223,7 @@ terraform state show docker_container.web  # tous les attributs enregistrés / a
 
 **🤔 Pourquoi ne pas juste renommer dans le code ?** Parce que Terraform identifie une ressource par son **adresse** (`docker_container.web`). Change l'adresse dans le code et le plan devient « détruire `web`, créer `frontend` » — inacceptable sur une base de données en prod. `state mv` déplace l'entrée dans le state pour que la nouvelle adresse pointe vers l'objet **existant**.
 
-Renomme d'abord dans le state, **puis** dans le code (l'ordre compte) :
+Renomme d'abord dans le state, **puis** dans le code — tant que tu ne fais pas d'`apply` entre les deux, le plan reste propre :
 :::
 
 :::lang en
@@ -231,7 +231,7 @@ Renomme d'abord dans le state, **puis** dans le code (l'ordre compte) :
 
 **🤔 Why not just rename in code?** Because Terraform identifies a resource by its **address** (`docker_container.web`). Change the address in code and the plan becomes "destroy `web`, create `frontend`" — unacceptable on a production database. `state mv` moves the state entry so the new address points to the **existing** object.
 
-Rename in state first, **then** in code (order matters):
+Rename in state first, **then** in code — as long as you don't `apply` in between, the plan stays clean:
 :::
 
 ```bash
@@ -242,10 +242,14 @@ terraform plan
 
 :::lang fr
 **✅ Vérification :** après le `state mv` et l'édition du code, `terraform plan` annonce **`No changes`** — la ressource a changé de nom **sans** être recréée. Sans `state mv`, tu aurais vu un `-/+` destructeur.
+
+💡 Depuis Terraform 1.1, un **bloc `moved { … }`** dans le code fait la même chose de façon **versionnable** (pas de commande manuelle) — c'est la méthode moderne recommandée pour les refactorings publiés en équipe.
 :::
 
 :::lang en
 **✅ Check:** after the `state mv` and the code edit, `terraform plan` reports **`No changes`** — the resource was renamed **without** being recreated. Without `state mv`, you'd have seen a destructive `-/+`.
+
+💡 Since Terraform 1.1, a **`moved { … }` block** in code does the same thing in a **versionable** way (no manual command) — the modern recommended method for refactorings published on a team.
 :::
 
 ### step-03
@@ -301,11 +305,11 @@ terraform plan
 ```
 
 :::lang fr
-**✅ Vérification :** `terraform import` répond `Import successful!`, et `terraform plan` affiche `No changes` — Terraform gère de nouveau le conteneur existant, sans l'avoir recréé. Tu viens de **ré-adopter** une ressource.
+**✅ Vérification :** `terraform import` répond `Import successful!`. `terraform plan` peut afficher un **petit diff** (le provider Docker normalise certains attributs — image en digest, ports…) : c'est **normal après un import**, ajuste le HCL jusqu'à `No changes` (cf. *troubleshooting*). L'essentiel : Terraform gère de nouveau le conteneur existant **sans l'avoir recréé**. Tu viens de **ré-adopter** une ressource.
 :::
 
 :::lang en
-**✅ Check:** `terraform import` replies `Import successful!`, and `terraform plan` shows `No changes` — Terraform manages the existing container again, without recreating it. You just **re-adopted** a resource.
+**✅ Check:** `terraform import` replies `Import successful!`. `terraform plan` may show a **small diff** (the Docker provider normalizes some attributes — image digest, ports…): this is **normal after an import**, adjust the HCL until `No changes` (see *troubleshooting*). The point: Terraform manages the existing container again **without recreating it**. You just **re-adopted** a resource.
 :::
 
 ### step-05
@@ -347,7 +351,7 @@ terraform apply -auto-approve      # reconverge : il le recrée / reconverges: r
 
 **🤔 Ce que ça change :** le state ne vit plus sur ton disque mais dans un stockage partagé (S3, Terraform Cloud, GCS…), **chiffré**, et **verrouillé** pendant chaque opération. Deux `apply` simultanés ? Le second attend le déverrouillage — plus de corruption.
 
-On déclare le backend dans un bloc `terraform`. Exemple avec **Terraform Cloud/HCP** (gratuit pour démarrer) :
+On déclare le backend dans un bloc `terraform`. Exemple avec un **backend S3** (nécessite un compte AWS + une table de verrouillage). *Terraform Cloud offre une alternative avec un palier gratuit — mais il s'écrit avec un bloc `cloud { … }`, pas `backend`.*
 :::
 
 :::lang en
@@ -355,7 +359,7 @@ On déclare le backend dans un bloc `terraform`. Exemple avec **Terraform Cloud/
 
 **🤔 What changes:** state no longer lives on your disk but in shared storage (S3, Terraform Cloud, GCS…), **encrypted**, and **locked** during each operation. Two simultaneous `apply`s? The second waits for the unlock — no more corruption.
 
-You declare the backend in a `terraform` block. Example with **Terraform Cloud/HCP** (free to start):
+You declare the backend in a `terraform` block. Example with an **S3 backend** (requires an AWS account + a lock table). *Terraform Cloud offers a free-tier alternative — but it's written with a `cloud { … }` block, not `backend`.*
 :::
 
 ```hcl
@@ -405,18 +409,18 @@ Protect yourself:
 :::
 
 ```bash
-printf '%s\n' 'terraform.tfstate*' '.terraform/' '*.tfplan' '.terraform.lock.hcl' > .gitignore
-# note : .terraform.lock.hcl SE commite (versions de providers) ; retire-le du .gitignore
+printf '%s\n' 'terraform.tfstate*' '.terraform/' '*.tfplan' > .gitignore
+# NB : .terraform.lock.hcl n'est PAS ignoré — il SE commite (il fige les versions de providers)
 ```
 
 :::lang fr
-**✅ Vérification :** `git status` ne propose plus de suivre `terraform.tfstate`. Corrige la ligne du lock : `.terraform.lock.hcl` **doit** être versionné (il fige les versions de providers) — c'est le seul fichier `terraform*` qu'on commite.
+**✅ Vérification :** `git status` ne propose plus de suivre `terraform.tfstate`. En revanche `.terraform.lock.hcl` **apparaît** à suivre — c'est voulu : il **doit** être versionné (il fige les versions de providers), c'est le seul fichier `terraform*` qu'on commite.
 
 *(Nettoyage : `terraform destroy -auto-approve` supprime le conteneur de démo.)*
 :::
 
 :::lang en
-**✅ Check:** `git status` no longer offers to track `terraform.tfstate`. Fix the lock line: `.terraform.lock.hcl` **must** be versioned (it pins provider versions) — it's the only `terraform*` file you commit.
+**✅ Check:** `git status` no longer offers to track `terraform.tfstate`. `.terraform.lock.hcl`, however, **does** show up to track — that's intended: it **must** be versioned (it pins provider versions), the only `terraform*` file you commit.
 
 *(Cleanup: `terraform destroy -auto-approve` removes the demo container.)*
 :::
@@ -485,14 +489,14 @@ Six boxes ticked = you handle state at the "team / prod" level the Associate exp
 La suite de la track Terraform :
 
 1. **Composition & expressions** — `count`/`for_each`, fonctions, `data` sources, `dynamic` : générer de l'infra sans copier-coller.
-2. **Travail d'équipe & cloud réel** — Terraform Cloud et un vrai provider (AWS/Azure/GCP), puis le **projet d'entreprise** : une infra multi-environnement.
+2. **Travail d'équipe & cloud réel** — Terraform Cloud et un vrai provider (AWS/Azure/GCP), avec les **workspaces**, la data source **`terraform_remote_state`** et `state pull`/`push` (tous au programme Associate), puis le **projet d'entreprise** : une infra multi-environnement.
 :::
 
 :::lang en
 The rest of the Terraform track:
 
 1. **Composition & expressions** — `count`/`for_each`, functions, `data` sources, `dynamic`: generate infra without copy-paste.
-2. **Teamwork & real cloud** — Terraform Cloud and a real provider (AWS/Azure/GCP), then the **enterprise project**: a multi-environment infrastructure.
+2. **Teamwork & real cloud** — Terraform Cloud and a real provider (AWS/Azure/GCP), with **workspaces**, the **`terraform_remote_state`** data source and `state pull`/`push` (all on the Associate exam), then the **enterprise project**: a multi-environment infrastructure.
 :::
 
 ## cheatsheet
