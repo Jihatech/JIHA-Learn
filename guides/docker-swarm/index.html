@@ -276,7 +276,9 @@ curl -s localhost:8080 | grep -i nginx   # le service répond / the service answ
 docker service scale web=5               # passe à 5 répliques / scale to 5
 # self-healing : tue une tâche, Swarm la recrée / kill a task, Swarm recreates it
 docker rm -f &quot;$(docker ps -q -f name=web | head -1)&quot;
-sleep 3 ; docker service ls              # toujours 5/5 (une tâche recréée) / still 5/5 (one recreated)</code></pre>
+# attends que Swarm recrée la tâche (jusqu&#39;à ~10 s) / wait for Swarm to recreate the task
+for i in $(seq 10); do docker service ls | grep -q &#39;5/5&#39; &amp;&amp; break; sleep 1; done
+docker service ls                        # toujours 5/5 (une tâche recréée) / still 5/5 (one recreated)</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker service ls</code> affiche <code>web  replicated  5/5</code> après le scale, et <code>docker service ps web</code> liste les tâches (<code>web.1</code>, <code>web.2</code>…) avec leur état <code>Running</code>. Preuve du <strong>self-healing</strong> : après avoir supprimé de force le conteneur d&#39;une tâche, Swarm en recrée <strong>une</strong> pour revenir à l&#39;état voulu (5/5) — tu n&#39;as <strong>rien</strong> fait. C&#39;est la <strong>réconciliation</strong> : tu déclares « je veux 5 », Swarm <strong>maintient</strong> 5, quoi qu&#39;il arrive. Tu ne gères plus des conteneurs, tu gères un <strong>état voulu</strong>.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> <code>docker service ls</code> shows <code>web  replicated  5/5</code> after the scale, and <code>docker service ps web</code> lists the tasks (<code>web.1</code>, <code>web.2</code>…) in <code>Running</code> state. Proof of <strong>self-healing</strong>: after force-removing one task&#39;s container, Swarm recreates <strong>one</strong> to return to the desired state (5/5) — you did <strong>nothing</strong>. That&#39;s <strong>reconciliation</strong>: you declare &quot;I want 5&quot;, Swarm <strong>keeps</strong> 5, whatever happens. You no longer manage containers, you manage a <strong>desired state</strong>.</p>
@@ -301,7 +303,7 @@ docker service ps web --format &#39;{{.Name}} {{.Image}} {{.CurrentState}}&#39; 
 
 # rollback : revenir à l&#39;image précédente / revert to the previous image
 docker service rollback web
-docker service inspect web --format &#39;{{.Spec.TaskTemplate.ContainerSpec.Image}}&#39;   # de retour à 1.27 / back to 1.27</code></pre>
+docker service inspect web --format &#39;{{.Spec.TaskTemplate.ContainerSpec.Image}}&#39; | cut -d@ -f1   # de retour à nginx:1.27-alpine (@sha256 retiré) / back to nginx:1.27-alpine (@sha256 stripped)</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> pendant l&#39;<code>update</code>, <code>docker service ps web</code> montre Swarm remplacer les tâches <strong>progressivement</strong> (1 à la fois, 3 s d&#39;écart) : d&#39;anciennes tâches <code>Shutdown</code> et de nouvelles <code>Running</code> avec la nouvelle image <code>nginx:1.26-alpine</code> — <strong>sans</strong> que <code>curl localhost:8080</code> cesse de répondre. Puis <strong><code>docker service rollback</code></strong> ramène le service à <code>nginx:1.27-alpine</code> (confirmé par l&#39;<code>inspect</code>). C&#39;est le <strong>déploiement sans coupure</strong> et son filet de sécurité : mettre à jour par lots, et <strong>revenir en arrière</strong> en une commande si un problème surgit. Le cœur de l&#39;exploitation moderne.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> during the <code>update</code>, <code>docker service ps web</code> shows Swarm replacing tasks <strong>progressively</strong> (1 at a time, 3s apart): old tasks <code>Shutdown</code> and new ones <code>Running</code> with the new <code>nginx:1.26-alpine</code> image — <strong>without</strong> <code>curl localhost:8080</code> ever stopping. Then <strong><code>docker service rollback</code></strong> brings the service back to <code>nginx:1.27-alpine</code> (confirmed by <code>inspect</code>). That&#39;s <strong>zero-downtime deployment</strong> and its safety net: update in batches, and <strong>revert</strong> in one command if a problem arises. The heart of modern operations.</p>
@@ -430,11 +432,11 @@ curl -s localhost:8081 | grep -i nginx</code></pre>
   <h2 data-lang="en">What's next?</h2>
 <div data-lang="fr"><p>Tu as bouclé la <strong>couverture de contenu</strong> de la track Docker → DCA. Il reste le <strong>projet d&#39;entreprise</strong> :</p>
 <ul><li><strong>Projet d&#39;entreprise</strong> — construire une <strong>image multi-stage</strong>, la pousser dans un <strong>registre</strong>, et déployer une <strong>stack Swarm</strong> complète (service répliqué + secret + réseau overlay + rolling update + healthcheck) dans un dépôt documenté. Le livrable Docker pour ton CV.</li></ul>
-<p><strong>Ménage :</strong> <code>docker stack rm monapp ; docker service rm web api coffre 2&gt;/dev/null ; docker secret rm db_pass 2&gt;/dev/null ; docker network rm appnet 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
+<p><strong>Ménage :</strong> <code>docker stack rm monapp ; docker service rm web api coffre 2&gt;/dev/null ; docker secret rm db_pass 2&gt;/dev/null ; sleep 3 ; docker network rm appnet 2&gt;/dev/null ; docker swarm leave --force</code>  <em>(le <code>sleep</code> laisse la suppression des services libérer le réseau overlay).</em></p>
 </div>
 <div data-lang="en"><p>You&#39;ve completed the <strong>content coverage</strong> of the Docker → DCA track. The <strong>enterprise project</strong> remains:</p>
 <ul><li><strong>Enterprise project</strong> — build a <strong>multi-stage image</strong>, push it to a <strong>registry</strong>, and deploy a complete <strong>Swarm stack</strong> (replicated service + secret + overlay network + rolling update + healthcheck) in a documented repo. The Docker deliverable for your CV.</li></ul>
-<p><strong>Cleanup:</strong> <code>docker stack rm monapp ; docker service rm web api coffre 2&gt;/dev/null ; docker secret rm db_pass 2&gt;/dev/null ; docker network rm appnet 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
+<p><strong>Cleanup:</strong> <code>docker stack rm monapp ; docker service rm web api coffre 2&gt;/dev/null ; docker secret rm db_pass 2&gt;/dev/null ; sleep 3 ; docker network rm appnet 2&gt;/dev/null ; docker swarm leave --force</code>  <em>(the <code>sleep</code> lets service removal release the overlay network).</em></p>
 </div>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>

@@ -207,7 +207,9 @@ curl -s localhost:8080 | grep -i nginx   # le service répond / the service answ
 docker service scale web=5               # passe à 5 répliques / scale to 5
 # self-healing : tue une tâche, Swarm la recrée / kill a task, Swarm recreates it
 docker rm -f "$(docker ps -q -f name=web | head -1)"
-sleep 3 ; docker service ls              # toujours 5/5 (une tâche recréée) / still 5/5 (one recreated)
+# attends que Swarm recrée la tâche (jusqu'à ~10 s) / wait for Swarm to recreate the task
+for i in $(seq 10); do docker service ls | grep -q '5/5' && break; sleep 1; done
+docker service ls                        # toujours 5/5 (une tâche recréée) / still 5/5 (one recreated)
 ```
 
 :::lang fr
@@ -241,7 +243,7 @@ docker service ps web --format '{{.Name}} {{.Image}} {{.CurrentState}}' | head  
 
 # rollback : revenir à l'image précédente / revert to the previous image
 docker service rollback web
-docker service inspect web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'   # de retour à 1.27 / back to 1.27
+docker service inspect web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' | cut -d@ -f1   # de retour à nginx:1.27-alpine (@sha256 retiré) / back to nginx:1.27-alpine (@sha256 stripped)
 ```
 
 :::lang fr
@@ -427,7 +429,7 @@ Tu as bouclé la **couverture de contenu** de la track Docker → DCA. Il reste 
 - **Projet d'entreprise** — construire une **image multi-stage**, la pousser dans un **registre**, et déployer une **stack Swarm** complète (service répliqué + secret + réseau overlay + rolling update + healthcheck) dans un dépôt documenté. Le livrable Docker pour ton CV.
 
 **Ménage :**
-`docker stack rm monapp ; docker service rm web api coffre 2>/dev/null ; docker secret rm db_pass 2>/dev/null ; docker network rm appnet 2>/dev/null ; docker swarm leave --force`.
+`docker stack rm monapp ; docker service rm web api coffre 2>/dev/null ; docker secret rm db_pass 2>/dev/null ; sleep 3 ; docker network rm appnet 2>/dev/null ; docker swarm leave --force`  *(le `sleep` laisse la suppression des services libérer le réseau overlay).*
 :::
 
 :::lang en
@@ -436,7 +438,7 @@ You've completed the **content coverage** of the Docker → DCA track. The **ent
 - **Enterprise project** — build a **multi-stage image**, push it to a **registry**, and deploy a complete **Swarm stack** (replicated service + secret + overlay network + rolling update + healthcheck) in a documented repo. The Docker deliverable for your CV.
 
 **Cleanup:**
-`docker stack rm monapp ; docker service rm web api coffre 2>/dev/null ; docker secret rm db_pass 2>/dev/null ; docker network rm appnet 2>/dev/null ; docker swarm leave --force`.
+`docker stack rm monapp ; docker service rm web api coffre 2>/dev/null ; docker secret rm db_pass 2>/dev/null ; sleep 3 ; docker network rm appnet 2>/dev/null ; docker swarm leave --force`  *(the `sleep` lets service removal release the overlay network).*
 :::
 
 ## cheatsheet
