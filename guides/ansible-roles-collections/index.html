@@ -252,23 +252,25 @@ find roles/appli -maxdepth 2 -type f | sort</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>find</code> montre l&#39;arborescence conventionnelle du rôle <code>appli</code> :</p>
 <pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>roles/appli/README.md
 roles/appli/defaults/main.yml
-roles/appli/files/.gitkeep
 roles/appli/handlers/main.yml
 roles/appli/meta/main.yml
 roles/appli/tasks/main.yml
-roles/appli/templates/.gitkeep
+roles/appli/tests/inventory
+roles/appli/tests/test.yml
 roles/appli/vars/main.yml</code></pre>
+<p>Les dossiers <code>files/</code> et <code>templates/</code> sont créés <strong>vides</strong> (d&#39;où leur absence dans un <code>find -type f</code>), et <code>init</code> ajoute un dossier <code>tests/</code> (un mini-inventaire + un playbook de test). L&#39;arborescence exacte peut varier d&#39;une version d&#39;ansible-core à l&#39;autre — ce qui compte, c&#39;est la présence des <code>main.yml</code> par dossier.</p>
 <p>Chaque <code>main.yml</code> est le point d&#39;entrée que charge Ansible quand le rôle est appelé. <code>defaults/</code> (surchargeable) et <code>vars/</code> (fort) sont deux fichiers <strong>distincts</strong> — retiens la différence, elle tombe à l&#39;examen.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> <code>find</code> shows the conventional tree of the <code>appli</code> role:</p>
 <pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>roles/appli/README.md
 roles/appli/defaults/main.yml
-roles/appli/files/.gitkeep
 roles/appli/handlers/main.yml
 roles/appli/meta/main.yml
 roles/appli/tasks/main.yml
-roles/appli/templates/.gitkeep
+roles/appli/tests/inventory
+roles/appli/tests/test.yml
 roles/appli/vars/main.yml</code></pre>
+<p>The <code>files/</code> and <code>templates/</code> folders are created <strong>empty</strong> (hence their absence from a <code>find -type f</code>), and <code>init</code> adds a <code>tests/</code> folder (a mini-inventory + a test playbook). The exact tree may vary from one ansible-core version to another — what matters is the presence of each folder&#39;s <code>main.yml</code>.</p>
 <p>Each <code>main.yml</code> is the entry point Ansible loads when the role is called. <code>defaults/</code> (overridable) and <code>vars/</code> (strong) are two <strong>distinct</strong> files — remember the difference, it shows up on the exam.</p>
 </div>
 
@@ -379,9 +381,9 @@ cat /tmp/appli/appli.conf</code></pre>
 dependencies:
   - role: commun</code></pre>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook site.yml</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans la sortie, la tâche <code>TASK [commun : Poser un marqueur...]</code> s&#39;exécute <strong>avant</strong> les tâches de <code>appli</code> — c&#39;est l&#39;ordre imposé par la dépendance, sans que tu l&#39;aies listée dans <code>roles:</code>. Le fichier <code>/tmp/appli-base.txt</code> existe. ⚠️ Attention : le <code>meta/main.yml</code> généré par <code>init</code> contient un bloc <code>galaxy_info</code> ; ajoute <code>dependencies:</code> <strong>au même niveau</strong> (colonne 0), pas à l&#39;intérieur de <code>galaxy_info</code>.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans la sortie, la tâche <code>TASK [commun : Poser un marqueur...]</code> s&#39;exécute <strong>avant</strong> les tâches de <code>appli</code> — c&#39;est l&#39;ordre imposé par la dépendance, sans que tu l&#39;aies listée dans <code>roles:</code>. Le fichier <code>/tmp/appli-base.txt</code> existe. ⚠️ Attention : le <code>meta/main.yml</code> généré par <code>init</code> contient <strong>déjà</strong> une ligne <code>dependencies: []</code> (vide) au niveau racine, en plus du bloc <code>galaxy_info</code>. <strong>Remplace</strong> cette ligne vide par ton bloc <code>dependencies:</code> — n&#39;en ajoute <strong>pas</strong> un second, sinon tu obtiens un avertissement <code>Found duplicate mapping key &#39;dependencies&#39;</code> et un comportement fragile.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> in the output, the <code>TASK [commun : Poser un marqueur...]</code> task runs <strong>before</strong> <code>appli</code>&#39;s tasks — the order imposed by the dependency, without you listing it in <code>roles:</code>. The <code>/tmp/appli-base.txt</code> file exists. ⚠️ Careful: the <code>meta/main.yml</code> generated by <code>init</code> contains a <code>galaxy_info</code> block; add <code>dependencies:</code> <strong>at the same level</strong> (column 0), not inside <code>galaxy_info</code>.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> in the output, the <code>TASK [commun : Poser un marqueur...]</code> task runs <strong>before</strong> <code>appli</code>&#39;s tasks — the order imposed by the dependency, without you listing it in <code>roles:</code>. The <code>/tmp/appli-base.txt</code> file exists. ⚠️ Careful: the <code>meta/main.yml</code> generated by <code>init</code> <strong>already</strong> contains a (empty) <code>dependencies: []</code> line at root level, besides the <code>galaxy_info</code> block. <strong>Replace</strong> that empty line with your <code>dependencies:</code> block — do <strong>not</strong> add a second one, otherwise you get a <code>Found duplicate mapping key &#39;dependencies&#39;</code> warning and fragile behavior.</p>
 </div>
 
 </div>
@@ -442,9 +444,9 @@ ansible-doc -l ansible.builtin | head -n 5
 # Avec réseau : installer une collection communautaire / with network: install a community collection
 ansible-galaxy collection install community.general
 ansible-doc community.general.timezone | head -n 5     # doc d&#39;un module de la collection</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-galaxy collection list</code> affiche au moins <code>ansible.builtin</code> (et, sur une install packagée, plusieurs collections préinstallées comme <code>community.general</code>, <code>ansible.posix</code>). Tu as utilisé le <strong>FQCN</strong> partout depuis le début de ce track (<code>ansible.builtin.copy</code>, <code>ansible.builtin.template</code>…) — c&#39;est ça, la bonne pratique. <strong>Sans réseau :</strong> saute <code>collection install</code> ; <code>ansible.builtin</code> suffit pour tout ce guide. <strong>Avec réseau :</strong> <code>ansible-galaxy collection install community.general</code> termine par <code>... was installed successfully</code> et <code>ansible-doc community.general.timezone</code> affiche la doc du module.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-galaxy collection list</code> liste les collections <strong>installées séparément</strong> ; selon ton install, <code>ansible.builtin</code> peut <strong>ne pas</strong> y figurer (il est embarqué dans ansible-core, pas listé comme collection). Pour prouver qu&#39;il est bien là : <code>ansible-doc -l ansible.builtin</code> affiche ses modules. Sur une install packagée (RPM/paquet <code>ansible</code>), tu verras en plus des collections préinstallées comme <code>community.general</code>, <code>ansible.posix</code>. Tu as utilisé le <strong>FQCN</strong> partout depuis le début de ce track (<code>ansible.builtin.copy</code>, <code>ansible.builtin.template</code>…) — c&#39;est ça, la bonne pratique. <strong>Sans réseau :</strong> saute <code>collection install</code> ; <code>ansible.builtin</code> suffit pour tout ce guide. <strong>Avec réseau :</strong> <code>ansible-galaxy collection install community.general</code> termine par <code>... was installed successfully</code> et <code>ansible-doc community.general.timezone</code> affiche la doc du module.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-galaxy collection list</code> shows at least <code>ansible.builtin</code> (and, on a packaged install, several preinstalled collections like <code>community.general</code>, <code>ansible.posix</code>). You&#39;ve used the <strong>FQCN</strong> everywhere since the start of this track (<code>ansible.builtin.copy</code>, <code>ansible.builtin.template</code>…) — that&#39;s the best practice. <strong>Without network:</strong> skip <code>collection install</code>; <code>ansible.builtin</code> covers this whole guide. <strong>With network:</strong> <code>ansible-galaxy collection install community.general</code> ends with <code>... was installed successfully</code> and <code>ansible-doc community.general.timezone</code> shows the module&#39;s doc.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-galaxy collection list</code> lists <strong>separately installed</strong> collections; depending on your install, <code>ansible.builtin</code> may <strong>not</strong> appear (it&#39;s embedded in ansible-core, not listed as a collection). To prove it&#39;s there: <code>ansible-doc -l ansible.builtin</code> shows its modules. On a packaged install (RPM/<code>ansible</code> package), you&#39;ll also see preinstalled collections like <code>community.general</code>, <code>ansible.posix</code>. You&#39;ve used the <strong>FQCN</strong> everywhere since the start of this track (<code>ansible.builtin.copy</code>, <code>ansible.builtin.template</code>…) — that&#39;s the best practice. <strong>Without network:</strong> skip <code>collection install</code>; <code>ansible.builtin</code> covers this whole guide. <strong>With network:</strong> <code>ansible-galaxy collection install community.general</code> ends with <code>... was installed successfully</code> and <code>ansible-doc community.general.timezone</code> shows the module&#39;s doc.</p>
 </div>
 
 </div>
@@ -492,7 +494,7 @@ ls roles/ &amp;&amp; ansible-galaxy collection list | grep -E &quot;community.ge
   <h2 data-lang="en">Known pitfalls</h2>
 <div data-lang="fr"><p><strong>1. Mettre une variable paramétrable dans <code>vars/</code> du rôle.</strong> <code>vars/</code> est <strong>fort</strong> : l&#39;utilisateur ne peut plus la surcharger simplement. Les réglages destinés à être changés vont dans <strong><code>defaults/</code></strong> (le niveau le plus faible). Erreur de conception classique.</p>
 <p><strong>2. Oublier le FQCN.</strong> <code>copy:</code> peut marcher par « collection search path », mais c&#39;est fragile. Écris <strong>toujours</strong> <code>ansible.builtin.copy</code>. Deux collections peuvent avoir un module du même nom.</p>
-<p><strong>3. <code>dependencies:</code> mal placé dans <code>meta/main.yml</code>.</strong> Le fichier généré contient <code>galaxy_info:</code>. <code>dependencies:</code> doit être <strong>au niveau racine</strong> (colonne 0), pas indenté sous <code>galaxy_info</code>. Sinon il est ignoré silencieusement.</p>
+<p><strong>3. Dupliquer <code>dependencies:</code> dans <code>meta/main.yml</code>.</strong> Le fichier généré contient <strong>déjà</strong> un <code>dependencies: []</code> au niveau racine. <strong>Remplace-le</strong> — si tu en ajoutes un second, tu obtiens <code>Found duplicate mapping key</code> (et si ton bloc est placé au-dessus du <code>[]</code>, la dépendance est silencieusement ignorée). Garde-le toujours au niveau racine (colonne 0), jamais sous <code>galaxy_info:</code>.</p>
 <p><strong>4. Attendre qu&#39;<code>include_role</code> se comporte comme <code>import_role</code>.</strong> Un <code>when</code> sur <code>import_role</code> s&#39;applique à <strong>chaque tâche</strong> du rôle ; sur <code>include_role</code>, il conditionne <strong>toute l&#39;inclusion</strong>. Et seul <code>include_role</code> marche dans un <code>loop</code>.</p>
 <p><strong>5. <code>ansible-galaxy install</code> pour une collection.</strong> <code>ansible-galaxy install -r ...</code> gère les <strong>rôles</strong> ; les collections, c&#39;est <code>ansible-galaxy collection install -r ...</code>. Deux sous-commandes distinctes (même si <code>requirements.yml</code> peut contenir les deux).</p>
 <p><strong>6. Chemins de rôles non trouvés.</strong> Ansible cherche les rôles dans <code>roles/</code> <strong>relatif au playbook</strong>, puis dans <code>roles_path</code> (config). Si <code>site.yml</code> ne « voit » pas ton rôle, vérifie que <code>roles/&lt;nom&gt;/</code> est bien à côté du playbook, ou configure <code>roles_path</code> dans <code>ansible.cfg</code>.</p>
@@ -500,7 +502,7 @@ ls roles/ &amp;&amp; ansible-galaxy collection list | grep -E &quot;community.ge
 </div>
 <div data-lang="en"><p><strong>1. Putting a parameterizable variable in the role&#39;s <code>vars/</code>.</strong> <code>vars/</code> is <strong>strong</strong>: the user can no longer simply override it. Settings meant to change go in <strong><code>defaults/</code></strong> (the weakest level). Classic design mistake.</p>
 <p><strong>2. Forgetting the FQCN.</strong> <code>copy:</code> may work via &quot;collection search path&quot;, but it&#39;s fragile. <strong>Always</strong> write <code>ansible.builtin.copy</code>. Two collections can have a same-named module.</p>
-<p><strong>3. <code>dependencies:</code> misplaced in <code>meta/main.yml</code>.</strong> The generated file contains <code>galaxy_info:</code>. <code>dependencies:</code> must be at the <strong>root level</strong> (column 0), not indented under <code>galaxy_info</code>. Otherwise it&#39;s silently ignored.</p>
+<p><strong>3. Duplicating <code>dependencies:</code> in <code>meta/main.yml</code>.</strong> The generated file <strong>already</strong> contains a root-level <code>dependencies: []</code>. <strong>Replace it</strong> — if you add a second one, you get <code>Found duplicate mapping key</code> (and if your block sits above the <code>[]</code>, the dependency is silently ignored). Always keep it at root level (column 0), never under <code>galaxy_info:</code>.</p>
 <p><strong>4. Expecting <code>include_role</code> to behave like <code>import_role</code>.</strong> A <code>when</code> on <code>import_role</code> applies to <strong>each task</strong> of the role; on <code>include_role</code>, it conditions <strong>the whole inclusion</strong>. And only <code>include_role</code> works in a <code>loop</code>.</p>
 <p><strong>5. <code>ansible-galaxy install</code> for a collection.</strong> <code>ansible-galaxy install -r ...</code> handles <strong>roles</strong>; collections are <code>ansible-galaxy collection install -r ...</code>. Two distinct subcommands (even if <code>requirements.yml</code> can hold both).</p>
 <p><strong>6. Role paths not found.</strong> Ansible looks for roles in <code>roles/</code> <strong>relative to the playbook</strong>, then in <code>roles_path</code> (config). If <code>site.yml</code> doesn&#39;t &quot;see&quot; your role, check <code>roles/&lt;name&gt;/</code> sits next to the playbook, or set <code>roles_path</code> in <code>ansible.cfg</code>.</p>
@@ -537,7 +539,16 @@ ls roles/ &amp;&amp; ansible-galaxy collection list | grep -E &quot;community.ge
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-vault/">
+    <span class="num">25</span>
+    <span class="title-line" data-lang="fr">Ansible — Vault : chiffrer les secrets</span>
+    <span class="title-line" data-lang="en">Ansible — Vault: encrypting secrets</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">
