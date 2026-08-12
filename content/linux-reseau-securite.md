@@ -212,11 +212,11 @@ grep -E '\bssh\b' /etc/services   # le port officiel de ssh (22) / ssh's officia
 ```
 
 :::lang fr
-**✅ Vérification :** `sudo ss -tlnp` liste chaque socket **en écoute** avec son port et le **processus** derrière — au minimum `sshd` sur `:22` (et le résolveur `systemd-resolve` sur `127.0.0.53:53`). Tu réponds à « **qu'est-ce qui est exposé ?** ». `/etc/services` mappe les noms de services aux ports (ssh → 22). Mémorise les drapeaux : **`-t`** tcp, **`-l`** listening, **`-n`** numérique (pas de résolution), **`-p`** processus. C'est le réflexe d'audit n°1.
+**✅ Vérification :** `sudo ss -tlnp` liste chaque socket **en écoute** avec son port et le **processus** derrière — au minimum le port **`:22`** (SSH) et le résolveur `systemd-resolve` sur `127.0.0.53:53`. *(Sur Ubuntu 24.04, SSH est **activé par socket** : tant qu'aucune connexion n'a eu lieu, `:22` est tenu par **`systemd`** (PID 1), pas par `sshd` — à la première connexion, `ssh.service`/`sshd` prend le relais.)* Tu réponds à « **qu'est-ce qui est exposé ?** ». `/etc/services` mappe les noms de services aux ports (ssh → 22). Mémorise les drapeaux : **`-t`** tcp, **`-l`** listening, **`-n`** numérique (pas de résolution), **`-p`** processus. C'est le réflexe d'audit n°1.
 :::
 
 :::lang en
-**✅ Check:** `sudo ss -tlnp` lists each **listening** socket with its port and the **process** behind it — at minimum `sshd` on `:22` (and the resolver `systemd-resolve` on `127.0.0.53:53`). You answer "**what's exposed?**". `/etc/services` maps service names to ports (ssh → 22). Memorize the flags: **`-t`** tcp, **`-l`** listening, **`-n`** numeric (no resolution), **`-p`** process. It's audit reflex #1.
+**✅ Check:** `sudo ss -tlnp` lists each **listening** socket with its port and the **process** behind it — at minimum port **`:22`** (SSH) and the resolver `systemd-resolve` on `127.0.0.53:53`. *(On Ubuntu 24.04, SSH is **socket-activated**: until a connection happens, `:22` is held by **`systemd`** (PID 1), not `sshd` — on the first connection, `ssh.service`/`sshd` takes over.)* You answer "**what's exposed?**". `/etc/services` maps service names to ports (ssh → 22). Memorize the flags: **`-t`** tcp, **`-l`** listening, **`-n`** numeric (no resolution), **`-p`** process. It's audit reflex #1.
 :::
 
 ### step-03
@@ -244,11 +244,11 @@ sudo sed -i '/monserveur.test/d' /etc/hosts    # nettoie l'entrée / clean up th
 ```
 
 :::lang fr
-**✅ Vérification :** `grep '^hosts:' /etc/nsswitch.conf` montre l'ordre (typiquement `files dns` → **`/etc/hosts` d'abord**, puis DNS). Preuve : `getent hosts monserveur.test` renvoie **`203.0.113.42`** — l'IP bidon qu'on a mise dans `/etc/hosts`, **sans** jamais toucher au DNS (elle n'existe pas sur Internet). En face, `dig +short example.com` interroge **directement** le DNS et renvoie une vraie IP publique. Distinction d'examen : **`getent`** suit **nsswitch** (hosts + dns), **`dig`** court-circuite et parle **au DNS**.
+**✅ Vérification :** `grep '^hosts:' /etc/nsswitch.conf` montre l'ordre — sur 24.04 avec systemd-resolved, souvent `files resolve [!UNAVAIL=return] dns`. L'essentiel : **`files` est en premier** → **`/etc/hosts` d'abord**, puis la résolution DNS. Preuve : `getent hosts monserveur.test` renvoie **`203.0.113.42`** — l'IP bidon qu'on a mise dans `/etc/hosts`, **sans** jamais toucher au DNS (elle n'existe pas sur Internet). En face, `dig +short example.com` interroge **directement** le DNS et renvoie une vraie IP publique. Distinction d'examen : **`getent`** suit **nsswitch** (hosts + dns), **`dig`** court-circuite et parle **au DNS**.
 :::
 
 :::lang en
-**✅ Check:** `grep '^hosts:' /etc/nsswitch.conf` shows the order (typically `files dns` → **`/etc/hosts` first**, then DNS). Proof: `getent hosts monserveur.test` returns **`203.0.113.42`** — the bogus IP we put in `/etc/hosts`, **without** ever touching DNS (it doesn't exist on the Internet). Meanwhile, `dig +short example.com` queries **DNS directly** and returns a real public IP. Exam distinction: **`getent`** follows **nsswitch** (hosts + dns), **`dig`** bypasses it and talks **to DNS**.
+**✅ Check:** `grep '^hosts:' /etc/nsswitch.conf` shows the order — on 24.04 with systemd-resolved, often `files resolve [!UNAVAIL=return] dns`. The key point: **`files` is first** → **`/etc/hosts` first**, then DNS resolution. Proof: `getent hosts monserveur.test` returns **`203.0.113.42`** — the bogus IP we put in `/etc/hosts`, **without** ever touching DNS (it doesn't exist on the Internet). Meanwhile, `dig +short example.com` queries **DNS directly** and returns a real public IP. Exam distinction: **`getent`** follows **nsswitch** (hosts + dns), **`dig`** bypasses it and talks **to DNS**.
 :::
 
 ### step-04
@@ -304,15 +304,15 @@ EOF
 
 sudo sshd -t && echo "config SSH valide / SSH config valid"   # VALIDE avant d'appliquer / VALIDATE before applying
 sudo systemctl reload ssh
-sshd -T | grep -iE 'permitrootlogin|passwordauthentication'   # confirme les valeurs effectives / effective values
+sudo sshd -T | grep -iE 'permitrootlogin|passwordauthentication'   # confirme les valeurs effectives (sudo : lit les host keys) / effective values (sudo: reads host keys)
 ```
 
 :::lang fr
-**✅ Vérification :** `sudo sshd -t` ne renvoie **rien** (ou ton message « valide ») = la config est **syntaxiquement correcte** — étape **cruciale** avant tout `reload` (une faute ici couperait SSH). `sshd -T | grep …` confirme les valeurs **effectives** : `permitrootlogin no` et `passwordauthentication no`. Désormais, le serveur **refuse** root en direct et **n'accepte que les clés** — deux durcissements majeurs du programme LPIC-1. *(Un `Port` différent se change aussi ici, mais sur Ubuntu 24.04 le port est piloté par `ssh.socket` — édite-le avec `systemctl edit ssh.socket`.)*
+**✅ Vérification :** `sudo sshd -t` ne renvoie **rien** (ou ton message « valide ») = la config est **syntaxiquement correcte** — étape **cruciale** avant tout `reload` (une faute ici couperait SSH). `sudo sshd -T | grep …` confirme les valeurs **effectives** : `permitrootlogin no` et `passwordauthentication no` *(le `sudo` est requis : `sshd -T` lit les clés d'hôte privées)*. Désormais, le serveur **refuse** root en direct et **n'accepte que les clés** — deux durcissements majeurs du programme LPIC-1. *(Un `Port` différent se change aussi ici, mais sur Ubuntu 24.04 le port est piloté par `ssh.socket` — édite-le avec `systemctl edit ssh.socket`.)*
 :::
 
 :::lang en
-**✅ Check:** `sudo sshd -t` returns **nothing** (or your "valid" message) = the config is **syntactically correct** — a **crucial** step before any `reload` (a mistake here would cut SSH). `sshd -T | grep …` confirms the **effective** values: `permitrootlogin no` and `passwordauthentication no`. The server now **refuses** direct root and **accepts only keys** — two major LPIC-1 hardenings. *(A different `Port` is also changed here, but on Ubuntu 24.04 the port is driven by `ssh.socket` — edit it with `systemctl edit ssh.socket`.)*
+**✅ Check:** `sudo sshd -t` returns **nothing** (or your "valid" message) = the config is **syntactically correct** — a **crucial** step before any `reload` (a mistake here would cut SSH). `sudo sshd -T | grep …` confirms the **effective** values: `permitrootlogin no` and `passwordauthentication no` *(the `sudo` is required: `sshd -T` reads the private host keys)*. The server now **refuses** direct root and **accepts only keys** — two major LPIC-1 hardenings. *(A different `Port` is also changed here, but on Ubuntu 24.04 the port is driven by `ssh.socket` — edit it with `systemctl edit ssh.socket`.)*
 :::
 
 ### step-06
@@ -457,7 +457,7 @@ chmod 700 ~/.ssh ; chmod 600 ~/.ssh/authorized_keys
 # Durcir sshd / harden sshd  (dans /etc/ssh/sshd_config.d/*.conf)
 #   PermitRootLogin no ; PasswordAuthentication no
 sudo sshd -t         # VALIDER avant reload / VALIDATE before reload
-sudo systemctl reload ssh ; sshd -T | grep -i option
+sudo systemctl reload ssh ; sudo sshd -T | grep -i option   # sudo : sshd -T lit les host keys / reads host keys
 
 # Pare-feu / firewall  (SSH d'abord !)
 sudo ufw allow OpenSSH ; sudo ufw default deny incoming ; sudo ufw enable
