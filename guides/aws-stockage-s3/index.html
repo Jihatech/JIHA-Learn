@@ -445,11 +445,21 @@ echo &quot;$url&quot;
 curl -s &quot;$url&quot;
 
 # --- Nettoyage complet / full cleanup ---
-awslocal s3 rb s3://atelier-s3 --force
+# atelier-s3 a le VERSIONING activé : &quot;s3 rb --force&quot; NE SUFFIT PAS (il ne retire pas les
+# versions non-courantes). On purge d&#39;abord TOUTES les versions, puis on supprime le bucket.
+# atelier-s3 has VERSIONING on: &quot;s3 rb --force&quot; is NOT enough. Purge all versions first.
+awslocal s3api delete-objects --bucket atelier-s3 \
+  --delete &quot;$(awslocal s3api list-object-versions --bucket atelier-s3 \
+    --query &#39;{Objects: Versions[].{Key:Key,VersionId:VersionId}}&#39; --output json)&quot;
+awslocal s3 rb s3://atelier-s3
+# (S&#39;il restait des marqueurs de suppression, on purgerait DeleteMarkers[] pareil.)
+# (If delete markers remained, purge DeleteMarkers[] the same way.)
+
+# mon-site-statique n&#39;a pas de versioning : le --force classique suffit / no versioning: --force is enough
 awslocal s3 rb s3://mon-site-statique --force</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 presign</code> renvoie une longue URL contenant <code>?AWSAccessKeyId=...&amp;Signature=...&amp;Expires=...</code>. Le <code>curl</code> sur cette URL renvoie <code>facture privee 2026</code> — <strong>sans aucun identifiant AWS</strong>, juste avec le lien signé. C&#39;est ça, la magie : un accès délégué, temporaire, révoqué automatiquement à l&#39;expiration. Le bucket, lui, reste <strong>privé</strong>. <code>s3 rb --force</code> vide et supprime les deux buckets — labo rangé. ⚠️ Ne partage une URL présignée que par un canal sûr : quiconque a le lien (avant expiration) a l&#39;accès.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 presign</code> renvoie une longue URL contenant <code>?AWSAccessKeyId=...&amp;Signature=...&amp;Expires=...</code>. Le <code>curl</code> sur cette URL renvoie <code>facture privee 2026</code> — <strong>sans aucun identifiant AWS</strong>, juste avec le lien signé. C&#39;est ça, la magie : un accès délégué, temporaire, révoqué automatiquement à l&#39;expiration. Le bucket, lui, reste <strong>privé</strong>. Pour le <strong>nettoyage</strong>, attention : <code>atelier-s3</code> a le versioning activé, donc <code>s3 rb --force</code> seul <strong>échoue</strong> (<code>BucketNotEmpty</code>) — il ne retire <strong>pas</strong> les versions non-courantes. On purge d&#39;abord <strong>toutes les versions</strong> via <code>delete-objects</code>, puis <code>s3 rb</code>. <code>mon-site-statique</code> (sans versioning) se supprime avec le <code>--force</code> classique. C&#39;est le piège n°2 en action : les versions s&#39;accumulent, il faut les nettoyer explicitement (vrai comportement AWS). ⚠️ Ne partage une URL présignée que par un canal sûr : quiconque a le lien (avant expiration) a l&#39;accès.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 presign</code> returns a long URL containing <code>?AWSAccessKeyId=...&amp;Signature=...&amp;Expires=...</code>. The <code>curl</code> on that URL returns <code>facture privee 2026</code> — <strong>with no AWS credentials at all</strong>, just the signed link. That&#39;s the magic: delegated, temporary access, auto-revoked at expiry. The bucket itself stays <strong>private</strong>. <code>s3 rb --force</code> empties and deletes both buckets — lab tidied. ⚠️ Only share a presigned URL over a safe channel: anyone with the link (before expiry) has the access.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 presign</code> returns a long URL containing <code>?AWSAccessKeyId=...&amp;Signature=...&amp;Expires=...</code>. The <code>curl</code> on that URL returns <code>facture privee 2026</code> — <strong>with no AWS credentials at all</strong>, just the signed link. That&#39;s the magic: delegated, temporary access, auto-revoked at expiry. The bucket itself stays <strong>private</strong>. For <strong>cleanup</strong>, beware: <code>atelier-s3</code> has versioning on, so <code>s3 rb --force</code> alone <strong>fails</strong> (<code>BucketNotEmpty</code>) — it does <strong>not</strong> remove noncurrent versions. Purge all versions first via <code>delete-objects</code>, then <code>s3 rb</code>. <code>mon-site-statique</code> (no versioning) deletes with plain <code>--force</code>. It&#39;s pitfall #2 in action: versions accumulate, you must clean them explicitly (real AWS behavior). ⚠️ Only share a presigned URL over a safe channel: anyone with the link (before expiry) has the access.</p>
 </div>
 
 </div>
@@ -507,7 +517,16 @@ awslocal s3 rb s3://mon-site-statique --force</code></pre>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-reseau-vpc/">
+    <span class="num">47</span>
+    <span class="title-line" data-lang="fr">AWS — réseau VPC</span>
+    <span class="title-line" data-lang="en">AWS — VPC networking</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">
@@ -560,6 +579,7 @@ awslocal s3 presign s3://b/cle --expires-in 3600</code></pre>
   <h2 data-lang="en">Troubleshooting</h2>
 <div data-lang="fr"><p><strong><code>BucketAlreadyExists</code> / <code>BucketAlreadyOwnedByYou</code>.</strong> Le nom est pris (mondial en réel). Choisis un nom unique (préfixe avec un identifiant).</p>
 <p><strong><code>NoSuchBucket</code>.</strong> Tu cibles un bucket qui n&#39;existe pas (faute de frappe, ou déjà supprimé). Vérifie avec <code>awslocal s3 ls</code>.</p>
+<p><strong><code>BucketNotEmpty</code> sur <code>s3 rb --force</code>.</strong> Le bucket a le <strong>versioning</strong> activé : <code>--force</code> ne supprime que les objets <strong>courants</strong>, pas les versions non-courantes ni les marqueurs de suppression. Purge d&#39;abord toutes les versions (<code>s3api delete-objects</code> alimenté par <code>list-object-versions</code>), et les <code>DeleteMarkers</code> s&#39;il y en a, puis <code>s3 rb</code>.</p>
 <p><strong>Le versioning ne garde pas d&#39;anciennes versions.</strong> Il n&#39;était pas activé <strong>avant</strong> l&#39;écrasement. Le versioning ne protège que les écritures <strong>postérieures</strong> à son activation.</p>
 <p><strong><code>head-object</code> renvoie <code>StorageClass: None</code>.</strong> Normal pour un objet en <strong>Standard</strong> (la classe par défaut n&#39;est pas affichée). Les classes non-standard (IA, Glacier) s&#39;affichent bien.</p>
 <p><strong><code>MalformedXML</code> / erreur sur put-bucket-lifecycle.</strong> Le JSON de la règle est invalide (champ mal nommé, <code>Status</code> manquant). Compare à l&#39;exemple ; <code>Status</code> doit valoir <code>Enabled</code>.</p>
@@ -567,6 +587,7 @@ awslocal s3 presign s3://b/cle --expires-in 3600</code></pre>
 </div>
 <div data-lang="en"><p><strong><code>BucketAlreadyExists</code> / <code>BucketAlreadyOwnedByYou</code>.</strong> The name is taken (global in reality). Pick a unique name (prefix with an identifier).</p>
 <p><strong><code>NoSuchBucket</code>.</strong> You target a bucket that doesn&#39;t exist (typo, or already deleted). Check with <code>awslocal s3 ls</code>.</p>
+<p><strong><code>BucketNotEmpty</code> on <code>s3 rb --force</code>.</strong> The bucket has <strong>versioning</strong> on: <code>--force</code> only deletes <strong>current</strong> objects, not noncurrent versions or delete markers. Purge all versions first (<code>s3api delete-objects</code> fed by <code>list-object-versions</code>), and the <code>DeleteMarkers</code> if any, then <code>s3 rb</code>.</p>
 <p><strong>Versioning doesn&#39;t keep old versions.</strong> It wasn&#39;t enabled <strong>before</strong> the overwrite. Versioning only protects writes <strong>after</strong> its activation.</p>
 <p><strong><code>head-object</code> returns <code>StorageClass: None</code>.</strong> Normal for a <strong>Standard</strong> object (the default class isn&#39;t shown). Non-standard classes (IA, Glacier) display fine.</p>
 <p><strong><code>MalformedXML</code> / error on put-bucket-lifecycle.</strong> The rule JSON is invalid (misnamed field, missing <code>Status</code>). Compare to the example; <code>Status</code> must be <code>Enabled</code>.</p>

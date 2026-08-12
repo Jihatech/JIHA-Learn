@@ -444,16 +444,26 @@ echo "$url"
 curl -s "$url"
 
 # --- Nettoyage complet / full cleanup ---
-awslocal s3 rb s3://atelier-s3 --force
+# atelier-s3 a le VERSIONING activé : "s3 rb --force" NE SUFFIT PAS (il ne retire pas les
+# versions non-courantes). On purge d'abord TOUTES les versions, puis on supprime le bucket.
+# atelier-s3 has VERSIONING on: "s3 rb --force" is NOT enough. Purge all versions first.
+awslocal s3api delete-objects --bucket atelier-s3 \
+  --delete "$(awslocal s3api list-object-versions --bucket atelier-s3 \
+    --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json)"
+awslocal s3 rb s3://atelier-s3
+# (S'il restait des marqueurs de suppression, on purgerait DeleteMarkers[] pareil.)
+# (If delete markers remained, purge DeleteMarkers[] the same way.)
+
+# mon-site-statique n'a pas de versioning : le --force classique suffit / no versioning: --force is enough
 awslocal s3 rb s3://mon-site-statique --force
 ```
 
 :::lang fr
-**✅ Vérification :** `s3 presign` renvoie une longue URL contenant `?AWSAccessKeyId=...&Signature=...&Expires=...`. Le `curl` sur cette URL renvoie `facture privee 2026` — **sans aucun identifiant AWS**, juste avec le lien signé. C'est ça, la magie : un accès délégué, temporaire, révoqué automatiquement à l'expiration. Le bucket, lui, reste **privé**. `s3 rb --force` vide et supprime les deux buckets — labo rangé. ⚠️ Ne partage une URL présignée que par un canal sûr : quiconque a le lien (avant expiration) a l'accès.
+**✅ Vérification :** `s3 presign` renvoie une longue URL contenant `?AWSAccessKeyId=...&Signature=...&Expires=...`. Le `curl` sur cette URL renvoie `facture privee 2026` — **sans aucun identifiant AWS**, juste avec le lien signé. C'est ça, la magie : un accès délégué, temporaire, révoqué automatiquement à l'expiration. Le bucket, lui, reste **privé**. Pour le **nettoyage**, attention : `atelier-s3` a le versioning activé, donc `s3 rb --force` seul **échoue** (`BucketNotEmpty`) — il ne retire **pas** les versions non-courantes. On purge d'abord **toutes les versions** via `delete-objects`, puis `s3 rb`. `mon-site-statique` (sans versioning) se supprime avec le `--force` classique. C'est le piège n°2 en action : les versions s'accumulent, il faut les nettoyer explicitement (vrai comportement AWS). ⚠️ Ne partage une URL présignée que par un canal sûr : quiconque a le lien (avant expiration) a l'accès.
 :::
 
 :::lang en
-**✅ Check:** `s3 presign` returns a long URL containing `?AWSAccessKeyId=...&Signature=...&Expires=...`. The `curl` on that URL returns `facture privee 2026` — **with no AWS credentials at all**, just the signed link. That's the magic: delegated, temporary access, auto-revoked at expiry. The bucket itself stays **private**. `s3 rb --force` empties and deletes both buckets — lab tidied. ⚠️ Only share a presigned URL over a safe channel: anyone with the link (before expiry) has the access.
+**✅ Check:** `s3 presign` returns a long URL containing `?AWSAccessKeyId=...&Signature=...&Expires=...`. The `curl` on that URL returns `facture privee 2026` — **with no AWS credentials at all**, just the signed link. That's the magic: delegated, temporary access, auto-revoked at expiry. The bucket itself stays **private**. For **cleanup**, beware: `atelier-s3` has versioning on, so `s3 rb --force` alone **fails** (`BucketNotEmpty`) — it does **not** remove noncurrent versions. Purge all versions first via `delete-objects`, then `s3 rb`. `mon-site-statique` (no versioning) deletes with plain `--force`. It's pitfall #2 in action: versions accumulate, you must clean them explicitly (real AWS behavior). ⚠️ Only share a presigned URL over a safe channel: anyone with the link (before expiry) has the access.
 :::
 
 ## pitfalls
@@ -595,6 +605,8 @@ awslocal s3 presign s3://b/cle --expires-in 3600
 
 **`NoSuchBucket`.** Tu cibles un bucket qui n'existe pas (faute de frappe, ou déjà supprimé). Vérifie avec `awslocal s3 ls`.
 
+**`BucketNotEmpty` sur `s3 rb --force`.** Le bucket a le **versioning** activé : `--force` ne supprime que les objets **courants**, pas les versions non-courantes ni les marqueurs de suppression. Purge d'abord toutes les versions (`s3api delete-objects` alimenté par `list-object-versions`), et les `DeleteMarkers` s'il y en a, puis `s3 rb`.
+
 **Le versioning ne garde pas d'anciennes versions.** Il n'était pas activé **avant** l'écrasement. Le versioning ne protège que les écritures **postérieures** à son activation.
 
 **`head-object` renvoie `StorageClass: None`.** Normal pour un objet en **Standard** (la classe par défaut n'est pas affichée). Les classes non-standard (IA, Glacier) s'affichent bien.
@@ -608,6 +620,8 @@ awslocal s3 presign s3://b/cle --expires-in 3600
 **`BucketAlreadyExists` / `BucketAlreadyOwnedByYou`.** The name is taken (global in reality). Pick a unique name (prefix with an identifier).
 
 **`NoSuchBucket`.** You target a bucket that doesn't exist (typo, or already deleted). Check with `awslocal s3 ls`.
+
+**`BucketNotEmpty` on `s3 rb --force`.** The bucket has **versioning** on: `--force` only deletes **current** objects, not noncurrent versions or delete markers. Purge all versions first (`s3api delete-objects` fed by `list-object-versions`), and the `DeleteMarkers` if any, then `s3 rb`.
 
 **Versioning doesn't keep old versions.** It wasn't enabled **before** the overwrite. Versioning only protects writes **after** its activation.
 
