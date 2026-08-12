@@ -76,7 +76,7 @@ You've learned the bricks of Linux administration — packages, users, disks, sy
 À la fin de ce projet, tu auras produit et su expliquer :
 
 - Une **équipe** (groupe + comptes) et une règle **sudo** ciblée.
-- Un **volume LVM** monté au démarrage (fstab/UUID) pour les données.
+- Un **volume LVM** monté et persisté dans `fstab` par **UUID** (avec `nofail`) pour les données.
 - Un **service systemd** applicatif et sa **sauvegarde planifiée** (timer).
 - Un **accès SSH par clés** et un serveur **durci** (sshd + ufw).
 - Un **script de provisionnement** idempotent et un **health-check**.
@@ -87,7 +87,7 @@ You've learned the bricks of Linux administration — packages, users, disks, sy
 By the end of this project, you'll have produced and be able to explain:
 
 - A **team** (group + accounts) and a targeted **sudo** rule.
-- An **LVM volume** mounted at boot (fstab/UUID) for data.
+- An **LVM volume** mounted and persisted in `fstab` by **UUID** (with `nofail`) for data.
 - A systemd **application service** and its **scheduled backup** (timer).
 - **Key-based SSH** access and a **hardened** server (sshd + ufw).
 - An idempotent **provisioning script** and a **health-check**.
@@ -190,6 +190,7 @@ sudo useradd -m -s /bin/bash -G atelier karim
 # sudo au moindre privilège : l'équipe peut redémarrer le service, rien d'autre
 # least-privilege sudo: the team may restart the service, nothing else
 echo '%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier' | sudo tee /etc/sudoers.d/atelier
+sudo chmod 0440 /etc/sudoers.d/atelier      # convention : non lisible par tous / convention: not world-readable
 sudo visudo -cf /etc/sudoers.d/atelier      # VALIDE la syntaxe / VALIDATE syntax
 ```
 
@@ -224,7 +225,9 @@ sudo mkfs.ext4 /dev/vg_atelier/data
 
 sudo mkdir -p /srv/atelier
 UUID=$(sudo blkid -s UUID -o value /dev/vg_atelier/data)
-echo "UUID=$UUID  /srv/atelier  ext4  defaults  0  2" | sudo tee -a /etc/fstab
+# nofail : un disque loopback n'est PAS ré-attaché au boot -> ne pas bloquer le démarrage
+# nofail: a loopback disk is NOT re-attached at boot -> don't block startup
+echo "UUID=$UUID  /srv/atelier  ext4  defaults,nofail  0  2" | sudo tee -a /etc/fstab
 sudo mount -a                                   # monte via fstab / mount via fstab
 
 # partage d'équipe : groupe atelier + SGID (héritage de groupe) / team sharing: group + SGID
@@ -232,11 +235,11 @@ sudo chgrp atelier /srv/atelier && sudo chmod 2775 /srv/atelier
 ```
 
 :::lang fr
-**✅ Vérification :** `df -h /srv/atelier` montre le volume LVM **monté** (~750 Mo). Un `sudo mount -a` **sans erreur** valide ta ligne `fstab` (par **UUID**, stable). `ls -ld /srv/atelier` affiche `drwxrwsr-x … atelier` : le **SGID** (`s`) fait que tout fichier créé par un membre de l'équipe **appartient au groupe `atelier`** — le répertoire partagé collaboratif. Les données de l'app vivront ici, **séparées** du système, sur un volume qu'on pourra agrandir (LVM).
+**✅ Vérification :** `df -h /srv/atelier` montre le volume LVM **monté** (~750 Mo). Un `sudo mount -a` **sans erreur** valide ta ligne `fstab` (par **UUID**, stable). *(Note : notre disque est un **loopback** — il n'est pas ré-attaché automatiquement au redémarrage, d'où le **`nofail`** qui évite de bloquer le boot ; sur un **vrai** disque, la ligne UUID remonterait toute seule. Pour persister le loopback, on l'ajouterait au provisionnement.)* `ls -ld /srv/atelier` affiche `drwxrwsr-x … atelier` : le **SGID** (`s`) fait que tout fichier créé par un membre de l'équipe **appartient au groupe `atelier`** — le répertoire partagé collaboratif. Les données de l'app vivront ici, **séparées** du système, sur un volume qu'on pourra agrandir (LVM).
 :::
 
 :::lang en
-**✅ Check:** `df -h /srv/atelier` shows the LVM volume **mounted** (~750 MB). A `sudo mount -a` **with no error** validates your `fstab` line (by **UUID**, stable). `ls -ld /srv/atelier` shows `drwxrwsr-x … atelier`: the **SGID** (`s`) makes every file created by a team member **belong to the `atelier` group** — the collaborative shared directory. The app's data will live here, **separate** from the system, on a volume you can grow (LVM).
+**✅ Check:** `df -h /srv/atelier` shows the LVM volume **mounted** (~750 MB). A `sudo mount -a` **with no error** validates your `fstab` line (by **UUID**, stable). *(Note: our disk is a **loopback** — it isn't re-attached automatically at reboot, hence the **`nofail`** that keeps boot from blocking; on a **real** disk, the UUID line would remount on its own. To persist the loopback, you'd add it to provisioning.)* `ls -ld /srv/atelier` shows `drwxrwsr-x … atelier`: the **SGID** (`s`) makes every file created by a team member **belong to the `atelier` group** — the collaborative shared directory. The app's data will live here, **separate** from the system, on a volume you can grow (LVM).
 :::
 
 ### step-03
@@ -361,7 +364,10 @@ cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
 
 # durcissement sshd / sshd hardening
-sudo tee /etc/ssh/sshd_config.d/99-durci.conf >/dev/null <<'EOF'
+# nom en 00- : sshd applique la PREMIÈRE valeur trouvée ; on passe DEVANT le
+# drop-in cloud-init (ex. 50-cloud-init.conf) qui remet PasswordAuthentication yes
+# 00- name: sshd uses the FIRST value found; we sort BEFORE the cloud-init drop-in
+sudo tee /etc/ssh/sshd_config.d/00-durci.conf >/dev/null <<'EOF'
 PermitRootLogin no
 PasswordAuthentication no
 EOF
@@ -376,11 +382,11 @@ sudo ufw status verbose
 ```
 
 :::lang fr
-**✅ Vérification :** `sudo sshd -T | grep -iE 'permitrootlogin|passwordauth'` confirme **`no`**/**`no`** (root direct interdit, clés seulement). `sudo ufw status verbose` montre **`deny (incoming)`** par défaut avec **`OpenSSH`** et **`8080/tcp`** autorisés — **seuls** SSH et l'app sont joignables, tout le reste est **fermé**. Le serveur est **durci** : accès par clés uniquement, surface réseau minimale. *(On a autorisé SSH **avant** d'activer le pare-feu — le réflexe qui évite de se verrouiller dehors.)*
+**✅ Vérification :** `sudo sshd -T | grep -iE 'permitrootlogin|passwordauth'` confirme **`no`**/**`no`** (root direct interdit, clés seulement). `sudo ufw status verbose` montre **`deny (incoming)`** par défaut avec **`OpenSSH`** et **`8080/tcp`** autorisés — **seuls** SSH et l'app sont joignables, tout le reste est **fermé**. Le serveur est **durci** : accès par clés uniquement, surface réseau minimale. *(On a autorisé SSH **avant** d'activer le pare-feu — le réflexe qui évite de se verrouiller dehors. Et le fichier **`00-durci.conf`** est lu **en premier** parmi les drop-ins : sshd retient la **première** valeur, donc notre durcissement l'emporte sur un éventuel `50-cloud-init.conf` qui remettrait les mots de passe.)*
 :::
 
 :::lang en
-**✅ Check:** `sudo sshd -T | grep -iE 'permitrootlogin|passwordauth'` confirms **`no`**/**`no`** (direct root forbidden, keys only). `sudo ufw status verbose` shows default **`deny (incoming)`** with **`OpenSSH`** and **`8080/tcp`** allowed — **only** SSH and the app are reachable, everything else is **closed**. The server is **hardened**: key-only access, minimal network surface. *(We allowed SSH **before** enabling the firewall — the reflex that avoids locking yourself out.)*
+**✅ Check:** `sudo sshd -T | grep -iE 'permitrootlogin|passwordauth'` confirms **`no`**/**`no`** (direct root forbidden, keys only). `sudo ufw status verbose` shows default **`deny (incoming)`** with **`OpenSSH`** and **`8080/tcp`** allowed — **only** SSH and the app are reachable, everything else is **closed**. The server is **hardened**: key-only access, minimal network surface. *(We allowed SSH **before** enabling the firewall — the reflex that avoids locking yourself out. And the **`00-durci.conf`** file is read **first** among the drop-ins: sshd keeps the **first** value, so our hardening wins over any `50-cloud-init.conf` that would re-enable passwords.)*
 :::
 
 ### step-06
@@ -478,13 +484,13 @@ sudo ~/atelier-runbook/scripts/healthcheck.sh ; echo "verdict = $?"
 :::lang fr
 **Objectif.** Capitaliser dans un **script de provisionnement** idempotent, committer, puis vérifier la reproductibilité.
 
-**🤔 Rejouable à l'identique.** Un vrai serveur se reconstruit **par un script**, pas de mémoire. `provision.sh` réunit les étapes 1-5, en **idempotent** (rejouable sans casser l'existant). Crée-le :
+**🤔 Rejouable, pas de mémoire.** Un vrai serveur se pilote **par des scripts**. Ce `provision.sh` capture le **noyau rejouable** de la config — les **identités** (équipe, sudo) et l'**activation** des services — en **idempotent** (chaque action vérifie avant d'agir). *(Pour un rebuild **complet** à zéro, on y ajouterait la création du volume LVM et des units des étapes 2-4 ; on garde ici le cœur pour montrer le motif d'idempotence.)* Crée-le :
 :::
 
 :::lang en
 **Goal.** Capitalize into an idempotent **provisioning script**, commit, then verify reproducibility.
 
-**🤔 Replayable identically.** A real server is rebuilt **by a script**, not from memory. `provision.sh` gathers steps 1-5, **idempotently** (replayable without breaking what exists). Create it:
+**🤔 Replayable, not from memory.** A real server is driven **by scripts**. This `provision.sh` captures the **replayable core** of the config — the **identities** (team, sudo) and the **activation** of services — **idempotently** (each action checks before acting). *(For a **full** from-scratch rebuild, you'd add the LVM volume and the units from steps 2-4; we keep the core here to show the idempotence pattern.)* Create it:
 :::
 
 ```bash
@@ -496,14 +502,18 @@ getent group atelier >/dev/null || sudo groupadd atelier
 for u in marie karim; do
   id "$u" >/dev/null 2>&1 || sudo useradd -m -s /bin/bash -G atelier "$u"
 done
-[[ -f /etc/sudoers.d/atelier ]] || \
+if [[ ! -f /etc/sudoers.d/atelier ]]; then
   echo '%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier' | sudo tee /etc/sudoers.d/atelier >/dev/null
+  sudo chmod 0440 /etc/sudoers.d/atelier
+fi
 sudo systemctl enable --now atelier atelier-backup.timer
 echo "provisionnement OK"
 EOF
 chmod +x ~/atelier-runbook/scripts/provision.sh
 ~/atelier-runbook/scripts/provision.sh          # rejoue : ne recrée rien d'existant / replays: recreates nothing
 
+# identité git (indispensable sur une VM fraîche) / git identity (required on a fresh VM)
+git config user.email "toi@exemple.fr" && git config user.name "Ton Nom"
 cat > .gitignore <<'EOF'
 *.tar.gz
 EOF
@@ -511,13 +521,13 @@ git add . && git commit -m "Atelier Média : serveur Ubuntu durci (users, LVM, s
 ```
 
 :::lang fr
-**✅ Vérification :** `~/atelier-runbook/scripts/provision.sh` s'exécute **sans erreur même en le relançant** — chaque étape teste avant d'agir (`getent group … || groupadd`, `id … || useradd`) : c'est l'**idempotence**, la propriété clé d'un script de provisionnement. Le `git commit` fige ton livrable. Preuve finale : `sudo scripts/healthcheck.sh` renvoie toujours **`Serveur sain`**. Tu as un serveur **reconstructible par un script** et **documenté par un runbook** — pousse le dépôt sur GitHub et **mets le lien sur ton CV**.
+**✅ Vérification :** `~/atelier-runbook/scripts/provision.sh` s'exécute **sans erreur même en le relançant** — chaque étape teste avant d'agir (`getent group … || groupadd`, `id … || useradd`) : c'est l'**idempotence**, la propriété clé d'un script de provisionnement. Le `git config` fixe ton identité (obligatoire sur une VM fraîche, sinon `git commit` échoue), puis le `commit` fige ton livrable. Preuve finale : `sudo scripts/healthcheck.sh` renvoie toujours **`Serveur sain`**. Tu as un serveur dont la config d'équipe/services est **rejouable par un script (idempotent)** et dont le rebuild complet est **documenté par le runbook** — pousse le dépôt sur GitHub et **mets le lien sur ton CV**.
 
 **🧹 Ménage (détruire la VM) :** depuis ton hôte, `multipass delete atelier && multipass purge`. Tout le projet (VM, disque loopback, services) disparaît proprement ; ton **dépôt Git**, lui, reste le livrable.
 :::
 
 :::lang en
-**✅ Check:** `~/atelier-runbook/scripts/provision.sh` runs **with no error even when re-run** — each step checks before acting (`getent group … || groupadd`, `id … || useradd`): that's **idempotence**, the key property of a provisioning script. The `git commit` freezes your deliverable. Final proof: `sudo scripts/healthcheck.sh` still returns **`Serveur sain`**. You have a server **rebuildable by a script** and **documented by a runbook** — push the repo to GitHub and **put the link on your CV**.
+**✅ Check:** `~/atelier-runbook/scripts/provision.sh` runs **with no error even when re-run** — each step checks before acting (`getent group … || groupadd`, `id … || useradd`): that's **idempotence**, the key property of a provisioning script. The `git config` sets your identity (required on a fresh VM, or `git commit` fails), then the `commit` freezes your deliverable. Final proof: `sudo scripts/healthcheck.sh` still returns **`Serveur sain`**. You have a server whose team/service config is **replayable by an idempotent script** and whose full rebuild is **documented by the runbook** — push the repo to GitHub and **put the link on your CV**.
 
 **🧹 Cleanup (destroy the VM):** from your host, `multipass delete atelier && multipass purge`. The whole project (VM, loopback disk, services) disappears cleanly; your **Git repo** stays the deliverable.
 :::

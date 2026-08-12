@@ -169,10 +169,10 @@
   <h2 data-lang="fr">Ce que tu vas apprendre</h2>
   <h2 data-lang="en">What you'll learn</h2>
 <div data-lang="fr"><p>À la fin de ce projet, tu auras produit et su expliquer :</p>
-<ul><li>Une <strong>équipe</strong> (groupe + comptes) et une règle <strong>sudo</strong> ciblée.</li><li>Un <strong>volume LVM</strong> monté au démarrage (fstab/UUID) pour les données.</li><li>Un <strong>service systemd</strong> applicatif et sa <strong>sauvegarde planifiée</strong> (timer).</li><li>Un <strong>accès SSH par clés</strong> et un serveur <strong>durci</strong> (sshd + ufw).</li><li>Un <strong>script de provisionnement</strong> idempotent et un <strong>health-check</strong>.</li><li>Un <strong>runbook</strong> (README) de niveau professionnel.</li></ul>
+<ul><li>Une <strong>équipe</strong> (groupe + comptes) et une règle <strong>sudo</strong> ciblée.</li><li>Un <strong>volume LVM</strong> monté et persisté dans <code>fstab</code> par <strong>UUID</strong> (avec <code>nofail</code>) pour les données.</li><li>Un <strong>service systemd</strong> applicatif et sa <strong>sauvegarde planifiée</strong> (timer).</li><li>Un <strong>accès SSH par clés</strong> et un serveur <strong>durci</strong> (sshd + ufw).</li><li>Un <strong>script de provisionnement</strong> idempotent et un <strong>health-check</strong>.</li><li>Un <strong>runbook</strong> (README) de niveau professionnel.</li></ul>
 </div>
 <div data-lang="en"><p>By the end of this project, you&#39;ll have produced and be able to explain:</p>
-<ul><li>A <strong>team</strong> (group + accounts) and a targeted <strong>sudo</strong> rule.</li><li>An <strong>LVM volume</strong> mounted at boot (fstab/UUID) for data.</li><li>A systemd <strong>application service</strong> and its <strong>scheduled backup</strong> (timer).</li><li><strong>Key-based SSH</strong> access and a <strong>hardened</strong> server (sshd + ufw).</li><li>An idempotent <strong>provisioning script</strong> and a <strong>health-check</strong>.</li><li>A professional-grade <strong>runbook</strong> (README).</li></ul>
+<ul><li>A <strong>team</strong> (group + accounts) and a targeted <strong>sudo</strong> rule.</li><li>An <strong>LVM volume</strong> mounted and persisted in <code>fstab</code> by <strong>UUID</strong> (with <code>nofail</code>) for data.</li><li>A systemd <strong>application service</strong> and its <strong>scheduled backup</strong> (timer).</li><li><strong>Key-based SSH</strong> access and a <strong>hardened</strong> server (sshd + ufw).</li><li>An idempotent <strong>provisioning script</strong> and a <strong>health-check</strong>.</li><li>A professional-grade <strong>runbook</strong> (README).</li></ul>
 </div>
 </section>
 
@@ -255,6 +255,7 @@ sudo useradd -m -s /bin/bash -G atelier karim
 # sudo au moindre privilège : l&#39;équipe peut redémarrer le service, rien d&#39;autre
 # least-privilege sudo: the team may restart the service, nothing else
 echo &#39;%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier&#39; | sudo tee /etc/sudoers.d/atelier
+sudo chmod 0440 /etc/sudoers.d/atelier      # convention : non lisible par tous / convention: not world-readable
 sudo visudo -cf /etc/sudoers.d/atelier      # VALIDE la syntaxe / VALIDATE syntax</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>id marie</code> montre son appartenance au groupe <strong><code>atelier</code></strong> (secondaire). <code>visudo -cf /etc/sudoers.d/atelier</code> répond <strong><code>parsed OK</code></strong>. La règle <code>%atelier</code> (le <code>%</code> = un <strong>groupe</strong>) autorise <strong>tous</strong> les membres de l&#39;équipe à faire <strong>une seule</strong> action root — <code>systemctl restart atelier</code> — et <strong>rien d&#39;autre</strong>. C&#39;est le <strong>moindre privilège</strong> appliqué à une équipe : on délègue l&#39;exploitation du service sans donner les clés du serveur.</p>
 </div>
@@ -280,14 +281,16 @@ sudo mkfs.ext4 /dev/vg_atelier/data
 
 sudo mkdir -p /srv/atelier
 UUID=$(sudo blkid -s UUID -o value /dev/vg_atelier/data)
-echo &quot;UUID=$UUID  /srv/atelier  ext4  defaults  0  2&quot; | sudo tee -a /etc/fstab
+# nofail : un disque loopback n&#39;est PAS ré-attaché au boot -&gt; ne pas bloquer le démarrage
+# nofail: a loopback disk is NOT re-attached at boot -&gt; don&#39;t block startup
+echo &quot;UUID=$UUID  /srv/atelier  ext4  defaults,nofail  0  2&quot; | sudo tee -a /etc/fstab
 sudo mount -a                                   # monte via fstab / mount via fstab
 
 # partage d&#39;équipe : groupe atelier + SGID (héritage de groupe) / team sharing: group + SGID
 sudo chgrp atelier /srv/atelier &amp;&amp; sudo chmod 2775 /srv/atelier</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>df -h /srv/atelier</code> montre le volume LVM <strong>monté</strong> (~750 Mo). Un <code>sudo mount -a</code> <strong>sans erreur</strong> valide ta ligne <code>fstab</code> (par <strong>UUID</strong>, stable). <code>ls -ld /srv/atelier</code> affiche <code>drwxrwsr-x … atelier</code> : le <strong>SGID</strong> (<code>s</code>) fait que tout fichier créé par un membre de l&#39;équipe <strong>appartient au groupe <code>atelier</code></strong> — le répertoire partagé collaboratif. Les données de l&#39;app vivront ici, <strong>séparées</strong> du système, sur un volume qu&#39;on pourra agrandir (LVM).</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>df -h /srv/atelier</code> montre le volume LVM <strong>monté</strong> (~750 Mo). Un <code>sudo mount -a</code> <strong>sans erreur</strong> valide ta ligne <code>fstab</code> (par <strong>UUID</strong>, stable). <em>(Note : notre disque est un <strong>loopback</strong> — il n&#39;est pas ré-attaché automatiquement au redémarrage, d&#39;où le <strong><code>nofail</code></strong> qui évite de bloquer le boot ; sur un <strong>vrai</strong> disque, la ligne UUID remonterait toute seule. Pour persister le loopback, on l&#39;ajouterait au provisionnement.)</em> <code>ls -ld /srv/atelier</code> affiche <code>drwxrwsr-x … atelier</code> : le <strong>SGID</strong> (<code>s</code>) fait que tout fichier créé par un membre de l&#39;équipe <strong>appartient au groupe <code>atelier</code></strong> — le répertoire partagé collaboratif. Les données de l&#39;app vivront ici, <strong>séparées</strong> du système, sur un volume qu&#39;on pourra agrandir (LVM).</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>df -h /srv/atelier</code> shows the LVM volume <strong>mounted</strong> (~750 MB). A <code>sudo mount -a</code> <strong>with no error</strong> validates your <code>fstab</code> line (by <strong>UUID</strong>, stable). <code>ls -ld /srv/atelier</code> shows <code>drwxrwsr-x … atelier</code>: the <strong>SGID</strong> (<code>s</code>) makes every file created by a team member <strong>belong to the <code>atelier</code> group</strong> — the collaborative shared directory. The app&#39;s data will live here, <strong>separate</strong> from the system, on a volume you can grow (LVM).</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>df -h /srv/atelier</code> shows the LVM volume <strong>mounted</strong> (~750 MB). A <code>sudo mount -a</code> <strong>with no error</strong> validates your <code>fstab</code> line (by <strong>UUID</strong>, stable). <em>(Note: our disk is a <strong>loopback</strong> — it isn&#39;t re-attached automatically at reboot, hence the <strong><code>nofail</code></strong> that keeps boot from blocking; on a <strong>real</strong> disk, the UUID line would remount on its own. To persist the loopback, you&#39;d add it to provisioning.)</em> <code>ls -ld /srv/atelier</code> shows <code>drwxrwsr-x … atelier</code>: the <strong>SGID</strong> (<code>s</code>) makes every file created by a team member <strong>belong to the <code>atelier</code> group</strong> — the collaborative shared directory. The app&#39;s data will live here, <strong>separate</strong> from the system, on a volume you can grow (LVM).</p>
 </div>
 
 </div>
@@ -390,7 +393,10 @@ cat ~/.ssh/id_ed25519.pub &gt;&gt; ~/.ssh/authorized_keys
 chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/authorized_keys
 
 # durcissement sshd / sshd hardening
-sudo tee /etc/ssh/sshd_config.d/99-durci.conf &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+# nom en 00- : sshd applique la PREMIÈRE valeur trouvée ; on passe DEVANT le
+# drop-in cloud-init (ex. 50-cloud-init.conf) qui remet PasswordAuthentication yes
+# 00- name: sshd uses the FIRST value found; we sort BEFORE the cloud-init drop-in
+sudo tee /etc/ssh/sshd_config.d/00-durci.conf &gt;/dev/null &lt;&lt;&#39;EOF&#39;
 PermitRootLogin no
 PasswordAuthentication no
 EOF
@@ -402,9 +408,9 @@ sudo ufw allow 8080/tcp
 sudo ufw default deny incoming &amp;&amp; sudo ufw default allow outgoing
 sudo ufw --force enable
 sudo ufw status verbose</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauth&#39;</code> confirme <strong><code>no</code></strong>/<strong><code>no</code></strong> (root direct interdit, clés seulement). <code>sudo ufw status verbose</code> montre <strong><code>deny (incoming)</code></strong> par défaut avec <strong><code>OpenSSH</code></strong> et <strong><code>8080/tcp</code></strong> autorisés — <strong>seuls</strong> SSH et l&#39;app sont joignables, tout le reste est <strong>fermé</strong>. Le serveur est <strong>durci</strong> : accès par clés uniquement, surface réseau minimale. <em>(On a autorisé SSH <strong>avant</strong> d&#39;activer le pare-feu — le réflexe qui évite de se verrouiller dehors.)</em></p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauth&#39;</code> confirme <strong><code>no</code></strong>/<strong><code>no</code></strong> (root direct interdit, clés seulement). <code>sudo ufw status verbose</code> montre <strong><code>deny (incoming)</code></strong> par défaut avec <strong><code>OpenSSH</code></strong> et <strong><code>8080/tcp</code></strong> autorisés — <strong>seuls</strong> SSH et l&#39;app sont joignables, tout le reste est <strong>fermé</strong>. Le serveur est <strong>durci</strong> : accès par clés uniquement, surface réseau minimale. <em>(On a autorisé SSH <strong>avant</strong> d&#39;activer le pare-feu — le réflexe qui évite de se verrouiller dehors. Et le fichier <strong><code>00-durci.conf</code></strong> est lu <strong>en premier</strong> parmi les drop-ins : sshd retient la <strong>première</strong> valeur, donc notre durcissement l&#39;emporte sur un éventuel <code>50-cloud-init.conf</code> qui remettrait les mots de passe.)</em></p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauth&#39;</code> confirms <strong><code>no</code></strong>/<strong><code>no</code></strong> (direct root forbidden, keys only). <code>sudo ufw status verbose</code> shows default <strong><code>deny (incoming)</code></strong> with <strong><code>OpenSSH</code></strong> and <strong><code>8080/tcp</code></strong> allowed — <strong>only</strong> SSH and the app are reachable, everything else is <strong>closed</strong>. The server is <strong>hardened</strong>: key-only access, minimal network surface. <em>(We allowed SSH <strong>before</strong> enabling the firewall — the reflex that avoids locking yourself out.)</em></p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauth&#39;</code> confirms <strong><code>no</code></strong>/<strong><code>no</code></strong> (direct root forbidden, keys only). <code>sudo ufw status verbose</code> shows default <strong><code>deny (incoming)</code></strong> with <strong><code>OpenSSH</code></strong> and <strong><code>8080/tcp</code></strong> allowed — <strong>only</strong> SSH and the app are reachable, everything else is <strong>closed</strong>. The server is <strong>hardened</strong>: key-only access, minimal network surface. <em>(We allowed SSH <strong>before</strong> enabling the firewall — the reflex that avoids locking yourself out. And the <strong><code>00-durci.conf</code></strong> file is read <strong>first</strong> among the drop-ins: sshd keeps the <strong>first</strong> value, so our hardening wins over any <code>50-cloud-init.conf</code> that would re-enable passwords.)</em></p>
 </div>
 
 </div>
@@ -466,10 +472,10 @@ sudo ~/atelier-runbook/scripts/healthcheck.sh ; echo &quot;verdict = $?&quot;</c
   <span class="step-num" data-lang="fr">Étape 08</span>
   <span class="step-num" data-lang="en">Step 08</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Capitaliser dans un <strong>script de provisionnement</strong> idempotent, committer, puis vérifier la reproductibilité.</p>
-<p><strong>🤔 Rejouable à l&#39;identique.</strong> Un vrai serveur se reconstruit <strong>par un script</strong>, pas de mémoire. <code>provision.sh</code> réunit les étapes 1-5, en <strong>idempotent</strong> (rejouable sans casser l&#39;existant). Crée-le :</p>
+<p><strong>🤔 Rejouable, pas de mémoire.</strong> Un vrai serveur se pilote <strong>par des scripts</strong>. Ce <code>provision.sh</code> capture le <strong>noyau rejouable</strong> de la config — les <strong>identités</strong> (équipe, sudo) et l&#39;<strong>activation</strong> des services — en <strong>idempotent</strong> (chaque action vérifie avant d&#39;agir). <em>(Pour un rebuild <strong>complet</strong> à zéro, on y ajouterait la création du volume LVM et des units des étapes 2-4 ; on garde ici le cœur pour montrer le motif d&#39;idempotence.)</em> Crée-le :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Capitalize into an idempotent <strong>provisioning script</strong>, commit, then verify reproducibility.</p>
-<p><strong>🤔 Replayable identically.</strong> A real server is rebuilt <strong>by a script</strong>, not from memory. <code>provision.sh</code> gathers steps 1-5, <strong>idempotently</strong> (replayable without breaking what exists). Create it:</p>
+<p><strong>🤔 Replayable, not from memory.</strong> A real server is driven <strong>by scripts</strong>. This <code>provision.sh</code> captures the <strong>replayable core</strong> of the config — the <strong>identities</strong> (team, sudo) and the <strong>activation</strong> of services — <strong>idempotently</strong> (each action checks before acting). <em>(For a <strong>full</strong> from-scratch rebuild, you&#39;d add the LVM volume and the units from steps 2-4; we keep the core here to show the idempotence pattern.)</em> Create it:</p>
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>tee ~/atelier-runbook/scripts/provision.sh &gt;/dev/null &lt;&lt;&#39;EOF&#39;
 #!/usr/bin/env bash
@@ -479,22 +485,26 @@ getent group atelier &gt;/dev/null || sudo groupadd atelier
 for u in marie karim; do
   id &quot;$u&quot; &gt;/dev/null 2&gt;&amp;1 || sudo useradd -m -s /bin/bash -G atelier &quot;$u&quot;
 done
-[[ -f /etc/sudoers.d/atelier ]] || \
+if [[ ! -f /etc/sudoers.d/atelier ]]; then
   echo &#39;%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier&#39; | sudo tee /etc/sudoers.d/atelier &gt;/dev/null
+  sudo chmod 0440 /etc/sudoers.d/atelier
+fi
 sudo systemctl enable --now atelier atelier-backup.timer
 echo &quot;provisionnement OK&quot;
 EOF
 chmod +x ~/atelier-runbook/scripts/provision.sh
 ~/atelier-runbook/scripts/provision.sh          # rejoue : ne recrée rien d&#39;existant / replays: recreates nothing
 
+# identité git (indispensable sur une VM fraîche) / git identity (required on a fresh VM)
+git config user.email &quot;toi@exemple.fr&quot; &amp;&amp; git config user.name &quot;Ton Nom&quot;
 cat &gt; .gitignore &lt;&lt;&#39;EOF&#39;
 *.tar.gz
 EOF
 git add . &amp;&amp; git commit -m &quot;Atelier Média : serveur Ubuntu durci (users, LVM, service, backup, SSH, ufw, scripts)&quot;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>~/atelier-runbook/scripts/provision.sh</code> s&#39;exécute <strong>sans erreur même en le relançant</strong> — chaque étape teste avant d&#39;agir (<code>getent group … || groupadd</code>, <code>id … || useradd</code>) : c&#39;est l&#39;<strong>idempotence</strong>, la propriété clé d&#39;un script de provisionnement. Le <code>git commit</code> fige ton livrable. Preuve finale : <code>sudo scripts/healthcheck.sh</code> renvoie toujours <strong><code>Serveur sain</code></strong>. Tu as un serveur <strong>reconstructible par un script</strong> et <strong>documenté par un runbook</strong> — pousse le dépôt sur GitHub et <strong>mets le lien sur ton CV</strong>.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>~/atelier-runbook/scripts/provision.sh</code> s&#39;exécute <strong>sans erreur même en le relançant</strong> — chaque étape teste avant d&#39;agir (<code>getent group … || groupadd</code>, <code>id … || useradd</code>) : c&#39;est l&#39;<strong>idempotence</strong>, la propriété clé d&#39;un script de provisionnement. Le <code>git config</code> fixe ton identité (obligatoire sur une VM fraîche, sinon <code>git commit</code> échoue), puis le <code>commit</code> fige ton livrable. Preuve finale : <code>sudo scripts/healthcheck.sh</code> renvoie toujours <strong><code>Serveur sain</code></strong>. Tu as un serveur dont la config d&#39;équipe/services est <strong>rejouable par un script (idempotent)</strong> et dont le rebuild complet est <strong>documenté par le runbook</strong> — pousse le dépôt sur GitHub et <strong>mets le lien sur ton CV</strong>.</p>
 <p><strong>🧹 Ménage (détruire la VM) :</strong> depuis ton hôte, <code>multipass delete atelier &amp;&amp; multipass purge</code>. Tout le projet (VM, disque loopback, services) disparaît proprement ; ton <strong>dépôt Git</strong>, lui, reste le livrable.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>~/atelier-runbook/scripts/provision.sh</code> runs <strong>with no error even when re-run</strong> — each step checks before acting (<code>getent group … || groupadd</code>, <code>id … || useradd</code>): that&#39;s <strong>idempotence</strong>, the key property of a provisioning script. The <code>git commit</code> freezes your deliverable. Final proof: <code>sudo scripts/healthcheck.sh</code> still returns <strong><code>Serveur sain</code></strong>. You have a server <strong>rebuildable by a script</strong> and <strong>documented by a runbook</strong> — push the repo to GitHub and <strong>put the link on your CV</strong>.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>~/atelier-runbook/scripts/provision.sh</code> runs <strong>with no error even when re-run</strong> — each step checks before acting (<code>getent group … || groupadd</code>, <code>id … || useradd</code>): that&#39;s <strong>idempotence</strong>, the key property of a provisioning script. The <code>git config</code> sets your identity (required on a fresh VM, or <code>git commit</code> fails), then the <code>commit</code> freezes your deliverable. Final proof: <code>sudo scripts/healthcheck.sh</code> still returns <strong><code>Serveur sain</code></strong>. You have a server whose team/service config is <strong>replayable by an idempotent script</strong> and whose full rebuild is <strong>documented by the runbook</strong> — push the repo to GitHub and <strong>put the link on your CV</strong>.</p>
 <p><strong>🧹 Cleanup (destroy the VM):</strong> from your host, <code>multipass delete atelier &amp;&amp; multipass purge</code>. The whole project (VM, loopback disk, services) disappears cleanly; your <strong>Git repo</strong> stays the deliverable.</p>
 </div>
 

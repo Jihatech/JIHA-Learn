@@ -333,7 +333,10 @@ ssh -o StrictHostKeyChecking=accept-new localhost hostname   # se connecte par C
 <div data-lang="en"><p><strong>Goal.</strong> <strong>Harden</strong> the SSH server: no root, no passwords.</p>
 <p>⚠️ <strong>Safety net.</strong> We disable password auth: <strong>make sure your key works first</strong> (step 4 ✅). In a VM, the console stays accessible anyway. We write an override in <code>sshd_config.d/</code> (clean):</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo tee /etc/ssh/sshd_config.d/99-durcissement.conf &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># nom en 00- : sshd retient la PREMIÈRE valeur trouvée -&gt; on passe devant un
+# éventuel 50-cloud-init.conf qui remettrait PasswordAuthentication yes
+# 00- name: sshd keeps the FIRST value found -&gt; sort before any 50-cloud-init.conf
+sudo tee /etc/ssh/sshd_config.d/00-durcissement.conf &gt;/dev/null &lt;&lt;&#39;EOF&#39;
 PermitRootLogin no
 PasswordAuthentication no
 X11Forwarding no
@@ -428,7 +431,7 @@ sudo ufw status verbose            # règles actives / active rules</code></pre>
 <ul class="guides-list">
 <li>
   <a class="guide-link" href="../git-fondamentaux/">
-    <span class="num">08</span>
+    <span class="num">10</span>
     <span class="title-line" data-lang="fr">Git fondamentaux</span>
     <span class="title-line" data-lang="en">Git fundamentals</span>
     <span data-lang="fr"></span>

@@ -296,7 +296,10 @@ ssh -o StrictHostKeyChecking=accept-new localhost hostname   # se connecte par C
 :::
 
 ```bash
-sudo tee /etc/ssh/sshd_config.d/99-durcissement.conf >/dev/null <<'EOF'
+# nom en 00- : sshd retient la PREMIÈRE valeur trouvée -> on passe devant un
+# éventuel 50-cloud-init.conf qui remettrait PasswordAuthentication yes
+# 00- name: sshd keeps the FIRST value found -> sort before any 50-cloud-init.conf
+sudo tee /etc/ssh/sshd_config.d/00-durcissement.conf >/dev/null <<'EOF'
 PermitRootLogin no
 PasswordAuthentication no
 X11Forwarding no
