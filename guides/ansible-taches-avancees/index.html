@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — tâches avancées &amp; contrôle de flux — jiha.tech</title>
+  <title data-lang="en">Ansible — advanced tasks &amp; flow control — jiha.tech</title>
+  <meta name="description" content="Rends tes playbooks robustes au niveau RHCE/EX294 : boucles (loop, dictionnaires), conditions when sur facts et résultats, handlers (notify/listen/flush_handlers), tags pour exécuter un sous-ensemble, blocks block/rescue/always pour la gestion d&#39;erreur, et register avec failed_when/changed_when pour maîtriser le statut d&#39;une tâche. Testable en local." data-lang="fr">
+  <meta name="description" content="Make your playbooks RHCE/EX294-robust: loops (loop, dicts), when conditions on facts and results, handlers (notify/listen/flush_handlers), tags to run a subset, block/rescue/always for error handling, and register with failed_when/changed_when to control a task&#39;s status. Testable locally." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — tâches avancées &amp; contrôle de flux">
+  <meta property="og:description" content="Rends tes playbooks robustes au niveau RHCE/EX294 : boucles (loop, dictionnaires), conditions when sur facts et résultats, handlers (notify/listen/flush_handlers), tags pour exécuter un sous-ensemble, blocks block/rescue/always pour la gestion d&#39;erreur, et register avec failed_when/changed_when pour maîtriser le statut d&#39;une tâche. Testable en local.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-taches-avancees/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-taches-avancees/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-taches-avancees">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-taches-avancees</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-taches-avancees</div>
+    <h1 data-lang="fr">Ansible — tâches avancées &amp; contrôle de flux</h1>
+    <h1 data-lang="en">Ansible — advanced tasks &amp; flow control</h1>
+    <p class="tagline" data-lang="fr">boucles, when, handlers, tags, blocks, register.</p>
+    <p class="tagline" data-lang="en">loops, when, handlers, tags, blocks, register.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un playbook qui aligne des tâches les unes après les autres, ça marche… tant que tout se passe bien et que rien ne varie. La vraie vie n&#39;est pas comme ça : tu installes <strong>une liste</strong> de paquets, tu n&#39;appliques une tâche <strong>que si</strong> l&#39;OS est le bon, tu ne redémarres un service <strong>que si</strong> sa config a changé, tu veux <strong>rejouer une partie</strong> du playbook sans tout relancer, et tu veux <strong>rattraper une erreur</strong> au lieu de tout planter.</p>
+<p>C&#39;est exactement ce que couvre le <strong>contrôle de flux</strong> d&#39;Ansible — et c&#39;est un pilier de l&#39;examen RHCE/EX294. Dans ce guide tu vas maîtriser les six outils qui transforment un playbook naïf en playbook robuste : <strong><code>register</code></strong> (capturer un résultat), <strong><code>loop</code></strong> (boucler), <strong><code>when</code></strong> (conditionner), <strong>les handlers</strong> (réagir à un changement), <strong><code>failed_when</code>/<code>changed_when</code></strong> (dicter le statut d&#39;une tâche), <strong>les blocks</strong> (gérer l&#39;erreur), et <strong>les tags</strong> (exécuter à la carte).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu écris déjà des playbooks et un inventaire à groupes (guides précédents), et tu veux les rendre conditionnels, idempotents et rattrapables.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as jamais lancé de playbook → refais <em>Ansible fondamentaux</em> d&#39;abord.</li><li>Tu cherches à <strong>factoriser</strong> en composants réutilisables (rôles, collections) → c&#39;est le guide <em>Rôles &amp; collections</em>, deux crans plus loin ; ici on reste au niveau des tâches d&#39;un playbook.</li></ul>
+</div>
+<div data-lang="en"><p>A playbook that lines up tasks one after another works… as long as everything goes fine and nothing varies. Real life isn&#39;t like that: you install <strong>a list</strong> of packages, you apply a task <strong>only if</strong> the OS is the right one, you restart a service <strong>only if</strong> its config changed, you want to <strong>replay part</strong> of the playbook without rerunning it all, and you want to <strong>recover from an error</strong> instead of crashing everything.</p>
+<p>That&#39;s exactly what Ansible&#39;s <strong>flow control</strong> covers — and it&#39;s a pillar of the RHCE/EX294 exam. In this guide you&#39;ll master the six tools that turn a naive playbook into a robust one: <strong><code>register</code></strong> (capture a result), <strong><code>loop</code></strong> (iterate), <strong><code>when</code></strong> (conditionalize), <strong>handlers</strong> (react to a change), <strong><code>failed_when</code>/<code>changed_when</code></strong> (dictate a task&#39;s status), <strong>blocks</strong> (handle errors), and <strong>tags</strong> (run à la carte).</p>
+<p><strong>Who it&#39;s for:</strong> you already write playbooks and a grouped inventory (previous guides), and you want to make them conditional, idempotent and recoverable.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;ve never run a playbook → do <em>Ansible fundamentals</em> first.</li><li>You want to <strong>factor</strong> things into reusable components (roles, collections) → that&#39;s the <em>Roles &amp; collections</em> guide, two steps further; here we stay at a playbook&#39;s task level.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Capturer</strong> le résultat d&#39;une tâche avec <code>register</code> et exploiter <code>.stdout</code>, <code>.rc</code>, <code>.changed</code>.</li><li><strong>Boucler</strong> avec <code>loop</code> sur une liste, sur une liste de dictionnaires, et exploiter <code>.results</code>.</li><li><strong>Conditionner</strong> avec <code>when</code> : sur un fact, sur un résultat enregistré, en combinant <code>and</code>/<code>or</code>.</li><li>Déclencher un <strong>handler</strong> au bon moment (<code>notify</code>/<code>listen</code>), et forcer avec <code>flush_handlers</code>.</li><li>Maîtriser le statut d&#39;une tâche avec <strong><code>changed_when</code></strong> et <strong><code>failed_when</code></strong>.</li><li>Gérer l&#39;erreur avec <strong><code>block</code>/<code>rescue</code>/<code>always</code></strong>.</li><li>Exécuter à la carte avec les <strong>tags</strong> (<code>--tags</code>, <code>--skip-tags</code>, <code>always</code>/<code>never</code>).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Capture</strong> a task&#39;s result with <code>register</code> and use <code>.stdout</code>, <code>.rc</code>, <code>.changed</code>.</li><li><strong>Loop</strong> with <code>loop</code> over a list, over a list of dictionaries, and use <code>.results</code>.</li><li><strong>Conditionalize</strong> with <code>when</code>: on a fact, on a registered result, combining <code>and</code>/<code>or</code>.</li><li>Trigger a <strong>handler</strong> at the right moment (<code>notify</code>/<code>listen</code>), and force it with <code>flush_handlers</code>.</li><li>Control a task&#39;s status with <strong><code>changed_when</code></strong> and <strong><code>failed_when</code></strong>.</li><li>Handle errors with <strong><code>block</code>/<code>rescue</code>/<code>always</code></strong>.</li><li>Run à la carte with <strong>tags</strong> (<code>--tags</code>, <code>--skip-tags</code>, <code>always</code>/<code>never</code>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Ansible fondamentaux</strong> et <strong>Ansible — inventaire &amp; configuration</strong> terminés.</li><li><strong>Ansible ≥ 2.16</strong> installé (<code>ansible --version</code>).</li><li>Un dossier de travail. Tout ce guide est <strong>testable en local</strong> : les playbooks ciblent <code>localhost</code> en <code>connection: local</code>, parce que le contrôle de flux est une affaire de <strong>logique</strong>, pas de réseau. Chaque play fonctionne à l&#39;identique sur ton parc (<code>hosts: web</code>) — on te le signale à chaque fois.</li><li>(Facultatif) Le parc <code>web1</code>/<code>db1</code> du guide précédent, si tu veux rejouer contre de vraies VM.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Ansible fundamentals</strong> and <strong>Ansible — inventory &amp; configuration</strong> guides done.</li><li><strong>Ansible ≥ 2.16</strong> installed (<code>ansible --version</code>).</li><li>A working folder. This whole guide is <strong>testable locally</strong>: the playbooks target <code>localhost</code> with <code>connection: local</code>, because flow control is about <strong>logic</strong>, not networking. Each play runs identically on your fleet (<code>hosts: web</code>) — we point that out each time.</li><li>(Optional) The <code>web1</code>/<code>db1</code> fleet from the previous guide, if you want to replay against real VMs.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-inventaire-configuration/">
+    <span class="num">21</span>
+    <span class="title-line" data-lang="fr">Ansible — inventaire &amp; configuration du nœud de contrôle</span>
+    <span class="title-line" data-lang="en">Ansible — inventory &amp; control-node configuration</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong><code>register</code>.</strong> Range le résultat d&#39;une tâche dans une variable. Ce résultat est un dictionnaire riche : <code>.rc</code> (code retour d&#39;une commande), <code>.stdout</code>/<code>.stdout_lines</code>, <code>.changed</code>, <code>.failed</code>, <code>.skipped</code>. C&#39;est le socle de presque tout le reste.</p>
+<p><strong><code>loop</code>.</strong> Répète une tâche sur chaque élément d&#39;une liste. <code>item</code> est l&#39;élément courant. La liste peut contenir des chaînes ou des <strong>dictionnaires</strong> (<code>item.nom</code>, <code>item.groupe</code>). Un <code>loop</code> combiné à <code>register</code> remplit <code>.results</code> (un résultat par itération).</p>
+<p><strong><code>when</code>.</strong> Exécute la tâche <strong>seulement si</strong> la condition est vraie. La condition est une expression <strong>Jinja2 sans les accolades</strong> : <code>when: ansible_facts[&#39;os_family&#39;] == &quot;Debian&quot;</code>. On combine avec <code>and</code>/<code>or</code>, ou une <strong>liste</strong> de conditions (toutes doivent être vraies).</p>
+<p><strong>Handler.</strong> Une tâche spéciale, définie sous <code>handlers:</code>, qui ne s&#39;exécute <strong>que si</strong> une tâche l&#39;a <strong>notifiée</strong> (<code>notify:</code>) <strong>et</strong> que cette tâche a produit un <code>changed</code>. Les handlers s&#39;exécutent <strong>à la fin du play</strong>, une seule fois même s&#39;ils sont notifiés plusieurs fois. Idéal pour « redémarrer nginx seulement si la config a changé ».</p>
+<p><strong><code>changed_when</code> / <code>failed_when</code>.</strong> Redéfinissent <em>quand</em> une tâche est considérée comme <code>changed</code> ou <code>failed</code>. Indispensable avec <code>command</code>/<code>shell</code>, qui se déclarent <strong>toujours</strong> <code>changed</code> : <code>changed_when: false</code> pour une commande de lecture seule, ou <code>failed_when: &quot;&#39;ERROR&#39; in resultat.stdout&quot;</code> pour échouer sur le contenu, pas sur le code retour.</p>
+<p><strong><code>block</code> / <code>rescue</code> / <code>always</code>.</strong> Le try/catch/finally d&#39;Ansible. Les tâches du <code>block</code> s&#39;exécutent ; si l&#39;une échoue, on saute dans <code>rescue</code> (rattrapage) ; <code>always</code> s&#39;exécute dans tous les cas (nettoyage).</p>
+<p><strong>Tags.</strong> Des étiquettes posées sur des tâches. <code>--tags X</code> n&#39;exécute que les tâches taguées <code>X</code> ; <code>--skip-tags X</code> les saute. Deux tags spéciaux : <code>always</code> (toujours joué, sauf <code>--skip-tags always</code>) et <code>never</code> (jamais joué, sauf si demandé explicitement).</p>
+</div>
+<div data-lang="en"><p><strong><code>register</code>.</strong> Stores a task&#39;s result in a variable. That result is a rich dictionary: <code>.rc</code> (a command&#39;s return code), <code>.stdout</code>/<code>.stdout_lines</code>, <code>.changed</code>, <code>.failed</code>, <code>.skipped</code>. It&#39;s the foundation of almost everything else.</p>
+<p><strong><code>loop</code>.</strong> Repeats a task over each item of a list. <code>item</code> is the current element. The list can hold strings or <strong>dictionaries</strong> (<code>item.name</code>, <code>item.group</code>). A <code>loop</code> combined with <code>register</code> fills <code>.results</code> (one result per iteration).</p>
+<p><strong><code>when</code>.</strong> Runs the task <strong>only if</strong> the condition is true. The condition is a <strong>Jinja2 expression without the braces</strong>: <code>when: ansible_facts[&#39;os_family&#39;] == &quot;Debian&quot;</code>. Combine with <code>and</code>/<code>or</code>, or a <strong>list</strong> of conditions (all must be true).</p>
+<p><strong>Handler.</strong> A special task, defined under <code>handlers:</code>, that runs <strong>only if</strong> a task <strong>notified</strong> it (<code>notify:</code>) <strong>and</strong> that task produced a <code>changed</code>. Handlers run <strong>at the end of the play</strong>, once, even if notified several times. Ideal for &quot;restart nginx only if the config changed&quot;.</p>
+<p><strong><code>changed_when</code> / <code>failed_when</code>.</strong> Redefine <em>when</em> a task is considered <code>changed</code> or <code>failed</code>. Essential with <code>command</code>/<code>shell</code>, which <strong>always</strong> report <code>changed</code>: <code>changed_when: false</code> for a read-only command, or <code>failed_when: &quot;&#39;ERROR&#39; in result.stdout&quot;</code> to fail on content, not on the return code.</p>
+<p><strong><code>block</code> / <code>rescue</code> / <code>always</code>.</strong> Ansible&#39;s try/catch/finally. The <code>block</code> tasks run; if one fails, execution jumps to <code>rescue</code> (recovery); <code>always</code> runs in every case (cleanup).</p>
+<p><strong>Tags.</strong> Labels placed on tasks. <code>--tags X</code> runs only tasks tagged <code>X</code>; <code>--skip-tags X</code> skips them. Two special tags: <code>always</code> (always played, unless <code>--skip-tags always</code>) and <code>never</code> (never played, unless explicitly requested).</p>
+</div>
+
+<figure class="schema" id="figure-ansible-flow-control">
+  <p>[schema "ansible-flow-control" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le flux d&#39;exécution d&#39;une tâche : loop répète, when filtre, register capture, changed_when/failed_when redéfinissent le statut, notify arme un handler joué en fin de play, et block/rescue/always encadre l&#39;erreur.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A task&#39;s execution flow: loop repeats, when filters, register captures, changed_when/failed_when redefine status, notify arms a handler played at end of play, and block/rescue/always frames errors.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Capturer le résultat d&#39;une tâche avec <strong><code>register</code></strong> et l&#39;inspecter. C&#39;est la brique de base de tout le contrôle de flux.</p>
+<p><strong>🤔 Pourquoi commencer par là ?</strong> Parce que <code>when</code>, <code>changed_when</code>, <code>failed_when</code> s&#39;appuient presque toujours sur un résultat enregistré. Voir la <strong>forme</strong> de ce dictionnaire (<code>.rc</code>, <code>.stdout</code>, <code>.changed</code>) débloque tout le reste.</p>
+<p>Crée <code>flow.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Capture a task&#39;s result with <strong><code>register</code></strong> and inspect it. It&#39;s the building block of all flow control.</p>
+<p><strong>🤔 Why start here?</strong> Because <code>when</code>, <code>changed_when</code>, <code>failed_when</code> almost always rely on a registered result. Seeing the <strong>shape</strong> of that dictionary (<code>.rc</code>, <code>.stdout</code>, <code>.changed</code>) unlocks everything else.</p>
+<p>Create <code>flow.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Contrôle de flux — atelier
+  hosts: localhost
+  connection: local          # sur le parc : remplace par &quot;hosts: web&quot; et enlève cette ligne
+  gather_facts: true
+  tasks:
+    - name: Compter les fichiers de /etc
+      ansible.builtin.command: bash -c &quot;ls /etc | wc -l&quot;
+      register: nb_fichiers
+
+    - name: Montrer le résultat brut
+      ansible.builtin.debug:
+        var: nb_fichiers
+
+    - name: Montrer seulement ce qui compte
+      ansible.builtin.debug:
+        msg: &quot;rc={{ nb_fichiers.rc }} | sortie={{ nb_fichiers.stdout }} | changed={{ nb_fichiers.changed }}&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook flow.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la tâche « résultat brut » affiche un dictionnaire avec <code>rc: 0</code>, <code>stdout: &quot;&lt;un nombre&gt;&quot;</code>, <code>stdout_lines</code>, et <code>changed: true</code>. La dernière tâche résume : <code>rc=0 | sortie=&lt;nombre&gt; | changed=True</code>. Retiens que <code>command</code> se déclare <strong>toujours</strong> <code>changed</code> — on corrigera ça à l&#39;étape 5.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the &quot;raw result&quot; task shows a dictionary with <code>rc: 0</code>, <code>stdout: &quot;&lt;a number&gt;&quot;</code>, <code>stdout_lines</code>, and <code>changed: true</code>. The last task summarizes: <code>rc=0 | sortie=&lt;number&gt; | changed=True</code>. Remember that <code>command</code> <strong>always</strong> reports <code>changed</code> — we&#39;ll fix that in step 5.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Boucler</strong> sur une liste, puis sur une liste de <strong>dictionnaires</strong>.</p>
+<p><strong>🤔 Pourquoi les dictionnaires ?</strong> Une liste de chaînes suffit pour « crée ces trois dossiers ». Mais dès que chaque élément a <strong>plusieurs attributs</strong> (un utilisateur = un nom + un groupe + un shell), il faut une liste de dictionnaires et tu accèdes à <code>item.nom</code>, <code>item.groupe</code>.</p>
+<p>Ajoute à <code>flow.yml</code> (dans <code>tasks:</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Loop</strong> over a list, then over a list of <strong>dictionaries</strong>.</p>
+<p><strong>🤔 Why dictionaries?</strong> A list of strings is enough for &quot;create these three folders&quot;. But as soon as each element has <strong>several attributes</strong> (a user = a name + a group + a shell), you need a list of dictionaries and you access <code>item.name</code>, <code>item.group</code>.</p>
+<p>Add to <code>flow.yml</code> (inside <code>tasks:</code>):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Créer trois dossiers (loop sur une liste)
+      ansible.builtin.file:
+        path: &quot;/tmp/atelier/{{ item }}&quot;
+        state: directory
+      loop:
+        - logs
+        - data
+        - conf
+
+    - name: Créer des fichiers décrits par des dictionnaires
+      ansible.builtin.copy:
+        dest: &quot;/tmp/atelier/{{ item.nom }}&quot;
+        content: &quot;propriétaire : {{ item.role }}\n&quot;
+      loop:
+        - { nom: readme.txt, role: doc }
+        - { nom: app.conf,   role: config }
+      register: fichiers_crees
+
+    - name: Combien d&#39;éléments a produit la boucle ?
+      ansible.builtin.debug:
+        msg: &quot;{{ fichiers_crees.results | length }} itérations, {{ fichiers_crees.changed }} au global&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook flow.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au premier passage, chaque itération affiche <code>changed</code>. <code>/tmp/atelier/</code> contient les dossiers <code>logs data conf</code> et les fichiers <code>readme.txt app.conf</code> (vérifie avec <code>ls -R /tmp/atelier</code>). La dernière tâche indique <code>2 itérations</code>. <strong>Relance</strong> le playbook : les tâches <code>file</code>/<code>copy</code> passent <code>ok</code> (idempotence) — seule la tâche <code>command</code> de l&#39;étape 1 reste <code>changed</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the first pass, each iteration shows <code>changed</code>. <code>/tmp/atelier/</code> contains the <code>logs data conf</code> folders and the <code>readme.txt app.conf</code> files (check with <code>ls -R /tmp/atelier</code>). The last task reports <code>2 iterations</code>. <strong>Rerun</strong> the playbook: the <code>file</code>/<code>copy</code> tasks go <code>ok</code> (idempotence) — only the <code>command</code> task from step 1 stays <code>changed</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Conditionner avec <strong><code>when</code></strong> : sur un <strong>fact</strong>, puis sur un <strong>résultat enregistré</strong>.</p>
+<p><strong>🤔 Piège classique.</strong> Dans un <code>when</code>, on écrit l&#39;expression <strong>sans les <code>{{ }}</code></strong> (c&#39;est déjà un contexte Jinja2). <code>when: ma_var</code> et non <code>when: {{ ma_var }}</code>. Autre piège : une <strong>liste</strong> sous <code>when</code> signifie « toutes ces conditions ET ».</p>
+<p>Ajoute :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Conditionalize with <strong><code>when</code></strong>: on a <strong>fact</strong>, then on a <strong>registered result</strong>.</p>
+<p><strong>🤔 Classic trap.</strong> In a <code>when</code>, you write the expression <strong>without <code>{{ }}</code></strong> (it&#39;s already a Jinja2 context). <code>when: my_var</code>, not <code>when: {{ my_var }}</code>. Another trap: a <strong>list</strong> under <code>when</code> means &quot;all these conditions AND&quot;.</p>
+<p>Add:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Tâche réservée aux systèmes Debian/Ubuntu
+      ansible.builtin.debug:
+        msg: &quot;Ici c&#39;est de la famille Debian : {{ ansible_facts[&#39;distribution&#39;] }}&quot;
+      when: ansible_facts[&#39;os_family&#39;] == &quot;Debian&quot;
+
+    - name: Vérifier si l&#39;utilisateur root a un shell bash
+      ansible.builtin.command: grep -c &quot;^root:.*/bash$&quot; /etc/passwd
+      register: root_bash
+      changed_when: false
+      failed_when: false        # grep renvoie 1 si absent ; on ne veut pas planter
+
+    - name: Réagir selon le résultat (when sur un register)
+      ansible.builtin.debug:
+        msg: &quot;root utilise bash&quot;
+      when: root_bash.stdout == &quot;1&quot;
+
+    - name: Condition combinée (liste = ET)
+      ansible.builtin.debug:
+        msg: &quot;Debian ET au moins 1 CPU&quot;
+      when:
+        - ansible_facts[&#39;os_family&#39;] == &quot;Debian&quot;
+        - ansible_facts[&#39;processor_vcpus&#39;] | int &gt;= 1</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook flow.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur une Ubuntu/Debian, la tâche « réservée » s&#39;exécute et affiche la distribution ; sur un autre OS elle est <code>skipping</code>. La condition combinée (liste) passe si les <strong>deux</strong> sont vraies. Note le <code>failed_when: false</code> : sans lui, un <code>grep</code> qui ne trouve rien (<code>rc=1</code>) ferait échouer le play.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on Ubuntu/Debian, the &quot;reserved&quot; task runs and prints the distribution; on another OS it&#39;s <code>skipping</code>. The combined condition (list) passes only if <strong>both</strong> are true. Note the <code>failed_when: false</code>: without it, a <code>grep</code> that finds nothing (<code>rc=1</code>) would fail the play.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déclencher un <strong>handler</strong> — et voir qu&#39;il ne se joue <strong>que sur changement</strong>.</p>
+<p><strong>🤔 Le cœur du concept.</strong> Un handler est notifié par <code>notify:</code>. Mais Ansible ne le déclenche que si la tâche qui notifie a réellement <strong>changé</strong> quelque chose. C&#39;est ce qui rend « redémarrer le service seulement si la config a bougé » propre et idempotent. Le handler tourne <strong>en fin de play</strong>.</p>
+<p>Crée un playbook dédié <code>handlers.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Trigger a <strong>handler</strong> — and see it runs <strong>only on change</strong>.</p>
+<p><strong>🤔 The heart of the concept.</strong> A handler is notified by <code>notify:</code>. But Ansible triggers it only if the notifying task actually <strong>changed</strong> something. That&#39;s what makes &quot;restart the service only if the config moved&quot; clean and idempotent. The handler runs <strong>at the end of the play</strong>.</p>
+<p>Create a dedicated <code>handlers.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Démo handlers
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Écrire un fichier de config
+      ansible.builtin.copy:
+        dest: /tmp/atelier/app.ini
+        content: &quot;port = 8080\n&quot;
+      notify: Recharger l&#39;app
+
+  handlers:
+    - name: Recharger l&#39;app
+      ansible.builtin.debug:
+        msg: &quot;&gt;&gt;&gt; handler déclenché : je recharge l&#39;app &lt;&lt;&lt;&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook handlers.yml      # 1er passage
+ansible-playbook handlers.yml      # 2e passage : même commande</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au <strong>premier</strong> passage, la tâche <code>copy</code> est <code>changed</code> et, en fin de play, tu vois <code>RUNNING HANDLER [Recharger l&#39;app]</code> avec le message. Au <strong>deuxième</strong> passage, la config est identique → <code>copy</code> est <code>ok</code>, le handler <strong>n&#39;est pas</strong> déclenché (aucune section HANDLER). C&#39;est ça, l&#39;idempotence des handlers : on ne recharge que quand ça change. (Astuce examen : <code>--force-handlers</code> rejoue les handlers même après une erreur ; <code>meta: flush_handlers</code> les force <strong>immédiatement</strong> au milieu du play.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the <strong>first</strong> pass, the <code>copy</code> task is <code>changed</code> and, at the end of the play, you see <code>RUNNING HANDLER [Recharger l&#39;app]</code> with the message. On the <strong>second</strong> pass, the config is identical → <code>copy</code> is <code>ok</code>, the handler is <strong>not</strong> triggered (no HANDLER section). That&#39;s handler idempotence: you reload only when something changes. (Exam tip: <code>--force-handlers</code> replays handlers even after an error; <code>meta: flush_handlers</code> forces them <strong>immediately</strong> mid-play.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Maîtriser le <strong>statut</strong> d&#39;une tâche avec <code>changed_when</code> et <code>failed_when</code> — dompter <code>command</code>/<code>shell</code>.</p>
+<p><strong>🤔 Le problème.</strong> <code>command</code> et <code>shell</code> ne savent pas s&#39;ils ont « changé » quelque chose : ils se déclarent <strong>toujours <code>changed</code></strong>, ce qui casse ton idempotence et pollue les rapports. Et ils échouent uniquement sur <code>rc != 0</code>, ce qui ne correspond pas toujours à un vrai échec métier.</p>
+<p>Ajoute à <code>flow.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Master a task&#39;s <strong>status</strong> with <code>changed_when</code> and <code>failed_when</code> — tame <code>command</code>/<code>shell</code>.</p>
+<p><strong>🤔 The problem.</strong> <code>command</code> and <code>shell</code> don&#39;t know whether they &quot;changed&quot; anything: they <strong>always report <code>changed</code></strong>, which breaks your idempotence and pollutes reports. And they fail only on <code>rc != 0</code>, which doesn&#39;t always match a real business failure.</p>
+<p>Add to <code>flow.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Une vérification en lecture seule ne &quot;change&quot; rien
+      ansible.builtin.command: date +%Y
+      register: annee
+      changed_when: false          # sans ça : &quot;changed&quot; à chaque run
+
+    - name: Échouer sur le CONTENU, pas sur le code retour
+      ansible.builtin.command: bash -c &quot;echo &#39;traitement OK&#39;&quot;
+      register: sortie_metier
+      changed_when: false
+      failed_when: &quot;&#39;ERROR&#39; in sortie_metier.stdout&quot;    # échoue seulement si &#39;ERROR&#39; apparaît
+
+    - name: Utiliser la valeur lue
+      ansible.builtin.debug:
+        msg: &quot;Année = {{ annee.stdout }}&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook flow.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les deux tâches sont <strong><code>ok</code></strong> (vert), plus jamais <code>changed</code>, même en relançant — parce que <code>changed_when: false</code>. La tâche <code>failed_when</code> réussit car sa sortie ne contient pas <code>ERROR</code> ; si tu remplaces l&#39;écho par <code>echo &#39;ERROR fatal&#39;</code>, la même tâche passe en <code>failed</code>. Tu contrôles maintenant statut et échec au doigt et à l&#39;œil.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> both tasks are <strong><code>ok</code></strong> (green), never <code>changed</code> again, even on rerun — because <code>changed_when: false</code>. The <code>failed_when</code> task succeeds because its output has no <code>ERROR</code>; if you replace the echo with <code>echo &#39;ERROR fatal&#39;</code>, that same task turns <code>failed</code>. You now control status and failure precisely.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Rattraper une erreur avec <strong><code>block</code> / <code>rescue</code> / <code>always</code></strong> — le try/catch/finally d&#39;Ansible.</p>
+<p><strong>🤔 Pourquoi c&#39;est un objectif RHCE.</strong> Sans block, la première tâche qui échoue arrête tout le play pour cet hôte. Avec un <code>rescue</code>, tu <strong>rattrapes</strong> proprement (log, notification, valeur par défaut) ; avec <code>always</code>, tu <strong>nettoies</strong> quoi qu&#39;il arrive.</p>
+<p>Crée <code>blocks.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Recover from an error with <strong><code>block</code> / <code>rescue</code> / <code>always</code></strong> — Ansible&#39;s try/catch/finally.</p>
+<p><strong>🤔 Why it&#39;s an RHCE objective.</strong> Without a block, the first failing task stops the whole play for that host. With a <code>rescue</code>, you <strong>recover</strong> cleanly (log, notification, default value); with <code>always</code>, you <strong>clean up</strong> no matter what.</p>
+<p>Create <code>blocks.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Démo block/rescue/always
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Traitement protégé
+      block:
+        - name: Étape qui va échouer volontairement
+          ansible.builtin.command: bash -c &quot;exit 3&quot;
+        - name: Étape jamais atteinte
+          ansible.builtin.debug:
+            msg: &quot;tu ne me verras pas&quot;
+      rescue:
+        - name: Rattrapage
+          ansible.builtin.debug:
+            msg: &quot;&gt;&gt;&gt; une erreur est survenue, je rattrape proprement &lt;&lt;&lt;&quot;
+      always:
+        - name: Nettoyage systématique
+          ansible.builtin.debug:
+            msg: &quot;&gt;&gt;&gt; always : je nettoie, erreur ou pas &lt;&lt;&lt;&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook blocks.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> l&#39;« Étape qui va échouer » passe en <code>fatal</code> (rc=3), l&#39;« Étape jamais atteinte » est <strong>sautée</strong>, puis tu vois le message de <code>rescue</code> <strong>et</strong> celui de <code>always</code>. Le récap final affiche <code>failed=0</code> : le <code>rescue</code> a <strong>absorbé</strong> l&#39;échec, le play se termine en succès. Enlève le <code>rescue</code> et relance : cette fois le play s&#39;arrête en <code>failed=1</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the &quot;step that will fail&quot; turns <code>fatal</code> (rc=3), the &quot;never-reached step&quot; is <strong>skipped</strong>, then you see the <code>rescue</code> message <strong>and</strong> the <code>always</code> one. The final recap shows <code>failed=0</code>: the <code>rescue</code> <strong>absorbed</strong> the failure, the play ends in success. Remove the <code>rescue</code> and rerun: this time the play stops with <code>failed=1</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exécuter <strong>à la carte</strong> avec les <strong>tags</strong> — rejouer un sous-ensemble sans tout relancer.</p>
+<p><strong>🤔 Le gain concret.</strong> Un gros playbook (paquets + config + service) peut prendre des minutes. Avec des tags, tu rejoues juste <code>--tags config</code> après avoir modifié un template. <code>always</code> marque une tâche toujours jouée (ex. rafraîchir les facts) ; <code>never</code> une tâche qu&#39;on ne joue <strong>que</strong> si on la demande (ex. un débogage lourd).</p>
+<p>Crée <code>tags.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run <strong>à la carte</strong> with <strong>tags</strong> — replay a subset without rerunning everything.</p>
+<p><strong>🤔 The concrete gain.</strong> A big playbook (packages + config + service) can take minutes. With tags, you replay just <code>--tags config</code> after editing a template. <code>always</code> marks a task always played (e.g. refresh facts); <code>never</code> a task played <strong>only</strong> when explicitly requested (e.g. a heavy debug).</p>
+<p>Create <code>tags.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Démo tags
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installer (simulé)
+      ansible.builtin.debug: { msg: &quot;j&#39;installe les paquets&quot; }
+      tags: [paquets]
+
+    - name: Configurer (simulé)
+      ansible.builtin.debug: { msg: &quot;j&#39;écris la config&quot; }
+      tags: [config]
+
+    - name: Toujours joué
+      ansible.builtin.debug: { msg: &quot;moi je passe toujours&quot; }
+      tags: [always]
+
+    - name: Débogage lourd (opt-in)
+      ansible.builtin.debug: { msg: &quot;diagnostic complet&quot; }
+      tags: [never, debug]</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook tags.yml --list-tags        # lister les tags sans exécuter / list tags
+ansible-playbook tags.yml --tags config      # que la config (+ always)
+ansible-playbook tags.yml --skip-tags paquets # tout sauf paquets
+ansible-playbook tags.yml --tags debug       # débloque la tâche &quot;never&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>--list-tags</code> affiche <code>paquets, config, debug</code> (le tag <code>never</code> n&#39;apparaît pas comme cible ordinaire). <code>--tags config</code> ne joue que « Configurer » <strong>et</strong> « Toujours joué » (le tag <code>always</code> force sa présence). <code>--skip-tags paquets</code> joue tout sauf « Installer ». La tâche <code>never</code> reste muette <strong>sauf</strong> avec <code>--tags debug</code>, qui la débloque. Tu exécutes désormais tes playbooks à la carte.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>--list-tags</code> shows <code>paquets, config, debug</code> (the <code>never</code> tag doesn&#39;t appear as an ordinary target). <code>--tags config</code> plays only &quot;Configurer&quot; <strong>and</strong> &quot;Toujours joué&quot; (the <code>always</code> tag forces its presence). <code>--skip-tags paquets</code> plays everything except &quot;Installer&quot;. The <code>never</code> task stays silent <strong>except</strong> with <code>--tags debug</code>, which unlocks it. You now run your playbooks à la carte.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Mettre <code>{{ }}</code> dans un <code>when</code>.</strong> <code>when: {{ ma_var }}</code> déclenche un warning et des bugs subtils. Dans <code>when</code>, on écrit l&#39;expression <strong>nue</strong> : <code>when: ma_var</code>. Les accolades ne servent que pour <em>interpoler</em> dans une chaîne.</p>
+<p><strong>2. Oublier que <code>command</code>/<code>shell</code> sont toujours <code>changed</code>.</strong> Sans <code>changed_when: false</code>, une simple vérification pollue ton rapport et casse l&#39;idempotence. Réflexe : toute commande de <strong>lecture</strong> porte <code>changed_when: false</code>.</p>
+<p><strong>3. Croire qu&#39;un handler se joue immédiatement.</strong> Non : il attend la <strong>fin du play</strong>. Si tu as besoin qu&#39;il tourne <em>avant</em> la suite (ex. recharger avant de tester), force-le avec <code>meta: flush_handlers</code>.</p>
+<p><strong>4. Un handler notifié mais jamais joué.</strong> Si la tâche qui <code>notify</code> ne produit pas de <code>changed</code> (idempotence), le handler ne se déclenche <strong>pas</strong> — c&#39;est voulu. Pour tester, force un changement, ou vérifie que le nom notifié correspond <strong>exactement</strong> au <code>name</code> du handler.</p>
+<p><strong>5. <code>loop</code> + <code>register</code> : oublier <code>.results</code>.</strong> Avec une boucle, le registre n&#39;a pas <code>.stdout</code> directement : il a <code>.results</code>, <strong>une liste</strong> d&#39;un résultat par itération. Tu itères dessus (<code>{{ mon_reg.results | map(attribute=&#39;stdout&#39;) | list }}</code>).</p>
+<p><strong>6. <code>failed_when</code>/<code>changed_when</code> qui se contredisent.</strong> <code>failed_when</code> est évalué <strong>après</strong> la tâche ; une tâche marquée <code>failed</code> par <code>failed_when</code> stoppe le play comme un vrai échec (sauf <code>ignore_errors</code> ou un block/rescue). Ne l&#39;utilise pas pour « ignorer », utilise <code>failed_when: false</code>.</p>
+<p><strong>7. Un tag <code>always</code> qu&#39;on n&#39;arrive plus à sauter.</strong> Une tâche <code>always</code> se joue même avec <code>--tags autre</code>. Pour vraiment la sauter : <code>--skip-tags always</code>. Bon à savoir le jour J.</p>
+</div>
+<div data-lang="en"><p><strong>1. Putting <code>{{ }}</code> in a <code>when</code>.</strong> <code>when: {{ my_var }}</code> triggers a warning and subtle bugs. In <code>when</code>, write the <strong>bare</strong> expression: <code>when: my_var</code>. Braces are only for <em>interpolating</em> inside a string.</p>
+<p><strong>2. Forgetting <code>command</code>/<code>shell</code> are always <code>changed</code>.</strong> Without <code>changed_when: false</code>, a simple check pollutes your report and breaks idempotence. Reflex: every <strong>read</strong> command carries <code>changed_when: false</code>.</p>
+<p><strong>3. Thinking a handler runs immediately.</strong> It doesn&#39;t: it waits for the <strong>end of the play</strong>. If you need it to run <em>before</em> the rest (e.g. reload before testing), force it with <code>meta: flush_handlers</code>.</p>
+<p><strong>4. A handler notified but never played.</strong> If the notifying task produces no <code>changed</code> (idempotence), the handler does <strong>not</strong> fire — that&#39;s intended. To test, force a change, or check that the notified name matches the handler&#39;s <code>name</code> <strong>exactly</strong>.</p>
+<p><strong>5. <code>loop</code> + <code>register</code>: forgetting <code>.results</code>.</strong> With a loop, the register has no direct <code>.stdout</code>: it has <code>.results</code>, <strong>a list</strong> of one result per iteration. You iterate over it (<code>{{ my_reg.results | map(attribute=&#39;stdout&#39;) | list }}</code>).</p>
+<p><strong>6. <code>failed_when</code>/<code>changed_when</code> that contradict.</strong> <code>failed_when</code> is evaluated <strong>after</strong> the task; a task marked <code>failed</code> by <code>failed_when</code> stops the play like a real failure (unless <code>ignore_errors</code> or a block/rescue). Don&#39;t use it to &quot;ignore&quot; — use <code>failed_when: false</code>.</p>
+<p><strong>7. An <code>always</code> tag you can no longer skip.</strong> An <code>always</code> task runs even with <code>--tags other</code>. To truly skip it: <code>--skip-tags always</code>. Good to know on exam day.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu enregistres un résultat et tu exploites <code>.rc</code>, <code>.stdout</code>, <code>.changed</code>.</li><li>Tu boucles sur une liste <strong>et</strong> sur une liste de dictionnaires (<code>item.nom</code>).</li><li>Tu conditionnes avec <code>when</code> sur un fact et sur un registre, sans <code>{{ }}</code>.</li><li>Ton handler se joue au 1er passage et <strong>pas</strong> au 2e (idempotence).</li><li><code>changed_when: false</code> rend une vérification stable ; <code>failed_when</code> échoue sur le contenu.</li><li>Un <code>rescue</code> absorbe une erreur et le play finit en <code>failed=0</code>.</li><li><code>--tags</code> / <code>--skip-tags</code> rejouent le bon sous-ensemble ; tu comprends <code>always</code>/<code>never</code>.</li></ul>
+<p>Sept cases = tes playbooks sont robustes. La suite : variables, facts et templates Jinja2.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You register a result and use <code>.rc</code>, <code>.stdout</code>, <code>.changed</code>.</li><li>You loop over a list <strong>and</strong> over a list of dictionaries (<code>item.name</code>).</li><li>You conditionalize with <code>when</code> on a fact and on a register, without <code>{{ }}</code>.</li><li>Your handler runs on the 1st pass and <strong>not</strong> the 2nd (idempotence).</li><li><code>changed_when: false</code> makes a check stable; <code>failed_when</code> fails on content.</li><li>A <code>rescue</code> absorbs an error and the play ends <code>failed=0</code>.</li><li><code>--tags</code> / <code>--skip-tags</code> replay the right subset; you understand <code>always</code>/<code>never</code>.</li></ul>
+<p>Seven boxes = your playbooks are robust. Next up: variables, facts and Jinja2 templates.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track RHCE :</p>
+<ol><li><strong>Ansible — variables, facts &amp; templates Jinja2</strong> : la précédence complète des variables, les facts (dont les custom facts), <code>set_fact</code>, et la génération de config avec Jinja2 (filtres, boucles, conditions).</li><li>Plus loin : rôles &amp; collections, Vault, puis le <strong>projet d&#39;entreprise</strong> RHCE.</li></ol>
+</div>
+<div data-lang="en"><p>The RHCE track continues:</p>
+<ol><li><strong>Ansible — variables, facts &amp; Jinja2 templates</strong>: the full variable precedence, facts (including custom facts), <code>set_fact</code>, and config generation with Jinja2 (filters, loops, conditions).</li><li>Further along: roles &amp; collections, Vault, then the RHCE <strong>enterprise project</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire contrôle de flux.</p>
+</div>
+<div data-lang="en"><p>Flow control cheat sheet.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># register + exploitation / register + usage
+- ansible.builtin.command: id -un
+  register: res
+- ansible.builtin.debug: { msg: &quot;{{ res.stdout }} (rc={{ res.rc }})&quot; }
+
+# loop : liste, dictionnaires / loop: list, dicts
+- ansible.builtin.file: { path: &quot;/tmp/{{ item }}&quot;, state: directory }
+  loop: [a, b, c]
+- ansible.builtin.user: { name: &quot;{{ item.nom }}&quot;, groups: &quot;{{ item.grp }}&quot; }
+  loop:
+    - { nom: alice, grp: sudo }
+    - { nom: bob,   grp: users }
+
+# when : fact, register, liste = ET / when: fact, register, list = AND
+- ansible.builtin.debug: { msg: Debian }
+  when: ansible_facts[&#39;os_family&#39;] == &quot;Debian&quot;
+- ansible.builtin.debug: { msg: ok }
+  when:
+    - res.rc == 0
+    - res.stdout | length &gt; 0
+
+# changed_when / failed_when
+- ansible.builtin.command: monscript --check
+  register: r
+  changed_when: false
+  failed_when: &quot;&#39;ERROR&#39; in r.stdout&quot;
+
+# handler
+  notify: Redémarrer nginx        # sur la tâche / on the task
+# ...
+handlers:
+  - name: Redémarrer nginx
+    ansible.builtin.service: { name: nginx, state: restarted }
+
+# block / rescue / always
+- block:      [ ... ]
+  rescue:     [ ... ]
+  always:     [ ... ]</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Tags
+ansible-playbook site.yml --list-tags          # lister / list
+ansible-playbook site.yml --tags config        # un sous-ensemble / a subset
+ansible-playbook site.yml --skip-tags paquets  # tout sauf / all but
+ansible-playbook site.yml --tags never_task    # débloquer un tag &quot;never&quot;
+ansible-playbook site.yml --step               # confirmer chaque tâche / confirm each task</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_loops.html">Boucles (loops)</a> — <code>loop</code>, <code>.results</code>, <code>loop_control</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_conditionals.html">Conditions (<code>when</code>)</a> — sur facts, registres, combinaisons.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_handlers.html">Handlers</a> — <code>notify</code>, <code>listen</code>, <code>flush_handlers</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_blocks.html">Blocks &amp; gestion d&#39;erreur</a> — <code>rescue</code>, <code>always</code>, <code>ignore_errors</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_tags.html">Tags</a> — <code>always</code>, <code>never</code>, <code>--tags</code>/<code>--skip-tags</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_loops.html">Loops</a> — <code>loop</code>, <code>.results</code>, <code>loop_control</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_conditionals.html">Conditionals (<code>when</code>)</a> — on facts, registers, combinations.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_handlers.html">Handlers</a> — <code>notify</code>, <code>listen</code>, <code>flush_handlers</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_blocks.html">Blocks &amp; error handling</a> — <code>rescue</code>, <code>always</code>, <code>ignore_errors</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_tags.html">Tags</a> — <code>always</code>, <code>never</code>, <code>--tags</code>/<code>--skip-tags</code>.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>The conditional check &#39;...&#39; failed</code>.</strong> Ton <code>when</code> référence une variable qui n&#39;existe pas (ou pas encore). Vérifie qu&#39;elle est bien définie/enregistrée <strong>avant</strong>, et n&#39;y mets pas de <code>{{ }}</code>.</p>
+<p><strong>Un handler ne se déclenche jamais.</strong> Soit la tâche qui <code>notify</code> est <code>ok</code> (pas de changement → normal), soit le <strong>nom</strong> notifié ne correspond pas <strong>exactement</strong> au <code>name</code> du handler (sensible à la casse et aux accents).</p>
+<p><strong><code>&#39;dict object&#39; has no attribute &#39;stdout&#39;</code> sur une boucle.</strong> Avec <code>loop</code> + <code>register</code>, le résultat est dans <code>.results</code> (une liste), pas directement <code>.stdout</code>. Boucle sur <code>.results</code>.</p>
+<p><strong>Ma tâche <code>command</code> est toujours <code>changed</code>.</strong> C&#39;est le comportement par défaut. Ajoute <code>changed_when: false</code> (lecture) ou une vraie condition (<code>changed_when: &quot;&#39;modifié&#39; in r.stdout&quot;</code>).</p>
+<p><strong>Le play s&#39;arrête alors que je voulais juste ignorer un échec.</strong> N&#39;utilise pas <code>failed_when</code> pour ignorer : mets <code>failed_when: false</code>, ou <code>ignore_errors: true</code>, ou encadre d&#39;un <code>block</code>/<code>rescue</code>.</p>
+<p><strong><code>--tags</code> ne joue rien.</strong> Le tag n&#39;existe sur aucune tâche, ou tu as mal orthographié. Liste d&#39;abord avec <code>--list-tags</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>The conditional check &#39;...&#39; failed</code>.</strong> Your <code>when</code> references a variable that doesn&#39;t exist (or not yet). Check it&#39;s defined/registered <strong>before</strong>, and don&#39;t put <code>{{ }}</code> in it.</p>
+<p><strong>A handler never fires.</strong> Either the notifying task is <code>ok</code> (no change → normal), or the notified <strong>name</strong> doesn&#39;t match the handler&#39;s <code>name</code> <strong>exactly</strong> (case- and accent-sensitive).</p>
+<p><strong><code>&#39;dict object&#39; has no attribute &#39;stdout&#39;</code> on a loop.</strong> With <code>loop</code> + <code>register</code>, the result is in <code>.results</code> (a list), not directly <code>.stdout</code>. Loop over <code>.results</code>.</p>
+<p><strong>My <code>command</code> task is always <code>changed</code>.</strong> That&#39;s the default behavior. Add <code>changed_when: false</code> (read) or a real condition (<code>changed_when: &quot;&#39;modified&#39; in r.stdout&quot;</code>).</p>
+<p><strong>The play stops when I just wanted to ignore a failure.</strong> Don&#39;t use <code>failed_when</code> to ignore: set <code>failed_when: false</code>, or <code>ignore_errors: true</code>, or wrap in a <code>block</code>/<code>rescue</code>.</p>
+<p><strong><code>--tags</code> plays nothing.</strong> The tag exists on no task, or you misspelled it. List first with <code>--list-tags</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

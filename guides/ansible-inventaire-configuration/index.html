@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — inventaire &amp; configuration du nœud de contrôle — jiha.tech</title>
+  <title data-lang="en">Ansible — inventory &amp; control-node configuration — jiha.tech</title>
+  <meta name="description" content="Passe au niveau RHCE/EX294 : configure ton nœud de contrôle et la précédence d&#39;ansible.cfg, écris un inventaire statique à groupes et enfants, résous les variables group_vars/host_vars, cible avec les patterns d&#39;hôtes, gère l&#39;escalade de privilèges (become) et administre à la volée avec les commandes ad-hoc. Sur deux VM locales, sans cloud." data-lang="fr">
+  <meta name="description" content="Step up to RHCE/EX294 level: configure your control node and ansible.cfg precedence, write a grouped static inventory with children, resolve group_vars/host_vars variables, target with host patterns, handle privilege escalation (become) and administer on the fly with ad-hoc commands. On two local VMs, no cloud." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — inventaire &amp; configuration du nœud de contrôle">
+  <meta property="og:description" content="Passe au niveau RHCE/EX294 : configure ton nœud de contrôle et la précédence d&#39;ansible.cfg, écris un inventaire statique à groupes et enfants, résous les variables group_vars/host_vars, cible avec les patterns d&#39;hôtes, gère l&#39;escalade de privilèges (become) et administre à la volée avec les commandes ad-hoc. Sur deux VM locales, sans cloud.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-inventaire-configuration/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-inventaire-configuration/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-inventaire-configuration">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-inventaire-configuration</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-inventaire-configuration</div>
+    <h1 data-lang="fr">Ansible — inventaire &amp; configuration du nœud de contrôle</h1>
+    <h1 data-lang="en">Ansible — inventory &amp; control-node configuration</h1>
+    <p class="tagline" data-lang="fr">ansible.cfg, inventaire à groupes, group_vars, become, ad-hoc.</p>
+    <p class="tagline" data-lang="en">ansible.cfg, grouped inventory, group_vars, become, ad-hoc.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Dans le guide fondamentaux, tu gérais <strong>une</strong> machine avec un inventaire écrit à la va-vite sur une ligne. Ça suffit pour découvrir. Ça ne tient pas dès que tu as <strong>plusieurs serveurs de rôles différents</strong> — un parc, quoi. Là, tout se joue sur deux choses que l&#39;examen RHCE teste sans relâche : un <strong>inventaire propre</strong> (groupes, enfants, variables) et un <strong>nœud de contrôle correctement configuré</strong> (<code>ansible.cfg</code>, <code>become</code>).</p>
+<p>Ce guide pose ces fondations pour de bon. Tu vas monter un mini-parc de <strong>deux VM locales</strong> (un « web », une « db »), écrire un inventaire à groupes, comprendre <strong>où</strong> Ansible lit sa configuration et ses variables (la fameuse précédence), cibler finement avec les <strong>patterns d&#39;hôtes</strong>, et administrer à la volée avec les <strong>commandes ad-hoc</strong> — l&#39;outil que tout examinateur RHCE attend que tu dégaines pour les tâches ponctuelles.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait le guide Ansible fondamentaux (playbooks, idempotence, un premier rôle) et tu vises le RHCE/EX294 — ou simplement gérer un vrai parc proprement.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as jamais écrit de playbook ni vécu l&#39;idempotence → refais d&#39;abord <em>Ansible fondamentaux</em>, c&#39;est un prérequis dur.</li><li>Tu cherches à <strong>créer</strong> les VM elles-mêmes de façon déclarative → c&#39;est Terraform ; ici on <strong>configure</strong> des machines qui existent déjà (on les crée juste une fois avec Multipass, à la main, comme si un collègue te livrait des serveurs).</li></ul>
+</div>
+<div data-lang="en"><p>In the fundamentals guide, you managed <strong>one</strong> machine with a throwaway one-line inventory. That&#39;s fine to get started. It falls apart the moment you have <strong>several servers with different roles</strong> — a fleet. Then everything hinges on two things the RHCE exam tests relentlessly: a <strong>clean inventory</strong> (groups, children, variables) and a <strong>properly configured control node</strong> (<code>ansible.cfg</code>, <code>become</code>).</p>
+<p>This guide lays those foundations for real. You&#39;ll bring up a mini-fleet of <strong>two local VMs</strong> (a &quot;web&quot; and a &quot;db&quot;), write a grouped inventory, understand <strong>where</strong> Ansible reads its configuration and its variables (the famous precedence), target precisely with <strong>host patterns</strong>, and administer on the fly with <strong>ad-hoc commands</strong> — the tool every RHCE examiner expects you to reach for on one-off tasks.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done the Ansible fundamentals guide (playbooks, idempotence, a first role) and you&#39;re aiming for RHCE/EX294 — or simply to manage a real fleet cleanly.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;ve never written a playbook or lived idempotence → do <em>Ansible fundamentals</em> first, it&#39;s a hard prerequisite.</li><li>You want to <strong>create</strong> the VMs themselves declaratively → that&#39;s Terraform; here we <strong>configure</strong> machines that already exist (we just create them once with Multipass, by hand, as if a colleague handed you servers).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Configurer un <strong>nœud de contrôle</strong> et comprendre la <strong>précédence d&#39;<code>ansible.cfg</code></strong> (env → répertoire → home → /etc).</li><li>Écrire un <strong>inventaire statique</strong> à groupes, sous-groupes (<code>:children</code>) et plages d&#39;hôtes, en INI <strong>et</strong> en YAML.</li><li>Ranger les variables dans <code>group_vars/</code> et <code>host_vars/</code> et <strong>prédire</strong> laquelle gagne.</li><li>Cibler avec les <strong>patterns d&#39;hôtes</strong> (<code>all</code>, <code>web:db</code>, <code>prod:!db1</code>, <code>~regex</code>).</li><li>Gérer l&#39;<strong>escalade de privilèges</strong> (<code>become</code>, <code>become_user</code>, <code>--ask-become-pass</code>).</li><li>Lancer des <strong>commandes ad-hoc</strong> pour les tâches ponctuelles et savoir quand elles battent un playbook.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Configure a <strong>control node</strong> and understand <strong><code>ansible.cfg</code> precedence</strong> (env → directory → home → /etc).</li><li>Write a <strong>static inventory</strong> with groups, sub-groups (<code>:children</code>) and host ranges, in both INI <strong>and</strong> YAML.</li><li>Organize variables in <code>group_vars/</code> and <code>host_vars/</code> and <strong>predict</strong> which one wins.</li><li>Target with <strong>host patterns</strong> (<code>all</code>, <code>web:db</code>, <code>prod:!db1</code>, <code>~regex</code>).</li><li>Handle <strong>privilege escalation</strong> (<code>become</code>, <code>become_user</code>, <code>--ask-become-pass</code>).</li><li>Run <strong>ad-hoc commands</strong> for one-off tasks and know when they beat a playbook.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Ansible fondamentaux</strong> terminé (tu sais lancer <code>ansible-playbook</code>, tu as vécu l&#39;idempotence).</li><li><strong>Ansible installé</strong> sur ton nœud de contrôle (ton laptop). Vérifie : <code>ansible --version</code> doit afficher <strong>≥ 2.16</strong>. Sinon : <code>sudo apt install ansible</code> (Debian/Ubuntu), <code>sudo dnf install ansible</code> (Fedora), ou <code>pipx install ansible</code> (portable, recommandé pour avoir une version récente).</li><li><strong>Multipass</strong> installé (<code>multipass version</code>) — pour les deux VM locales. Sur macOS/Windows il tourne nativement ; sur Linux via <code>snap install multipass</code>.</li><li>Une <strong>paire de clés SSH</strong> (<code>ls ~/.ssh/id_ed25519.pub</code> ; sinon <code>ssh-keygen -t ed25519</code>).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Ansible fundamentals</strong> guide done (you can run <code>ansible-playbook</code>, you&#39;ve lived idempotence).</li><li><strong>Ansible installed</strong> on your control node (your laptop). Check: <code>ansible --version</code> must show <strong>≥ 2.16</strong>. Otherwise: <code>sudo apt install ansible</code> (Debian/Ubuntu), <code>sudo dnf install ansible</code> (Fedora), or <code>pipx install ansible</code> (portable, recommended for a recent version).</li><li><strong>Multipass</strong> installed (<code>multipass version</code>) — for the two local VMs. On macOS/Windows it runs natively; on Linux via <code>snap install multipass</code>.</li><li>An <strong>SSH key pair</strong> (<code>ls ~/.ssh/id_ed25519.pub</code>; otherwise <code>ssh-keygen -t ed25519</code>).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-fondamentaux/">
+    <span class="num">20</span>
+    <span class="title-line" data-lang="fr">Ansible — automatiser tes serveurs</span>
+    <span class="title-line" data-lang="en">Ansible — automate your servers</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Nœud de contrôle vs nœuds gérés.</strong> Le <em>nœud de contrôle</em> est la machine où Ansible est installé (ton laptop). Les <em>nœuds gérés</em> sont les serveurs qu&#39;il pilote en SSH. Ansible n&#39;installe <strong>rien</strong> en permanence sur les gérés : c&#39;est « agentless ».</p>
+<p><strong><code>ansible.cfg</code> et sa précédence.</strong> Ansible cherche sa config dans cet ordre, et <strong>s&#39;arrête au premier trouvé</strong> :</p>
+<ol><li>la variable d&#39;environnement <code>ANSIBLE_CONFIG</code> (chemin d&#39;un fichier) ;</li><li><code>./ansible.cfg</code> (dans le répertoire courant) — <strong>le plus courant en projet</strong> ;</li><li><code>~/.ansible.cfg</code> (home) ;</li><li><code>/etc/ansible/ansible.cfg</code> (système).</li></ol>
+<p>⚠️ Détail de sécurité important : <code>./ansible.cfg</code> n&#39;est lu que si le répertoire <strong>ne t&#39;appartient pas via un chemin « world-writable »</strong>. En pratique, garde ton projet dans ton home et tout va bien.</p>
+<p><strong>Inventaire.</strong> La liste des hôtes gérés, organisée en <strong>groupes</strong>. Un groupe peut contenir des hôtes ou d&#39;autres groupes (<code>:children</code>). Deux groupes existent toujours : <code>all</code> (tout le monde) et <code>ungrouped</code> (les hôtes sans groupe). Format INI (concis) ou YAML (structuré) — l&#39;examen accepte les deux.</p>
+<p><strong>Variables d&#39;inventaire : <code>group_vars/</code> et <code>host_vars/</code>.</strong> Plutôt que d&#39;entasser les variables dans le fichier d&#39;inventaire, on les range dans des dossiers à côté : <code>group_vars/web.yml</code> s&#39;applique à tout le groupe <code>web</code>, <code>host_vars/db1.yml</code> au seul hôte <code>db1</code>. Règle d&#39;or : <strong>plus c&#39;est spécifique, plus ça gagne</strong> — <code>host_vars</code> bat <code>group_vars</code>, un groupe enfant bat son parent.</p>
+<p><strong><code>become</code> (escalade de privilèges).</strong> Par défaut Ansible se connecte avec un utilisateur non-root. <code>become: true</code> bascule en root (via <code>sudo</code>) pour la tâche ou le play. <code>become_user:</code> permet de devenir un autre utilisateur que root.</p>
+<p><strong>Commande ad-hoc.</strong> Un one-liner <code>ansible &lt;pattern&gt; -m &lt;module&gt; -a &quot;&lt;args&gt;&quot;</code> : idéal pour une action <strong>ponctuelle</strong> (redémarrer un service, vérifier un fichier, collecter un fact) sans écrire de playbook.</p>
+</div>
+<div data-lang="en"><p><strong>Control node vs managed nodes.</strong> The <em>control node</em> is the machine where Ansible is installed (your laptop). The <em>managed nodes</em> are the servers it drives over SSH. Ansible installs <strong>nothing</strong> permanent on the managed nodes: it&#39;s &quot;agentless&quot;.</p>
+<p><strong><code>ansible.cfg</code> and its precedence.</strong> Ansible looks for its config in this order and <strong>stops at the first found</strong>:</p>
+<ol><li>the <code>ANSIBLE_CONFIG</code> environment variable (a file path);</li><li><code>./ansible.cfg</code> (in the current directory) — <strong>the most common in a project</strong>;</li><li><code>~/.ansible.cfg</code> (home);</li><li><code>/etc/ansible/ansible.cfg</code> (system).</li></ol>
+<p>⚠️ Important security detail: <code>./ansible.cfg</code> is read only if the directory is <strong>not world-writable</strong>. In practice, keep your project in your home and you&#39;re fine.</p>
+<p><strong>Inventory.</strong> The list of managed hosts, organized into <strong>groups</strong>. A group can hold hosts or other groups (<code>:children</code>). Two groups always exist: <code>all</code> (everyone) and <code>ungrouped</code> (hosts with no group). INI format (concise) or YAML (structured) — the exam accepts both.</p>
+<p><strong>Inventory variables: <code>group_vars/</code> and <code>host_vars/</code>.</strong> Rather than piling variables into the inventory file, we place them in folders alongside: <code>group_vars/web.yml</code> applies to the whole <code>web</code> group, <code>host_vars/db1.yml</code> to only host <code>db1</code>. Golden rule: <strong>the more specific, the more it wins</strong> — <code>host_vars</code> beats <code>group_vars</code>, a child group beats its parent.</p>
+<p><strong><code>become</code> (privilege escalation).</strong> By default Ansible connects as a non-root user. <code>become: true</code> switches to root (via <code>sudo</code>) for the task or play. <code>become_user:</code> lets you become a user other than root.</p>
+<p><strong>Ad-hoc command.</strong> A one-liner <code>ansible &lt;pattern&gt; -m &lt;module&gt; -a &quot;&lt;args&gt;&quot;</code>: ideal for a <strong>one-off</strong> action (restart a service, check a file, gather a fact) without writing a playbook.</p>
+</div>
+
+<figure class="schema" id="figure-ansible-inventory-layout">
+  <p>[schema "ansible-inventory-layout" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Structure d&#39;un projet Ansible : ansible.cfg à la racine, inventaire à groupes, et les variables rangées par groupe/hôte dans group_vars/ et host_vars/.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> An Ansible project layout: ansible.cfg at the root, a grouped inventory, and variables organized by group/host in group_vars/ and host_vars/.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le <strong>squelette du projet</strong> et un <code>ansible.cfg</code> qui te suit partout.</p>
+<p><strong>🤔 Pourquoi un <code>ansible.cfg</code> de projet ?</strong> Pour ne plus taper <code>-i inventory</code> ni <code>--ask-become-pass</code> à chaque fois, et surtout pour que <strong>tout le monde qui clone le repo</strong> ait la même config. Un <code>ansible.cfg</code> à la racine du projet, c&#39;est le réflexe RHCE.</p>
+<p>Crée l&#39;arborescence :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <strong>project skeleton</strong> and an <code>ansible.cfg</code> that follows you everywhere.</p>
+<p><strong>🤔 Why a project <code>ansible.cfg</code>?</strong> So you no longer type <code>-i inventory</code> or <code>--ask-become-pass</code> every time, and above all so <strong>everyone who clones the repo</strong> has the same config. An <code>ansible.cfg</code> at the project root is the RHCE reflex.</p>
+<p>Create the tree:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/ansible-parc/{group_vars,host_vars}
+cd ~/ansible-parc</code></pre>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-parc/ansible.cfg
+[defaults]
+inventory       = inventory.ini
+remote_user     = ubuntu
+host_key_checking = false          # accepte l&#39;empreinte au 1er contact (labo) / accept fingerprint on first contact (lab)
+# Sur une VRAIE prod, laisse host_key_checking à true. / On REAL prod, keep host_key_checking true.
+
+[privilege_escalation]
+become        = false              # on l&#39;active à la tâche, pas partout / enable per-task, not everywhere
+become_method = sudo
+become_user   = root</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> depuis <code>~/ansible-parc</code>, lance <code>ansible-config dump --only-changed</code>. Tu dois voir tes réglages (<code>DEFAULT_HOST_LIST</code>, <code>DEFAULT_REMOTE_USER = ubuntu</code>, <code>HOST_KEY_CHECKING = False</code>) avec la source <code>ansible.cfg</code>. Si la sortie est vide, tu n&#39;es pas dans le bon dossier — Ansible n&#39;a pas trouvé ton fichier.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> from <code>~/ansible-parc</code>, run <code>ansible-config dump --only-changed</code>. You should see your settings (<code>DEFAULT_HOST_LIST</code>, <code>DEFAULT_REMOTE_USER = ubuntu</code>, <code>HOST_KEY_CHECKING = False</code>) with source <code>ansible.cfg</code>. If the output is empty, you&#39;re not in the right folder — Ansible didn&#39;t find your file.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer <strong>deux VM locales</strong> — <code>web1</code> et <code>db1</code> — avec ta clé SSH injectée, comme si on te livrait deux serveurs.</p>
+<p><strong>🤔 Pourquoi deux VM ?</strong> Parce qu&#39;un inventaire à un seul hôte n&#39;apprend rien sur les groupes et les patterns — le cœur du RHCE. Deux hôtes de rôles différents, c&#39;est le plus petit parc réaliste.</p>
+<p>Crée un fichier cloud-init qui autorise ta clé publique (remplace le contenu par <strong>ta</strong> clé) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch <strong>two local VMs</strong> — <code>web1</code> and <code>db1</code> — with your SSH key injected, as if two servers were handed to you.</p>
+<p><strong>🤔 Why two VMs?</strong> Because a single-host inventory teaches nothing about groups and patterns — the heart of RHCE. Two hosts with different roles is the smallest realistic fleet.</p>
+<p>Create a cloud-init file that authorizes your public key (replace the content with <strong>your</strong> key):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Génère le cloud-init en y insérant TA clé publique / Generate cloud-init with YOUR public key
+cat &gt; cloud-init.yaml &lt;&lt;EOF
+#cloud-config
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - $(cat ~/.ssh/id_ed25519.pub)
+EOF
+
+multipass launch 24.04 --name web1 --cpus 1 --memory 1G --disk 5G --cloud-init cloud-init.yaml
+multipass launch 24.04 --name db1  --cpus 1 --memory 1G --disk 5G --cloud-init cloud-init.yaml
+
+multipass list        # relève les IPv4 des deux VM / note both VMs&#39; IPv4</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>multipass list</code> montre <code>web1</code> et <code>db1</code> en état <code>Running</code> avec une IPv4 chacune. Teste l&#39;accès SSH à la main : <code>ssh ubuntu@&lt;IP_de_web1&gt; hostname</code> renvoie <code>web1</code> sans demander de mot de passe. Note les deux IP, tu en as besoin à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>multipass list</code> shows <code>web1</code> and <code>db1</code> in <code>Running</code> state, each with an IPv4. Test SSH access by hand: <code>ssh ubuntu@&lt;web1_IP&gt; hostname</code> returns <code>web1</code> without asking for a password. Note both IPs, you need them next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire un <strong>inventaire à groupes</strong> propre, avec un groupe parent <code>prod</code> qui contient <code>web</code> et <code>db</code>.</p>
+<p><strong>🤔 <code>:children</code>, c&#39;est quoi ?</strong> Un groupe <strong>de groupes</strong>. <code>[prod:children]</code> dit « le groupe <code>prod</code> est composé des groupes <code>web</code> et <code>db</code> ». Comme ça, une variable posée sur <code>prod</code> descend sur tous les hôtes web <strong>et</strong> db, sans les relister.</p>
+<p>Remplace <code>&lt;IP_web1&gt;</code> et <code>&lt;IP_db1&gt;</code> par les IP relevées :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a clean <strong>grouped inventory</strong>, with a parent group <code>prod</code> containing <code>web</code> and <code>db</code>.</p>
+<p><strong>🤔 What is <code>:children</code>?</strong> A group <strong>of groups</strong>. <code>[prod:children]</code> says &quot;the <code>prod</code> group is made of the <code>web</code> and <code>db</code> groups&quot;. That way, a variable set on <code>prod</code> flows down to all web <strong>and</strong> db hosts, without relisting them.</p>
+<p>Replace <code>&lt;web1_IP&gt;</code> and <code>&lt;db1_IP&gt;</code> with the IPs you noted:</p>
+</div>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-parc/inventory.ini
+[web]
+web1 ansible_host=&lt;IP_web1&gt;
+
+[db]
+db1 ansible_host=&lt;IP_db1&gt;
+
+# prod = web + db (groupe de groupes) / prod = web + db (group of groups)
+[prod:children]
+web
+db</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-inventory --graph          # visualise l&#39;arbre des groupes / visualize the group tree
+ansible-inventory --host web1      # les variables résolues pour web1 / resolved vars for web1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-inventory --graph</code> affiche l&#39;arbre :</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>@all:
+  |--@ungrouped:
+  |--@prod:
+  |  |--@web:
+  |  |  |--web1
+  |  |--@db:
+  |  |  |--db1</code></pre>
+<p><code>web1</code> et <code>db1</code> apparaissent bien sous <code>prod</code>, via <code>web</code> et <code>db</code>. Aucun hôte sous <code>ungrouped</code> (qui reste vide ; son emplacement dans l&#39;arbre peut varier selon la version d&#39;Ansible — seule l&#39;appartenance compte).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-inventory --graph</code> shows the tree:</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>@all:
+  |--@ungrouped:
+  |--@prod:
+  |  |--@web:
+  |  |  |--web1
+  |  |--@db:
+  |  |  |--db1</code></pre>
+<p><code>web1</code> and <code>db1</code> appear under <code>prod</code>, via <code>web</code> and <code>db</code>. No host under <code>ungrouped</code> (which stays empty; its position in the tree may vary by Ansible version — only membership matters).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Tester la connectivité de tout le parc, puis <strong>cibler finement</strong> avec les patterns d&#39;hôtes.</p>
+<p><strong>🤔 Les patterns, à quoi ça sert ?</strong> À l&#39;examen comme en prod, tu veux souvent agir sur un sous-ensemble : « tous sauf db1 », « web et db », « les hôtes qui matchent une regex ». Les patterns évitent de créer un groupe jetable à chaque fois.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Test connectivity across the whole fleet, then <strong>target precisely</strong> with host patterns.</p>
+<p><strong>🤔 What are patterns for?</strong> On the exam as in prod, you often want to act on a subset: &quot;all but db1&quot;, &quot;web and db&quot;, &quot;hosts matching a regex&quot;. Patterns save you from creating a throwaway group each time.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible all -m ping                 # tout le parc / whole fleet
+ansible prod -m ping                # via le groupe parent / via the parent group
+ansible &#39;web:db&#39; -m ping            # union : web OU db / union: web OR db
+ansible &#39;prod:!db1&#39; -m ping         # prod SAUF db1 / prod EXCEPT db1
+ansible &#39;web:&amp;prod&#39; --list-hosts    # intersection : web ET prod / intersection: web AND prod
+ansible &#39;~^web&#39; --list-hosts        # regex : hôtes commençant par &quot;web&quot; / regex: hosts starting with &quot;web&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible all -m ping</code> renvoie <code>pong</code> en vert (<code>SUCCESS</code>) pour <code>web1</code> <strong>et</strong> <code>db1</code>. <code>ansible &#39;prod:!db1&#39; -m ping</code> ne touche que <code>web1</code>. <code>ansible &#39;~^web&#39; --list-hosts</code> liste <code>web1</code> seul. <code>--list-hosts</code> est ton ami : il montre <strong>qui serait ciblé</strong> sans rien exécuter.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible all -m ping</code> returns <code>pong</code> in green (<code>SUCCESS</code>) for <code>web1</code> <strong>and</strong> <code>db1</code>. <code>ansible &#39;prod:!db1&#39; -m ping</code> touches only <code>web1</code>. <code>ansible &#39;~^web&#39; --list-hosts</code> lists <code>web1</code> alone. <code>--list-hosts</code> is your friend: it shows <strong>who would be targeted</strong> without executing anything.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ranger les variables dans <code>group_vars/</code> et <code>host_vars/</code>, et <strong>observer laquelle gagne</strong>.</p>
+<p><strong>🤔 Pourquoi des dossiers plutôt que dans l&#39;inventaire ?</strong> Parce que ça sépare <em>qui existe</em> (l&#39;inventaire) de <em>comment c&#39;est configuré</em> (les variables). Et parce qu&#39;Ansible applique une <strong>précédence</strong> claire : <code>host_vars</code> (spécifique) bat <code>group_vars</code> d&#39;un enfant, qui bat <code>group_vars</code> du parent, qui bat <code>group_vars/all</code>.</p>
+<p>Crée trois fichiers de variables :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Organize variables in <code>group_vars/</code> and <code>host_vars/</code>, and <strong>watch which one wins</strong>.</p>
+<p><strong>🤔 Why folders rather than the inventory?</strong> Because it separates <em>who exists</em> (the inventory) from <em>how it&#39;s configured</em> (the variables). And because Ansible applies a clear <strong>precedence</strong>: <code>host_vars</code> (specific) beats a child&#39;s <code>group_vars</code>, which beats the parent&#39;s <code>group_vars</code>, which beats <code>group_vars/all</code>.</p>
+<p>Create three variable files:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-parc/group_vars/all.yml
+message: &quot;je viens de group_vars/all&quot;
+timezone: &quot;Europe/Paris&quot;</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-parc/group_vars/web.yml
+message: &quot;je viens de group_vars/web&quot;
+http_port: 8080</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-parc/host_vars/web1.yml
+message: &quot;je viens de host_vars/web1&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible web1 -m debug -a &quot;var=message&quot;    # qui gagne pour web1 ? / who wins for web1?
+ansible db1  -m debug -a &quot;var=message&quot;    # et pour db1 ? / and for db1?
+ansible web1 -m debug -a &quot;var=http_port&quot;  # variable de groupe héritée / inherited group var</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> pour <code>web1</code>, <code>message</code> vaut <strong>« je viens de host_vars/web1 »</strong> — le plus spécifique gagne. Pour <code>db1</code> (pas de host_vars, pas dans <code>web</code>), <code>message</code> vaut <strong>« je viens de group_vars/all »</strong>. Et <code>web1</code> hérite bien de <code>http_port: 8080</code> depuis <code>group_vars/web.yml</code>. Tu viens de <em>voir</em> la précédence, pas juste de la lire.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> for <code>web1</code>, <code>message</code> is <strong>&quot;je viens de host_vars/web1&quot;</strong> — the most specific wins. For <code>db1</code> (no host_vars, not in <code>web</code>), <code>message</code> is <strong>&quot;je viens de group_vars/all&quot;</strong>. And <code>web1</code> correctly inherits <code>http_port: 8080</code> from <code>group_vars/web.yml</code>. You just <em>saw</em> precedence, not merely read about it.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Administrer le parc <strong>en ad-hoc</strong> avec escalade de privilèges : installer un paquet, gérer un service, écrire un fichier — sans playbook.</p>
+<p><strong>🤔 Ad-hoc ou playbook ?</strong> Ad-hoc pour une action <strong>ponctuelle et jetable</strong> (« redémarre nginx sur tout le web maintenant »). Playbook pour quelque chose de <strong>reproductible et versionné</strong>. L&#39;examen RHCE attend les deux réflexes.</p>
+<p><code>-b</code> (<code>--become</code>) escalade en root. Nos VM Multipass ont un <code>sudo</code> <strong>sans mot de passe</strong> (voir le cloud-init) — donc pas besoin de <code>--ask-become-pass</code> ici. Sur une machine classique, tu l&#39;ajouterais.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Administer the fleet <strong>ad-hoc</strong> with privilege escalation: install a package, manage a service, write a file — no playbook.</p>
+<p><strong>🤔 Ad-hoc or playbook?</strong> Ad-hoc for a <strong>one-off, throwaway</strong> action (&quot;restart nginx on all web now&quot;). Playbook for something <strong>reproducible and versioned</strong>. The RHCE exam expects both reflexes.</p>
+<p><code>-b</code> (<code>--become</code>) escalates to root. Our Multipass VMs have <strong>passwordless</strong> sudo (see the cloud-init) — so no need for <code>--ask-become-pass</code> here. On a regular machine, you&#39;d add it.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Installer un paquet sur tout le groupe web (root requis → -b) / install a package on all web (root → -b)
+ansible web -b -m ansible.builtin.apt -a &quot;name=nginx state=present update_cache=true&quot;
+
+# S&#39;assurer que le service tourne et démarre au boot / ensure the service runs and starts at boot
+ansible web -b -m ansible.builtin.service -a &quot;name=nginx state=started enabled=true&quot;
+
+# Vérifier l&#39;état sans rien changer (module command, lecture seule) / check state read-only
+ansible web -b -m ansible.builtin.command -a &quot;systemctl is-active nginx&quot;
+
+# Collecter un fact précis sur tout le parc / gather one precise fact across the fleet
+ansible all -m ansible.builtin.setup -a &quot;filter=ansible_distribution_version&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la tâche <code>apt</code> renvoie <code>CHANGED</code> la première fois (nginx installé) puis <code>SUCCESS</code>/<code>ok</code> si tu la relances — l&#39;idempotence marche aussi en ad-hoc. <code>systemctl is-active nginx</code> renvoie <code>active</code> sur <code>web1</code>. Et <code>db1</code> n&#39;a <strong>pas</strong> nginx : tu n&#39;as ciblé que <code>web</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>apt</code> task returns <code>CHANGED</code> the first time (nginx installed) then <code>SUCCESS</code>/<code>ok</code> if you rerun it — idempotence works in ad-hoc too. <code>systemctl is-active nginx</code> returns <code>active</code> on <code>web1</code>. And <code>db1</code> does <strong>not</strong> have nginx: you targeted only <code>web</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Prouver</strong> la précédence d&#39;<code>ansible.cfg</code> — le piège RHCE classique où « Ansible ne lit pas mon fichier ».</p>
+<p><strong>🤔 Pourquoi ça compte ?</strong> Le jour de l&#39;examen (et en prod), tu peux avoir plusieurs <code>ansible.cfg</code> qui traînent. Savoir <strong>lequel gagne</strong> t&#39;évite une heure de panique. <code>ansible --version</code> te dit noir sur blanc quel fichier a été chargé.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Prove</strong> <code>ansible.cfg</code> precedence — the classic RHCE trap where &quot;Ansible doesn&#39;t read my file&quot;.</p>
+<p><strong>🤔 Why it matters?</strong> On exam day (and in prod), you may have several stray <code>ansible.cfg</code>. Knowing <strong>which one wins</strong> saves you an hour of panic. <code>ansible --version</code> tells you in black and white which file was loaded.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Depuis le projet : c&#39;est ./ansible.cfg qui gagne / from the project: ./ansible.cfg wins
+cd ~/ansible-parc
+ansible --version | grep &quot;config file&quot;      # -&gt; config file = /home/.../ansible-parc/ansible.cfg
+
+# ANSIBLE_CONFIG écrase TOUT le reste / ANSIBLE_CONFIG overrides EVERYTHING
+echo &quot;[defaults]&quot; &gt; /tmp/autre.cfg
+echo &quot;forks = 2&quot; &gt;&gt; /tmp/autre.cfg
+ANSIBLE_CONFIG=/tmp/autre.cfg ansible --version | grep &quot;config file&quot;   # -&gt; /tmp/autre.cfg
+
+# Hors projet : ./ansible.cfg n&#39;existe pas ici, Ansible remonte la chaîne / outside the project
+cd /tmp &amp;&amp; ansible --version | grep &quot;config file&quot;     # -&gt; ~/.ansible.cfg ou /etc/ansible/ansible.cfg, ou aucun</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> depuis <code>~/ansible-parc</code>, la ligne <code>config file</code> pointe sur <strong>ton</strong> <code>ansible.cfg</code> de projet. Avec <code>ANSIBLE_CONFIG=/tmp/autre.cfg</code> en préfixe, elle pointe sur <code>/tmp/autre.cfg</code> — la variable d&#39;env gagne toujours. Depuis <code>/tmp</code> (sans <code>ansible.cfg</code> local), elle pointe ailleurs (home ou système) ou affiche <code>None</code>. Tu tiens la précédence dans les doigts.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> from <code>~/ansible-parc</code>, the <code>config file</code> line points to <strong>your</strong> project <code>ansible.cfg</code>. With <code>ANSIBLE_CONFIG=/tmp/autre.cfg</code> as a prefix, it points to <code>/tmp/autre.cfg</code> — the env var always wins. From <code>/tmp</code> (no local <code>ansible.cfg</code>), it points elsewhere (home or system) or shows <code>None</code>. You&#39;ve got precedence in your fingers.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Oublier dans quel dossier on est.</strong> <code>./ansible.cfg</code> et <code>group_vars/</code> sont <strong>relatifs au répertoire courant</strong>. Lance toujours tes commandes depuis la racine du projet, sinon Ansible ne trouve ni ta config ni tes variables. Le symptôme : <code>ansible-config dump --only-changed</code> est vide.</p>
+<p><strong>2. Écrire les IP en dur dans les patterns.</strong> Un pattern cible des <strong>noms d&#39;hôtes/groupes</strong> (<code>web1</code>, <code>web</code>), pas des IP. L&#39;IP vit dans <code>ansible_host=</code> côté inventaire.</p>
+<p><strong>3. Confondre <code>web:db</code> (union) et <code>web:&amp;db</code> (intersection).</strong> <code>web:db</code> = web <strong>ou</strong> db (les deux groupes). <code>web:&amp;db</code> = web <strong>et</strong> db (un hôte qui serait dans les deux). Le <code>:!</code> exclut. Teste toujours avec <code>--list-hosts</code> avant d&#39;exécuter.</p>
+<p><strong>4. Mettre <code>become: true</code> dans <code>[defaults]</code> d&#39;ansible.cfg.</strong> Escalader <strong>partout par défaut</strong> viole le moindre privilège et masque les vrais besoins. Active <code>become</code> à la tâche ou au play, pas globalement.</p>
+<p><strong>5. Croire que <code>host_vars</code> s&#39;applique à un groupe.</strong> <code>host_vars/web.yml</code> ne s&#39;applique <strong>pas</strong> au groupe <code>web</code> — <code>web</code> est un groupe, pas un hôte. Pour un groupe, c&#39;est <code>group_vars/web.yml</code>. Confusion classique.</p>
+<p><strong>6. <code>group_vars/all</code> vs un fichier nommé <code>all</code>.</strong> Ansible charge <code>group_vars/all.yml</code> (ou un dossier <code>group_vars/all/</code>) pour <strong>tous</strong> les hôtes. Ne le nomme pas au hasard : le nom du fichier = le nom du groupe.</p>
+</div>
+<div data-lang="en"><p><strong>1. Forgetting which folder you&#39;re in.</strong> <code>./ansible.cfg</code> and <code>group_vars/</code> are <strong>relative to the current directory</strong>. Always run your commands from the project root, otherwise Ansible finds neither your config nor your variables. Symptom: <code>ansible-config dump --only-changed</code> is empty.</p>
+<p><strong>2. Hardcoding IPs in patterns.</strong> A pattern targets <strong>host/group names</strong> (<code>web1</code>, <code>web</code>), not IPs. The IP lives in <code>ansible_host=</code> on the inventory side.</p>
+<p><strong>3. Confusing <code>web:db</code> (union) and <code>web:&amp;db</code> (intersection).</strong> <code>web:db</code> = web <strong>or</strong> db (both groups). <code>web:&amp;db</code> = web <strong>and</strong> db (a host in both). <code>:!</code> excludes. Always test with <code>--list-hosts</code> before executing.</p>
+<p><strong>4. Putting <code>become: true</code> in ansible.cfg <code>[defaults]</code>.</strong> Escalating <strong>everywhere by default</strong> violates least privilege and hides real needs. Enable <code>become</code> per task or per play, not globally.</p>
+<p><strong>5. Thinking <code>host_vars</code> applies to a group.</strong> <code>host_vars/web.yml</code> does <strong>not</strong> apply to the <code>web</code> group — <code>web</code> is a group, not a host. For a group it&#39;s <code>group_vars/web.yml</code>. Classic confusion.</p>
+<p><strong>6. <code>group_vars/all</code> vs a file named <code>all</code>.</strong> Ansible loads <code>group_vars/all.yml</code> (or an <code>group_vars/all/</code> folder) for <strong>all</strong> hosts. Don&#39;t name it randomly: the file name = the group name.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques la précédence d&#39;<code>ansible.cfg</code> et tu la <strong>prouves</strong> avec <code>ansible --version</code>.</li><li>Tu écris un inventaire à groupes avec <code>:children</code> et tu lis l&#39;arbre via <code>ansible-inventory --graph</code>.</li><li>Tu cibles avec <code>all</code>, <code>web:db</code>, <code>prod:!db1</code>, <code>~regex</code> et tu vérifies avec <code>--list-hosts</code>.</li><li>Tu ranges une variable dans <code>group_vars/</code> vs <code>host_vars/</code> et tu <strong>prédis</strong> laquelle gagne.</li><li>Tu administres le parc en ad-hoc avec <code>-b</code> (become).</li><li><code>ansible all -m ping</code> répond <code>pong</code> sur les deux VM.</li></ul>
+<p>Six cases = ton nœud de contrôle et ton inventaire sont au niveau RHCE. La suite : le contrôle de flux dans les playbooks.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You explain <code>ansible.cfg</code> precedence and <strong>prove</strong> it with <code>ansible --version</code>.</li><li>You write a grouped inventory with <code>:children</code> and read the tree via <code>ansible-inventory --graph</code>.</li><li>You target with <code>all</code>, <code>web:db</code>, <code>prod:!db1</code>, <code>~regex</code> and verify with <code>--list-hosts</code>.</li><li>You place a variable in <code>group_vars/</code> vs <code>host_vars/</code> and <strong>predict</strong> which wins.</li><li>You administer the fleet ad-hoc with <code>-b</code> (become).</li><li><code>ansible all -m ping</code> answers <code>pong</code> on both VMs.</li></ul>
+<p>Six boxes = your control node and inventory are at RHCE level. Next up: flow control in playbooks.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track RHCE :</p>
+<ol><li><strong>Ansible — tâches avancées &amp; contrôle de flux</strong> : boucles, conditions <code>when</code>, handlers, tags, blocks (<code>block</code>/<code>rescue</code>/<code>always</code>), <code>register</code>/<code>failed_when</code>. C&#39;est là qu&#39;un playbook devient robuste.</li><li>Plus loin : variables &amp; facts &amp; templates Jinja2, rôles &amp; collections, Vault, puis le <strong>projet d&#39;entreprise</strong> RHCE.</li></ol>
+</div>
+<div data-lang="en"><p>The RHCE track continues:</p>
+<ol><li><strong>Ansible — advanced tasks &amp; flow control</strong>: loops, <code>when</code> conditions, handlers, tags, blocks (<code>block</code>/<code>rescue</code>/<code>always</code>), <code>register</code>/<code>failed_when</code>. That&#39;s where a playbook becomes robust.</li><li>Further along: variables &amp; facts &amp; Jinja2 templates, roles &amp; collections, Vault, then the RHCE <strong>enterprise project</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-taches-avancees/">
+    <span class="num">22</span>
+    <span class="title-line" data-lang="fr">Ansible — tâches avancées &amp; contrôle de flux</span>
+    <span class="title-line" data-lang="en">Ansible — advanced tasks &amp; flow control</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire inventaire &amp; configuration.</p>
+</div>
+<div data-lang="en"><p>Inventory &amp; configuration cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Configuration / Config
+ansible --version                       # quel ansible.cfg est chargé (ligne &quot;config file&quot;) / which ansible.cfg is loaded
+ansible-config dump --only-changed      # réglages effectifs vs défauts / effective settings vs defaults
+ANSIBLE_CONFIG=/chemin/f.cfg ansible ... # forcer un fichier de config / force a config file
+
+# Inventaire / Inventory
+ansible-inventory --graph               # arbre des groupes / group tree
+ansible-inventory --list                # inventaire complet en JSON / full inventory as JSON
+ansible-inventory --host web1           # variables résolues d&#39;un hôte / a host&#39;s resolved vars
+
+# Patterns (avec --list-hosts pour prévisualiser) / Patterns (with --list-hosts to preview)
+ansible all --list-hosts                # tout le parc / whole fleet
+ansible &#39;web:db&#39; --list-hosts           # union / union
+ansible &#39;prod:!db1&#39; --list-hosts        # exclusion / exclusion
+ansible &#39;web:&amp;prod&#39; --list-hosts        # intersection / intersection
+ansible &#39;~^web&#39; --list-hosts            # regex
+
+# Ad-hoc
+ansible web -m ping                     # test de connexion / connectivity test
+ansible web -b -m apt -a &quot;name=nginx state=present&quot;   # avec become / with become
+ansible all -m setup -a &quot;filter=ansible_distribution*&quot;  # facts filtrés / filtered facts</code></pre>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># Inventaire INI type / typical INI inventory
+[web]
+web1 ansible_host=192.168.64.10
+
+[db]
+db1 ansible_host=192.168.64.11
+
+[prod:children]
+web
+db
+
+[prod:vars]
+ansible_user=ubuntu</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html">Comment construire son inventaire</a> — groupes, variables, patterns.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable">Précédence des variables</a> — l&#39;ordre officiel complet.</li><li><a href="https://docs.ansible.com/ansible/latest/reference_appendices/config.html">Fichier de configuration Ansible</a> — toutes les options d&#39;<code>ansible.cfg</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html">Patterns : cibler des hôtes</a> — la syntaxe complète.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html">How to build your inventory</a> — groups, variables, patterns.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable">Variable precedence</a> — the full official order.</li><li><a href="https://docs.ansible.com/ansible/latest/reference_appendices/config.html">Ansible configuration file</a> — all <code>ansible.cfg</code> options.</li><li><a href="https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html">Patterns: targeting hosts</a> — the full syntax.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>ansible-config dump --only-changed</code> est vide.</strong> Tu n&#39;es pas dans <code>~/ansible-parc</code>. <code>./ansible.cfg</code> est relatif : reviens dans le dossier du projet.</p>
+<p><strong><code>[WARNING]: No inventory was parsed, only implicit localhost is available</code>.</strong> Ton <code>inventory</code> n&#39;est pas trouvé : vérifie le chemin dans <code>ansible.cfg</code> (<code>inventory = inventory.ini</code>) et que tu lances depuis la racine du projet.</p>
+<p><strong><code>web1 | UNREACHABLE! =&gt; &quot;Failed to connect... Permission denied (publickey)&quot;</code>.</strong> La clé publique n&#39;est pas dans la VM : recrée le <code>cloud-init.yaml</code> avec <strong>ta</strong> clé (<code>cat ~/.ssh/id_ed25519.pub</code>) et relance <code>multipass launch</code>. Ou teste à la main <code>ssh ubuntu@&lt;IP&gt;</code>.</p>
+<p><strong><code>Missing sudo password</code>.</strong> Ta cible n&#39;a pas de sudo sans mot de passe. Ajoute <code>--ask-become-pass</code> (ou <code>-K</code>). Nos VM Multipass, elles, ont <code>NOPASSWD</code> via le cloud-init.</p>
+<p><strong>Une variable ne prend pas la valeur attendue.</strong> Tu as un conflit de précédence. Lance <code>ansible &lt;hôte&gt; -m debug -a &quot;var=&lt;nom&gt;&quot;</code> pour voir la valeur effective, et <code>ansible-inventory --host &lt;hôte&gt;</code> pour voir d&#39;où elle vient. Rappel : plus spécifique = gagne.</p>
+<p><strong><code>multipass launch</code> échoue ou reste bloqué.</strong> Vérifie l&#39;hyperviseur (<code>multipass list</code>) ; en dernier recours <code>multipass delete web1 --purge &amp;&amp; multipass purge</code> puis relance.</p>
+</div>
+<div data-lang="en"><p><strong><code>ansible-config dump --only-changed</code> is empty.</strong> You&#39;re not in <code>~/ansible-parc</code>. <code>./ansible.cfg</code> is relative: go back to the project folder.</p>
+<p><strong><code>[WARNING]: No inventory was parsed, only implicit localhost is available</code>.</strong> Your <code>inventory</code> isn&#39;t found: check the path in <code>ansible.cfg</code> (<code>inventory = inventory.ini</code>) and that you run from the project root.</p>
+<p><strong><code>web1 | UNREACHABLE! =&gt; &quot;Failed to connect... Permission denied (publickey)&quot;</code>.</strong> The public key isn&#39;t in the VM: recreate <code>cloud-init.yaml</code> with <strong>your</strong> key (<code>cat ~/.ssh/id_ed25519.pub</code>) and rerun <code>multipass launch</code>. Or test by hand <code>ssh ubuntu@&lt;IP&gt;</code>.</p>
+<p><strong><code>Missing sudo password</code>.</strong> Your target has no passwordless sudo. Add <code>--ask-become-pass</code> (or <code>-K</code>). Our Multipass VMs have <code>NOPASSWD</code> via cloud-init.</p>
+<p><strong>A variable doesn&#39;t take the expected value.</strong> You have a precedence conflict. Run <code>ansible &lt;host&gt; -m debug -a &quot;var=&lt;name&gt;&quot;</code> to see the effective value, and <code>ansible-inventory --host &lt;host&gt;</code> to see where it comes from. Reminder: more specific = wins.</p>
+<p><strong><code>multipass launch</code> fails or hangs.</strong> Check the hypervisor (<code>multipass list</code>); as a last resort <code>multipass delete web1 --purge &amp;&amp; multipass purge</code> then relaunch.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
