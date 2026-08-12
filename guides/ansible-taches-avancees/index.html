@@ -363,7 +363,13 @@
 <pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Démo handlers
   hosts: localhost
   connection: local
+  gather_facts: false
   tasks:
+    - name: S&#39;assurer que le dossier existe
+      ansible.builtin.file:
+        path: /tmp/atelier
+        state: directory
+
     - name: Écrire un fichier de config
       ansible.builtin.copy:
         dest: /tmp/atelier/app.ini
@@ -488,9 +494,9 @@ ansible-playbook handlers.yml      # 2e passage : même commande</code></pre>
 ansible-playbook tags.yml --tags config      # que la config (+ always)
 ansible-playbook tags.yml --skip-tags paquets # tout sauf paquets
 ansible-playbook tags.yml --tags debug       # débloque la tâche &quot;never&quot;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>--list-tags</code> affiche <code>paquets, config, debug</code> (le tag <code>never</code> n&#39;apparaît pas comme cible ordinaire). <code>--tags config</code> ne joue que « Configurer » <strong>et</strong> « Toujours joué » (le tag <code>always</code> force sa présence). <code>--skip-tags paquets</code> joue tout sauf « Installer ». La tâche <code>never</code> reste muette <strong>sauf</strong> avec <code>--tags debug</code>, qui la débloque. Tu exécutes désormais tes playbooks à la carte.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>--list-tags</code> liste <strong>tous</strong> les tags définis — <code>always, config, debug, never, paquets</code> (y compris <code>never</code> et <code>always</code>, qui apparaissent dans l&#39;inventaire des tags même s&#39;ils ont un comportement spécial <strong>à l&#39;exécution</strong> ; <code>--list-tags</code> ne filtre pas selon la jouabilité). <code>--tags config</code> ne joue que « Configurer » <strong>et</strong> « Toujours joué » (le tag <code>always</code> force sa présence). <code>--skip-tags paquets</code> joue tout sauf « Installer » (la tâche <code>never</code> reste muette de toute façon). La tâche <code>never</code> ne se joue <strong>que</strong> avec <code>--tags debug</code>, qui la débloque. Tu exécutes désormais tes playbooks à la carte.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>--list-tags</code> shows <code>paquets, config, debug</code> (the <code>never</code> tag doesn&#39;t appear as an ordinary target). <code>--tags config</code> plays only &quot;Configurer&quot; <strong>and</strong> &quot;Toujours joué&quot; (the <code>always</code> tag forces its presence). <code>--skip-tags paquets</code> plays everything except &quot;Installer&quot;. The <code>never</code> task stays silent <strong>except</strong> with <code>--tags debug</code>, which unlocks it. You now run your playbooks à la carte.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>--list-tags</code> lists <strong>all</strong> defined tags — <code>always, config, debug, never, paquets</code> (including <code>never</code> and <code>always</code>, which appear in the tag inventory even though they behave specially <strong>at run time</strong>; <code>--list-tags</code> doesn&#39;t filter by playability). <code>--tags config</code> plays only &quot;Configurer&quot; <strong>and</strong> &quot;Toujours joué&quot; (the <code>always</code> tag forces its presence). <code>--skip-tags paquets</code> plays everything except &quot;Installer&quot; (the <code>never</code> task stays silent anyway). The <code>never</code> task plays <strong>only</strong> with <code>--tags debug</code>, which unlocks it. You now run your playbooks à la carte.</p>
 </div>
 
 </div>
@@ -548,7 +554,16 @@ ansible-playbook tags.yml --tags debug       # débloque la tâche &quot;never&q
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-variables-facts-templates/">
+    <span class="num">23</span>
+    <span class="title-line" data-lang="fr">Ansible — variables, facts &amp; templates Jinja2</span>
+    <span class="title-line" data-lang="en">Ansible — variables, facts &amp; Jinja2 templates</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">

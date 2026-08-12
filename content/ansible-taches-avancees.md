@@ -332,7 +332,13 @@ Create a dedicated `handlers.yml`:
 - name: Démo handlers
   hosts: localhost
   connection: local
+  gather_facts: false
   tasks:
+    - name: S'assurer que le dossier existe
+      ansible.builtin.file:
+        path: /tmp/atelier
+        state: directory
+
     - name: Écrire un fichier de config
       ansible.builtin.copy:
         dest: /tmp/atelier/app.ini
@@ -505,11 +511,11 @@ ansible-playbook tags.yml --tags debug       # débloque la tâche "never"
 ```
 
 :::lang fr
-**✅ Vérification :** `--list-tags` affiche `paquets, config, debug` (le tag `never` n'apparaît pas comme cible ordinaire). `--tags config` ne joue que « Configurer » **et** « Toujours joué » (le tag `always` force sa présence). `--skip-tags paquets` joue tout sauf « Installer ». La tâche `never` reste muette **sauf** avec `--tags debug`, qui la débloque. Tu exécutes désormais tes playbooks à la carte.
+**✅ Vérification :** `--list-tags` liste **tous** les tags définis — `always, config, debug, never, paquets` (y compris `never` et `always`, qui apparaissent dans l'inventaire des tags même s'ils ont un comportement spécial **à l'exécution** ; `--list-tags` ne filtre pas selon la jouabilité). `--tags config` ne joue que « Configurer » **et** « Toujours joué » (le tag `always` force sa présence). `--skip-tags paquets` joue tout sauf « Installer » (la tâche `never` reste muette de toute façon). La tâche `never` ne se joue **que** avec `--tags debug`, qui la débloque. Tu exécutes désormais tes playbooks à la carte.
 :::
 
 :::lang en
-**✅ Check:** `--list-tags` shows `paquets, config, debug` (the `never` tag doesn't appear as an ordinary target). `--tags config` plays only "Configurer" **and** "Toujours joué" (the `always` tag forces its presence). `--skip-tags paquets` plays everything except "Installer". The `never` task stays silent **except** with `--tags debug`, which unlocks it. You now run your playbooks à la carte.
+**✅ Check:** `--list-tags` lists **all** defined tags — `always, config, debug, never, paquets` (including `never` and `always`, which appear in the tag inventory even though they behave specially **at run time**; `--list-tags` doesn't filter by playability). `--tags config` plays only "Configurer" **and** "Toujours joué" (the `always` tag forces its presence). `--skip-tags paquets` plays everything except "Installer" (the `never` task stays silent anyway). The `never` task plays **only** with `--tags debug`, which unlocks it. You now run your playbooks à la carte.
 :::
 
 ## pitfalls
