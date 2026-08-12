@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — compute : EC2 &amp; Lambda — jiha.tech</title>
+  <title data-lang="en">AWS — compute: EC2 &amp; Lambda — jiha.tech</title>
+  <meta name="description" content="Le compute AWS pour le SAA-C03 : lancer des machines virtuelles EC2 (paires de clés, AMI, types d&#39;instances, user-data, cycle de vie, EBS), puis le serverless avec Lambda (rôle d&#39;exécution, packaging, création, invocation, configuration, modèle événementiel avec déclencheurs S3). Et surtout : choisir entre serveur (EC2) et sans-serveur (Lambda). Tout en LocalStack (Lambda avec le socket Docker monté)." data-lang="fr">
+  <meta name="description" content="AWS compute for SAA-C03: launch EC2 virtual machines (key pairs, AMIs, instance types, user-data, lifecycle, EBS), then serverless with Lambda (execution role, packaging, creation, invocation, configuration, event-driven model with S3 triggers). And above all: choosing between server (EC2) and serverless (Lambda). All on LocalStack (Lambda with the Docker socket mounted)." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — compute : EC2 &amp; Lambda">
+  <meta property="og:description" content="Le compute AWS pour le SAA-C03 : lancer des machines virtuelles EC2 (paires de clés, AMI, types d&#39;instances, user-data, cycle de vie, EBS), puis le serverless avec Lambda (rôle d&#39;exécution, packaging, création, invocation, configuration, modèle événementiel avec déclencheurs S3). Et surtout : choisir entre serveur (EC2) et sans-serveur (Lambda). Tout en LocalStack (Lambda avec le socket Docker monté).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-compute-ec2-lambda/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-compute-ec2-lambda/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-compute-ec2-lambda">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-compute-ec2-lambda</div>
+    <div class="prompt" data-lang="en">~/guides/aws-compute-ec2-lambda</div>
+    <h1 data-lang="fr">AWS — compute : EC2 &amp; Lambda</h1>
+    <h1 data-lang="en">AWS — compute: EC2 &amp; Lambda</h1>
+    <p class="tagline" data-lang="fr">instances EC2, AMI, user-data, fonctions Lambda, événementiel.</p>
+    <p class="tagline" data-lang="en">EC2 instances, AMIs, user-data, Lambda functions, event-driven.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 220 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 220 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>« Compute », c&#39;est <strong>là où ton code s&#39;exécute</strong>. AWS offre deux grandes familles, aux philosophies opposées, et le SAA t&#39;oblige à savoir choisir. <strong>EC2</strong> (Elastic Compute Cloud), ce sont des <strong>machines virtuelles</strong> : tu loues un serveur, tu l&#39;administres (OS, paquets, mise à l&#39;échelle), tu paies tant qu&#39;il tourne. <strong>Lambda</strong>, c&#39;est le <strong>serverless</strong> : tu déposes une <strong>fonction</strong>, AWS l&#39;exécute <strong>à la demande</strong> (sur événement), la met à l&#39;échelle automatiquement, et tu ne paies <strong>que le temps d&#39;exécution</strong> — zéro serveur à gérer, zéro coût au repos.</p>
+<p>Ce guide te fait vivre les deux. Côté <strong>EC2</strong> : une paire de clés, une AMI, le lancement d&#39;une instance avec un script de démarrage (<strong>user-data</strong>), les <strong>types d&#39;instances</strong>, le cycle de vie (start/stop/terminate) et le stockage <strong>EBS</strong>. Côté <strong>Lambda</strong> : le rôle d&#39;exécution, l&#39;empaquetage d&#39;une fonction, sa création, son <strong>invocation</strong>, sa configuration (mémoire, timeout, variables), et le <strong>modèle événementiel</strong> — le vrai super-pouvoir du serverless : une fonction qui <strong>réagit</strong> à un dépôt de fichier S3.</p>
+<p>Point d&#39;outillage : <strong>Lambda a besoin que LocalStack puisse accéder à Docker</strong> pour exécuter les fonctions. On lance donc LocalStack en <strong>montant le socket Docker</strong> (<code>-v /var/run/docker.sock:/var/run/docker.sock</code>) — c&#39;est la configuration recommandée, on l&#39;explique au moment venu. EC2, lui, marche sans.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as le réseau VPC en main et tu veux enfin faire tourner du code sur AWS.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne maîtrises pas les sous-réseaux/SG → refais <em>réseau VPC</em> (une instance vit dans un sous-réseau, derrière un SG).</li><li>Tu cherches des conteneurs managés (ECS/EKS/Fargate) → c&#39;est un autre pan du compute, non couvert ici ; on pose EC2 et Lambda, les deux fondamentaux du SAA.</li></ul>
+</div>
+<div data-lang="en"><p>&quot;Compute&quot; is <strong>where your code runs</strong>. AWS offers two big families with opposite philosophies, and the SAA forces you to know how to choose. <strong>EC2</strong> (Elastic Compute Cloud) is <strong>virtual machines</strong>: you rent a server, you administer it (OS, packages, scaling), you pay while it runs. <strong>Lambda</strong> is <strong>serverless</strong>: you drop a <strong>function</strong>, AWS runs it <strong>on demand</strong> (on an event), auto-scales it, and you pay <strong>only for execution time</strong> — zero servers to manage, zero cost at rest.</p>
+<p>This guide has you live both. On the <strong>EC2</strong> side: a key pair, an AMI, launching an instance with a startup script (<strong>user-data</strong>), <strong>instance types</strong>, the lifecycle (start/stop/terminate) and <strong>EBS</strong> storage. On the <strong>Lambda</strong> side: the execution role, packaging a function, its creation, its <strong>invocation</strong>, its configuration (memory, timeout, variables), and the <strong>event-driven model</strong> — serverless&#39;s real superpower: a function that <strong>reacts</strong> to an S3 file upload.</p>
+<p>A tooling note: <strong>Lambda needs LocalStack to access Docker</strong> to run functions. So we launch LocalStack <strong>mounting the Docker socket</strong> (<code>-v /var/run/docker.sock:/var/run/docker.sock</code>) — the recommended config, explained when the time comes. EC2 works without it.</p>
+<p><strong>Who it&#39;s for:</strong> you hold VPC networking and you finally want to run code on AWS.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable with subnets/SGs → redo <em>VPC networking</em> (an instance lives in a subnet, behind an SG).</li><li>You want managed containers (ECS/EKS/Fargate) → that&#39;s another compute area, not covered here; we lay EC2 and Lambda, the SAA&#39;s two fundamentals.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer une <strong>paire de clés</strong> et trouver une <strong>AMI</strong> pour lancer une instance.</li><li>Lancer une <strong>instance EC2</strong> avec un <strong>user-data</strong>, et lire ses métadonnées.</li><li>Gérer le <strong>cycle de vie</strong> (stop/start/terminate) et comprendre <strong>types d&#39;instances</strong> et <strong>EBS</strong>.</li><li>Lancer LocalStack <strong>avec le socket Docker</strong> pour activer Lambda.</li><li>Créer une <strong>fonction Lambda</strong> (rôle, package, <code>create-function</code>) et l&#39;<strong>invoquer</strong>.</li><li><strong>Configurer</strong> une fonction (mémoire, timeout, variables d&#39;environnement).</li><li>Câbler un <strong>déclencheur événementiel</strong> (un dépôt S3 qui invoque la fonction) et choisir <strong>EC2 vs Lambda</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create a <strong>key pair</strong> and find an <strong>AMI</strong> to launch an instance.</li><li>Launch an <strong>EC2 instance</strong> with <strong>user-data</strong>, and read its metadata.</li><li>Manage the <strong>lifecycle</strong> (stop/start/terminate) and understand <strong>instance types</strong> and <strong>EBS</strong>.</li><li>Launch LocalStack <strong>with the Docker socket</strong> to enable Lambda.</li><li>Create a <strong>Lambda function</strong> (role, package, <code>create-function</code>) and <strong>invoke</strong> it.</li><li><strong>Configure</strong> a function (memory, timeout, environment variables).</li><li>Wire an <strong>event-driven trigger</strong> (an S3 upload that invokes the function) and choose <strong>EC2 vs Lambda</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides AWS précédents du track (jusqu&#39;au <strong>réseau VPC</strong>).</li><li><strong>LocalStack</strong> et <strong><code>awslocal</code></strong>. Pour la partie Lambda, on (re)lancera LocalStack <strong>avec le socket Docker monté</strong> (étape 4) — commande donnée sur place.</li><li><strong>aws-cli v2</strong> recommandé (les fonctions Lambda utilisent <code>--cli-binary-format</code>, une option de la v2). Vérifie : <code>aws --version</code> → <code>aws-cli/2.x</code>.</li><li><code>zip</code> installé (pour empaqueter la fonction Lambda).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The previous AWS track guides (through <strong>VPC networking</strong>).</li><li><strong>LocalStack</strong> and <strong><code>awslocal</code></strong>. For the Lambda part, we&#39;ll (re)launch LocalStack <strong>with the Docker socket mounted</strong> (step 4) — command given there.</li><li><strong>aws-cli v2</strong> recommended (Lambda functions use <code>--cli-binary-format</code>, a v2 option). Check: <code>aws --version</code> → <code>aws-cli/2.x</code>.</li><li><code>zip</code> installed (to package the Lambda function).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-reseau-vpc/">
+    <span class="num">47</span>
+    <span class="title-line" data-lang="fr">AWS — réseau VPC</span>
+    <span class="title-line" data-lang="en">AWS — VPC networking</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>EC2 (machine virtuelle).</strong> Un serveur virtuel que tu loues. Tu choisis une <strong>AMI</strong> (Amazon Machine Image — le modèle d&#39;OS/logiciels de départ), un <strong>type d&#39;instance</strong> (la taille : CPU/RAM, ex. <code>t2.micro</code>), un <strong>sous-réseau</strong> et un <strong>groupe de sécurité</strong> (vus au guide VPC), et une <strong>paire de clés</strong> (pour t&#39;y connecter en SSH). L&#39;instance démarre, tu paies à la seconde tant qu&#39;elle tourne.</p>
+<p><strong>Types d&#39;instances.</strong> Des familles optimisées : <code>t</code> (usage général, économique, avec crédits CPU), <code>m</code> (équilibré), <code>c</code> (calcul), <code>r</code> (mémoire), etc., déclinées en tailles (<code>.micro</code>, <code>.large</code>…). Choisir le bon type selon la charge est un sujet coût/performance du SAA.</p>
+<p><strong>User-data.</strong> Un <strong>script exécuté au tout premier démarrage</strong> de l&#39;instance (installer un serveur web, configurer l&#39;app). C&#39;est la façon standard d&#39;<strong>automatiser la mise en route</strong> d&#39;une instance sans image personnalisée.</p>
+<p><strong>EBS (Elastic Block Store).</strong> Le <strong>disque</strong> d&#39;une instance : un volume réseau persistant, attaché à l&#39;instance, qui survit à un stop/start (mais pas forcément à un terminate, selon le réglage). C&#39;est le stockage « bloc » (comme un disque dur), à distinguer de S3 (stockage « objet »).</p>
+<p><strong>Lambda (serverless).</strong> Tu fournis une <strong>fonction</strong> (du code + un <strong>handler</strong>, le point d&#39;entrée) et un <strong>runtime</strong> (Python, Node…). AWS l&#39;exécute <strong>à la demande</strong>, à chaque <strong>événement</strong> (requête HTTP, message, dépôt de fichier…), met à l&#39;échelle <strong>automatiquement</strong> de 0 à des milliers d&#39;exécutions parallèles, et facture <strong>au temps d&#39;exécution</strong> (à la milliseconde). Au repos : <strong>rien à payer</strong>.</p>
+<p><strong>Rôle d&#39;exécution.</strong> Une fonction Lambda <strong>endosse un rôle IAM</strong> (guide IAM) pour agir sur AWS (lire S3, écrire en base). Pas de clés dans le code : des permissions via un rôle.</p>
+<p><strong>Modèle événementiel.</strong> Le cœur du serverless : une fonction ne « tourne » pas en continu, elle <strong>réagit</strong> à une <strong>source d&#39;événement</strong> — un objet déposé dans S3, un message dans une file SQS, une requête via API Gateway, un planning EventBridge. C&#39;est ce qui permet des architectures <strong>découplées</strong> et <strong>élastiques</strong> (sujet central du SAA, approfondi au guide suivant).</p>
+<p><strong>EC2 vs Lambda.</strong> EC2 = contrôle total, charge <strong>continue/longue</strong>, tu gères le serveur. Lambda = zéro serveur, charge <strong>ponctuelle/événementielle</strong>, mise à l&#39;échelle et coût automatiques, mais contraintes (durée max ~15 min, taille du package, démarrage à froid). L&#39;architecte choisit selon la charge.</p>
+</div>
+<div data-lang="en"><p><strong>EC2 (virtual machine).</strong> A virtual server you rent. You pick an <strong>AMI</strong> (Amazon Machine Image — the starting OS/software template), an <strong>instance type</strong> (the size: CPU/RAM, e.g. <code>t2.micro</code>), a <strong>subnet</strong> and a <strong>security group</strong> (seen in the VPC guide), and a <strong>key pair</strong> (to SSH in). The instance boots, you pay by the second while it runs.</p>
+<p><strong>Instance types.</strong> Optimized families: <code>t</code> (general purpose, economical, with CPU credits), <code>m</code> (balanced), <code>c</code> (compute), <code>r</code> (memory), etc., in sizes (<code>.micro</code>, <code>.large</code>…). Choosing the right type by workload is an SAA cost/performance topic.</p>
+<p><strong>User-data.</strong> A <strong>script run at the instance&#39;s very first boot</strong> (install a web server, configure the app). It&#39;s the standard way to <strong>automate an instance&#39;s startup</strong> without a custom image.</p>
+<p><strong>EBS (Elastic Block Store).</strong> An instance&#39;s <strong>disk</strong>: a persistent network volume, attached to the instance, that survives a stop/start (but not necessarily a terminate, depending on the setting). It&#39;s &quot;block&quot; storage (like a hard drive), distinct from S3 (&quot;object&quot; storage).</p>
+<p><strong>Lambda (serverless).</strong> You provide a <strong>function</strong> (code + a <strong>handler</strong>, the entry point) and a <strong>runtime</strong> (Python, Node…). AWS runs it <strong>on demand</strong>, on each <strong>event</strong> (HTTP request, message, file upload…), auto-scales from 0 to thousands of parallel executions, and bills <strong>per execution time</strong> (to the millisecond). At rest: <strong>nothing to pay</strong>.</p>
+<p><strong>Execution role.</strong> A Lambda function <strong>assumes an IAM role</strong> (IAM guide) to act on AWS (read S3, write to a database). No keys in the code: permissions via a role.</p>
+<p><strong>Event-driven model.</strong> Serverless&#39;s core: a function doesn&#39;t &quot;run&quot; continuously, it <strong>reacts</strong> to an <strong>event source</strong> — an object dropped in S3, a message in an SQS queue, a request via API Gateway, an EventBridge schedule. That&#39;s what enables <strong>decoupled</strong> and <strong>elastic</strong> architectures (an SAA central topic, deepened in the next guide).</p>
+<p><strong>EC2 vs Lambda.</strong> EC2 = full control, <strong>continuous/long</strong> workload, you manage the server. Lambda = zero servers, <strong>occasional/event-driven</strong> workload, automatic scaling and cost, but constraints (max duration ~15 min, package size, cold start). The architect chooses by workload.</p>
+</div>
+
+<figure class="schema" id="figure-aws-ec2-vs-lambda">
+  <p>[schema "aws-ec2-vs-lambda" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Deux modèles de compute : EC2 (une VM que tu administres, qui tourne en continu et se paie au temps de fonctionnement) vs Lambda (une fonction qui réagit à un événement, scale de 0 à N automatiquement, se paie au temps d&#39;exécution).</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Two compute models: EC2 (a VM you administer, running continuously and billed for uptime) vs Lambda (a function reacting to an event, scaling 0 to N automatically, billed for execution time).</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>paire de clés</strong> et trouver une <strong>AMI</strong> — les deux prérequis pour lancer une instance.</p>
+<p><strong>🤔 Clé et AMI, pourquoi.</strong> La <strong>paire de clés</strong> te permettra de te connecter en SSH à l&#39;instance (AWS installe ta clé publique dedans). L&#39;<strong>AMI</strong> est le modèle de départ : quel OS, quels logiciels préinstallés. On récupère un ID d&#39;AMI disponible pour lancer notre instance.</p>
+<p>Crée la clé et repère une AMI :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>key pair</strong> and find an <strong>AMI</strong> — the two prerequisites to launch an instance.</p>
+<p><strong>🤔 Key and AMI, why.</strong> The <strong>key pair</strong> lets you SSH into the instance (AWS installs your public key in it). The <strong>AMI</strong> is the starting template: which OS, which preinstalled software. We grab an available AMI ID to launch our instance.</p>
+<p>Create the key and find an AMI:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer une paire de clés (la clé privée est renvoyée une seule fois) / create a key pair
+awslocal ec2 create-key-pair --key-name lab-key \
+  --query &#39;KeyName&#39; --output text
+
+# Repérer une AMI disponible / find an available AMI
+AMI=$(awslocal ec2 describe-images --query &#39;Images[0].ImageId&#39; --output text)
+echo &quot;AMI = $AMI&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>create-key-pair</code> renvoie <code>lab-key</code>. En réel, cette commande te renvoie aussi la <strong>clé privée</strong> (<code>KeyMaterial</code>) — à sauver <strong>immédiatement</strong>, AWS ne te la redonnera jamais. <code>describe-images</code> te donne un ID d&#39;AMI (<code>ami-xxxxxxxx</code>) stocké dans <code>$AMI</code>. ⚠️ Garde le shell ouvert : <code>$AMI</code> sert à l&#39;étape suivante. (En réel, on choisit une AMI précise — Amazon Linux, Ubuntu… — via des filtres ; en LocalStack, on prend la première disponible.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>create-key-pair</code> returns <code>lab-key</code>. In real AWS, this command also returns the <strong>private key</strong> (<code>KeyMaterial</code>) — save it <strong>immediately</strong>, AWS will never give it back. <code>describe-images</code> gives you an AMI ID (<code>ami-xxxxxxxx</code>) stored in <code>$AMI</code>. ⚠️ Keep the shell open: <code>$AMI</code> is used in the next step. (In real AWS, you pick a specific AMI — Amazon Linux, Ubuntu… — via filters; in LocalStack, we take the first available.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer une <strong>instance EC2</strong> avec un script de démarrage (<strong>user-data</strong>).</p>
+<p><strong>🤔 Le user-data.</strong> Plutôt que de te connecter à l&#39;instance pour l&#39;installer à la main, tu fournis un <strong>script</strong> qui s&#39;exécute au <strong>premier démarrage</strong> : installer nginx, configurer l&#39;app… C&#39;est la base de l&#39;automatisation EC2 (et le pont vers Ansible/IaC). On le passe encodé à <code>run-instances</code>.</p>
+<p>Prépare le user-data et lance l&#39;instance :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch an <strong>EC2 instance</strong> with a startup script (<strong>user-data</strong>).</p>
+<p><strong>🤔 User-data.</strong> Rather than connecting to the instance to set it up by hand, you provide a <strong>script</strong> that runs at <strong>first boot</strong>: install nginx, configure the app… It&#39;s the basis of EC2 automation (and the bridge to Ansible/IaC). We pass it to <code>run-instances</code>.</p>
+<p>Prepare the user-data and launch the instance:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Un script de démarrage / a startup script
+cat &gt; user-data.sh &lt;&lt;&#39;EOF&#39;
+#!/bin/bash
+echo &quot;Instance démarrée le $(date)&quot; &gt; /var/log/demarrage.txt
+EOF
+
+# Lancer l&#39;instance (type t2.micro, notre clé, le user-data) / launch the instance
+IID=$(awslocal ec2 run-instances \
+  --image-id &quot;$AMI&quot; --instance-type t2.micro --key-name lab-key \
+  --user-data file://user-data.sh \
+  --query &#39;Instances[0].InstanceId&#39; --output text)
+echo &quot;Instance = $IID&quot;
+
+# Décrire l&#39;instance / describe the instance
+awslocal ec2 describe-instances --instance-ids &quot;$IID&quot; \
+  --query &#39;Reservations[0].Instances[0].[InstanceId,InstanceType,State.Name]&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>run-instances</code> renvoie un ID <code>i-xxxxxxxx</code> (dans <code>$IID</code>). <code>describe-instances</code> affiche <code>i-... t2.micro running</code> — ton instance tourne. Tu viens de lancer un serveur virtuel en une commande, avec un script de démarrage. ⚠️ En LocalStack, l&#39;instance est <strong>émulée au niveau API</strong> : elle passe bien à l&#39;état <code>running</code>, tu peux la décrire/taguer/arrêter, mais <strong>aucun vrai OS ne démarre</strong> (le user-data ne s&#39;exécute pas réellement). C&#39;est parfait pour apprendre le cycle de vie et les commandes ; pour un vrai OS, il faut le vrai AWS.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>run-instances</code> returns an ID <code>i-xxxxxxxx</code> (in <code>$IID</code>). <code>describe-instances</code> shows <code>i-... t2.micro running</code> — your instance runs. You just launched a virtual server in one command, with a startup script. ⚠️ In LocalStack, the instance is <strong>emulated at the API level</strong>: it does go to <code>running</code>, you can describe/tag/stop it, but <strong>no real OS boots</strong> (the user-data doesn&#39;t actually run). Perfect to learn the lifecycle and commands; for a real OS, you need real AWS.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer le <strong>cycle de vie</strong> de l&#39;instance et comprendre <strong>types</strong> et <strong>EBS</strong>.</p>
+<p><strong>🤔 Le cycle de vie.</strong> Une instance passe par des états : <code>running</code> → <code>stopped</code> (arrêtée, tu ne paies plus le compute mais gardes le disque EBS) → <code>running</code> (redémarrée) → <code>terminated</code> (détruite, définitivement). Bien gérer ces états, c&#39;est maîtriser le <strong>coût</strong> : on <strong>arrête</strong> une instance inutilisée, on <strong>termine</strong> ce qui ne sert plus.</p>
+<p>Joue le cycle de vie et tague :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage the instance <strong>lifecycle</strong> and understand <strong>types</strong> and <strong>EBS</strong>.</p>
+<p><strong>🤔 The lifecycle.</strong> An instance goes through states: <code>running</code> → <code>stopped</code> (stopped, you stop paying for compute but keep the EBS disk) → <code>running</code> (restarted) → <code>terminated</code> (destroyed, permanently). Managing these states well is mastering <strong>cost</strong>: you <strong>stop</strong> an unused instance, <strong>terminate</strong> what&#39;s no longer needed.</p>
+<p>Run the lifecycle and tag:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Taguer l&#39;instance / tag the instance
+awslocal ec2 create-tags --resources &quot;$IID&quot; --tags Key=Name,Value=serveur-web
+
+# Arrêter (on garde le disque EBS, on ne paie plus le compute) / stop (keep EBS, stop paying compute)
+awslocal ec2 stop-instances --instance-ids &quot;$IID&quot; --query &#39;StoppingInstances[0].CurrentState.Name&#39; --output text
+
+# Redémarrer / start again
+awslocal ec2 start-instances --instance-ids &quot;$IID&quot; --query &#39;StartingInstances[0].CurrentState.Name&#39; --output text
+
+# Voir le volume EBS attaché / see the attached EBS volume
+awslocal ec2 describe-volumes --query &#39;Volumes[0].[VolumeId,Size,State]&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>stop-instances</code> renvoie <code>stopping</code> puis l&#39;instance passe <code>stopped</code> ; <code>start-instances</code> la repasse <code>pending</code>/<code>running</code>. <code>describe-volumes</code> montre un volume <strong>EBS</strong> (<code>vol-...</code>) avec sa taille — c&#39;est le <strong>disque</strong> de ton instance, persistant à travers stop/start. Retiens la logique de coût : <strong>stopped</strong> = tu paies le stockage EBS mais pas le compute ; <strong>terminated</strong> = tu ne paies plus rien (et tu perds tout). En réel, <code>t2.micro</code> est éligible à l&#39;offre gratuite — un détail que le SAA aime rappeler.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>stop-instances</code> returns <code>stopping</code> then the instance goes <code>stopped</code>; <code>start-instances</code> moves it back to <code>pending</code>/<code>running</code>. <code>describe-volumes</code> shows an <strong>EBS</strong> volume (<code>vol-...</code>) with its size — it&#39;s your instance&#39;s <strong>disk</strong>, persistent across stop/start. Remember the cost logic: <strong>stopped</strong> = you pay for EBS storage but not compute; <strong>terminated</strong> = you pay nothing more (and lose everything). In real AWS, <code>t2.micro</code> is free-tier eligible — a detail the SAA likes to recall.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> (Re)lancer LocalStack <strong>avec le socket Docker</strong> et créer ta <strong>première fonction Lambda</strong>.</p>
+<p><strong>🤔 Pourquoi le socket.</strong> Pour <strong>exécuter</strong> une fonction, LocalStack lance un petit conteneur (le runtime Python/Node). Il lui faut donc accéder à ton <strong>démon Docker</strong> — on le lui donne en montant <code>/var/run/docker.sock</code>. Sans ça, la fonction se crée mais reste en état <code>Failed</code> (« Docker not available »). C&#39;est la config LocalStack <strong>recommandée</strong>.</p>
+<p>Relance LocalStack avec le socket, crée le rôle et la fonction :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> (Re)launch LocalStack <strong>with the Docker socket</strong> and create your <strong>first Lambda function</strong>.</p>
+<p><strong>🤔 Why the socket.</strong> To <strong>run</strong> a function, LocalStack spawns a small container (the Python/Node runtime). It therefore needs access to your <strong>Docker daemon</strong> — we give it by mounting <code>/var/run/docker.sock</code>. Without it, the function creates but stays <code>Failed</code> (&quot;Docker not available&quot;). It&#39;s the <strong>recommended</strong> LocalStack config.</p>
+<p>Relaunch LocalStack with the socket, create the role and the function:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Relancer LocalStack AVEC le socket Docker (pour exécuter Lambda) / relaunch WITH the Docker socket
+docker rm -f localstack 2&gt;/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+# attendre &quot;healthy&quot; / wait for &quot;healthy&quot;
+sleep 15
+
+# Rôle d&#39;exécution de la fonction / the function&#39;s execution role
+cat &gt; trust.json &lt;&lt;&#39;EOF&#39;
+{ &quot;Version&quot;: &quot;2012-10-17&quot;, &quot;Statement&quot;: [ { &quot;Effect&quot;: &quot;Allow&quot;,
+  &quot;Principal&quot;: { &quot;Service&quot;: &quot;lambda.amazonaws.com&quot; }, &quot;Action&quot;: &quot;sts:AssumeRole&quot; } ] }
+EOF
+awslocal iam create-role --role-name lambda-role \
+  --assume-role-policy-document file://trust.json --query &#39;Role.Arn&#39; --output text
+
+# La fonction (un handler Python simple) / the function (a simple Python handler)
+cat &gt; handler.py &lt;&lt;&#39;EOF&#39;
+def handler(event, context):
+    nom = event.get(&quot;nom&quot;, &quot;monde&quot;)
+    return {&quot;message&quot;: f&quot;Bonjour {nom} depuis Lambda&quot;}
+EOF
+zip -q fonction.zip handler.py
+
+# Créer la fonction / create the function
+awslocal lambda create-function --function-name salut \
+  --runtime python3.11 --handler handler.handler \
+  --role arn:aws:iam::000000000000:role/lambda-role \
+  --zip-file fileb://fonction.zip --query &#39;State&#39; --output text
+
+# Attendre qu&#39;elle soit &quot;Active&quot; (le runtime se prépare) / wait until &quot;Active&quot;
+awslocal lambda wait function-active --function-name salut &amp;&amp; echo &quot;fonction Active&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>create-function</code>, l&#39;état est <code>Pending</code>, puis <code>awslocal lambda wait function-active</code> rend la main quand la fonction est <strong><code>Active</code></strong> (le conteneur runtime a été préparé via le socket Docker). Si elle reste <code>Failed</code> avec « Docker not available », c&#39;est que LocalStack n&#39;a <strong>pas</strong> le socket monté — relance-le avec le <code>-v /var/run/docker.sock:...</code>. Tu as déposé du code que tu n&#39;as <strong>pas</strong> à héberger : AWS s&#39;occupe de l&#39;exécuter à la demande.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>create-function</code>, the state is <code>Pending</code>, then <code>awslocal lambda wait function-active</code> returns when the function is <strong><code>Active</code></strong> (the runtime container was prepared via the Docker socket). If it stays <code>Failed</code> with &quot;Docker not available&quot;, LocalStack doesn&#39;t have the socket mounted — relaunch it with <code>-v /var/run/docker.sock:...</code>. You dropped code you <strong>don&#39;t</strong> have to host: AWS handles running it on demand.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Invoquer</strong> la fonction et la <strong>configurer</strong> (mémoire, timeout, variables d&#39;environnement).</p>
+<p><strong>🤔 Invoquer = exécuter.</strong> Une fonction Lambda ne « tourne » pas ; on l&#39;<strong>invoque</strong> avec un <strong>événement</strong> (un JSON), elle s&#39;exécute, renvoie un résultat, puis s&#39;éteint. On peut aussi ajuster ses <strong>ressources</strong> : plus de mémoire (et donc de CPU), un timeout plus long, des <strong>variables d&#39;environnement</strong> pour la configurer sans toucher au code.</p>
+<p>Invoque, puis reconfigure :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Invoke</strong> the function and <strong>configure</strong> it (memory, timeout, environment variables).</p>
+<p><strong>🤔 Invoke = run.</strong> A Lambda function doesn&#39;t &quot;run&quot;; you <strong>invoke</strong> it with an <strong>event</strong> (a JSON), it executes, returns a result, then shuts down. You can also tune its <strong>resources</strong>: more memory (and thus CPU), a longer timeout, <strong>environment variables</strong> to configure it without touching the code.</p>
+<p>Invoke, then reconfigure:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Invoquer avec un événement JSON / invoke with a JSON event
+awslocal lambda invoke --function-name salut \
+  --payload &#39;{&quot;nom&quot;: &quot;Jiha&quot;}&#39; \
+  --cli-binary-format raw-in-base64-out \
+  reponse.json
+cat reponse.json ; echo
+
+# Reconfigurer : mémoire, timeout, variable d&#39;environnement / reconfigure
+awslocal lambda update-function-configuration --function-name salut \
+  --memory-size 256 --timeout 10 \
+  --environment &quot;Variables={ENV=prod}&quot; \
+  --query &#39;[MemorySize,Timeout]&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>invoke</code> écrit dans <code>reponse.json</code> le résultat de la fonction : <code>{&quot;message&quot;: &quot;Bonjour Jiha depuis Lambda&quot;}</code>. La fonction a bien reçu l&#39;événement <code>{&quot;nom&quot;: &quot;Jiha&quot;}</code> et l&#39;a traité. <code>update-function-configuration</code> renvoie <code>256   10</code> — la fonction a maintenant 256 Mo de mémoire et 10 s de timeout. ⚠️ L&#39;option <code>--cli-binary-format raw-in-base64-out</code> est <strong>nécessaire en aws-cli v2</strong> pour passer un payload JSON brut ; en v1 elle n&#39;existe pas (on passe le JSON directement). Vérifie ta version avec <code>aws --version</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>invoke</code> writes to <code>reponse.json</code> the function&#39;s result: <code>{&quot;message&quot;: &quot;Bonjour Jiha depuis Lambda&quot;}</code>. The function received the event <code>{&quot;nom&quot;: &quot;Jiha&quot;}</code> and processed it. <code>update-function-configuration</code> returns <code>256   10</code> — the function now has 256 MB memory and a 10 s timeout. ⚠️ The <code>--cli-binary-format raw-in-base64-out</code> option is <strong>required in aws-cli v2</strong> to pass a raw JSON payload; in v1 it doesn&#39;t exist (you pass the JSON directly). Check your version with <code>aws --version</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Câbler un <strong>déclencheur événementiel</strong> : un dépôt de fichier dans S3 <strong>invoque</strong> la fonction.</p>
+<p><strong>🤔 Le super-pouvoir du serverless.</strong> Jusqu&#39;ici tu invoquais la fonction <strong>à la main</strong>. La vraie puissance, c&#39;est qu&#39;elle <strong>réagit</strong> toute seule à un événement. Le motif canonique : « quand un fichier arrive dans ce bucket, exécute cette fonction » (redimensionner une image, traiter un CSV…). On connecte S3 → Lambda via une <strong>notification de bucket</strong>.</p>
+<p>Autorise S3 à invoquer la fonction, puis connecte-les :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Wire an <strong>event-driven trigger</strong>: a file drop in S3 <strong>invokes</strong> the function.</p>
+<p><strong>🤔 Serverless&#39;s superpower.</strong> So far you invoked the function <strong>by hand</strong>. The real power is that it <strong>reacts</strong> on its own to an event. The canonical pattern: &quot;when a file lands in this bucket, run this function&quot; (resize an image, process a CSV…). We connect S3 → Lambda via a <strong>bucket notification</strong>.</p>
+<p>Allow S3 to invoke the function, then connect them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>awslocal s3 mb s3://depot-images
+
+# Autoriser le service S3 à invoquer la fonction / allow the S3 service to invoke the function
+awslocal lambda add-permission --function-name salut \
+  --statement-id s3-invoke --action lambda:InvokeFunction \
+  --principal s3.amazonaws.com --source-arn arn:aws:s3:::depot-images \
+  --query &#39;Statement&#39; --output text &gt;/dev/null &amp;&amp; echo &quot;permission ajoutée&quot;
+
+# Connecter : tout dépôt d&#39;objet déclenche la fonction / connect: any object upload triggers the function
+FN_ARN=$(awslocal lambda get-function --function-name salut --query &#39;Configuration.FunctionArn&#39; --output text)
+awslocal s3api put-bucket-notification-configuration --bucket depot-images \
+  --notification-configuration &quot;{\&quot;LambdaFunctionConfigurations\&quot;:[{\&quot;LambdaFunctionArn\&quot;:\&quot;$FN_ARN\&quot;,\&quot;Events\&quot;:[\&quot;s3:ObjectCreated:*\&quot;]}]}&quot;
+
+# Déclencher : déposer un fichier / trigger: upload a file
+echo &quot;photo&quot; &gt; chat.jpg
+awslocal s3 cp chat.jpg s3://depot-images/chat.jpg
+sleep 3
+echo &quot;notification configurée :&quot;
+awslocal s3api get-bucket-notification-configuration --bucket depot-images \
+  --query &#39;LambdaFunctionConfigurations[0].Events&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>add-permission</code> autorise le principal <code>s3.amazonaws.com</code> à invoquer <code>salut</code>. <code>put-bucket-notification-configuration</code> connecte le bucket à la fonction sur l&#39;événement <code>s3:ObjectCreated:<em></code>. <code>get-bucket-notification-configuration</code> te réaffiche <code>s3:ObjectCreated:</em></code> — le câblage est en place. Quand tu déposes <code>chat.jpg</code>, S3 <strong>invoque automatiquement</strong> la fonction avec un événement décrivant l&#39;objet créé (bucket, clé). C&#39;est <strong>exactement</strong> le motif d&#39;architecture serverless que tu réutiliseras au projet : S3 → Lambda → (traitement). ⚠️ La permission (<code>add-permission</code>) est <strong>obligatoire</strong> : sans elle, S3 n&#39;a pas le droit d&#39;invoquer la fonction et le déclencheur reste muet.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>add-permission</code> authorizes the <code>s3.amazonaws.com</code> principal to invoke <code>salut</code>. <code>put-bucket-notification-configuration</code> connects the bucket to the function on the <code>s3:ObjectCreated:<em></code> event. <code>get-bucket-notification-configuration</code> shows you back <code>s3:ObjectCreated:</em></code> — the wiring is in place. When you upload <code>chat.jpg</code>, S3 <strong>automatically invokes</strong> the function with an event describing the created object (bucket, key). It&#39;s <strong>exactly</strong> the serverless architecture pattern you&#39;ll reuse in the project: S3 → Lambda → (processing). ⚠️ The permission (<code>add-permission</code>) is <strong>mandatory</strong>: without it, S3 isn&#39;t allowed to invoke the function and the trigger stays silent.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Trancher <strong>EC2 vs Lambda</strong>, puis nettoyer.</p>
+<p><strong>🤔 La décision d&#39;architecte.</strong> C&#39;est la question que le SAA pose sans cesse : quel compute pour quel besoin ? <strong>EC2</strong> pour une charge <strong>continue</strong> (un serveur d&#39;application qui tourne 24/7, un logiciel qui a besoin d&#39;un OS complet, un contrôle fin). <strong>Lambda</strong> pour une charge <strong>événementielle et intermittente</strong> (traiter un upload, répondre à un webhook, une tâche planifiée légère) : pas de serveur à gérer, mise à l&#39;échelle et coût automatiques, mais durée et taille limitées.</p>
+<p>Récapitule et nettoie tout :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Decide <strong>EC2 vs Lambda</strong>, then clean up.</p>
+<p><strong>🤔 The architect&#39;s decision.</strong> It&#39;s the question the SAA asks constantly: which compute for which need? <strong>EC2</strong> for a <strong>continuous</strong> workload (an app server running 24/7, software needing a full OS, fine-grained control). <strong>Lambda</strong> for an <strong>event-driven, intermittent</strong> workload (process an upload, answer a webhook, a light scheduled task): no server to manage, automatic scaling and cost, but limited duration and size.</p>
+<p>Recap and clean everything:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># --- Nettoyage / cleanup ---
+# EC2
+awslocal ec2 terminate-instances --instance-ids &quot;$IID&quot; --query &#39;TerminatingInstances[0].CurrentState.Name&#39; --output text
+awslocal ec2 delete-key-pair --key-name lab-key
+
+# Lambda + S3
+awslocal lambda delete-function --function-name salut
+awslocal s3 rb s3://depot-images --force
+awslocal iam delete-role --role-name lambda-role
+
+echo &quot;labo rangé / lab tidied&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terminate-instances</code> renvoie <code>shutting-down</code> (l&#39;instance sera <code>terminated</code>). <code>delete-function</code>, <code>rb --force</code> et <code>delete-role</code> retirent le reste. Tout est nettoyé. <strong>La grille de décision à retenir</strong> : charge <strong>continue / OS complet / contrôle</strong> → <strong>EC2</strong> ; <strong>événementiel / intermittent / zéro admin</strong> → <strong>Lambda</strong>. Entre les deux, il existe des conteneurs managés (ECS/Fargate), mais pour le SAA, cette dichotomie EC2/Lambda est le réflexe de base. La suite : découpler les composants avec les files et les sujets (SQS/SNS) — le prolongement naturel de l&#39;événementiel.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terminate-instances</code> returns <code>shutting-down</code> (the instance will be <code>terminated</code>). <code>delete-function</code>, <code>rb --force</code> and <code>delete-role</code> remove the rest. Everything is cleaned up. <strong>The decision grid to remember</strong>: <strong>continuous / full OS / control</strong> workload → <strong>EC2</strong>; <strong>event-driven / intermittent / zero admin</strong> → <strong>Lambda</strong>. Between the two, there are managed containers (ECS/Fargate), but for the SAA, this EC2/Lambda dichotomy is the base reflex. Next up: decoupling components with queues and topics (SQS/SNS) — the natural extension of event-driven.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Perdre la clé privée d&#39;une paire de clés.</strong> En réel, <code>create-key-pair</code> ne renvoie la clé privée <strong>qu&#39;une fois</strong>. Pas de sauvegarde = plus de SSH vers les instances existantes. Sauve-la immédiatement (ou utilise SSM Session Manager).</p>
+<p><strong>2. Croire que <code>terminated</code> = <code>stopped</code>.</strong> <code>stopped</code> : l&#39;instance est éteinte mais <strong>existe</strong> (disque EBS gardé, redémarrable). <code>terminated</code> : elle est <strong>détruite</strong>, définitivement. Ne termine pas quand tu voulais juste arrêter.</p>
+<p><strong>3. Lambda qui reste <code>Failed</code>.</strong> « Docker not available » : LocalStack n&#39;a pas le socket monté. Relance-le avec <code>-v /var/run/docker.sock:/var/run/docker.sock</code>. En réel, un <code>Failed</code> vient plutôt d&#39;un handler/runtime erroné.</p>
+<p><strong>4. Oublier <code>--cli-binary-format</code> (aws-cli v2).</strong> Sans lui, <code>invoke --payload &#39;{...}&#39;</code> échoue (« Invalid base64 ») en v2. Ajoute <code>--cli-binary-format raw-in-base64-out</code>. En v1, ne le mets pas (l&#39;option n&#39;existe pas).</p>
+<p><strong>5. Déclencheur S3 sans <code>add-permission</code>.</strong> Configurer la notification ne suffit pas : il faut <strong>autoriser</strong> S3 (<code>lambda:InvokeFunction</code>, principal <code>s3.amazonaws.com</code>) à invoquer la fonction. Sinon le déclencheur est silencieux.</p>
+<p><strong>6. Handler mal nommé.</strong> <code>--handler fichier.fonction</code> doit pointer le bon module et la bonne fonction : <code>handler.handler</code> = fichier <code>handler.py</code>, fonction <code>handler</code>. Une faute ici et la fonction plante à l&#39;invocation.</p>
+<p><strong>7. Choisir Lambda pour une charge continue.</strong> Une fonction limitée à ~15 min, avec démarrage à froid, n&#39;est pas faite pour un serveur permanent. Pour du 24/7, c&#39;est EC2 (ou un conteneur). Inversement, un EC2 allumé pour traiter un fichier par jour est un gâchis : c&#39;est un cas Lambda.</p>
+</div>
+<div data-lang="en"><p><strong>1. Losing a key pair&#39;s private key.</strong> In real AWS, <code>create-key-pair</code> returns the private key <strong>only once</strong>. No save = no more SSH to existing instances. Save it immediately (or use SSM Session Manager).</p>
+<p><strong>2. Thinking <code>terminated</code> = <code>stopped</code>.</strong> <code>stopped</code>: the instance is off but <strong>exists</strong> (EBS disk kept, restartable). <code>terminated</code>: it&#39;s <strong>destroyed</strong>, permanently. Don&#39;t terminate when you just wanted to stop.</p>
+<p><strong>3. Lambda stuck <code>Failed</code>.</strong> &quot;Docker not available&quot;: LocalStack lacks the mounted socket. Relaunch with <code>-v /var/run/docker.sock:/var/run/docker.sock</code>. In real AWS, a <code>Failed</code> comes rather from a wrong handler/runtime.</p>
+<p><strong>4. Forgetting <code>--cli-binary-format</code> (aws-cli v2).</strong> Without it, <code>invoke --payload &#39;{...}&#39;</code> fails (&quot;Invalid base64&quot;) in v2. Add <code>--cli-binary-format raw-in-base64-out</code>. In v1, don&#39;t add it (the option doesn&#39;t exist).</p>
+<p><strong>5. S3 trigger without <code>add-permission</code>.</strong> Configuring the notification isn&#39;t enough: you must <strong>authorize</strong> S3 (<code>lambda:InvokeFunction</code>, principal <code>s3.amazonaws.com</code>) to invoke the function. Otherwise the trigger is silent.</p>
+<p><strong>6. Misnamed handler.</strong> <code>--handler file.function</code> must point to the right module and function: <code>handler.handler</code> = file <code>handler.py</code>, function <code>handler</code>. A mistake here and the function crashes on invocation.</p>
+<p><strong>7. Choosing Lambda for a continuous workload.</strong> A function capped at ~15 min, with cold start, isn&#39;t made for a permanent server. For 24/7, it&#39;s EC2 (or a container). Conversely, an EC2 left on to process one file a day is a waste: that&#39;s a Lambda case.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées une paire de clés et tu récupères une AMI.</li><li>Tu lances une instance EC2 avec un user-data et tu la décris <code>running</code>.</li><li>Tu joues stop/start/terminate et tu expliques le coût de chaque état.</li><li>Tu lances LocalStack avec le socket et ta fonction Lambda passe <code>Active</code>.</li><li>Tu invoques la fonction et tu ajustes mémoire/timeout/variables.</li><li>Tu câbles un déclencheur S3 → Lambda (avec <code>add-permission</code>).</li><li>Tu justifies un choix <strong>EC2 vs Lambda</strong> sur un scénario donné.</li></ul>
+<p>Sept cases = tu tiens le compute au niveau SAA. La suite : découpler avec SQS/SNS/DynamoDB.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a key pair and grab an AMI.</li><li>You launch an EC2 instance with user-data and describe it <code>running</code>.</li><li>You run stop/start/terminate and explain each state&#39;s cost.</li><li>You launch LocalStack with the socket and your Lambda function goes <code>Active</code>.</li><li>You invoke the function and adjust memory/timeout/variables.</li><li>You wire an S3 → Lambda trigger (with <code>add-permission</code>).</li><li>You justify an <strong>EC2 vs Lambda</strong> choice on a given scenario.</li></ul>
+<p>Seven boxes = you hold compute at SAA level. Next up: decoupling with SQS/SNS/DynamoDB.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track AWS → SAA-C03 :</p>
+<ol><li><strong>AWS — découplage &amp; données (SQS/SNS/DynamoDB)</strong> : les files de messages (SQS), les sujets de publication (SNS) et la base NoSQL (DynamoDB) — comment découpler et rendre une architecture élastique et résiliente.</li><li>Plus loin : le <strong>projet d&#39;entreprise</strong> serverless (qui assemble S3, Lambda, DynamoDB, SQS…), puis <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AWS → SAA-C03 track continues:</p>
+<ol><li><strong>AWS — decoupling &amp; data (SQS/SNS/DynamoDB)</strong>: message queues (SQS), publish topics (SNS) and the NoSQL database (DynamoDB) — how to decouple and make an architecture elastic and resilient.</li><li>Further along: the serverless <strong>enterprise project</strong> (assembling S3, Lambda, DynamoDB, SQS…), then <strong>going real</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire compute.</p>
+</div>
+<div data-lang="en"><p>Compute cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># EC2
+awslocal ec2 create-key-pair --key-name lab-key
+awslocal ec2 run-instances --image-id $AMI --instance-type t2.micro --key-name lab-key --user-data file://ud.sh
+awslocal ec2 describe-instances --instance-ids $IID
+awslocal ec2 stop-instances / start-instances / terminate-instances --instance-ids $IID
+
+# Lambda (LocalStack AVEC le socket : -v /var/run/docker.sock:/var/run/docker.sock)
+zip -q fn.zip handler.py
+awslocal lambda create-function --function-name f --runtime python3.11 \
+  --handler handler.handler --role &lt;role-arn&gt; --zip-file fileb://fn.zip
+awslocal lambda wait function-active --function-name f
+awslocal lambda invoke --function-name f --payload &#39;{&quot;k&quot;:&quot;v&quot;}&#39; --cli-binary-format raw-in-base64-out out.json
+awslocal lambda update-function-configuration --function-name f --memory-size 256 --timeout 10 --environment &quot;Variables={ENV=prod}&quot;
+
+# Déclencheur S3 -&gt; Lambda / S3 -&gt; Lambda trigger
+awslocal lambda add-permission --function-name f --statement-id s3 --action lambda:InvokeFunction \
+  --principal s3.amazonaws.com --source-arn arn:aws:s3:::bucket
+awslocal s3api put-bucket-notification-configuration --bucket bucket --notification-configuration file://notif.json</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.aws.amazon.com/ec2/">Amazon EC2 — guide</a> — instances, AMI, types.</li><li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">Données user-data EC2</a> — scripts de démarrage.</li><li><a href="https://docs.aws.amazon.com/lambda/latest/dg/welcome.html">AWS Lambda — guide</a> — fonctions, runtimes, invocation.</li><li><a href="https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html">Sources d&#39;événements Lambda</a> — S3, SQS, API Gateway…</li><li><a href="https://aws.amazon.com/products/compute/">EC2 vs Lambda (modèles de compute)</a> — quand choisir quoi.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.aws.amazon.com/ec2/">Amazon EC2 — guide</a> — instances, AMIs, types.</li><li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html">EC2 user-data</a> — startup scripts.</li><li><a href="https://docs.aws.amazon.com/lambda/latest/dg/welcome.html">AWS Lambda — guide</a> — functions, runtimes, invocation.</li><li><a href="https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html">Lambda event sources</a> — S3, SQS, API Gateway…</li><li><a href="https://aws.amazon.com/products/compute/">EC2 vs Lambda (compute models)</a> — when to choose which.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>L&#39;instance reste <code>pending</code>.</strong> En LocalStack, elle passe vite à <code>running</code> ; attends quelques secondes et re-décris. En réel, un <code>pending</code> long peut venir d&#39;un manque de capacité ou d&#39;un sous-réseau/SG mal configuré.</p>
+<p><strong>Lambda <code>Failed</code> / « Docker not available ».</strong> LocalStack n&#39;a pas le socket Docker. Relance-le avec <code>-v /var/run/docker.sock:/var/run/docker.sock</code>, attends <code>healthy</code>, recrée la fonction.</p>
+<p><strong><code>invoke</code> : « Invalid base64 ».</strong> Tu es en aws-cli v2 sans <code>--cli-binary-format raw-in-base64-out</code>. Ajoute l&#39;option. (En v1, ne la mets pas.)</p>
+<p><strong>La fonction plante à l&#39;invocation (<code>Unhandled</code>).</strong> Le <code>--handler</code> ne correspond pas au code (mauvais nom de fichier ou de fonction), ou le code lève une exception. Vérifie <code>fichier.fonction</code> et teste le handler en local.</p>
+<p><strong>Le déclencheur S3 n&#39;invoque rien.</strong> Il manque <code>add-permission</code> (autoriser <code>s3.amazonaws.com</code>), ou la notification n&#39;est pas posée. Vérifie <code>get-bucket-notification-configuration</code> et la permission de la fonction.</p>
+<p><strong><code>aws --version</code> affiche 1.x.</strong> Tu utilises aws-cli v1 (installé par <code>pip install awscli</code>). Les fonctions de ce guide marchent, mais sans <code>--cli-binary-format</code>. Pour la v2 (recommandée), installe-la depuis le paquet officiel AWS.</p>
+</div>
+<div data-lang="en"><p><strong>The instance stays <code>pending</code>.</strong> In LocalStack it quickly goes <code>running</code>; wait a few seconds and re-describe. In real AWS, a long <code>pending</code> can come from a capacity shortage or a misconfigured subnet/SG.</p>
+<p><strong>Lambda <code>Failed</code> / &quot;Docker not available&quot;.</strong> LocalStack lacks the Docker socket. Relaunch with <code>-v /var/run/docker.sock:/var/run/docker.sock</code>, wait for <code>healthy</code>, recreate the function.</p>
+<p><strong><code>invoke</code>: &quot;Invalid base64&quot;.</strong> You&#39;re on aws-cli v2 without <code>--cli-binary-format raw-in-base64-out</code>. Add the option. (In v1, don&#39;t add it.)</p>
+<p><strong>The function crashes on invocation (<code>Unhandled</code>).</strong> The <code>--handler</code> doesn&#39;t match the code (wrong file or function name), or the code raises an exception. Check <code>file.function</code> and test the handler locally.</p>
+<p><strong>The S3 trigger invokes nothing.</strong> Missing <code>add-permission</code> (authorize <code>s3.amazonaws.com</code>), or the notification isn&#39;t set. Check <code>get-bucket-notification-configuration</code> and the function&#39;s permission.</p>
+<p><strong><code>aws --version</code> shows 1.x.</strong> You&#39;re using aws-cli v1 (installed by <code>pip install awscli</code>). This guide&#39;s functions work, but without <code>--cli-binary-format</code>. For v2 (recommended), install it from the official AWS package.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

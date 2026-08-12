@@ -268,9 +268,11 @@ RT=$(awslocal ec2 create-route-table --vpc-id "$VPC" --query 'RouteTable.RouteTa
 awslocal ec2 create-route --route-table-id "$RT" \
   --destination-cidr-block 0.0.0.0/0 --gateway-id "$IGW" --query 'Return' --output text
 
-# 3) Associer la table au sous-réseau public / associate the table with the public subnet
-awslocal ec2 associate-route-table --route-table-id "$RT" --subnet-id "$PUB" \
-  --query 'AssociationId' --output text
+# 3) Associer la table au sous-réseau public (on capture l'ID d'association pour le nettoyage)
+#    associate the table with the public subnet (capture the association ID for cleanup)
+ASSOC_PUB=$(awslocal ec2 associate-route-table --route-table-id "$RT" --subnet-id "$PUB" \
+  --query 'AssociationId' --output text)
+echo "association publique = $ASSOC_PUB"
 
 # Vérifier la route / verify the route
 awslocal ec2 describe-route-tables --route-table-ids "$RT" \
@@ -367,11 +369,11 @@ awslocal ec2 describe-network-acls --network-acl-ids "$NACL" \
 ```
 
 :::lang fr
-**✅ Vérification :** `describe-network-acls` montre **deux** entrées n°100 : une **entrante** (`Egress=False`) et une **sortante** (`Egress=True`), toutes deux `allow`. C'est la démonstration du *stateless* : il a fallu écrire la règle de retour **explicitement** (sur les ports éphémères), là où un SG l'aurait fait tout seul. Retiens le tableau : **SG** = instance, stateful, allow-only ; **NACL** = sous-réseau, stateless, allow+deny numérotées.
+**✅ Vérification :** `describe-network-acls` montre **deux** entrées n°100 : une **entrante** (`Egress=False`) et une **sortante** (`Egress=True`), toutes deux `allow` (le protocole s'affiche `6`, le numéro IANA de TCP). C'est la démonstration du *stateless* : il a fallu écrire la règle de retour **explicitement** (sur les ports éphémères), là où un SG l'aurait fait tout seul. Retiens le tableau : **SG** = instance, stateful, allow-only ; **NACL** = sous-réseau, stateless, allow+deny numérotées.
 :::
 
 :::lang en
-**✅ Check:** `describe-network-acls` shows **two** rule-#100 entries: one **inbound** (`Egress=False`) and one **outbound** (`Egress=True`), both `allow`. That's the *stateless* demonstration: you had to write the return rule **explicitly** (on the ephemeral ports), where an SG would have done it on its own. Remember the table: **SG** = instance, stateful, allow-only; **NACL** = subnet, stateless, numbered allow+deny.
+**✅ Check:** `describe-network-acls` shows **two** rule-#100 entries: one **inbound** (`Egress=False`) and one **outbound** (`Egress=True`), both `allow` (the protocol shows as `6`, the IANA number for TCP). That's the *stateless* demonstration: you had to write the return rule **explicitly** (on the ephemeral ports), where an SG would have done it on its own. Remember the table: **SG** = instance, stateful, allow-only; **NACL** = subnet, stateless, numbered allow+deny.
 :::
 
 ### step-06
@@ -395,8 +397,9 @@ Create the private route table (no IGW route):
 ```bash
 # Table de routage du sous-réseau PRIVÉ : PAS de route 0.0.0.0/0 vers l'IGW / private RT: NO IGW route
 RTPRIV=$(awslocal ec2 create-route-table --vpc-id "$VPC" --query 'RouteTable.RouteTableId' --output text)
-awslocal ec2 associate-route-table --route-table-id "$RTPRIV" --subnet-id "$PRIV" \
-  --query 'AssociationId' --output text
+ASSOC_PRIV=$(awslocal ec2 associate-route-table --route-table-id "$RTPRIV" --subnet-id "$PRIV" \
+  --query 'AssociationId' --output text)
+echo "association privée = $ASSOC_PRIV"
 
 # Vérifier : la table privée n'a QUE la route locale (pas d'IGW) / verify: only the local route
 awslocal ec2 describe-route-tables --route-table-ids "$RTPRIV" \
@@ -441,6 +444,10 @@ awslocal ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC" --quer
 # Nettoyage (de l'intérieur vers l'extérieur) / cleanup (inside out)
 awslocal ec2 detach-internet-gateway --vpc-id "$VPC" --internet-gateway-id "$IGW"
 awslocal ec2 delete-internet-gateway --internet-gateway-id "$IGW"
+# Dissocier les tables de routage AVANT tout (sinon l'association bloque delete-route-table)
+# Disassociate the route tables FIRST (else the association blocks delete-route-table)
+awslocal ec2 disassociate-route-table --association-id "$ASSOC_PUB"
+awslocal ec2 disassociate-route-table --association-id "$ASSOC_PRIV"
 awslocal ec2 delete-subnet --subnet-id "$PUB"
 awslocal ec2 delete-subnet --subnet-id "$PRIV"
 awslocal ec2 delete-security-group --group-id "$SG"
@@ -452,11 +459,11 @@ echo "VPC supprimé / VPC deleted"
 ```
 
 :::lang fr
-**✅ Vérification :** la vue d'ensemble liste tes sous-réseaux (`10.0.1.0/24`, `10.0.2.0/24`), tes tables de routage et ton SG `web-sg` — tout ton réseau en un coup d'œil. Le nettoyage s'exécute **sans erreur** parce que l'ordre respecte les dépendances (IGW détachée avant suppression, ressources internes avant le VPC). Après, `describe-vpcs --vpc-ids $VPC` renvoie une erreur « InvalidVpcID.NotFound » : le VPC n'existe plus. ⚠️ En réel, un `delete-vpc` qui échoue signale presque toujours une **dépendance oubliée** (une instance, une ENI, une passerelle encore attachée).
+**✅ Vérification :** la vue d'ensemble liste tes sous-réseaux (`10.0.1.0/24`, `10.0.2.0/24`), tes tables de routage et ton SG `web-sg` — tout ton réseau en un coup d'œil. Le nettoyage s'exécute **sans erreur** parce que l'ordre respecte les dépendances : IGW détachée, **associations de tables de routage dissociées** (`disassociate-route-table`), ressources internes, puis le VPC en dernier. Après, `describe-vpcs --vpc-ids $VPC` renvoie une erreur « InvalidVpcID.NotFound » : le VPC n'existe plus. ⚠️ Le `disassociate-route-table` est **indispensable avant** `delete-route-table` : tant qu'une table est associée à un sous-réseau, elle a une « dépendance » et sa suppression échoue en `DependencyViolation` — qui bloque à son tour `delete-vpc`. En réel comme en labo, un `delete-vpc` qui échoue signale presque toujours une **dépendance oubliée** (association, instance, ENI, passerelle encore attachée).
 :::
 
 :::lang en
-**✅ Check:** the overview lists your subnets (`10.0.1.0/24`, `10.0.2.0/24`), your route tables and your `web-sg` SG — your whole network at a glance. The cleanup runs **with no error** because the order respects dependencies (IGW detached before deletion, inner resources before the VPC). After, `describe-vpcs --vpc-ids $VPC` returns an "InvalidVpcID.NotFound" error: the VPC is gone. ⚠️ In real AWS, a failing `delete-vpc` almost always signals a **forgotten dependency** (an instance, an ENI, a still-attached gateway).
+**✅ Check:** the overview lists your subnets (`10.0.1.0/24`, `10.0.2.0/24`), your route tables and your `web-sg` SG — your whole network at a glance. The cleanup runs **with no error** because the order respects dependencies: IGW detached, **route-table associations removed** (`disassociate-route-table`), inner resources, then the VPC last. After, `describe-vpcs --vpc-ids $VPC` returns an "InvalidVpcID.NotFound" error: the VPC is gone. ⚠️ The `disassociate-route-table` is **essential before** `delete-route-table`: while a table is associated with a subnet, it has a "dependency" and its deletion fails with `DependencyViolation` — which in turn blocks `delete-vpc`. In real AWS as in the lab, a failing `delete-vpc` almost always signals a **forgotten dependency** (an association, an instance, an ENI, a still-attached gateway).
 :::
 
 ## pitfalls

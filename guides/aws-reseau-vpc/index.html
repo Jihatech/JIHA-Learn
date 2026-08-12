@@ -317,9 +317,11 @@ RT=$(awslocal ec2 create-route-table --vpc-id &quot;$VPC&quot; --query &#39;Rout
 awslocal ec2 create-route --route-table-id &quot;$RT&quot; \
   --destination-cidr-block 0.0.0.0/0 --gateway-id &quot;$IGW&quot; --query &#39;Return&#39; --output text
 
-# 3) Associer la table au sous-réseau public / associate the table with the public subnet
-awslocal ec2 associate-route-table --route-table-id &quot;$RT&quot; --subnet-id &quot;$PUB&quot; \
-  --query &#39;AssociationId&#39; --output text
+# 3) Associer la table au sous-réseau public (on capture l&#39;ID d&#39;association pour le nettoyage)
+#    associate the table with the public subnet (capture the association ID for cleanup)
+ASSOC_PUB=$(awslocal ec2 associate-route-table --route-table-id &quot;$RT&quot; --subnet-id &quot;$PUB&quot; \
+  --query &#39;AssociationId&#39; --output text)
+echo &quot;association publique = $ASSOC_PUB&quot;
 
 # Vérifier la route / verify the route
 awslocal ec2 describe-route-tables --route-table-ids &quot;$RT&quot; \
@@ -391,9 +393,9 @@ awslocal ec2 create-network-acl-entry --network-acl-id &quot;$NACL&quot; \
 # Vérifier les entrées / verify the entries
 awslocal ec2 describe-network-acls --network-acl-ids &quot;$NACL&quot; \
   --query &#39;NetworkAcls[0].Entries[?RuleNumber==`100`].[Egress,RuleAction,Protocol]&#39; --output table</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>describe-network-acls</code> montre <strong>deux</strong> entrées n°100 : une <strong>entrante</strong> (<code>Egress=False</code>) et une <strong>sortante</strong> (<code>Egress=True</code>), toutes deux <code>allow</code>. C&#39;est la démonstration du <em>stateless</em> : il a fallu écrire la règle de retour <strong>explicitement</strong> (sur les ports éphémères), là où un SG l&#39;aurait fait tout seul. Retiens le tableau : <strong>SG</strong> = instance, stateful, allow-only ; <strong>NACL</strong> = sous-réseau, stateless, allow+deny numérotées.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>describe-network-acls</code> montre <strong>deux</strong> entrées n°100 : une <strong>entrante</strong> (<code>Egress=False</code>) et une <strong>sortante</strong> (<code>Egress=True</code>), toutes deux <code>allow</code> (le protocole s&#39;affiche <code>6</code>, le numéro IANA de TCP). C&#39;est la démonstration du <em>stateless</em> : il a fallu écrire la règle de retour <strong>explicitement</strong> (sur les ports éphémères), là où un SG l&#39;aurait fait tout seul. Retiens le tableau : <strong>SG</strong> = instance, stateful, allow-only ; <strong>NACL</strong> = sous-réseau, stateless, allow+deny numérotées.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>describe-network-acls</code> shows <strong>two</strong> rule-#100 entries: one <strong>inbound</strong> (<code>Egress=False</code>) and one <strong>outbound</strong> (<code>Egress=True</code>), both <code>allow</code>. That&#39;s the <em>stateless</em> demonstration: you had to write the return rule <strong>explicitly</strong> (on the ephemeral ports), where an SG would have done it on its own. Remember the table: <strong>SG</strong> = instance, stateful, allow-only; <strong>NACL</strong> = subnet, stateless, numbered allow+deny.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>describe-network-acls</code> shows <strong>two</strong> rule-#100 entries: one <strong>inbound</strong> (<code>Egress=False</code>) and one <strong>outbound</strong> (<code>Egress=True</code>), both <code>allow</code> (the protocol shows as <code>6</code>, the IANA number for TCP). That&#39;s the <em>stateless</em> demonstration: you had to write the return rule <strong>explicitly</strong> (on the ephemeral ports), where an SG would have done it on its own. Remember the table: <strong>SG</strong> = instance, stateful, allow-only; <strong>NACL</strong> = subnet, stateless, numbered allow+deny.</p>
 </div>
 
 </div>
@@ -411,8 +413,9 @@ awslocal ec2 describe-network-acls --network-acl-ids &quot;$NACL&quot; \
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Table de routage du sous-réseau PRIVÉ : PAS de route 0.0.0.0/0 vers l&#39;IGW / private RT: NO IGW route
 RTPRIV=$(awslocal ec2 create-route-table --vpc-id &quot;$VPC&quot; --query &#39;RouteTable.RouteTableId&#39; --output text)
-awslocal ec2 associate-route-table --route-table-id &quot;$RTPRIV&quot; --subnet-id &quot;$PRIV&quot; \
-  --query &#39;AssociationId&#39; --output text
+ASSOC_PRIV=$(awslocal ec2 associate-route-table --route-table-id &quot;$RTPRIV&quot; --subnet-id &quot;$PRIV&quot; \
+  --query &#39;AssociationId&#39; --output text)
+echo &quot;association privée = $ASSOC_PRIV&quot;
 
 # Vérifier : la table privée n&#39;a QUE la route locale (pas d&#39;IGW) / verify: only the local route
 awslocal ec2 describe-route-tables --route-table-ids &quot;$RTPRIV&quot; \
@@ -446,6 +449,10 @@ awslocal ec2 describe-security-groups --filters &quot;Name=vpc-id,Values=$VPC&qu
 # Nettoyage (de l&#39;intérieur vers l&#39;extérieur) / cleanup (inside out)
 awslocal ec2 detach-internet-gateway --vpc-id &quot;$VPC&quot; --internet-gateway-id &quot;$IGW&quot;
 awslocal ec2 delete-internet-gateway --internet-gateway-id &quot;$IGW&quot;
+# Dissocier les tables de routage AVANT tout (sinon l&#39;association bloque delete-route-table)
+# Disassociate the route tables FIRST (else the association blocks delete-route-table)
+awslocal ec2 disassociate-route-table --association-id &quot;$ASSOC_PUB&quot;
+awslocal ec2 disassociate-route-table --association-id &quot;$ASSOC_PRIV&quot;
 awslocal ec2 delete-subnet --subnet-id &quot;$PUB&quot;
 awslocal ec2 delete-subnet --subnet-id &quot;$PRIV&quot;
 awslocal ec2 delete-security-group --group-id &quot;$SG&quot;
@@ -454,9 +461,9 @@ awslocal ec2 delete-route-table --route-table-id &quot;$RT&quot;
 awslocal ec2 delete-route-table --route-table-id &quot;$RTPRIV&quot;
 awslocal ec2 delete-vpc --vpc-id &quot;$VPC&quot;
 echo &quot;VPC supprimé / VPC deleted&quot;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> la vue d&#39;ensemble liste tes sous-réseaux (<code>10.0.1.0/24</code>, <code>10.0.2.0/24</code>), tes tables de routage et ton SG <code>web-sg</code> — tout ton réseau en un coup d&#39;œil. Le nettoyage s&#39;exécute <strong>sans erreur</strong> parce que l&#39;ordre respecte les dépendances (IGW détachée avant suppression, ressources internes avant le VPC). Après, <code>describe-vpcs --vpc-ids $VPC</code> renvoie une erreur « InvalidVpcID.NotFound » : le VPC n&#39;existe plus. ⚠️ En réel, un <code>delete-vpc</code> qui échoue signale presque toujours une <strong>dépendance oubliée</strong> (une instance, une ENI, une passerelle encore attachée).</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la vue d&#39;ensemble liste tes sous-réseaux (<code>10.0.1.0/24</code>, <code>10.0.2.0/24</code>), tes tables de routage et ton SG <code>web-sg</code> — tout ton réseau en un coup d&#39;œil. Le nettoyage s&#39;exécute <strong>sans erreur</strong> parce que l&#39;ordre respecte les dépendances : IGW détachée, <strong>associations de tables de routage dissociées</strong> (<code>disassociate-route-table</code>), ressources internes, puis le VPC en dernier. Après, <code>describe-vpcs --vpc-ids $VPC</code> renvoie une erreur « InvalidVpcID.NotFound » : le VPC n&#39;existe plus. ⚠️ Le <code>disassociate-route-table</code> est <strong>indispensable avant</strong> <code>delete-route-table</code> : tant qu&#39;une table est associée à un sous-réseau, elle a une « dépendance » et sa suppression échoue en <code>DependencyViolation</code> — qui bloque à son tour <code>delete-vpc</code>. En réel comme en labo, un <code>delete-vpc</code> qui échoue signale presque toujours une <strong>dépendance oubliée</strong> (association, instance, ENI, passerelle encore attachée).</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> the overview lists your subnets (<code>10.0.1.0/24</code>, <code>10.0.2.0/24</code>), your route tables and your <code>web-sg</code> SG — your whole network at a glance. The cleanup runs <strong>with no error</strong> because the order respects dependencies (IGW detached before deletion, inner resources before the VPC). After, <code>describe-vpcs --vpc-ids $VPC</code> returns an &quot;InvalidVpcID.NotFound&quot; error: the VPC is gone. ⚠️ In real AWS, a failing <code>delete-vpc</code> almost always signals a <strong>forgotten dependency</strong> (an instance, an ENI, a still-attached gateway).</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> the overview lists your subnets (<code>10.0.1.0/24</code>, <code>10.0.2.0/24</code>), your route tables and your <code>web-sg</code> SG — your whole network at a glance. The cleanup runs <strong>with no error</strong> because the order respects dependencies: IGW detached, <strong>route-table associations removed</strong> (<code>disassociate-route-table</code>), inner resources, then the VPC last. After, <code>describe-vpcs --vpc-ids $VPC</code> returns an &quot;InvalidVpcID.NotFound&quot; error: the VPC is gone. ⚠️ The <code>disassociate-route-table</code> is <strong>essential before</strong> <code>delete-route-table</code>: while a table is associated with a subnet, it has a &quot;dependency&quot; and its deletion fails with <code>DependencyViolation</code> — which in turn blocks <code>delete-vpc</code>. In real AWS as in the lab, a failing <code>delete-vpc</code> almost always signals a <strong>forgotten dependency</strong> (an association, an instance, an ENI, a still-attached gateway).</p>
 </div>
 
 </div>
@@ -514,7 +521,16 @@ echo &quot;VPC supprimé / VPC deleted&quot;</code></pre>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-compute-ec2-lambda/">
+    <span class="num">48</span>
+    <span class="title-line" data-lang="fr">AWS — compute : EC2 &amp; Lambda</span>
+    <span class="title-line" data-lang="en">AWS — compute: EC2 &amp; Lambda</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">
