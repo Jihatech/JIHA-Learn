@@ -41,7 +41,7 @@ Tu as appris les briques : HCL, state, `count`/`for_each`, modules, workspaces, 
 **Le scénario.** Tu es l'ingénieur DevOps d'une PME e-commerce, *Brownfield Market*. On te demande de rendre l'infrastructure **reproductible et isolée par environnement** : une équipe doit pouvoir monter un `dev`, valider en `staging`, et livrer en `prod` — **le même code**, des paramètres différents, **des states séparés** (une erreur en dev ne doit jamais toucher prod). Tu vas livrer :
 
 - une **bibliothèque de modules** réutilisables (`network`, `service`, `stack`) ;
-- une **couche plateforme** partagée (réseau + volume), dont les autres configs lisent les sorties via **remote state** ;
+- une **couche plateforme** partagée (un réseau commun), dont les autres configs lisent la sortie via **remote state** ;
 - **trois environnements** `dev` / `staging` / `prod`, isolés, qui diffèrent uniquement par leurs variables ;
 - un **README** et un **schéma d'architecture** qui expliquent tes choix — la partie que les recruteurs lisent en premier.
 
@@ -56,7 +56,7 @@ You've learned the bricks: HCL, state, `count`/`for_each`, modules, workspaces, 
 **The scenario.** You're the DevOps engineer at an e-commerce SME, *Brownfield Market*. You're asked to make the infrastructure **reproducible and isolated per environment**: a team must be able to spin up `dev`, validate in `staging`, and ship to `prod` — **the same code**, different parameters, **separate states** (a mistake in dev must never touch prod). You'll deliver:
 
 - a **library of reusable modules** (`network`, `service`, `stack`);
-- a shared **platform layer** (network + volume), whose outputs other configs read via **remote state**;
+- a shared **platform layer** (a common network), whose output other configs read via **remote state**;
 - **three environments** `dev` / `staging` / `prod`, isolated, differing only by their variables;
 - a **README** and an **architecture diagram** explaining your choices — the part recruiters read first.
 
@@ -125,30 +125,30 @@ git init
 :::lang fr
 **L'architecture cible.** On sépare trois responsabilités :
 
-1. **La plateforme** (`platform/`) — les ressources **partagées** par tous les environnements : ici un **réseau** Docker et un **volume** de données communs. Elle expose leurs noms en **outputs**. C'est l'équivalent d'un VPC/réseau géré par l'équipe « socle ».
+1. **La plateforme** (`platform/`) — la ressource **partagée** par tous les environnements : ici un **réseau** Docker commun. Elle expose son nom en **output**. C'est l'équivalent d'un VPC/réseau géré par l'équipe « socle » (on pourrait y ajouter d'autres ressources socle : registre, secrets, DNS…).
 2. **Les modules** (`modules/`) — la **bibliothèque** réutilisable. Un module `service` (un conteneur paramétrable) et un module `stack` qui **compose** plusieurs services (web + api + db) en une unité cohérente. On les écrit **une fois**.
 3. **Les environnements** (`envs/dev`, `envs/staging`, `envs/prod`) — chacun est une **config Terraform à part entière**, avec **son propre state**, qui **consomme** les modules et **lit** la plateforme via remote state. La seule chose qui change d'un env à l'autre : son `terraform.tfvars`.
 
 **Dossiers par environnement, pas workspaces.** On l'a vu dans le guide modules : les workspaces partagent code et backend, ce qui convient à des variantes légères. En entreprise, pour des environnements qui peuvent diverger (tailles, images, secrets, voire comptes cloud), on préfère **un dossier par env réutilisant les mêmes modules**. C'est plus explicite, plus sûr, et c'est le pattern qu'un recruteur reconnaît. **Sache justifier ce choix** — c'est une question d'entretien classique.
 
-**Le fil remote state.** La plateforme applique en premier et expose `network_name`/`volume_name`. Chaque environnement déclare une data source `terraform_remote_state` qui **lit** ces sorties et les injecte dans ses modules. Résultat : un seul réseau partagé, **une seule source de vérité**, zéro duplication.
+**Le fil remote state.** La plateforme applique en premier et expose `network_name`. Chaque environnement déclare une data source `terraform_remote_state` qui **lit** cette sortie et l'injecte dans ses modules. Résultat : un seul réseau partagé, **une seule source de vérité**, zéro duplication.
 :::
 
 :::lang en
 **The target architecture.** We split three responsibilities:
 
-1. **The platform** (`platform/`) — the resources **shared** by all environments: here a common Docker **network** and a data **volume**. It exposes their names as **outputs**. This is the equivalent of a VPC/network managed by the "foundation" team.
+1. **The platform** (`platform/`) — the resource **shared** by all environments: here a common Docker **network**. It exposes its name as an **output**. This is the equivalent of a VPC/network managed by the "foundation" team (you could add other foundation resources: registry, secrets, DNS…).
 2. **The modules** (`modules/`) — the reusable **library**. A `service` module (a parameterizable container) and a `stack` module that **composes** several services (web + api + db) into a coherent unit. We write them **once**.
 3. **The environments** (`envs/dev`, `envs/staging`, `envs/prod`) — each is a **full Terraform config**, with **its own state**, that **consumes** the modules and **reads** the platform via remote state. The only thing that changes from one env to another: its `terraform.tfvars`.
 
 **Folders per environment, not workspaces.** We saw it in the modules guide: workspaces share code and backend, which suits light variants. In a company, for environments that may diverge (sizes, images, secrets, even cloud accounts), we prefer **one folder per env reusing the same modules**. It's more explicit, safer, and it's the pattern a recruiter recognizes. **Know how to justify this choice** — it's a classic interview question.
 
-**The remote-state thread.** The platform applies first and exposes `network_name`/`volume_name`. Each environment declares a `terraform_remote_state` data source that **reads** those outputs and injects them into its modules. Result: a single shared network, **one source of truth**, zero duplication.
+**The remote-state thread.** The platform applies first and exposes `network_name`. Each environment declares a `terraform_remote_state` data source that **reads** that output and injects it into its modules. Result: a single shared network, **one source of truth**, zero duplication.
 :::
 
 :::figure terraform-projet-architecture
-caption_fr: "Schéma 1. La plateforme expose réseau + volume ; chaque environnement (dev/staging/prod) a son state, lit la plateforme par remote state, et instancie le module stack (web+api+db)."
-caption_en: "Figure 1. The platform exposes network + volume; each environment (dev/staging/prod) has its own state, reads the platform via remote state, and instantiates the stack module (web+api+db)."
+caption_fr: "Schéma 1. La plateforme expose le réseau partagé ; chaque environnement (dev/staging/prod) a son state, lit la plateforme par remote state, et instancie le module stack (web+api+db)."
+caption_en: "Figure 1. The platform exposes the shared network; each environment (dev/staging/prod) has its own state, reads the platform via remote state, and instantiates the stack module (web+api+db)."
 :::
 
 :::lang fr
@@ -255,7 +255,8 @@ variable "env" {
 ```hcl
 # modules/service/main.tf
 resource "docker_image" "this" {
-  name = var.image
+  name         = var.image
+  keep_locally = true       # ne pas supprimer l'image au destroy (partagée entre envs) / don't remove the image on destroy (shared across envs)
 }
 
 resource "docker_container" "this" {
@@ -389,13 +390,13 @@ output "summary" {
 ### step-04
 
 :::lang fr
-**Objectif.** Provisionner la **couche plateforme** — le réseau et le volume partagés — et exposer ses sorties.
+**Objectif.** Provisionner la **couche plateforme** — le réseau partagé — et exposer sa sortie.
 
 `platform/main.tf` :
 :::
 
 :::lang en
-**Goal.** Provision the **platform layer** — the shared network and volume — and expose its outputs.
+**Goal.** Provision the **platform layer** — the shared network — and expose its output.
 
 `platform/main.tf`:
 :::
@@ -413,12 +414,7 @@ resource "docker_network" "shared" {
   name = "brownfield-net"
 }
 
-resource "docker_volume" "data" {
-  name = "brownfield-data"
-}
-
 output "network_name" { value = docker_network.shared.name }
-output "volume_name"  { value = docker_volume.data.name }
 ```
 
 ```bash
@@ -430,11 +426,11 @@ cd ..
 ```
 
 :::lang fr
-**✅ Vérification :** `terraform output` (dans `platform/`) affiche `network_name = "brownfield-net"` et `volume_name = "brownfield-data"`. `docker network ls | grep brownfield-net` confirme la création. **La plateforme est le socle** : elle s'applique **une fois**, avant tout environnement, et publie le contrat que les envs consommeront.
+**✅ Vérification :** `terraform output` (dans `platform/`) affiche `network_name = "brownfield-net"`. `docker network ls | grep brownfield-net` confirme la création. **La plateforme est le socle** : elle s'applique **une fois**, avant tout environnement, et publie le contrat que les envs consommeront.
 :::
 
 :::lang en
-**✅ Check:** `terraform output` (in `platform/`) shows `network_name = "brownfield-net"` and `volume_name = "brownfield-data"`. `docker network ls | grep brownfield-net` confirms creation. **The platform is the foundation**: it applies **once**, before any environment, and publishes the contract the envs will consume.
+**✅ Check:** `terraform output` (in `platform/`) shows `network_name = "brownfield-net"`. `docker network ls | grep brownfield-net` confirms creation. **The platform is the foundation**: it applies **once**, before any environment, and publishes the contract the envs will consume.
 :::
 
 ### step-05
@@ -589,7 +585,7 @@ done
     # (dev/staging/prod) isolés, en local via le provider Docker.
     #
     # Architecture
-    # - platform/        : réseau + volume partagés (applique en premier)
+    # - platform/        : réseau partagé (applique en premier)
     # - modules/service  : conteneur paramétrable réutilisable
     # - modules/stack    : compose web + api + db
     # - envs/{dev,staging,prod} : une config par env, state isolé,
@@ -624,9 +620,9 @@ Add an `architecture.md` with a **diagram**. A simple **Mermaid** diagram is eno
 :::
 
     graph TD
-      P[platform: réseau + volume] -->|remote_state outputs| D[env dev]
-      P -->|remote_state outputs| S[env staging]
-      P -->|remote_state outputs| PR[env prod]
+      P[platform: réseau partagé] -->|remote_state output| D[env dev]
+      P -->|remote_state output| S[env staging]
+      P -->|remote_state output| PR[env prod]
       D --> M[modules: stack -> service x3]
       S --> M
       PR --> M
@@ -722,7 +718,7 @@ done
 Ton livrable est prêt pour un CV quand…
 
 - [ ] Le dépôt s'ouvre sur un **README** clair (quoi, pourquoi, comment) et un **schéma**.
-- [ ] La **plateforme** s'applique seule et expose réseau + volume en outputs.
+- [ ] La **plateforme** s'applique seule et expose le réseau partagé en output.
 - [ ] Les **trois environnements** montent, isolés, et ne diffèrent que par leur `.tfvars`.
 - [ ] Chaque env **lit** la plateforme via `terraform_remote_state` (aucune duplication).
 - [ ] `terraform plan` est **vide** après apply (reproductible, sans dérive).
@@ -736,7 +732,7 @@ Sept cases cochées = tu ne présentes pas un exercice, tu présentes une **infr
 Your deliverable is CV-ready when…
 
 - [ ] The repo opens on a clear **README** (what, why, how) and a **diagram**.
-- [ ] The **platform** applies on its own and exposes network + volume as outputs.
+- [ ] The **platform** applies on its own and exposes the shared network as an output.
 - [ ] The **three environments** come up, isolated, and differ only by their `.tfvars`.
 - [ ] Each env **reads** the platform via `terraform_remote_state` (no duplication).
 - [ ] `terraform plan` is **empty** after apply (reproducible, no drift).
@@ -769,14 +765,14 @@ You've completed the **Terraform → Associate** track, project included. To go 
 :::lang fr
 - [Structurer un projet Terraform](https://developer.hashicorp.com/terraform/language/modules/develop/structure) — conventions de dépôt.
 - [Standard module structure](https://developer.hashicorp.com/terraform/language/modules/develop/structure) et [remote state](https://developer.hashicorp.com/terraform/language/state/remote-state-data).
-- [Provider Docker (kreuzwerker)](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) — ressources `docker_container`, `docker_network`, `docker_volume`.
+- [Provider Docker (kreuzwerker)](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) — ressources `docker_container`, `docker_network`, `docker_image`.
 - [Diagrammes Mermaid sur GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams) — pour ton `architecture.md`.
 :::
 
 :::lang en
 - [Structuring a Terraform project](https://developer.hashicorp.com/terraform/language/modules/develop/structure) — repo conventions.
 - [Standard module structure](https://developer.hashicorp.com/terraform/language/modules/develop/structure) and [remote state](https://developer.hashicorp.com/terraform/language/state/remote-state-data).
-- [Docker provider (kreuzwerker)](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) — `docker_container`, `docker_network`, `docker_volume` resources.
+- [Docker provider (kreuzwerker)](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) — `docker_container`, `docker_network`, `docker_image` resources.
 - [Mermaid diagrams on GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams) — for your `architecture.md`.
 :::
 
