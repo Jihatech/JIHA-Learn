@@ -19,7 +19,7 @@ last_review: "2026-08-12"
 
 # — Relations de parcours (par id) —
 prerequisites: [ansible-administration-systeme]
-next: []
+next: [terraform-fondamentaux]
 
 # — Concepts travaillés (pour cartes & SEO) —
 concepts_fr: [architecture-3-tiers, inventaire-multi-groupes, roles-reutilisables, secrets-vault, templates-hostvars, orchestration-site-yml, livrable-cv]
