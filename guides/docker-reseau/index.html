@@ -280,10 +280,10 @@ docker exec c1 ping -c 2 &quot;$IP2&quot;                     # MARCHE : par IP 
   <span class="step-num" data-lang="fr">Étape 03</span>
   <span class="step-num" data-lang="en">Step 03</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>bridge utilisateur</strong> et résoudre les conteneurs <strong>par nom</strong>.</p>
-<p><strong>🤔 Le DNS interne.</strong> Sur un réseau <strong>que tu crées</strong>, Docker active un résolveur. Crée le réseau et relance-y les conteneurs :</p>
+<p><strong>🤔 Le DNS interne.</strong> Sur un réseau <strong>que tu crées</strong>, Docker active un résolveur. Crée le réseau, lance-y un service <code>web</code>, et joins-le depuis un conteneur client du même réseau :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Create a <strong>user bridge</strong> and resolve containers <strong>by name</strong>.</p>
-<p><strong>🤔 The internal DNS.</strong> On a network <strong>you create</strong>, Docker enables a resolver. Create the network and relaunch the containers on it:</p>
+<p><strong>🤔 The internal DNS.</strong> On a network <strong>you create</strong>, Docker enables a resolver. Create the network, launch a <code>web</code> service on it, and reach it from a client container on the same network:</p>
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create appnet                       # bridge utilisateur (DNS interne activé) / user bridge (internal DNS)
 docker run -d --name web --network appnet nginx:1.27-alpine
@@ -323,8 +323,8 @@ docker port web-pub                              # récapitule les publications 
 <div data-lang="en"><p><strong>Goal.</strong> Compare the <strong><code>host</code></strong> and <strong><code>none</code></strong> networks.</p>
 <p><strong>🤔 Two extremes.</strong> <code>host</code> = <strong>no</strong> network isolation; <code>none</code> = <strong>no</strong> network. Observe:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm --network host alpine ip -br addr    # VOIT les interfaces de l&#39;HÔTE / SEES the HOST&#39;s interfaces
-docker run --rm --network none alpine ip -br addr    # ne voit QUE lo / sees ONLY lo</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm --network host alpine ip addr    # VOIT les interfaces de l&#39;HÔTE / SEES the HOST&#39;s interfaces
+docker run --rm --network none alpine ip addr    # ne voit QUE lo / sees ONLY lo</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> avec <strong><code>--network host</code></strong>, <code>ip addr</code> dans le conteneur affiche <strong>les interfaces de l&#39;hôte</strong> (<code>eth0</code>, etc.) — le conteneur <strong>partage la pile réseau</strong> de la machine (son port 80 EST le port 80 de l&#39;hôte, sans <code>-p</code>). Avec <strong><code>--network none</code></strong>, il ne reste que <strong><code>lo</code></strong> (127.0.0.1) : <strong>zéro</strong> connectivité externe — l&#39;isolation maximale. Usages : <code>host</code> pour la <strong>performance</strong> (pas de NAT) ou un outil réseau ; <code>none</code> pour un traitement <strong>hors-ligne</strong> qui ne doit rien joindre. <em>(Sur Docker Desktop macOS/Windows, <code>host</code> est limité — Docker tourne dans une VM ; c&#39;est pleinement natif sur Linux.)</em></p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> with <strong><code>--network host</code></strong>, <code>ip addr</code> in the container shows <strong>the host&#39;s interfaces</strong> (<code>eth0</code>, etc.) — the container <strong>shares the machine&#39;s network stack</strong> (its port 80 IS the host&#39;s port 80, no <code>-p</code> needed). With <strong><code>--network none</code></strong>, only <strong><code>lo</code></strong> (127.0.0.1) remains: <strong>zero</strong> external connectivity — maximum isolation. Uses: <code>host</code> for <strong>performance</strong> (no NAT) or a network tool; <code>none</code> for <strong>offline</strong> processing that must reach nothing. <em>(On Docker Desktop macOS/Windows, <code>host</code> is limited — Docker runs in a VM; it&#39;s fully native on Linux.)</em></p>

@@ -219,13 +219,13 @@ docker exec c1 ping -c 2 "$IP2"                     # MARCHE : par IP / WORKS: b
 :::lang fr
 **Objectif.** Créer un **bridge utilisateur** et résoudre les conteneurs **par nom**.
 
-**🤔 Le DNS interne.** Sur un réseau **que tu crées**, Docker active un résolveur. Crée le réseau et relance-y les conteneurs :
+**🤔 Le DNS interne.** Sur un réseau **que tu crées**, Docker active un résolveur. Crée le réseau, lance-y un service `web`, et joins-le depuis un conteneur client du même réseau :
 :::
 
 :::lang en
 **Goal.** Create a **user bridge** and resolve containers **by name**.
 
-**🤔 The internal DNS.** On a network **you create**, Docker enables a resolver. Create the network and relaunch the containers on it:
+**🤔 The internal DNS.** On a network **you create**, Docker enables a resolver. Create the network, launch a `web` service on it, and reach it from a client container on the same network:
 :::
 
 ```bash
@@ -285,8 +285,8 @@ docker port web-pub                              # récapitule les publications 
 :::
 
 ```bash
-docker run --rm --network host alpine ip -br addr    # VOIT les interfaces de l'HÔTE / SEES the HOST's interfaces
-docker run --rm --network none alpine ip -br addr    # ne voit QUE lo / sees ONLY lo
+docker run --rm --network host alpine ip addr    # VOIT les interfaces de l'HÔTE / SEES the HOST's interfaces
+docker run --rm --network none alpine ip addr    # ne voit QUE lo / sees ONLY lo
 ```
 
 :::lang fr
