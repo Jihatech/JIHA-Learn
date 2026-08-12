@@ -135,7 +135,7 @@ Dans chaque famille, **deux niveaux d'outils** :
 - **Haut niveau** (`apt`, `dnf`) : il parle aux **dépôts** (des serveurs qui hébergent les paquets), **télécharge** ce qu'il faut et **résout les dépendances** automatiquement. C'est l'outil du quotidien.
 - **Bas niveau** (`dpkg`, `rpm`) : il agit sur **un fichier de paquet** déjà présent et interroge la **base locale** (ce qui est installé). Il **ne résout pas** les dépendances et **ne va pas** sur le réseau. C'est l'outil de diagnostic et d'installation manuelle.
 
-**Les dépôts** sont déclarés dans `/etc/apt/sources.list` et le dossier `/etc/apt/sources.list.d/`. `apt update` **télécharge l'index** de ces dépôts (quoi et quelle version est disponible) — il ne touche à **aucun** paquet installé. `apt upgrade` applique ensuite les mises à jour. Ne confonds jamais les deux.
+**Les dépôts** sont déclarés dans `/etc/apt/sources.list` et le dossier `/etc/apt/sources.list.d/` (Ubuntu 24.04+ y place `ubuntu.sources` au format **deb822**). `apt update` **télécharge l'index** de ces dépôts (quoi et quelle version est disponible) — il ne touche à **aucun** paquet installé. `apt upgrade` applique ensuite les mises à jour. Ne confonds jamais les deux.
 
 **Supprimer vs purger.** `apt remove` retire le logiciel **mais garde ses fichiers de configuration** ; `apt purge` retire **tout, config comprise**. Distinction classique de l'examen.
 
@@ -213,29 +213,31 @@ tree --version               # confirme l'installation / confirm install
 :::lang fr
 **Objectif.** Distinguer **`remove`**, **`purge`** et **`autoremove`**.
 
-**🤔 La config survit à `remove`.** Installe un paquet **avec** de la configuration (`cowsay`), retire-le de deux façons, et observe la différence.
+**🤔 La config survit à `remove`.** On prend un paquet qui pose un **fichier de configuration** dans `/etc` — l'éditeur `nano` (il installe `/etc/nanorc`). Retire-le de deux façons et observe la différence. *(Un paquet **sans** conffile, comme `cowsay`, ne laisse **aucune** trace `rc` — d'où le choix de `nano`.)*
 :::
 
 :::lang en
 **Goal.** Distinguish **`remove`**, **`purge`** and **`autoremove`**.
 
-**🤔 Config survives `remove`.** Install a package **with** configuration, remove it two ways, and observe the difference.
+**🤔 Config survives `remove`.** We take a package that lays down a **configuration file** under `/etc` — the `nano` editor (it installs `/etc/nanorc`). Remove it two ways and observe the difference. *(A package **without** a conffile, like `cowsay`, leaves **no** `rc` trace — hence the choice of `nano`.)*
 :::
 
 ```bash
-sudo apt install -y cowsay
-sudo apt remove -y cowsay              # retire le binaire, GARDE la config / removes the binary, KEEPS config
-dpkg -l cowsay | tail -1               # état "rc" = removed, config restante / "rc" = removed, config left
-sudo apt purge -y cowsay               # retire TOUT, config comprise / removes EVERYTHING, config too
+sudo apt install -y nano
+sudo apt remove -y nano                # retire le binaire, GARDE /etc/nanorc / removes the binary, KEEPS /etc/nanorc
+dpkg -l nano | tail -1                 # état "rc" = removed, config restante / "rc" = removed, config left
+ls -l /etc/nanorc                      # la config est TOUJOURS là / the config is STILL there
+sudo apt purge -y nano                 # retire TOUT, /etc/nanorc compris / removes EVERYTHING, /etc/nanorc too
+sudo apt install -y nano               # on le remet (éditeur utile !) / reinstall it (useful editor!)
 sudo apt autoremove -y                 # nettoie les dépendances devenues orphelines / clean orphaned deps
 ```
 
 :::lang fr
-**✅ Vérification :** après `remove`, `dpkg -l cowsay` montre l'état **`rc`** (`r`emoved, config `c` restante) — le logiciel est parti mais **sa config est là**. Après `purge`, le paquet disparaît **totalement** de la liste. `autoremove` supprime les dépendances installées automatiquement qui ne servent plus à personne. C'est la trilogie de nettoyage attendue à l'examen : **remove** (garde la config), **purge** (tout), **autoremove** (les orphelins).
+**✅ Vérification :** après `remove`, `dpkg -l nano` montre l'état **`rc`** (`r`emoved, config `c` restante) et `ls -l /etc/nanorc` **existe encore** — le logiciel est parti mais **sa config est là**. Après `purge`, le paquet disparaît **totalement** (et `/etc/nanorc` avec lui). `autoremove` supprime les dépendances installées automatiquement qui ne servent plus à personne. C'est la trilogie de nettoyage attendue à l'examen : **remove** (garde la config), **purge** (tout), **autoremove** (les orphelins).
 :::
 
 :::lang en
-**✅ Check:** after `remove`, `dpkg -l cowsay` shows state **`rc`** (`r`emoved, config `c` left) — the software is gone but **its config remains**. After `purge`, the package disappears **entirely** from the list. `autoremove` deletes automatically-installed dependencies no one needs anymore. That's the cleanup trilogy the exam expects: **remove** (keeps config), **purge** (everything), **autoremove** (orphans).
+**✅ Check:** after `remove`, `dpkg -l nano` shows state **`rc`** (`r`emoved, config `c` left) and `ls -l /etc/nanorc` **still exists** — the software is gone but **its config remains**. After `purge`, the package disappears **entirely** (and `/etc/nanorc` with it). `autoremove` deletes automatically-installed dependencies no one needs anymore. That's the cleanup trilogy the exam expects: **remove** (keeps config), **purge** (everything), **autoremove** (orphans).
 :::
 
 ### step-03
@@ -271,18 +273,23 @@ dpkg -l | grep tree          # est-il installé, et en quelle version ? / instal
 :::lang fr
 **Objectif.** Comprendre les **dépôts** et **figer** une version.
 
-**🤔 D'où viennent les paquets.** Les dépôts sont listés dans `/etc/apt/sources.list` et `/etc/apt/sources.list.d/`. Regarde-les, puis fige un paquet :
+**🤔 D'où viennent les paquets.** Les dépôts sont déclarés dans `/etc/apt/sources.list` **et/ou** `/etc/apt/sources.list.d/`. **Attention au format** : Ubuntu **24.04+** utilise le format **deb822** (fichier `ubuntu.sources`, champs `Types:/URIs:/Suites:`), tandis que les versions plus anciennes (et Debian) utilisent des lignes `deb …` dans `sources.list`. Regarde selon ton cas, puis fige un paquet :
 :::
 
 :::lang en
 **Goal.** Understand **repositories** and **pin** a version.
 
-**🤔 Where packages come from.** Repositories are listed in `/etc/apt/sources.list` and `/etc/apt/sources.list.d/`. Look at them, then pin a package:
+**🤔 Where packages come from.** Repositories are declared in `/etc/apt/sources.list` **and/or** `/etc/apt/sources.list.d/`. **Mind the format**: Ubuntu **24.04+** uses the **deb822** format (`ubuntu.sources` file, `Types:/URIs:/Suites:` fields), while older releases (and Debian) use `deb …` lines in `sources.list`. Look at whichever applies to you, then pin a package:
 :::
 
 ```bash
-grep -vE '^\s*#|^\s*$' /etc/apt/sources.list      # les dépôts actifs / the active repos
-ls /etc/apt/sources.list.d/                        # dépôts additionnels (PPA, éditeurs) / extra repos
+apt policy                         # vue des dépôts & priorités — marche PARTOUT / repos & priorities — works EVERYWHERE
+ls /etc/apt/sources.list.d/        # dépôts additionnels (PPA, éditeurs) / extra repos
+
+# Ubuntu 24.04+ (deb822) :
+grep -E '^(Types|URIs|Suites):' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null
+# Anciennes Ubuntu / Debian (lignes deb) :
+grep -vE '^\s*#|^\s*$' /etc/apt/sources.list 2>/dev/null
 
 sudo apt-mark hold tree            # GÈLE tree : les upgrade le sauteront / FREEZE tree: upgrades skip it
 apt-mark showhold                  # liste les paquets gelés / list held packages
@@ -290,11 +297,11 @@ sudo apt-mark unhold tree          # dégèle / unfreeze
 ```
 
 :::lang fr
-**✅ Vérification :** `grep` sur `sources.list` montre les lignes `deb …` (les dépôts d'où `apt` tire les paquets). Après `apt-mark hold tree`, `apt-mark showhold` liste **`tree`** — il est **figé** : un `sudo apt upgrade` ne le mettrait plus à jour, même si une nouvelle version existe. `unhold` le libère. C'est le mécanisme pour **verrouiller une version** critique (base de données, noyau) en production.
+**✅ Vérification :** `apt policy` liste tes dépôts (URL + priorités) sur **toutes** les versions ; selon ta distro, l'un des deux `grep` affiche tes dépôts (deb822 `Types:/URIs:/Suites:` sur 24.04, ou lignes `deb …` sur les versions plus anciennes). Après `apt-mark hold tree`, `apt-mark showhold` liste **`tree`** — il est **figé** : un `sudo apt upgrade` ne le mettrait plus à jour, même si une nouvelle version existe. `unhold` le libère. C'est le mécanisme pour **verrouiller une version** critique (base de données, noyau) en production.
 :::
 
 :::lang en
-**✅ Check:** `grep` on `sources.list` shows the `deb …` lines (the repos `apt` pulls packages from). After `apt-mark hold tree`, `apt-mark showhold` lists **`tree`** — it's **frozen**: a `sudo apt upgrade` would no longer update it, even if a new version exists. `unhold` releases it. That's the mechanism to **lock a critical version** (database, kernel) in production.
+**✅ Check:** `apt policy` lists your repos (URL + priorities) on **all** versions; depending on your distro, one of the two `grep`s shows your repos (deb822 `Types:/URIs:/Suites:` on 24.04, or `deb …` lines on older releases). After `apt-mark hold tree`, `apt-mark showhold` lists **`tree`** — it's **frozen**: a `sudo apt upgrade` would no longer update it, even if a new version exists. `unhold` releases it. That's the mechanism to **lock a critical version** (database, kernel) in production.
 :::
 
 ### step-05
@@ -483,7 +490,9 @@ dnf search|info|install|remove|upgrade ;  rpm -qa|-ql|-qf|-i
 ./configure && make && sudo make install     # dernier recours / last resort
 
 # Dépôts / repos
-/etc/apt/sources.list  +  /etc/apt/sources.list.d/
+apt policy                                    # marche partout / works everywhere
+/etc/apt/sources.list.d/ubuntu.sources        # Ubuntu 24.04+ (deb822)
+/etc/apt/sources.list                         # anciennes Ubuntu / Debian (lignes deb)
 ```
 
 ## resources

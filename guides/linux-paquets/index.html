@@ -218,7 +218,7 @@
 <ul><li><strong>Debian</strong> (Debian, Ubuntu, Mint…) : paquets <strong><code>.deb</code></strong>, gérés par <code>apt</code>/<code>dpkg</code>.</li><li><strong>RHEL</strong> (RHEL, Fedora, Rocky, CentOS…) : paquets <strong><code>.rpm</code></strong>, gérés par <code>dnf</code>/<code>rpm</code>.</li></ul>
 <p>Dans chaque famille, <strong>deux niveaux d&#39;outils</strong> :</p>
 <ul><li><strong>Haut niveau</strong> (<code>apt</code>, <code>dnf</code>) : il parle aux <strong>dépôts</strong> (des serveurs qui hébergent les paquets), <strong>télécharge</strong> ce qu&#39;il faut et <strong>résout les dépendances</strong> automatiquement. C&#39;est l&#39;outil du quotidien.</li><li><strong>Bas niveau</strong> (<code>dpkg</code>, <code>rpm</code>) : il agit sur <strong>un fichier de paquet</strong> déjà présent et interroge la <strong>base locale</strong> (ce qui est installé). Il <strong>ne résout pas</strong> les dépendances et <strong>ne va pas</strong> sur le réseau. C&#39;est l&#39;outil de diagnostic et d&#39;installation manuelle.</li></ul>
-<p><strong>Les dépôts</strong> sont déclarés dans <code>/etc/apt/sources.list</code> et le dossier <code>/etc/apt/sources.list.d/</code>. <code>apt update</code> <strong>télécharge l&#39;index</strong> de ces dépôts (quoi et quelle version est disponible) — il ne touche à <strong>aucun</strong> paquet installé. <code>apt upgrade</code> applique ensuite les mises à jour. Ne confonds jamais les deux.</p>
+<p><strong>Les dépôts</strong> sont déclarés dans <code>/etc/apt/sources.list</code> et le dossier <code>/etc/apt/sources.list.d/</code> (Ubuntu 24.04+ y place <code>ubuntu.sources</code> au format <strong>deb822</strong>). <code>apt update</code> <strong>télécharge l&#39;index</strong> de ces dépôts (quoi et quelle version est disponible) — il ne touche à <strong>aucun</strong> paquet installé. <code>apt upgrade</code> applique ensuite les mises à jour. Ne confonds jamais les deux.</p>
 <p><strong>Supprimer vs purger.</strong> <code>apt remove</code> retire le logiciel <strong>mais garde ses fichiers de configuration</strong> ; <code>apt purge</code> retire <strong>tout, config comprise</strong>. Distinction classique de l&#39;examen.</p>
 <p><strong>Figer une version.</strong> Parfois tu ne veux <strong>pas</strong> qu&#39;un paquet soit mis à jour (compatibilité). <code>apt-mark hold</code> le <strong>gèle</strong> : les <code>upgrade</code> le sautent, jusqu&#39;au <code>unhold</code>.</p>
 <p><strong>La compilation depuis les sources</strong> (hors gestionnaire) : quand un logiciel n&#39;est dans aucun dépôt, on récupère son <strong>code source</strong> (un <code>.tar.gz</code>), et on fait <code>./configure</code> (vérifie l&#39;environnement) → <code>make</code> (compile) → <code>sudo make install</code> (installe). Le gestionnaire de paquets <strong>ne connaît pas</strong> ce logiciel — à toi de le suivre.</p>
@@ -274,19 +274,21 @@ tree --version               # confirme l&#39;installation / confirm install</co
   <span class="step-num" data-lang="fr">Étape 02</span>
   <span class="step-num" data-lang="en">Step 02</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Distinguer <strong><code>remove</code></strong>, <strong><code>purge</code></strong> et <strong><code>autoremove</code></strong>.</p>
-<p><strong>🤔 La config survit à <code>remove</code>.</strong> Installe un paquet <strong>avec</strong> de la configuration (<code>cowsay</code>), retire-le de deux façons, et observe la différence.</p>
+<p><strong>🤔 La config survit à <code>remove</code>.</strong> On prend un paquet qui pose un <strong>fichier de configuration</strong> dans <code>/etc</code> — l&#39;éditeur <code>nano</code> (il installe <code>/etc/nanorc</code>). Retire-le de deux façons et observe la différence. <em>(Un paquet <strong>sans</strong> conffile, comme <code>cowsay</code>, ne laisse <strong>aucune</strong> trace <code>rc</code> — d&#39;où le choix de <code>nano</code>.)</em></p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Distinguish <strong><code>remove</code></strong>, <strong><code>purge</code></strong> and <strong><code>autoremove</code></strong>.</p>
-<p><strong>🤔 Config survives <code>remove</code>.</strong> Install a package <strong>with</strong> configuration, remove it two ways, and observe the difference.</p>
+<p><strong>🤔 Config survives <code>remove</code>.</strong> We take a package that lays down a <strong>configuration file</strong> under <code>/etc</code> — the <code>nano</code> editor (it installs <code>/etc/nanorc</code>). Remove it two ways and observe the difference. <em>(A package <strong>without</strong> a conffile, like <code>cowsay</code>, leaves <strong>no</strong> <code>rc</code> trace — hence the choice of <code>nano</code>.)</em></p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y cowsay
-sudo apt remove -y cowsay              # retire le binaire, GARDE la config / removes the binary, KEEPS config
-dpkg -l cowsay | tail -1               # état &quot;rc&quot; = removed, config restante / &quot;rc&quot; = removed, config left
-sudo apt purge -y cowsay               # retire TOUT, config comprise / removes EVERYTHING, config too
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y nano
+sudo apt remove -y nano                # retire le binaire, GARDE /etc/nanorc / removes the binary, KEEPS /etc/nanorc
+dpkg -l nano | tail -1                 # état &quot;rc&quot; = removed, config restante / &quot;rc&quot; = removed, config left
+ls -l /etc/nanorc                      # la config est TOUJOURS là / the config is STILL there
+sudo apt purge -y nano                 # retire TOUT, /etc/nanorc compris / removes EVERYTHING, /etc/nanorc too
+sudo apt install -y nano               # on le remet (éditeur utile !) / reinstall it (useful editor!)
 sudo apt autoremove -y                 # nettoie les dépendances devenues orphelines / clean orphaned deps</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>remove</code>, <code>dpkg -l cowsay</code> montre l&#39;état <strong><code>rc</code></strong> (<code>r</code>emoved, config <code>c</code> restante) — le logiciel est parti mais <strong>sa config est là</strong>. Après <code>purge</code>, le paquet disparaît <strong>totalement</strong> de la liste. <code>autoremove</code> supprime les dépendances installées automatiquement qui ne servent plus à personne. C&#39;est la trilogie de nettoyage attendue à l&#39;examen : <strong>remove</strong> (garde la config), <strong>purge</strong> (tout), <strong>autoremove</strong> (les orphelins).</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>remove</code>, <code>dpkg -l nano</code> montre l&#39;état <strong><code>rc</code></strong> (<code>r</code>emoved, config <code>c</code> restante) et <code>ls -l /etc/nanorc</code> <strong>existe encore</strong> — le logiciel est parti mais <strong>sa config est là</strong>. Après <code>purge</code>, le paquet disparaît <strong>totalement</strong> (et <code>/etc/nanorc</code> avec lui). <code>autoremove</code> supprime les dépendances installées automatiquement qui ne servent plus à personne. C&#39;est la trilogie de nettoyage attendue à l&#39;examen : <strong>remove</strong> (garde la config), <strong>purge</strong> (tout), <strong>autoremove</strong> (les orphelins).</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> after <code>remove</code>, <code>dpkg -l cowsay</code> shows state <strong><code>rc</code></strong> (<code>r</code>emoved, config <code>c</code> left) — the software is gone but <strong>its config remains</strong>. After <code>purge</code>, the package disappears <strong>entirely</strong> from the list. <code>autoremove</code> deletes automatically-installed dependencies no one needs anymore. That&#39;s the cleanup trilogy the exam expects: <strong>remove</strong> (keeps config), <strong>purge</strong> (everything), <strong>autoremove</strong> (orphans).</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>remove</code>, <code>dpkg -l nano</code> shows state <strong><code>rc</code></strong> (<code>r</code>emoved, config <code>c</code> left) and <code>ls -l /etc/nanorc</code> <strong>still exists</strong> — the software is gone but <strong>its config remains</strong>. After <code>purge</code>, the package disappears <strong>entirely</strong> (and <code>/etc/nanorc</code> with it). <code>autoremove</code> deletes automatically-installed dependencies no one needs anymore. That&#39;s the cleanup trilogy the exam expects: <strong>remove</strong> (keeps config), <strong>purge</strong> (everything), <strong>autoremove</strong> (orphans).</p>
 </div>
 
 </div>
@@ -314,20 +316,25 @@ dpkg -l | grep tree          # est-il installé, et en quelle version ? / instal
   <span class="step-num" data-lang="fr">Étape 04</span>
   <span class="step-num" data-lang="en">Step 04</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>dépôts</strong> et <strong>figer</strong> une version.</p>
-<p><strong>🤔 D&#39;où viennent les paquets.</strong> Les dépôts sont listés dans <code>/etc/apt/sources.list</code> et <code>/etc/apt/sources.list.d/</code>. Regarde-les, puis fige un paquet :</p>
+<p><strong>🤔 D&#39;où viennent les paquets.</strong> Les dépôts sont déclarés dans <code>/etc/apt/sources.list</code> <strong>et/ou</strong> <code>/etc/apt/sources.list.d/</code>. <strong>Attention au format</strong> : Ubuntu <strong>24.04+</strong> utilise le format <strong>deb822</strong> (fichier <code>ubuntu.sources</code>, champs <code>Types:/URIs:/Suites:</code>), tandis que les versions plus anciennes (et Debian) utilisent des lignes <code>deb …</code> dans <code>sources.list</code>. Regarde selon ton cas, puis fige un paquet :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Understand <strong>repositories</strong> and <strong>pin</strong> a version.</p>
-<p><strong>🤔 Where packages come from.</strong> Repositories are listed in <code>/etc/apt/sources.list</code> and <code>/etc/apt/sources.list.d/</code>. Look at them, then pin a package:</p>
+<p><strong>🤔 Where packages come from.</strong> Repositories are declared in <code>/etc/apt/sources.list</code> <strong>and/or</strong> <code>/etc/apt/sources.list.d/</code>. <strong>Mind the format</strong>: Ubuntu <strong>24.04+</strong> uses the <strong>deb822</strong> format (<code>ubuntu.sources</code> file, <code>Types:/URIs:/Suites:</code> fields), while older releases (and Debian) use <code>deb …</code> lines in <code>sources.list</code>. Look at whichever applies to you, then pin a package:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>grep -vE &#39;^\s*#|^\s*$&#39; /etc/apt/sources.list      # les dépôts actifs / the active repos
-ls /etc/apt/sources.list.d/                        # dépôts additionnels (PPA, éditeurs) / extra repos
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>apt policy                         # vue des dépôts &amp; priorités — marche PARTOUT / repos &amp; priorities — works EVERYWHERE
+ls /etc/apt/sources.list.d/        # dépôts additionnels (PPA, éditeurs) / extra repos
+
+# Ubuntu 24.04+ (deb822) :
+grep -E &#39;^(Types|URIs|Suites):&#39; /etc/apt/sources.list.d/ubuntu.sources 2&gt;/dev/null
+# Anciennes Ubuntu / Debian (lignes deb) :
+grep -vE &#39;^\s*#|^\s*$&#39; /etc/apt/sources.list 2&gt;/dev/null
 
 sudo apt-mark hold tree            # GÈLE tree : les upgrade le sauteront / FREEZE tree: upgrades skip it
 apt-mark showhold                  # liste les paquets gelés / list held packages
 sudo apt-mark unhold tree          # dégèle / unfreeze</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>grep</code> sur <code>sources.list</code> montre les lignes <code>deb …</code> (les dépôts d&#39;où <code>apt</code> tire les paquets). Après <code>apt-mark hold tree</code>, <code>apt-mark showhold</code> liste <strong><code>tree</code></strong> — il est <strong>figé</strong> : un <code>sudo apt upgrade</code> ne le mettrait plus à jour, même si une nouvelle version existe. <code>unhold</code> le libère. C&#39;est le mécanisme pour <strong>verrouiller une version</strong> critique (base de données, noyau) en production.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apt policy</code> liste tes dépôts (URL + priorités) sur <strong>toutes</strong> les versions ; selon ta distro, l&#39;un des deux <code>grep</code> affiche tes dépôts (deb822 <code>Types:/URIs:/Suites:</code> sur 24.04, ou lignes <code>deb …</code> sur les versions plus anciennes). Après <code>apt-mark hold tree</code>, <code>apt-mark showhold</code> liste <strong><code>tree</code></strong> — il est <strong>figé</strong> : un <code>sudo apt upgrade</code> ne le mettrait plus à jour, même si une nouvelle version existe. <code>unhold</code> le libère. C&#39;est le mécanisme pour <strong>verrouiller une version</strong> critique (base de données, noyau) en production.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>grep</code> on <code>sources.list</code> shows the <code>deb …</code> lines (the repos <code>apt</code> pulls packages from). After <code>apt-mark hold tree</code>, <code>apt-mark showhold</code> lists <strong><code>tree</code></strong> — it&#39;s <strong>frozen</strong>: a <code>sudo apt upgrade</code> would no longer update it, even if a new version exists. <code>unhold</code> releases it. That&#39;s the mechanism to <strong>lock a critical version</strong> (database, kernel) in production.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apt policy</code> lists your repos (URL + priorities) on <strong>all</strong> versions; depending on your distro, one of the two <code>grep</code>s shows your repos (deb822 <code>Types:/URIs:/Suites:</code> on 24.04, or <code>deb …</code> lines on older releases). After <code>apt-mark hold tree</code>, <code>apt-mark showhold</code> lists <strong><code>tree</code></strong> — it&#39;s <strong>frozen</strong>: a <code>sudo apt upgrade</code> would no longer update it, even if a new version exists. <code>unhold</code> releases it. That&#39;s the mechanism to <strong>lock a critical version</strong> (database, kernel) in production.</p>
 </div>
 
 </div>
@@ -477,7 +484,9 @@ dnf search|info|install|remove|upgrade ;  rpm -qa|-ql|-qf|-i
 ./configure &amp;&amp; make &amp;&amp; sudo make install     # dernier recours / last resort
 
 # Dépôts / repos
-/etc/apt/sources.list  +  /etc/apt/sources.list.d/</code></pre>
+apt policy                                    # marche partout / works everywhere
+/etc/apt/sources.list.d/ubuntu.sources        # Ubuntu 24.04+ (deb822)
+/etc/apt/sources.list                         # anciennes Ubuntu / Debian (lignes deb)</code></pre>
 </section>
 
 <section id="resources">
