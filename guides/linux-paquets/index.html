@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — gestion des paquets &amp; logiciels — jiha.tech</title>
+  <title data-lang="en">Linux — package &amp; software management — jiha.tech</title>
+  <meta name="description" content="La gestion des paquets Linux au niveau LPIC-1 : apt et dpkg (famille Debian) en profondeur — chercher, installer, purger, lister les fichiers d&#39;un paquet, trouver le paquet d&#39;un fichier, gérer les dépôts et figer une version — plus l&#39;équivalent dnf/rpm (famille RHEL) et la compilation depuis les sources." data-lang="fr">
+  <meta name="description" content="Linux package management at LPIC-1 level: apt and dpkg (Debian family) in depth — search, install, purge, list a package&#39;s files, find a file&#39;s package, manage repositories and pin a version — plus the dnf/rpm equivalent (RHEL family) and building from source." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — gestion des paquets &amp; logiciels">
+  <meta property="og:description" content="La gestion des paquets Linux au niveau LPIC-1 : apt et dpkg (famille Debian) en profondeur — chercher, installer, purger, lister les fichiers d&#39;un paquet, trouver le paquet d&#39;un fichier, gérer les dépôts et figer une version — plus l&#39;équivalent dnf/rpm (famille RHEL) et la compilation depuis les sources.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-paquets/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-paquets/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-paquets">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-paquets</div>
+    <div class="prompt" data-lang="en">~/guides/linux-paquets</div>
+    <h1 data-lang="fr">Linux — gestion des paquets &amp; logiciels</h1>
+    <h1 data-lang="en">Linux — package &amp; software management</h1>
+    <p class="tagline" data-lang="fr">apt, dpkg, dépôts, versions, dnf/rpm, sources.</p>
+    <p class="tagline" data-lang="en">apt, dpkg, repos, versions, dnf/rpm, source.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 160 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 160 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Sur un serveur, <strong>tout logiciel arrive par un paquet</strong> : le service web, la base de données, tes outils. Savoir les <strong>installer</strong> est le minimum ; l&#39;examen <strong>LPIC-1</strong> attend bien plus : <em>quel paquet possède ce fichier ? quels fichiers ce paquet a-t-il posés ? comment figer une version ? d&#39;où viennent les paquets (dépôts) ? et comment fait-on sur un système Red Hat qui ne connaît pas <code>apt</code> ?</em></p>
+<p>Ce guide couvre la <strong>gestion des paquets</strong> en profondeur, telle que LPIC-1 la teste. Sur la <strong>famille Debian</strong> (Ubuntu/Debian), tu manipules l&#39;outil <strong>haut niveau <code>apt</code></strong> (résout les dépendances, parle aux dépôts) <strong>et</strong> l&#39;outil <strong>bas niveau <code>dpkg</code></strong> (agit sur un <code>.deb</code>, interroge la base locale). Tu apprends à gérer les <strong>dépôts</strong> et à <strong>figer une version</strong>. Puis on couvre la <strong>famille RHEL</strong> (<code>dnf</code>/<code>rpm</code>) — que l&#39;examen exige de connaître — et la <strong>compilation depuis les sources</strong>.</p>
+<p>On travaille sur <strong>ta propre machine Ubuntu</strong> (native, WSL2, ou VM Multipass, comme au guide fondamentaux). La partie <code>dnf</code>/<code>rpm</code> est présentée en <strong>référence d&#39;examen</strong> (tu la pratiqueras sur un système Red Hat ou un conteneur Fedora quand tu auras vu Docker).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as le guide <strong>Linux fondamentaux</strong> et tu vises <strong>LPIC-1</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas te déplacer dans l&#39;arborescence ni lire des permissions → reviens aux fondamentaux.</li><li>Tu veux gérer utilisateurs, disques ou systemd → ce sont les guides suivants de la track.</li></ul>
+</div>
+<div data-lang="en"><p>On a server, <strong>all software arrives as a package</strong>: the web service, the database, your tools. Knowing how to <strong>install</strong> them is the bare minimum; the <strong>LPIC-1</strong> exam expects much more: <em>which package owns this file? which files did this package lay down? how do you pin a version? where do packages come from (repositories)? and how do you do it on a Red Hat system that doesn&#39;t know <code>apt</code>?</em></p>
+<p>This guide covers <strong>package management</strong> in depth, the way LPIC-1 tests it. On the <strong>Debian family</strong> (Ubuntu/Debian), you handle the <strong>high-level <code>apt</code></strong> tool (resolves dependencies, talks to repositories) <strong>and</strong> the <strong>low-level <code>dpkg</code></strong> tool (acts on a <code>.deb</code>, queries the local database). You learn to manage <strong>repositories</strong> and to <strong>pin a version</strong>. Then we cover the <strong>RHEL family</strong> (<code>dnf</code>/<code>rpm</code>) — which the exam requires — and <strong>building from source</strong>.</p>
+<p>We work on <strong>your own Ubuntu machine</strong> (native, WSL2, or Multipass VM, as in the fundamentals guide). The <code>dnf</code>/<code>rpm</code> part is presented as <strong>exam reference</strong> (you&#39;ll practice it on a Red Hat system or a Fedora container once you&#39;ve seen Docker).</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>Linux fundamentals</strong> guide and you&#39;re aiming for <strong>LPIC-1</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t navigate the filesystem or read permissions → go back to the fundamentals.</li><li>You want to manage users, disks or systemd → those are the next guides in the track.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Distinguer l&#39;outil <strong>haut niveau</strong> (<code>apt</code>) du <strong>bas niveau</strong> (<code>dpkg</code>) et savoir lequel utiliser.</li><li><strong>Chercher</strong>, <strong>installer</strong>, <strong>supprimer</strong> vs <strong>purger</strong>, et nettoyer les dépendances orphelines.</li><li>Interroger la base locale : <strong>quels fichiers</strong> un paquet a posés (<code>dpkg -L</code>), <strong>quel paquet</strong> possède un fichier (<code>dpkg -S</code>).</li><li>Comprendre les <strong>dépôts</strong> (<code>sources.list</code>, <code>sources.list.d</code>) et rafraîchir l&#39;index.</li><li><strong>Figer</strong> une version d&#39;un paquet (<code>apt-mark hold</code>).</li><li>Traduire vers la <strong>famille RHEL</strong> : <code>dnf</code>/<code>rpm</code> (référence d&#39;examen).</li><li>Comprendre la <strong>compilation depuis les sources</strong> (<code>./configure &amp;&amp; make &amp;&amp; make install</code>).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Tell the <strong>high-level</strong> tool (<code>apt</code>) from the <strong>low-level</strong> one (<code>dpkg</code>) and know which to use.</li><li><strong>Search</strong>, <strong>install</strong>, <strong>remove</strong> vs <strong>purge</strong>, and clean up orphaned dependencies.</li><li>Query the local database: <strong>which files</strong> a package laid down (<code>dpkg -L</code>), <strong>which package</strong> owns a file (<code>dpkg -S</code>).</li><li>Understand <strong>repositories</strong> (<code>sources.list</code>, <code>sources.list.d</code>) and refresh the index.</li><li><strong>Pin</strong> a package version (<code>apt-mark hold</code>).</li><li>Translate to the <strong>RHEL family</strong>: <code>dnf</code>/<code>rpm</code> (exam reference).</li><li>Understand <strong>building from source</strong> (<code>./configure &amp;&amp; make &amp;&amp; make install</code>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Linux fondamentaux</strong> acquis.</li><li>Un système <strong>Ubuntu/Debian</strong> avec <code>sudo</code> : natif, <strong>WSL2</strong>, ou une <strong>VM Multipass</strong> (<code>multipass launch --name lab</code> puis <code>multipass shell lab</code>).</li></ul>
+<p>Rafraîchis d&#39;abord l&#39;<strong>index des paquets</strong> (la liste de ce qui est disponible dans les dépôts) :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Linux fundamentals</strong> guide under your belt.</li><li>An <strong>Ubuntu/Debian</strong> system with <code>sudo</code>: native, <strong>WSL2</strong>, or a <strong>Multipass VM</strong> (<code>multipass launch --name lab</code> then <code>multipass shell lab</code>).</li></ul>
+<p>First refresh the <strong>package index</strong> (the list of what&#39;s available in the repositories):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt update            # met à jour l&#39;index, PAS les paquets / updates the index, NOT the packages</code></pre>
+<div data-lang="fr"><p><em>(La famille RHEL — <code>dnf</code>/<code>rpm</code> — est en <strong>référence</strong> dans ce guide ; tu n&#39;as pas besoin d&#39;un système Red Hat pour le suivre.)</em></p>
+</div>
+<div data-lang="en"><p><em>(The RHEL family — <code>dnf</code>/<code>rpm</code> — is <strong>reference</strong> in this guide; you don&#39;t need a Red Hat system to follow it.)</em></p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-fondamentaux/">
+    <span class="num">02</span>
+    <span class="title-line" data-lang="fr">Linux — les fondamentaux</span>
+    <span class="title-line" data-lang="en">Linux — the fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Un <strong>paquet</strong> est une archive qui contient un logiciel <strong>plus</strong> ses métadonnées : sa version, ses <strong>dépendances</strong> (les autres paquets qu&#39;il lui faut), et la liste des fichiers qu&#39;il installe. Deux grandes familles se partagent le monde Linux :</p>
+<ul><li><strong>Debian</strong> (Debian, Ubuntu, Mint…) : paquets <strong><code>.deb</code></strong>, gérés par <code>apt</code>/<code>dpkg</code>.</li><li><strong>RHEL</strong> (RHEL, Fedora, Rocky, CentOS…) : paquets <strong><code>.rpm</code></strong>, gérés par <code>dnf</code>/<code>rpm</code>.</li></ul>
+<p>Dans chaque famille, <strong>deux niveaux d&#39;outils</strong> :</p>
+<ul><li><strong>Haut niveau</strong> (<code>apt</code>, <code>dnf</code>) : il parle aux <strong>dépôts</strong> (des serveurs qui hébergent les paquets), <strong>télécharge</strong> ce qu&#39;il faut et <strong>résout les dépendances</strong> automatiquement. C&#39;est l&#39;outil du quotidien.</li><li><strong>Bas niveau</strong> (<code>dpkg</code>, <code>rpm</code>) : il agit sur <strong>un fichier de paquet</strong> déjà présent et interroge la <strong>base locale</strong> (ce qui est installé). Il <strong>ne résout pas</strong> les dépendances et <strong>ne va pas</strong> sur le réseau. C&#39;est l&#39;outil de diagnostic et d&#39;installation manuelle.</li></ul>
+<p><strong>Les dépôts</strong> sont déclarés dans <code>/etc/apt/sources.list</code> et le dossier <code>/etc/apt/sources.list.d/</code>. <code>apt update</code> <strong>télécharge l&#39;index</strong> de ces dépôts (quoi et quelle version est disponible) — il ne touche à <strong>aucun</strong> paquet installé. <code>apt upgrade</code> applique ensuite les mises à jour. Ne confonds jamais les deux.</p>
+<p><strong>Supprimer vs purger.</strong> <code>apt remove</code> retire le logiciel <strong>mais garde ses fichiers de configuration</strong> ; <code>apt purge</code> retire <strong>tout, config comprise</strong>. Distinction classique de l&#39;examen.</p>
+<p><strong>Figer une version.</strong> Parfois tu ne veux <strong>pas</strong> qu&#39;un paquet soit mis à jour (compatibilité). <code>apt-mark hold</code> le <strong>gèle</strong> : les <code>upgrade</code> le sautent, jusqu&#39;au <code>unhold</code>.</p>
+<p><strong>La compilation depuis les sources</strong> (hors gestionnaire) : quand un logiciel n&#39;est dans aucun dépôt, on récupère son <strong>code source</strong> (un <code>.tar.gz</code>), et on fait <code>./configure</code> (vérifie l&#39;environnement) → <code>make</code> (compile) → <code>sudo make install</code> (installe). Le gestionnaire de paquets <strong>ne connaît pas</strong> ce logiciel — à toi de le suivre.</p>
+</div>
+<div data-lang="en"><p>A <strong>package</strong> is an archive containing software <strong>plus</strong> its metadata: its version, its <strong>dependencies</strong> (the other packages it needs), and the list of files it installs. Two big families share the Linux world:</p>
+<ul><li><strong>Debian</strong> (Debian, Ubuntu, Mint…): <strong><code>.deb</code></strong> packages, managed by <code>apt</code>/<code>dpkg</code>.</li><li><strong>RHEL</strong> (RHEL, Fedora, Rocky, CentOS…): <strong><code>.rpm</code></strong> packages, managed by <code>dnf</code>/<code>rpm</code>.</li></ul>
+<p>In each family, <strong>two tool levels</strong>:</p>
+<ul><li><strong>High-level</strong> (<code>apt</code>, <code>dnf</code>): it talks to <strong>repositories</strong> (servers hosting packages), <strong>downloads</strong> what&#39;s needed and <strong>resolves dependencies</strong> automatically. The everyday tool.</li><li><strong>Low-level</strong> (<code>dpkg</code>, <code>rpm</code>): it acts on <strong>one package file</strong> already present and queries the <strong>local database</strong> (what&#39;s installed). It <strong>doesn&#39;t resolve</strong> dependencies and <strong>doesn&#39;t go</strong> to the network. The diagnostics and manual-install tool.</li></ul>
+<p><strong>Repositories</strong> are declared in <code>/etc/apt/sources.list</code> and the <code>/etc/apt/sources.list.d/</code> folder. <code>apt update</code> <strong>downloads the index</strong> of those repos (what and which version is available) — it touches <strong>no</strong> installed package. <code>apt upgrade</code> then applies updates. Never confuse the two.</p>
+<p><strong>Remove vs purge.</strong> <code>apt remove</code> removes the software <strong>but keeps its configuration files</strong>; <code>apt purge</code> removes <strong>everything, config included</strong>. A classic exam distinction.</p>
+<p><strong>Pinning a version.</strong> Sometimes you <strong>don&#39;t</strong> want a package upgraded (compatibility). <code>apt-mark hold</code> <strong>freezes</strong> it: <code>upgrade</code>s skip it, until <code>unhold</code>.</p>
+<p><strong>Building from source</strong> (outside the manager): when software isn&#39;t in any repo, you fetch its <strong>source code</strong> (a <code>.tar.gz</code>), and do <code>./configure</code> (checks the environment) → <code>make</code> (compiles) → <code>sudo make install</code> (installs). The package manager <strong>doesn&#39;t know</strong> this software — it&#39;s on you to maintain it.</p>
+</div>
+
+<figure class="schema" id="figure-linux-package-levels">
+  <p>[schema "linux-package-levels" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> apt (haut niveau) parle aux dépôts et résout les dépendances ; dpkg (bas niveau) agit sur un .deb et la base locale. Idem dnf/rpm côté RHEL.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> apt (high level) talks to repos and resolves dependencies; dpkg (low level) acts on a .deb and the local database. Same for dnf/rpm on RHEL.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : apt (chercher/installer/purger) → dpkg (fichiers &amp; appartenance) → dépôts → figer une version → dnf/rpm (référence) → sources.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: apt (search/install/purge) → dpkg (files &amp; ownership) → repositories → pin a version → dnf/rpm (reference) → source.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Utiliser <strong><code>apt</code></strong> : chercher, afficher, installer.</p>
+<p><strong>🤔 <code>apt</code> vs <code>apt-get</code>.</strong> <code>apt</code> est l&#39;interface moderne (barre de progression, sortie lisible) ; <code>apt-get</code>/<code>apt-cache</code> sont les commandes historiques, stables pour les scripts. Pour l&#39;humain : <code>apt</code>. Installe un petit utilitaire de démo, <code>tree</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Use <strong><code>apt</code></strong>: search, show, install.</p>
+<p><strong>🤔 <code>apt</code> vs <code>apt-get</code>.</strong> <code>apt</code> is the modern interface (progress bar, readable output); <code>apt-get</code>/<code>apt-cache</code> are the historical commands, stable for scripts. For a human: <code>apt</code>. Install a small demo utility, <code>tree</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>apt search &#39;^tree$&#39;          # cherche le paquet dans l&#39;index / search the index
+apt show tree                # version, dépendances, description / version, deps, description
+sudo apt install -y tree
+tree --version               # confirme l&#39;installation / confirm install</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apt show tree</code> affiche la fiche du paquet (version, taille, dépendances) <strong>avant</strong> installation, puis <code>sudo apt install</code> le pose et <code>tree --version</code> répond. <code>apt</code> a résolu et téléchargé ce qu&#39;il fallait depuis les dépôts, sans que tu gères une seule dépendance à la main. Retiens : <strong><code>search</code></strong> trouve, <strong><code>show</code></strong> décrit, <strong><code>install</code></strong> pose.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apt show tree</code> prints the package sheet (version, size, dependencies) <strong>before</strong> installing, then <code>sudo apt install</code> lays it down and <code>tree --version</code> answers. <code>apt</code> resolved and downloaded what was needed from the repos, without you handling a single dependency by hand. Remember: <strong><code>search</code></strong> finds, <strong><code>show</code></strong> describes, <strong><code>install</code></strong> installs.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Distinguer <strong><code>remove</code></strong>, <strong><code>purge</code></strong> et <strong><code>autoremove</code></strong>.</p>
+<p><strong>🤔 La config survit à <code>remove</code>.</strong> Installe un paquet <strong>avec</strong> de la configuration (<code>cowsay</code>), retire-le de deux façons, et observe la différence.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Distinguish <strong><code>remove</code></strong>, <strong><code>purge</code></strong> and <strong><code>autoremove</code></strong>.</p>
+<p><strong>🤔 Config survives <code>remove</code>.</strong> Install a package <strong>with</strong> configuration, remove it two ways, and observe the difference.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y cowsay
+sudo apt remove -y cowsay              # retire le binaire, GARDE la config / removes the binary, KEEPS config
+dpkg -l cowsay | tail -1               # état &quot;rc&quot; = removed, config restante / &quot;rc&quot; = removed, config left
+sudo apt purge -y cowsay               # retire TOUT, config comprise / removes EVERYTHING, config too
+sudo apt autoremove -y                 # nettoie les dépendances devenues orphelines / clean orphaned deps</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>remove</code>, <code>dpkg -l cowsay</code> montre l&#39;état <strong><code>rc</code></strong> (<code>r</code>emoved, config <code>c</code> restante) — le logiciel est parti mais <strong>sa config est là</strong>. Après <code>purge</code>, le paquet disparaît <strong>totalement</strong> de la liste. <code>autoremove</code> supprime les dépendances installées automatiquement qui ne servent plus à personne. C&#39;est la trilogie de nettoyage attendue à l&#39;examen : <strong>remove</strong> (garde la config), <strong>purge</strong> (tout), <strong>autoremove</strong> (les orphelins).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>remove</code>, <code>dpkg -l cowsay</code> shows state <strong><code>rc</code></strong> (<code>r</code>emoved, config <code>c</code> left) — the software is gone but <strong>its config remains</strong>. After <code>purge</code>, the package disappears <strong>entirely</strong> from the list. <code>autoremove</code> deletes automatically-installed dependencies no one needs anymore. That&#39;s the cleanup trilogy the exam expects: <strong>remove</strong> (keeps config), <strong>purge</strong> (everything), <strong>autoremove</strong> (orphans).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Interroger la base locale avec <strong><code>dpkg</code></strong> : lister les fichiers d&#39;un paquet, et trouver le paquet d&#39;un fichier.</p>
+<p><strong>🤔 Le bas niveau répond « qui » et « quoi ».</strong> <code>apt</code> installe ; <code>dpkg</code> <strong>enquête</strong>. Deux questions d&#39;examen quasi garanties :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Query the local database with <strong><code>dpkg</code></strong>: list a package&#39;s files, and find a file&#39;s package.</p>
+<p><strong>🤔 The low level answers &quot;who&quot; and &quot;what&quot;.</strong> <code>apt</code> installs; <code>dpkg</code> <strong>investigates</strong>. Two nearly guaranteed exam questions:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>dpkg -L tree                 # QUELS fichiers le paquet tree a-t-il posés ? / WHICH files did tree install?
+dpkg -S /usr/bin/tree        # QUEL paquet possède ce fichier ? / WHICH package owns this file?
+dpkg -l | grep tree          # est-il installé, et en quelle version ? / installed, and what version?</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>dpkg -L tree</code> liste tous les fichiers posés par le paquet (dont <code>/usr/bin/tree</code> et sa page de manuel), et <code>dpkg -S /usr/bin/tree</code> répond <code>tree: /usr/bin/tree</code> — il <strong>remonte</strong> du fichier au paquet. Ces deux commandes sont l&#39;inverse l&#39;une de l&#39;autre : <strong><code>-L</code></strong> (paquet → fichiers), <strong><code>-S</code></strong> (fichier → paquet). Indispensables pour diagnostiquer « d&#39;où vient ce binaire ? ».</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>dpkg -L tree</code> lists all files the package laid down (including <code>/usr/bin/tree</code> and its man page), and <code>dpkg -S /usr/bin/tree</code> answers <code>tree: /usr/bin/tree</code> — it <strong>traces back</strong> from file to package. The two commands are inverses: <strong><code>-L</code></strong> (package → files), <strong><code>-S</code></strong> (file → package). Essential to diagnose &quot;where did this binary come from?&quot;.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>dépôts</strong> et <strong>figer</strong> une version.</p>
+<p><strong>🤔 D&#39;où viennent les paquets.</strong> Les dépôts sont listés dans <code>/etc/apt/sources.list</code> et <code>/etc/apt/sources.list.d/</code>. Regarde-les, puis fige un paquet :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>repositories</strong> and <strong>pin</strong> a version.</p>
+<p><strong>🤔 Where packages come from.</strong> Repositories are listed in <code>/etc/apt/sources.list</code> and <code>/etc/apt/sources.list.d/</code>. Look at them, then pin a package:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>grep -vE &#39;^\s*#|^\s*$&#39; /etc/apt/sources.list      # les dépôts actifs / the active repos
+ls /etc/apt/sources.list.d/                        # dépôts additionnels (PPA, éditeurs) / extra repos
+
+sudo apt-mark hold tree            # GÈLE tree : les upgrade le sauteront / FREEZE tree: upgrades skip it
+apt-mark showhold                  # liste les paquets gelés / list held packages
+sudo apt-mark unhold tree          # dégèle / unfreeze</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>grep</code> sur <code>sources.list</code> montre les lignes <code>deb …</code> (les dépôts d&#39;où <code>apt</code> tire les paquets). Après <code>apt-mark hold tree</code>, <code>apt-mark showhold</code> liste <strong><code>tree</code></strong> — il est <strong>figé</strong> : un <code>sudo apt upgrade</code> ne le mettrait plus à jour, même si une nouvelle version existe. <code>unhold</code> le libère. C&#39;est le mécanisme pour <strong>verrouiller une version</strong> critique (base de données, noyau) en production.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>grep</code> on <code>sources.list</code> shows the <code>deb …</code> lines (the repos <code>apt</code> pulls packages from). After <code>apt-mark hold tree</code>, <code>apt-mark showhold</code> lists <strong><code>tree</code></strong> — it&#39;s <strong>frozen</strong>: a <code>sudo apt upgrade</code> would no longer update it, even if a new version exists. <code>unhold</code> releases it. That&#39;s the mechanism to <strong>lock a critical version</strong> (database, kernel) in production.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Traduire vers la <strong>famille RHEL</strong> (<code>dnf</code>/<code>rpm</code>) — la référence d&#39;examen.</p>
+<p><strong>🤔 Même logique, autres commandes.</strong> LPIC-1 exige de connaître <strong>les deux</strong> familles. La structure est identique (haut niveau <code>dnf</code> qui résout, bas niveau <code>rpm</code> qui enquête) ; seuls les mots changent. Ce tableau est à <strong>mémoriser</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Translate to the <strong>RHEL family</strong> (<code>dnf</code>/<code>rpm</code>) — the exam reference.</p>
+<p><strong>🤔 Same logic, other commands.</strong> LPIC-1 requires knowing <strong>both</strong> families. The structure is identical (high-level <code>dnf</code> that resolves, low-level <code>rpm</code> that investigates); only the words change. This table is to be <strong>memorized</strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Debian (apt/dpkg)              # RHEL (dnf/rpm)                  # rôle / role
+apt update                       # (dnf vérifie à chaque appel)    # rafraîchir l&#39;index / refresh index
+apt search motif                 dnf search motif                 # chercher / search
+apt show paquet                  dnf info paquet                  # décrire / describe
+sudo apt install paquet          sudo dnf install paquet          # installer / install
+sudo apt remove paquet           sudo dnf remove paquet           # supprimer / remove
+sudo apt upgrade                 sudo dnf upgrade                 # mettre à jour / upgrade
+dpkg -l                          rpm -qa                          # tout ce qui est installé / all installed
+dpkg -L paquet                   rpm -ql paquet                   # fichiers du paquet / package&#39;s files
+dpkg -S /chemin/fichier          rpm -qf /chemin/fichier          # paquet d&#39;un fichier / file&#39;s package
+sudo dpkg -i fichier.deb         sudo rpm -i fichier.rpm          # installer un fichier local / install a local file</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>traduire</strong> chaque opération d&#39;une famille à l&#39;autre : <code>apt install</code>↔<code>dnf install</code>, <code>dpkg -L</code>↔<code>rpm -ql</code>, <code>dpkg -S</code>↔<code>rpm -qf</code>, <code>dpkg -l</code>↔<code>rpm -qa</code>. Tu retiens la symétrie <strong>haut niveau réseau/dépendances</strong> (<code>apt</code>/<code>dnf</code>) vs <strong>bas niveau fichier/base locale</strong> (<code>dpkg</code>/<code>rpm</code>). <em>(Pour pratiquer <code>dnf</code> en vrai : un système Fedora/Rocky, ou un conteneur <code>fedora</code> une fois le guide Docker fait.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>translate</strong> each operation between families: <code>apt install</code>↔<code>dnf install</code>, <code>dpkg -L</code>↔<code>rpm -ql</code>, <code>dpkg -S</code>↔<code>rpm -qf</code>, <code>dpkg -l</code>↔<code>rpm -qa</code>. You hold the symmetry <strong>high-level network/dependencies</strong> (<code>apt</code>/<code>dnf</code>) vs <strong>low-level file/local-database</strong> (<code>dpkg</code>/<code>rpm</code>). <em>(To practice <code>dnf</code> for real: a Fedora/Rocky system, or a <code>fedora</code> container once you&#39;ve done the Docker guide.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>compilation depuis les sources</strong> — la voie hors gestionnaire.</p>
+<p><strong>🤔 Quand aucun paquet n&#39;existe.</strong> Certains logiciels ne sont dans <strong>aucun</strong> dépôt : il faut compiler leur <strong>code source</strong>. Le trio universel : <code>./configure</code> → <code>make</code> → <code>make install</code>. Installe d&#39;abord les <strong>outils de compilation</strong>, puis observe le motif (sans forcément aller au bout) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>building from source</strong> — the outside-the-manager path.</p>
+<p><strong>🤔 When no package exists.</strong> Some software is in <strong>no</strong> repository: you must compile its <strong>source code</strong>. The universal trio: <code>./configure</code> → <code>make</code> → <code>make install</code>. First install the <strong>build tools</strong>, then observe the pattern (without necessarily finishing):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y build-essential   # gcc, make, en-têtes… / gcc, make, headers…
+
+# Le motif universel (sur un tarball source décompressé) :
+# The universal pattern (on an unpacked source tarball):
+#   tar xzf logiciel-1.2.3.tar.gz &amp;&amp; cd logiciel-1.2.3
+#   ./configure          # vérifie l&#39;environnement, génère le Makefile / checks env, generates the Makefile
+#   make                 # compile le code source / compiles the source
+#   sudo make install    # copie les binaires (souvent dans /usr/local) / copies binaries (often /usr/local)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>build-essential</code> installé, tu sais réciter et expliquer le trio <strong><code>./configure</code> → <code>make</code> → <code>sudo make install</code></strong> : <code>configure</code> vérifie les dépendances et prépare le <code>Makefile</code>, <code>make</code> compile, <code>make install</code> copie (typiquement sous <code>/usr/local</code>, hors du contrôle d&#39;<code>apt</code>). Point crucial d&#39;examen : un logiciel <strong>compilé à la main n&#39;est pas suivi</strong> par le gestionnaire de paquets (pas de mise à jour, pas de désinstallation propre) — c&#39;est le dernier recours, pas la norme.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> with <code>build-essential</code> installed, you can recite and explain the trio <strong><code>./configure</code> → <code>make</code> → <code>sudo make install</code></strong>: <code>configure</code> checks dependencies and prepares the <code>Makefile</code>, <code>make</code> compiles, <code>make install</code> copies (typically under <code>/usr/local</code>, outside <code>apt</code>&#39;s control). Key exam point: hand-compiled software <strong>is not tracked</strong> by the package manager (no updates, no clean uninstall) — it&#39;s the last resort, not the norm.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Confondre <code>apt update</code> et <code>apt upgrade</code>.</strong> <code>update</code> rafraîchit l&#39;<strong>index</strong> (rien d&#39;installé ne change) ; <code>upgrade</code> applique les <strong>mises à jour</strong>. Toujours <code>update</code> <strong>avant</strong> <code>install</code>/<code>upgrade</code> pour partir d&#39;un index frais.</p>
+<p><strong>2. <code>remove</code> en croyant tout enlever.</strong> <code>remove</code> <strong>garde la config</strong> (état <code>rc</code>). Pour un nettoyage total → <code>purge</code>.</p>
+<p><strong>3. Oublier <code>autoremove</code>.</strong> Les dépendances tirées automatiquement restent après suppression du paquet principal → système encombré. <code>apt autoremove</code> de temps en temps.</p>
+<p><strong>4. Utiliser <code>dpkg -i</code> pour un paquet à dépendances.</strong> <code>dpkg</code> <strong>ne résout pas</strong> les dépendances : <code>dpkg -i</code> échoue si elles manquent. Répare avec <code>sudo apt -f install</code>, ou utilise <code>apt install ./fichier.deb</code> (qui, lui, résout).</p>
+<p><strong>5. Croire que <code>dpkg</code>/<code>rpm</code> vont sur le réseau.</strong> Non : ils agissent en <strong>local</strong> (fichier + base installée). Pour télécharger et résoudre → <code>apt</code>/<code>dnf</code>.</p>
+<p><strong>6. Oublier <code>sudo</code>.</strong> Installer/supprimer modifie le système → <code>sudo</code> requis. <code>search</code>/<code>show</code>/<code>dpkg -L</code> sont en lecture seule (pas de <code>sudo</code>).</p>
+<p><strong>7. Compiler par défaut.</strong> <code>make install</code> pose des fichiers <strong>hors</strong> du gestionnaire : ni mises à jour, ni désinstallation propre. Cherche <strong>toujours</strong> un paquet d&#39;abord ; compile en dernier recours.</p>
+</div>
+<div data-lang="en"><p><strong>1. Confusing <code>apt update</code> and <code>apt upgrade</code>.</strong> <code>update</code> refreshes the <strong>index</strong> (nothing installed changes); <code>upgrade</code> applies <strong>updates</strong>. Always <code>update</code> <strong>before</strong> <code>install</code>/<code>upgrade</code> to start from a fresh index.</p>
+<p><strong>2. <code>remove</code> thinking it removes everything.</strong> <code>remove</code> <strong>keeps config</strong> (state <code>rc</code>). For a full cleanup → <code>purge</code>.</p>
+<p><strong>3. Forgetting <code>autoremove</code>.</strong> Auto-pulled dependencies remain after removing the main package → cluttered system. <code>apt autoremove</code> now and then.</p>
+<p><strong>4. Using <code>dpkg -i</code> for a package with dependencies.</strong> <code>dpkg</code> <strong>doesn&#39;t resolve</strong> dependencies: <code>dpkg -i</code> fails if they&#39;re missing. Fix with <code>sudo apt -f install</code>, or use <code>apt install ./file.deb</code> (which does resolve).</p>
+<p><strong>5. Believing <code>dpkg</code>/<code>rpm</code> go to the network.</strong> No: they act <strong>locally</strong> (file + installed database). To download and resolve → <code>apt</code>/<code>dnf</code>.</p>
+<p><strong>6. Forgetting <code>sudo</code>.</strong> Installing/removing modifies the system → <code>sudo</code> required. <code>search</code>/<code>show</code>/<code>dpkg -L</code> are read-only (no <code>sudo</code>).</p>
+<p><strong>7. Compiling by default.</strong> <code>make install</code> lays files <strong>outside</strong> the manager: no updates, no clean uninstall. <strong>Always</strong> look for a package first; compile as a last resort.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu choisis <strong><code>apt</code></strong> (réseau/dépendances) ou <strong><code>dpkg</code></strong> (fichier/base locale) à bon escient.</li><li>Tu distingues <strong><code>remove</code></strong>, <strong><code>purge</code></strong> et <strong><code>autoremove</code></strong>.</li><li>Tu réponds « quels fichiers ? » (<strong><code>dpkg -L</code></strong>) et « quel paquet ? » (<strong><code>dpkg -S</code></strong>).</li><li>Tu lis un <code>sources.list</code> et tu <strong>figes</strong> une version (<code>apt-mark hold</code>).</li><li>Tu <strong>traduis</strong> chaque commande vers <code>dnf</code>/<code>rpm</code>.</li><li>Tu expliques <code>./configure &amp;&amp; make &amp;&amp; make install</code> et ses limites.</li></ul>
+<p>Six cases cochées = tu tiens la <strong>gestion des paquets</strong> du programme LPIC-1.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You pick <strong><code>apt</code></strong> (network/dependencies) or <strong><code>dpkg</code></strong> (file/local database) appropriately.</li><li>You distinguish <strong><code>remove</code></strong>, <strong><code>purge</code></strong> and <strong><code>autoremove</code></strong>.</li><li>You answer &quot;which files?&quot; (<strong><code>dpkg -L</code></strong>) and &quot;which package?&quot; (<strong><code>dpkg -S</code></strong>).</li><li>You read a <code>sources.list</code> and <strong>pin</strong> a version (<code>apt-mark hold</code>).</li><li>You <strong>translate</strong> each command to <code>dnf</code>/<code>rpm</code>.</li><li>You explain <code>./configure &amp;&amp; make &amp;&amp; make install</code> and its limits.</li></ul>
+<p>Six boxes ticked = you hold LPIC-1 <strong>package management</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Linux → LPIC-1 :</p>
+<ol><li><strong>Utilisateurs, groupes &amp; permissions avancées</strong> — <code>/etc/passwd</code>/<code>shadow</code>, <code>sudo</code>, SUID/SGID/sticky, ACL.</li><li><strong>Systèmes de fichiers, disques &amp; FHS</strong> — partitions, <code>mkfs</code>, <code>fstab</code>, LVM, liens.</li><li><strong>Boot, systemd &amp; processus</strong> — démarrage, units/targets, <code>journalctl</code>, cron/timers.</li><li><strong>Réseau &amp; sécurité système</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, pare-feu, durcissement.</li><li><strong>Scripting shell (bash)</strong> — variables, conditions, boucles, fonctions.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner et durcir un serveur Linux multi-utilisateur.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Linux → LPIC-1 track:</p>
+<ol><li><strong>Users, groups &amp; advanced permissions</strong> — <code>/etc/passwd</code>/<code>shadow</code>, <code>sudo</code>, SUID/SGID/sticky, ACLs.</li><li><strong>Filesystems, disks &amp; FHS</strong> — partitions, <code>mkfs</code>, <code>fstab</code>, LVM, links.</li><li><strong>Boot, systemd &amp; processes</strong> — startup, units/targets, <code>journalctl</code>, cron/timers.</li><li><strong>Networking &amp; system security</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, firewall, hardening.</li><li><strong>Shell scripting (bash)</strong> — variables, conditionals, loops, functions.</li><li><strong>Enterprise project</strong> — provision and harden a multi-user Linux server.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">04</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire gestion des paquets.</p>
+</div>
+<div data-lang="en"><p>Package management cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Debian/Ubuntu — haut niveau (apt) / high level
+sudo apt update                 # rafraîchit l&#39;index / refresh index
+apt search motif ; apt show paquet
+sudo apt install paquet ; sudo apt remove paquet ; sudo apt purge paquet
+sudo apt upgrade ; sudo apt autoremove
+sudo apt-mark hold paquet       # figer / pin  (showhold, unhold)
+
+# Debian/Ubuntu — bas niveau (dpkg) / low level (local)
+dpkg -l [motif]                 # installés / installed
+dpkg -L paquet                  # fichiers du paquet / package&#39;s files
+dpkg -S /chemin                 # paquet d&#39;un fichier / file&#39;s package
+sudo dpkg -i fichier.deb        # (puis sudo apt -f install si dépendances)
+
+# RHEL/Fedora (référence) / reference
+dnf search|info|install|remove|upgrade ;  rpm -qa|-ql|-qf|-i
+
+# Depuis les sources / from source
+./configure &amp;&amp; make &amp;&amp; sudo make install     # dernier recours / last resort
+
+# Dépôts / repos
+/etc/apt/sources.list  +  /etc/apt/sources.list.d/</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://help.ubuntu.com/community/AptGet/Howto">Ubuntu — gestion des paquets</a> et <a href="https://www.debian.org/doc/manuals/debian-reference/ch02.en.html">Debian <code>dpkg</code></a>.</li><li><a href="https://manpages.ubuntu.com/">Pages de manuel</a> : <code>man apt</code>, <code>man dpkg</code>, <code>man apt-mark</code>.</li><li><a href="https://docs.fedoraproject.org/en-US/quick-docs/dnf/">Fedora — DNF</a> et <a href="https://rpm.org/documentation.html">RPM</a>.</li><li>Objectifs <strong>LPIC-1 102.3 à 102.6</strong> (gestion des paquets Debian &amp; RPM).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://help.ubuntu.com/community/AptGet/Howto">Ubuntu — package management</a> and <a href="https://www.debian.org/doc/manuals/debian-reference/ch02.en.html">Debian <code>dpkg</code></a>.</li><li><a href="https://manpages.ubuntu.com/">Man pages</a>: <code>man apt</code>, <code>man dpkg</code>, <code>man apt-mark</code>.</li><li><a href="https://docs.fedoraproject.org/en-US/quick-docs/dnf/">Fedora — DNF</a> and <a href="https://rpm.org/documentation.html">RPM</a>.</li><li><strong>LPIC-1 102.3 to 102.6</strong> objectives (Debian &amp; RPM package management).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>E: Unable to locate package …</code>.</strong> L&#39;index est vieux ou le dépôt manque. Fais <code>sudo apt update</code>, vérifie l&#39;orthographe (<code>apt search</code>), et que le bon dépôt (universe/…) est activé.</p>
+<p><strong><code>dpkg: dependency problems</code> après <code>dpkg -i</code>.</strong> <code>dpkg</code> ne résout pas les dépendances. Répare : <code>sudo apt -f install</code> (installe les manquantes), ou réinstalle via <code>sudo apt install ./fichier.deb</code>.</p>
+<p><strong><code>Could not get lock /var/lib/dpkg/lock-frontend</code>.</strong> Un autre <code>apt</code>/<code>dpkg</code> tourne (ou une MAJ automatique). Attends qu&#39;il finisse, ou identifie le process (<code>ps aux | grep -E &#39;apt|dpkg&#39;</code>).</p>
+<p><strong><code>apt upgrade</code> ne met pas à jour un paquet précis.</strong> Il est peut-être <strong>gelé</strong> : <code>apt-mark showhold</code>. Dégèle avec <code>sudo apt-mark unhold &lt;paquet&gt;</code>.</p>
+<p><strong>Un binaire existe mais <code>dpkg -S</code> ne trouve aucun paquet.</strong> Il a probablement été <strong>compilé depuis les sources</strong> (ou copié à la main) : il est hors du gestionnaire, donc invisible pour <code>dpkg</code>.</p>
+<p><strong><code>sudo apt update</code> renvoie des erreurs <code>NO_PUBKEY</code> / dépôt non signé.</strong> La clé GPG du dépôt manque. Ajoute la clé du dépôt (méthode moderne : un fichier dans <code>/etc/apt/keyrings/</code> référencé par <code>signed-by=</code> dans la ligne du dépôt).</p>
+</div>
+<div data-lang="en"><p><strong><code>E: Unable to locate package …</code>.</strong> The index is stale or the repo is missing. Run <code>sudo apt update</code>, check spelling (<code>apt search</code>), and that the right repo (universe/…) is enabled.</p>
+<p><strong><code>dpkg: dependency problems</code> after <code>dpkg -i</code>.</strong> <code>dpkg</code> doesn&#39;t resolve dependencies. Fix: <code>sudo apt -f install</code> (installs the missing ones), or reinstall via <code>sudo apt install ./file.deb</code>.</p>
+<p><strong><code>Could not get lock /var/lib/dpkg/lock-frontend</code>.</strong> Another <code>apt</code>/<code>dpkg</code> is running (or an automatic update). Wait for it to finish, or find the process (<code>ps aux | grep -E &#39;apt|dpkg&#39;</code>).</p>
+<p><strong><code>apt upgrade</code> won&#39;t update a specific package.</strong> It may be <strong>frozen</strong>: <code>apt-mark showhold</code>. Unfreeze with <code>sudo apt-mark unhold &lt;package&gt;</code>.</p>
+<p><strong>A binary exists but <code>dpkg -S</code> finds no package.</strong> It was probably <strong>built from source</strong> (or copied by hand): it&#39;s outside the manager, so invisible to <code>dpkg</code>.</p>
+<p><strong><code>sudo apt update</code> returns <code>NO_PUBKEY</code> / unsigned repo errors.</strong> The repo&#39;s GPG key is missing. Add the repo&#39;s key (modern method: a file in <code>/etc/apt/keyrings/</code> referenced by <code>signed-by=</code> in the repo line).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
