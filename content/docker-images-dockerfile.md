@@ -191,15 +191,16 @@ CMD ["python", "app.py"]
 EOF
 
 docker build -t demo:v1 .            # premier build : tout s'exécute / first build: everything runs
-touch app.py && docker build -t demo:v2 .   # on "modifie" le code / we "change" the code
+echo "print('encore')" >> app.py     # on MODIFIE LE CONTENU du code / we CHANGE the code CONTENT
+docker build -t demo:v2 .            # rebuild
 ```
 
 :::lang fr
-**✅ Vérification :** au **second** build, comme `COPY app.py` est **avant** le `RUN pip install`, changer le code **invalide** le cache de la couche `COPY` **et** de tout ce qui suit → `pip install` **se réexécute** (tu vois `RUN pip install…` tourner, pas `CACHED`). Inverse l'ordre (`RUN pip install` **avant** `COPY app.py`), rebuild deux fois : la 2ᵉ fois, `pip install` affiche **`CACHED`** et seul le `COPY` re-tourne. **L'ordre des instructions = la vitesse de tes builds.** Règle : dépendances **en haut**, code **en bas**.
+**✅ Vérification :** au **second** build, comme `COPY app.py` est **avant** le `RUN pip install`, **modifier le contenu** de `app.py` **invalide** le cache de la couche `COPY` **et** de tout ce qui suit → `pip install` **se réexécute** (tu vois `RUN pip install…` tourner, pas `CACHED`). *(Important : Docker (BuildKit) met `COPY` en cache sur le **contenu** du fichier — un simple `touch` sans changement ne casse rien ; il faut vraiment modifier le contenu, comme le `echo >>` ci-dessus.)* Inverse l'ordre (`RUN pip install` **avant** `COPY app.py`), rebuild après une nouvelle modif de `app.py` : cette fois `pip install` affiche **`CACHED`** et seul le `COPY` re-tourne. **L'ordre des instructions = la vitesse de tes builds.** Règle : dépendances **en haut**, code **en bas**.
 :::
 
 :::lang en
-**✅ Check:** on the **second** build, since `COPY app.py` is **before** the `RUN pip install`, changing the code **invalidates** the `COPY` layer cache **and** everything after → `pip install` **re-runs** (you see `RUN pip install…` running, not `CACHED`). Reverse the order (`RUN pip install` **before** `COPY app.py`), rebuild twice: the 2nd time, `pip install` shows **`CACHED`** and only the `COPY` re-runs. **Instruction order = your build speed.** Rule: dependencies **at the top**, code **at the bottom**.
+**✅ Check:** on the **second** build, since `COPY app.py` is **before** the `RUN pip install`, **changing the content** of `app.py` **invalidates** the `COPY` layer cache **and** everything after → `pip install` **re-runs** (you see `RUN pip install…` running, not `CACHED`). *(Important: Docker (BuildKit) caches `COPY` on the file's **content** — a plain `touch` with no change busts nothing; you must actually change the content, like the `echo >>` above.)* Reverse the order (`RUN pip install` **before** `COPY app.py`), rebuild after another edit to `app.py`: this time `pip install` shows **`CACHED`** and only the `COPY` re-runs. **Instruction order = your build speed.** Rule: dependencies **at the top**, code **at the bottom**.
 :::
 
 ### step-02
@@ -373,25 +374,26 @@ docker builder prune -f                      # vide le cache de build / clears t
 **🤔 Your own Docker Hub.** The `registry:2` image is a full registry. We run it, **tag** our image for it, **push** it, and **pull** it. Then the offline `save`/`load` alternative.
 :::
 
-```bash
-docker run -d -p 5000:5000 --name registry registry:2      # un registre local sur :5000 / a local registry
+# NB : port hôte 5001 (sur macOS, 5000 est pris par AirPlay Receiver)
+# NB: host port 5001 (on macOS, 5000 is taken by AirPlay Receiver)
+docker run -d -p 5001:5000 --name registry registry:2      # registre local, exposé sur :5001 / local registry on :5001
 
-docker tag t-multi localhost:5000/monapp:1.0               # tag = registre/nom:version / registry/name:version
-docker push localhost:5000/monapp:1.0                       # POUSSE vers le registre / PUSH
-docker rmi localhost:5000/monapp:1.0                        # retire l'image locale / remove local copy
-docker pull localhost:5000/monapp:1.0                       # la RETIRE du registre / PULL it back
+docker tag t-multi localhost:5001/monapp:1.0               # tag = registre/nom:version / registry/name:version
+docker push localhost:5001/monapp:1.0                       # POUSSE vers le registre / PUSH
+docker rmi localhost:5001/monapp:1.0                        # retire le TAG local / drop the local tag
+docker pull localhost:5001/monapp:1.0                       # le restaure depuis le registre / restore it from the registry
 
 # alternative hors-ligne : archive .tar / offline alternative: .tar archive
-docker save t-multi -o t-multi.tar                          # exporte / export
-docker load -i t-multi.tar                                  # réimporte / re-import
+docker save t-multi -o monapp.tar                           # exporte / export
+docker load -i monapp.tar                                   # réimporte / re-import
 ```
 
 :::lang fr
-**✅ Vérification :** `docker push localhost:5000/monapp:1.0` téléverse l'image dans **ton** registre (`registry:2`) ; après avoir supprimé la copie locale, `docker pull` la **récupère** depuis le registre — la boucle **push/pull** complète, comme avec Docker Hub, mais chez toi. Le **tag** encode la destination : `registre/nom:version`. En parallèle, `docker save`/`load` transporte une image en **archive `.tar`** sans aucun réseau (utile en environnement isolé). Tu sais **distribuer** tes images de trois façons : Hub public, registre privé, archive. *(Nettoyage : `docker rm -f registry ; rm -f t-multi.tar`.)*
+**✅ Vérification :** `docker push localhost:5001/monapp:1.0` téléverse l'image dans **ton** registre (`registry:2`) ; après avoir retiré le **tag** local, `docker pull` le **restaure** depuis le registre — la boucle **push/pull** complète, comme avec Docker Hub, mais chez toi. *(Les couches étant déjà présentes localement, le pull affiche « Already exists » : la preuve du round-trip est le push réussi puis le pull sans erreur, pas un re-téléchargement.)* Le **tag** encode la destination : `registre/nom:version`. En parallèle, `docker save`/`load` transporte une image en **archive `.tar`** sans aucun réseau (utile en environnement isolé). Tu sais **distribuer** tes images de trois façons : Hub public, registre privé, archive. *(Nettoyage : `docker rm -f registry ; rm -f monapp.tar`.)*
 :::
 
 :::lang en
-**✅ Check:** `docker push localhost:5000/monapp:1.0` uploads the image to **your** registry (`registry:2`); after deleting the local copy, `docker pull` **retrieves** it from the registry — the full **push/pull** loop, like with Docker Hub, but at home. The **tag** encodes the destination: `registry/name:version`. In parallel, `docker save`/`load` moves an image as a **`.tar` archive** with no network (useful in an isolated environment). You know how to **distribute** your images three ways: public Hub, private registry, archive. *(Cleanup: `docker rm -f registry ; rm -f t-multi.tar`.)*
+**✅ Check:** `docker push localhost:5001/monapp:1.0` uploads the image to **your** registry (`registry:2`); after dropping the local **tag**, `docker pull` **restores** it from the registry — the full **push/pull** loop, like with Docker Hub, but at home. *(Since the layers are already present locally, the pull prints "Already exists": the round-trip proof is the successful push then the error-free pull, not a re-download.)* The **tag** encodes the destination: `registry/name:version`. In parallel, `docker save`/`load` moves an image as a **`.tar` archive** with no network (useful in an isolated environment). You know how to **distribute** your images three ways: public Hub, private registry, archive. *(Cleanup: `docker rm -f registry ; rm -f monapp.tar`.)*
 :::
 
 ## pitfalls
@@ -401,7 +403,7 @@ docker load -i t-multi.tar                                  # réimporte / re-im
 
 **2. Confondre `ENTRYPOINT` et `CMD`.** `CMD` est **entièrement** remplacé par les arguments de `docker run` ; `ENTRYPOINT` reste. Pour un outil, `ENTRYPOINT` ; pour un défaut surchargeable, `CMD`.
 
-**3. Mettre un secret dans un `ARG`/`ENV`.** Les `ARG`/`ENV` finissent dans les **couches** de l'image (visibles via `docker history`). Ne jamais y mettre de mot de passe/clé — utilise les secrets (guide sécurité).
+**3. Mettre un secret dans un `ENV` (ou l'écrire dans une couche).** Une valeur `ENV` est **persistée dans les métadonnées** de l'image (visible via `docker inspect`/`history`) ; un `ARG` qui finit dans un `ENV`, un `RUN echo`, ou un fichier **fuite** aussi dans les couches. Ne jamais y mettre de mot de passe/clé — utilise les **secrets de build** (`RUN --mount=type=secret`) ou les secrets d'exécution (guide sécurité).
 
 **4. `ADD` au lieu de `COPY`.** `ADD` a des comportements magiques (décompression, URL) sources de surprises. Préfère **`COPY`** ; réserve `ADD` à ses cas précis.
 
@@ -417,7 +419,7 @@ docker load -i t-multi.tar                                  # réimporte / re-im
 
 **2. Confusing `ENTRYPOINT` and `CMD`.** `CMD` is **entirely** replaced by `docker run`'s arguments; `ENTRYPOINT` stays. For a tool, `ENTRYPOINT`; for an overridable default, `CMD`.
 
-**3. Putting a secret in an `ARG`/`ENV`.** `ARG`/`ENV` end up in the image **layers** (visible via `docker history`). Never put a password/key there — use secrets (security guide).
+**3. Putting a secret in an `ENV` (or writing it into a layer).** An `ENV` value is **persisted in the image metadata** (visible via `docker inspect`/`history`); an `ARG` that ends up in an `ENV`, a `RUN echo`, or a file also **leaks** into the layers. Never put a password/key there — use **build secrets** (`RUN --mount=type=secret`) or runtime secrets (security guide).
 
 **4. `ADD` instead of `COPY`.** `ADD` has magic behaviors (unpacking, URLs) that cause surprises. Prefer **`COPY`**; reserve `ADD` for its specific cases.
 
@@ -507,7 +509,7 @@ docker image prune -f ; docker builder prune -f
 
 # Distribution
 docker tag IMG registre/nom:tag ; docker push registre/nom:tag ; docker pull ...
-docker run -d -p 5000:5000 registry:2      # registre local / local registry
+docker run -d -p 5001:5000 registry:2      # registre local (5001 : macOS AirPlay tient :5000) / local registry
 docker save IMG -o img.tar ; docker load -i img.tar   # hors-ligne / offline
 ```
 
@@ -538,7 +540,7 @@ docker save IMG -o img.tar ; docker load -i img.tar   # hors-ligne / offline
 
 **L'image finale est énorme.** Tu livres l'étape de build. Utilise un **multi-stage** et une base **slim/alpine**, et un `.dockerignore`.
 
-**`docker push localhost:5000/...` échoue (« http: server gave HTTP response to HTTPS client »).** Pour un registre **non-`localhost`**, Docker exige HTTPS. Sur `localhost` c'est toléré ; sinon configure le registre en `insecure-registries` dans `/etc/docker/daemon.json`.
+**`docker push localhost:5001/...` échoue (« http: server gave HTTP response to HTTPS client »).** Pour un registre **non-`localhost`**, Docker exige HTTPS. Sur `localhost` c'est toléré ; sinon configure le registre en `insecure-registries` dans `/etc/docker/daemon.json`.
 
 **« no space left on device » en buildant.** Cache et images dangling saturent le disque. `docker system prune -af` (attention : supprime tout ce qui n'est pas utilisé) et `docker system df` pour surveiller.
 :::
@@ -552,7 +554,7 @@ docker save IMG -o img.tar ; docker load -i img.tar   # hors-ligne / offline
 
 **The final image is huge.** You're shipping the build stage. Use a **multi-stage** and a **slim/alpine** base, and a `.dockerignore`.
 
-**`docker push localhost:5000/...` fails ("http: server gave HTTP response to HTTPS client").** For a **non-`localhost`** registry, Docker requires HTTPS. On `localhost` it's tolerated; otherwise configure the registry in `insecure-registries` in `/etc/docker/daemon.json`.
+**`docker push localhost:5001/...` fails ("http: server gave HTTP response to HTTPS client").** For a **non-`localhost`** registry, Docker requires HTTPS. On `localhost` it's tolerated; otherwise configure the registry in `insecure-registries` in `/etc/docker/daemon.json`.
 
 **"no space left on device" while building.** Cache and dangling images fill the disk. `docker system prune -af` (careful: removes everything unused) and `docker system df` to monitor.
 :::
