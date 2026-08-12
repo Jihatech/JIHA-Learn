@@ -254,11 +254,11 @@ sudo chage -l alice                 # vérifie le changement / verify the change
 ```
 
 :::lang fr
-**✅ Vérification :** le premier `chage -l alice` montre la politique (souvent « jamais » par défaut) ; après `chage -M 90 -W 7`, `Maximum number of days between password change` passe à **90** et l'avertissement à **7**. Ces valeurs vivent dans `/etc/shadow` (champs de vieillissement). C'est ainsi qu'on impose une **rotation** des mots de passe sur un parc.
+**✅ Vérification :** le premier `chage -l alice` montre la politique par défaut (`Maximum number of days` = **99999**, soit « en pratique jamais » ; les champs d'**expiration** affichent `never`) ; après `chage -M 90 -W 7`, `Maximum number of days between password change` passe à **90** et l'avertissement à **7**. Ces valeurs vivent dans `/etc/shadow` (champs de vieillissement). C'est ainsi qu'on impose une **rotation** des mots de passe sur un parc.
 :::
 
 :::lang en
-**✅ Check:** the first `chage -l alice` shows the policy (often "never" by default); after `chage -M 90 -W 7`, `Maximum number of days between password change` becomes **90** and the warning **7**. These values live in `/etc/shadow` (aging fields). That's how you enforce password **rotation** across a fleet.
+**✅ Check:** the first `chage -l alice` shows the default policy (`Maximum number of days` = **99999**, i.e. "effectively never"; the **expiry** fields read `never`); after `chage -M 90 -W 7`, `Maximum number of days between password change` becomes **90** and the warning **7**. These values live in `/etc/shadow` (aging fields). That's how you enforce password **rotation** across a fleet.
 :::
 
 ### step-04
@@ -354,11 +354,11 @@ ls -l rapport.txt                            # noter le '+' à la fin des permis
 ```
 
 :::lang fr
-**✅ Vérification :** `getfacl rapport.txt` liste une entrée **`user:alice:rw-`** en plus des permissions classiques — `alice` a l'écriture que ni le groupe ni les autres n'ont, **sans** être propriétaire. Le `ls -l` affiche un **`+`** après les droits (`-rw-r-----+`), signal visuel d'une ACL. `bob`, lui, reste soumis aux droits « autres » (aucun). Les ACL = des droits **chirurgicaux**, par utilisateur/groupe nommé, quand les trois niveaux classiques ne suffisent pas.
+**✅ Vérification :** `getfacl rapport.txt` liste une entrée **`user:alice:rw-`** en plus des permissions classiques — `alice` a l'écriture que ni le groupe ni les autres n'ont, **sans** être propriétaire. Le `ls -l` affiche un **`+`** après les droits (`-rw-rw----+`), signal visuel d'une ACL. **⚠️ Le masque ACL :** `ls` affiche `rw-` sur le triplet **groupe** parce qu'il montre le **masque ACL** (créé automatiquement par `setfacl`, il **plafonne** les droits effectifs des entrées ACL), **pas** le vrai droit de groupe — qui reste `group::r--`, visible seulement dans `getfacl`. Ce masque est un concept d'examen LPIC-1. `bob`, lui, n'a ni entrée ACL ni appartenance : il reste soumis aux droits « autres » (aucun). Les ACL = des droits **chirurgicaux**, par utilisateur/groupe nommé, quand les trois niveaux classiques ne suffisent pas.
 :::
 
 :::lang en
-**✅ Check:** `getfacl rapport.txt` lists a **`user:alice:rw-`** entry on top of the classic permissions — `alice` has the write that neither group nor others have, **without** being owner. `ls -l` shows a **`+`** after the rights (`-rw-r-----+`), the visual sign of an ACL. `bob` stays subject to the "others" rights (none). ACLs = **surgical** rights, per named user/group, when the three classic levels aren't enough.
+**✅ Check:** `getfacl rapport.txt` lists a **`user:alice:rw-`** entry on top of the classic permissions — `alice` has the write that neither group nor others have, **without** being owner. `ls -l` shows a **`+`** after the rights (`-rw-rw----+`), the visual sign of an ACL. **⚠️ The ACL mask:** `ls` shows `rw-` on the **group** triad because it displays the **ACL mask** (auto-created by `setfacl`; it **caps** the effective rights of ACL entries), **not** the real group right — which stays `group::r--`, visible only in `getfacl`. This mask is an LPIC-1 exam concept. `bob` has neither an ACL entry nor membership: he stays subject to the "others" rights (none). ACLs = **surgical** rights, per named user/group, when the three classic levels aren't enough.
 :::
 
 ### step-07
@@ -466,7 +466,7 @@ La suite de la track Linux → LPIC-1 :
 4. **Scripting shell (bash)** — variables, conditions, boucles, fonctions.
 5. **Projet d'entreprise** — provisionner et durcir un serveur Linux multi-utilisateur.
 
-**Ménage :** supprime les comptes de test — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs`.
+**Ménage :** supprime les comptes de test et les fichiers créés — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs ; sudo rm -f /etc/sudoers.d/alice ; sudo rm -rf /tmp/partage /tmp/demo.txt /tmp/masked.txt /tmp/rapport.txt`.
 :::
 
 :::lang en
@@ -478,7 +478,7 @@ The rest of the Linux → LPIC-1 track:
 4. **Shell scripting (bash)** — variables, conditionals, loops, functions.
 5. **Enterprise project** — provision and harden a multi-user Linux server.
 
-**Cleanup:** delete the test accounts — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs`.
+**Cleanup:** delete the test accounts and created files — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs ; sudo rm -f /etc/sudoers.d/alice ; sudo rm -rf /tmp/partage /tmp/demo.txt /tmp/masked.txt /tmp/rapport.txt`.
 :::
 
 ## cheatsheet
