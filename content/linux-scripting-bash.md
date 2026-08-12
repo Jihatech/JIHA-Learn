@@ -374,13 +374,13 @@ chmod +x boucles.sh ; ./boucles.sh
 :::lang fr
 **Objectif.** Définir une **fonction** et assembler un **script complet** utile : un **health-check** de serveur.
 
-**🤔 Tout ensemble.** Ce script réunit tout : shebang, arguments, `[[ ]]`, `if`, `for`, une **fonction**, et un **code de sortie** exploitable. Il vérifie l'usage disque et l'état de services (ce que tu as appris au guide systemd). Crée `healthcheck.sh` :
+**🤔 Tout ensemble.** Ce script réunit tout : shebang, arguments, `[[ ]]`, `if`, `for`, une **fonction**, et un **code de sortie** exploitable. Il vérifie l'usage disque et l'état de services (ce que tu as appris au guide systemd). *(Il appelle `systemctl` : lance-le sur un **hôte systemd** — native/Multipass, ou WSL2 avec systemd activé — sinon les vérifications de services échoueront à tort.)* Crée `healthcheck.sh` :
 :::
 
 :::lang en
 **Goal.** Define a **function** and assemble a useful **complete script**: a server **health-check**.
 
-**🤔 All together.** This script brings it all: shebang, arguments, `[[ ]]`, `if`, `for`, a **function**, and a usable **exit code**. It checks disk usage and service states (what you learned in the systemd guide). Create `healthcheck.sh`:
+**🤔 All together.** This script brings it all: shebang, arguments, `[[ ]]`, `if`, `for`, a **function**, and a usable **exit code**. It checks disk usage and service states (what you learned in the systemd guide). *(It calls `systemctl`: run it on a **systemd host** — native/Multipass, or WSL2 with systemd enabled — otherwise the service checks will wrongly fail.)* Create `healthcheck.sh`:
 :::
 
 ```bash
