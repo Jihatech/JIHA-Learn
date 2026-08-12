@@ -326,6 +326,7 @@ docker push localhost:5001/atelier-api:1.0</code></pre>
 <p><strong>🤔 The orchestration base.</strong> Enter Swarm and create the secret the stack will mount:</p>
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker swarm init 2&gt;/dev/null || echo &quot;Swarm déjà actif / already active&quot;
+# (machine multi-IP : docker swarm init --advertise-addr &lt;IP&gt; / multi-IP host: use --advertise-addr)
 printf &#39;jeton-api-de-prod-a-ne-pas-committer&#39; | docker secret create api_token -
 docker secret ls</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker secret ls</code> liste <strong><code>api_token</code></strong> — le secret est stocké <strong>chiffré</strong> dans le cluster (raft). Il <strong>n&#39;apparaît nulle part</strong> en clair : ni dans le dépôt, ni dans l&#39;image, ni dans une <code>ENV</code>. La stack le déclarera <code>external: true</code> (créé hors du fichier) et le montera en <code>/run/secrets/api_token</code>. Tu as posé le <strong>socle Swarm</strong> et la <strong>gestion du secret</strong> — la façon correcte de livrer un secret à une appli conteneurisée.</p>
@@ -404,9 +405,9 @@ docker stack services atelier                 # atelier_api 3/3, atelier_redis 1
 # attends que l&#39;API soit prête / wait for the API to be ready
 for i in $(seq 15); do curl -sf localhost:8080 &gt;/dev/null &amp;&amp; break; sleep 2; done
 curl -s localhost:8080                         # hôte + &quot;secret: présent (...)&quot; / host + secret present</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker stack services atelier</code> affiche <code>atelier_api  replicated  3/3</code> et <code>atelier_redis  1/1</code>. <code>curl localhost:8080</code> renvoie <code>Atelier API v1 — hôte atelier_api.X… — secret: présent (36 octets)</code> : l&#39;API répond via le <strong>routing mesh</strong>, servie par l&#39;une des 3 répliques (le nom d&#39;hôte change d&#39;un appel à l&#39;autre), et elle <strong>lit le secret</strong> monté en <code>/run/secrets/api_token</code> (dont elle rapporte la taille, <strong>sans</strong> l&#39;exposer). Toute la chaîne fonctionne : <strong>code → image → registre → stack orchestrée</strong>, avec secret, réplication et tier de données. Tu as un <strong>déploiement de production</strong> miniature, en une commande.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker stack services atelier</code> affiche <code>atelier_api  replicated  3/3</code> et <code>atelier_redis  1/1</code>. <code>curl localhost:8080</code> renvoie <code>Atelier API v1 — hôte &lt;id-court&gt; — secret: présent (36 octets)</code> (le nom d&#39;hôte est l&#39;<strong>ID court du conteneur</strong>, un hexa qui <strong>change d&#39;un appel à l&#39;autre</strong> selon la réplique qui répond) : l&#39;API répond via le <strong>routing mesh</strong>, servie par l&#39;une des 3 répliques, et elle <strong>lit le secret</strong> monté en <code>/run/secrets/api_token</code> (dont elle rapporte la taille, <strong>sans</strong> l&#39;exposer). Toute la chaîne fonctionne : <strong>code → image → registre → stack orchestrée</strong>, avec secret, réplication et tier de données. Tu as un <strong>déploiement de production</strong> miniature, en une commande.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker stack services atelier</code> shows <code>atelier_api  replicated  3/3</code> and <code>atelier_redis  1/1</code>. <code>curl localhost:8080</code> returns <code>Atelier API v1 — hôte atelier_api.X… — secret: présent (36 octets)</code>: the API answers via the <strong>routing mesh</strong>, served by one of the 3 replicas (the hostname changes between calls), and it <strong>reads the secret</strong> mounted at <code>/run/secrets/api_token</code> (reporting its size, <strong>without</strong> exposing it). The whole chain works: <strong>code → image → registry → orchestrated stack</strong>, with secret, replication and a data tier. You have a miniature <strong>production deployment</strong>, in one command.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker stack services atelier</code> shows <code>atelier_api  replicated  3/3</code> and <code>atelier_redis  1/1</code>. <code>curl localhost:8080</code> returns <code>Atelier API v1 — hôte &lt;short-id&gt; — secret: présent (36 octets)</code> (the hostname is the container&#39;s <strong>short ID</strong>, a hex string that <strong>changes between calls</strong> depending on which replica answers): the API answers via the <strong>routing mesh</strong>, served by one of the 3 replicas, and it <strong>reads the secret</strong> mounted at <code>/run/secrets/api_token</code> (reporting its size, <strong>without</strong> exposing it). The whole chain works: <strong>code → image → registry → orchestrated stack</strong>, with secret, replication and a data tier. You have a miniature <strong>production deployment</strong>, in one command.</p>
 </div>
 
 </div>
@@ -464,7 +465,7 @@ curl -s localhost:8080                                    # -&gt; &quot;Atelier 
 <div data-lang="en"><p><strong>Goal.</strong> Prove <strong>reproducibility</strong>, commit, then clean up.</p>
 <p><strong>🤔 Rebuildable from a repo.</strong> Your stack <strong>replays</strong> with <code>docker stack deploy</code> (idempotent: Swarm applies the diff). Commit the deliverable:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker stack deploy -c stack.yml atelier         # re-déploiement idempotent : &quot;no changes&quot; / idempotent redeploy
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker stack deploy -c stack.yml atelier         # re-déploiement idempotent : Swarm applique le diff (aucune tâche recréée) / idempotent: Swarm applies the diff (no tasks recreated)
 docker stack services atelier                     # toujours 3/3 + 1/1 / still 3/3 + 1/1
 
 cat &gt; .gitignore &lt;&lt;&#39;EOF&#39;
@@ -473,10 +474,10 @@ EOF
 git config user.email &quot;toi@exemple.fr&quot; &amp;&amp; git config user.name &quot;Ton Nom&quot;   # requis sur une machine fraîche / required on a fresh machine
 git add . &amp;&amp; git commit -m &quot;Atelier API : image multi-stage durcie + stack Swarm sécurisée (secret, overlay, rolling update)&quot;</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> un second <code>docker stack deploy</code> ne change rien (l&#39;état voulu est déjà atteint) — <strong>reproductible et idempotent</strong>. Le <code>git commit</code> fige ton livrable (<code>main.go</code>, <code>Dockerfile</code>, <code>stack.yml</code>, <code>README.md</code>). <strong>Pousse le dépôt sur GitHub et mets le lien sur ton CV.</strong></p>
-<p><strong>🧹 Ménage :</strong> <code>docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2&gt;/dev/null ; docker rm -f registry 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
+<p><strong>🧹 Ménage :</strong> <code>docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2&gt;/dev/null ; docker volume rm redis-data 2&gt;/dev/null ; docker rm -f registry 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> a second <code>docker stack deploy</code> changes nothing (the desired state is already reached) — <strong>reproducible and idempotent</strong>. The <code>git commit</code> freezes your deliverable (<code>main.go</code>, <code>Dockerfile</code>, <code>stack.yml</code>, <code>README.md</code>). <strong>Push the repo to GitHub and put the link on your CV.</strong></p>
-<p><strong>🧹 Cleanup:</strong> <code>docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2&gt;/dev/null ; docker rm -f registry 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
+<p><strong>🧹 Cleanup:</strong> <code>docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2&gt;/dev/null ; docker volume rm redis-data 2&gt;/dev/null ; docker rm -f registry 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
 </div>
 
 </div>
@@ -573,7 +574,7 @@ docker service update --image localhost:5001/atelier-api:1.1 atelier_api   # rol
 docker service rollback atelier_api                                         # rollback
 
 # Nettoyage / cleanup
-docker stack rm atelier ; sleep 3 ; docker secret rm api_token ; docker rm -f registry ; docker swarm leave --force</code></pre>
+docker stack rm atelier ; sleep 3 ; docker secret rm api_token ; docker volume rm redis-data ; docker rm -f registry ; docker swarm leave --force</code></pre>
 </section>
 
 <section id="resources">
