@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Kubernetes — projet d&#39;entreprise : appli multi-tier — jiha.tech</title>
+  <title data-lang="en">Kubernetes — enterprise project: multi-tier app — jiha.tech</title>
+  <meta name="description" content="Le projet fil-rouge Kubernetes : déploie une application multi-tier (front Ingress, app podinfo, cache Redis persistant) avec ConfigMap/Secret, PVC, probes, autoscaling HPA et NetworkPolicy — entièrement en local sur k3d, dans un dépôt documenté. Le livrable Kubernetes à présenter sur ton CV." data-lang="fr">
+  <meta name="description" content="The Kubernetes capstone project: deploy a multi-tier application (Ingress front, podinfo app, persistent Redis cache) with ConfigMap/Secret, PVC, probes, HPA autoscaling and NetworkPolicy — entirely locally on k3d, in a documented repo. The Kubernetes deliverable for your CV." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kubernetes — projet d&#39;entreprise : appli multi-tier">
+  <meta property="og:description" content="Le projet fil-rouge Kubernetes : déploie une application multi-tier (front Ingress, app podinfo, cache Redis persistant) avec ConfigMap/Secret, PVC, probes, autoscaling HPA et NetworkPolicy — entièrement en local sur k3d, dans un dépôt documenté. Le livrable Kubernetes à présenter sur ton CV.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/kubernetes-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/kubernetes-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="kubernetes-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/kubernetes-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/kubernetes-projet-entreprise</div>
+    <h1 data-lang="fr">Kubernetes — projet d&#39;entreprise : appli multi-tier</h1>
+    <h1 data-lang="en">Kubernetes — enterprise project: multi-tier app</h1>
+    <p class="tagline" data-lang="fr">Ingress, config, secret, PVC, probes, HPA — un livrable de CV.</p>
+    <p class="tagline" data-lang="en">Ingress, config, secret, PVC, probes, HPA — a CV deliverable.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as appris les briques Kubernetes une par une : workloads, services, ingress, stockage, RBAC. <strong>Un recruteur veut voir l&#39;assemblage.</strong> Ce projet est cet assemblage : une <strong>application multi-tier</strong> déployée sur Kubernetes comme en entreprise, que tu construis de A à Z et que tu mets sur ton CV et ton GitHub.</p>
+<p><strong>Le scénario.</strong> Tu es l&#39;ingénieur DevOps qui doit mettre en ligne une application web à trois étages :</p>
+<ul><li>un <strong>front</strong> exposé au public via un <strong>Ingress</strong> (une seule porte d&#39;entrée HTTP) ;</li><li>une <strong>application</strong> (<code>podinfo</code>, un microservice réaliste avec endpoints de santé) déployée en plusieurs répliques, <strong>configurée</strong> par ConfigMap/Secret, protégée par des <strong>probes</strong>, et qui <strong>s&#39;autoscale</strong> sous charge (<strong>HPA</strong>) ;</li><li>un <strong>cache de données</strong> (<code>Redis</code>) <strong>persistant</strong> sur un <strong>PVC</strong>, isolé par une <strong>NetworkPolicy</strong> pour que <strong>seule</strong> l&#39;application puisse lui parler.</li></ul>
+<p>Tout tourne en <strong>local sur k3d</strong>, à partir d&#39;<strong>images publiques</strong> (zéro build, zéro cloud) — mais l&#39;architecture et les objets Kubernetes sont <strong>exactement</strong> ceux d&#39;un déploiement de production. Le jour où tu passes sur un vrai cluster (EKS/AKS/GKE), tes manifestes <strong>ne changent pas</strong>.</p>
+<p><strong>Ce que ce projet prouve à un recruteur :</strong> que tu sais assembler un déploiement Kubernetes <strong>complet et réaliste</strong> — pas juste <code>kubectl run nginx</code> — avec exposition, configuration, secrets, stockage persistant, santé, autoscaling et sécurité réseau, le tout <strong>documenté</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé les cinq guides Kubernetes de la track.</p>
+</div>
+<div data-lang="en"><p>You&#39;ve learned the Kubernetes bricks one by one: workloads, services, ingress, storage, RBAC. <strong>A recruiter wants to see the assembly.</strong> This project is that assembly: a <strong>multi-tier application</strong> deployed on Kubernetes like in a company, that you build end to end and put on your CV and GitHub.</p>
+<p><strong>The scenario.</strong> You&#39;re the DevOps engineer who must bring a three-tier web application online:</p>
+<ul><li>a <strong>front</strong> exposed publicly via an <strong>Ingress</strong> (a single HTTP entry point);</li><li>an <strong>application</strong> (<code>podinfo</code>, a realistic microservice with health endpoints) deployed in several replicas, <strong>configured</strong> by ConfigMap/Secret, guarded by <strong>probes</strong>, and that <strong>autoscales</strong> under load (<strong>HPA</strong>);</li><li>a <strong>data cache</strong> (<code>Redis</code>) <strong>persisted</strong> on a <strong>PVC</strong>, isolated by a <strong>NetworkPolicy</strong> so that <strong>only</strong> the application can talk to it.</li></ul>
+<p>Everything runs <strong>locally on k3d</strong>, from <strong>public images</strong> (no build, no cloud) — but the architecture and Kubernetes objects are <strong>exactly</strong> those of a production deployment. The day you move to a real cluster (EKS/AKS/GKE), your manifests <strong>don&#39;t change</strong>.</p>
+<p><strong>What this project proves to a recruiter:</strong> that you can assemble a <strong>complete, realistic</strong> Kubernetes deployment — not just <code>kubectl run nginx</code> — with exposure, configuration, secrets, persistent storage, health, autoscaling and network security, all <strong>documented</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the five Kubernetes guides of the track.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu auras produit et su expliquer :</p>
+<ul><li>Un <strong>dépôt de manifestes</strong> structuré, appliqué en une commande.</li><li>Un <strong>tier de données</strong> Redis <strong>persistant</strong> (PVC) avec son Service.</li><li>La <strong>configuration</strong> applicative en <strong>ConfigMap</strong> + <strong>Secret</strong>.</li><li>Un <strong>tier applicatif</strong> podinfo : réplicas, <strong>probes</strong>, requests/limits, config injectée, cache branché sur Redis.</li><li>Une <strong>exposition</strong> via <strong>Ingress</strong> (une porte d&#39;entrée).</li><li>Un <strong>autoscaling HPA</strong> qui <strong>réagit à la charge</strong> sous tes yeux.</li><li>Une <strong>NetworkPolicy</strong> qui <strong>isole</strong> Redis derrière l&#39;application.</li><li>Un <strong>README</strong> + <strong>schéma</strong> de niveau professionnel, prêts pour un CV.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ll have produced and be able to explain:</p>
+<ul><li>A structured <strong>manifest repo</strong>, applied in one command.</li><li>A <strong>persistent</strong> Redis <strong>data tier</strong> (PVC) with its Service.</li><li>Application <strong>configuration</strong> in a <strong>ConfigMap</strong> + <strong>Secret</strong>.</li><li>A podinfo <strong>app tier</strong>: replicas, <strong>probes</strong>, requests/limits, injected config, cache wired to Redis.</li><li><strong>Exposure</strong> via <strong>Ingress</strong> (one entry point).</li><li>An <strong>HPA autoscaling</strong> that <strong>reacts to load</strong> before your eyes.</li><li>A <strong>NetworkPolicy</strong> that <strong>isolates</strong> Redis behind the application.</li><li>A professional-grade <strong>README</strong> + <strong>diagram</strong>, CV-ready.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li><strong>Toute la track Kubernetes</strong> terminée (fondamentaux → cluster ops &amp; RBAC).</li><li><strong>Docker</strong> lancé, <strong>k3d</strong> et <strong>kubectl</strong> installés, <strong>Git</strong> installé.</li><li>~2-3 h et un peu de RAM.</li></ul>
+<p>On crée un cluster <strong>avec Ingress Controller</strong> (Traefik) et le port hôte pour le front. Le cluster embarque <strong>metrics-server</strong> (nécessaire au HPA) :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li><strong>The whole Kubernetes track</strong> finished (fundamentals → cluster ops &amp; RBAC).</li><li><strong>Docker</strong> running, <strong>k3d</strong> and <strong>kubectl</strong> installed, <strong>Git</strong> installed.</li><li>~2-3 h and a bit of RAM.</li></ul>
+<p>We create a cluster <strong>with an Ingress Controller</strong> (Traefik) and the host port for the front. The cluster ships <strong>metrics-server</strong> (needed for the HPA):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># (optionnel) libère de la RAM / (optional) free RAM
+# k3d cluster delete opslab stolab netlab ckalab
+k3d cluster create shoplab -p &quot;8080:80@loadbalancer&quot;
+mkdir shop-platform &amp;&amp; cd shop-platform &amp;&amp; git init
+mkdir k8s
+kubectl create namespace shop
+kubectl config set-context --current --namespace=shop</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-cluster-ops-rbac/">
+    <span class="num">17</span>
+    <span class="title-line" data-lang="fr">Kubernetes — cluster ops, sécurité &amp; RBAC</span>
+    <span class="title-line" data-lang="en">Kubernetes — cluster ops, security &amp; RBAC</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L&#39;architecture cible : trois étages.</strong> C&#39;est le motif le plus courant en entreprise.</p>
+<ol><li><strong>Le tier de présentation</strong> — ici l&#39;<strong>Ingress</strong> (Traefik) : le point d&#39;entrée HTTP unique, qui route le trafic public vers l&#39;application. En prod, il porterait TLS et le nom de domaine.</li><li><strong>Le tier applicatif</strong> — <code>podinfo</code>, un microservice <strong>stateless</strong> déployé en <strong>plusieurs répliques</strong> derrière un Service. Stateless = on peut le multiplier librement → c&#39;est lui qu&#39;on <strong>autoscale</strong> (HPA). Il lit sa <strong>config</strong> (ConfigMap) et ses <strong>secrets</strong> (Secret), et il utilise le tier de données.</li><li><strong>Le tier de données</strong> — <code>Redis</code>, <strong>stateful</strong> : sa donnée doit survivre, d&#39;où un <strong>PVC</strong>. On n&#39;en met <strong>pas</strong> dix répliques anonymes (ce serait dix caches incohérents) : le tier de données se gère différemment du tier applicatif.</li></ol>
+<p><strong>Les objets Kubernetes qu&#39;on assemble :</strong></p>
+<ul><li><strong><code>Deployment</code></strong> (×2 : app et données) + <strong><code>Service</code></strong> ClusterIP pour chaque tier (adresse stable interne).</li><li><strong><code>Ingress</code></strong> devant le Service de l&#39;app (exposition L7).</li><li><strong><code>ConfigMap</code></strong> (config non sensible) + <strong><code>Secret</code></strong> (données sensibles) → injectés en variables d&#39;environnement.</li><li><strong><code>PersistentVolumeClaim</code></strong> pour Redis (persistance).</li><li><strong><code>livenessProbe</code>/<code>readinessProbe</code></strong> sur l&#39;app (santé) + <strong>requests/limits</strong> (indispensables au HPA).</li><li><strong><code>HorizontalPodAutoscaler</code></strong> sur l&#39;app : ajoute/retire des répliques selon le <strong>CPU</strong>.</li><li><strong><code>NetworkPolicy</code></strong> : Redis n&#39;accepte <strong>que</strong> le trafic de l&#39;app.</li></ul>
+<p><strong>Le fil rouge de la donnée.</strong> L&#39;utilisateur tape l&#39;<strong>Ingress</strong> → l&#39;app <strong>podinfo</strong> répond, et quand elle met en cache une valeur, elle l&#39;écrit dans <strong>Redis</strong> via le Service <code>redis</code>. C&#39;est un vrai flux <strong>multi-tier</strong> : présentation → application → données.</p>
+</div>
+<div data-lang="en"><p><strong>The target architecture: three tiers.</strong> It&#39;s the most common enterprise pattern.</p>
+<ol><li><strong>The presentation tier</strong> — here the <strong>Ingress</strong> (Traefik): the single HTTP entry point that routes public traffic to the application. In prod it&#39;d carry TLS and the domain name.</li><li><strong>The application tier</strong> — <code>podinfo</code>, a <strong>stateless</strong> microservice deployed in <strong>several replicas</strong> behind a Service. Stateless = you can multiply it freely → this is what you <strong>autoscale</strong> (HPA). It reads its <strong>config</strong> (ConfigMap) and its <strong>secrets</strong> (Secret), and it uses the data tier.</li><li><strong>The data tier</strong> — <code>Redis</code>, <strong>stateful</strong>: its data must survive, hence a <strong>PVC</strong>. You do <strong>not</strong> run ten anonymous replicas of it (that&#39;d be ten incoherent caches): the data tier is managed differently from the app tier.</li></ol>
+<p><strong>The Kubernetes objects we assemble:</strong></p>
+<ul><li><strong><code>Deployment</code></strong> (×2: app and data) + a <strong><code>Service</code></strong> ClusterIP per tier (stable internal address).</li><li><strong><code>Ingress</code></strong> in front of the app&#39;s Service (L7 exposure).</li><li><strong><code>ConfigMap</code></strong> (non-sensitive config) + <strong><code>Secret</code></strong> (sensitive data) → injected as environment variables.</li><li><strong><code>PersistentVolumeClaim</code></strong> for Redis (persistence).</li><li><strong><code>livenessProbe</code>/<code>readinessProbe</code></strong> on the app (health) + <strong>requests/limits</strong> (essential for the HPA).</li><li><strong><code>HorizontalPodAutoscaler</code></strong> on the app: adds/removes replicas based on <strong>CPU</strong>.</li><li><strong><code>NetworkPolicy</code></strong>: Redis accepts <strong>only</strong> the app&#39;s traffic.</li></ul>
+<p><strong>The data thread.</strong> The user hits the <strong>Ingress</strong> → the <strong>podinfo</strong> app answers, and when it caches a value it writes it to <strong>Redis</strong> via the <code>redis</code> Service. It&#39;s a real <strong>multi-tier</strong> flow: presentation → application → data.</p>
+</div>
+
+<figure class="schema" id="figure-kubernetes-projet-tiers">
+  <p>[schema "kubernetes-projet-tiers" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Ingress → Service app → podinfo (×N, HPA) → Service redis → Redis (PVC). ConfigMap/Secret alimentent l&#39;app ; une NetworkPolicy isole Redis.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Ingress → app Service → podinfo (×N, HPA) → redis Service → Redis (PVC). ConfigMap/Secret feed the app; a NetworkPolicy isolates Redis.</figcaption>
+</figure>
+<div data-lang="fr"><p>Le plan : tier données (Redis + PVC) → config (ConfigMap/Secret) → tier app (podinfo + probes) → Ingress → HPA sous charge → NetworkPolicy → documentation &amp; démo.</p>
+</div>
+<div data-lang="en"><p>The plan: data tier (Redis + PVC) → config (ConfigMap/Secret) → app tier (podinfo + probes) → Ingress → HPA under load → NetworkPolicy → docs &amp; demo.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer le <strong>tier de données</strong> : Redis, <strong>persistant</strong> sur un PVC, avec son Service.</p>
+<p>Crée <code>k8s/redis.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>data tier</strong>: Redis, <strong>persisted</strong> on a PVC, with its Service.</p>
+<p>Create <code>k8s/redis.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># k8s/redis.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+spec:
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports: [{ containerPort: 6379 }]
+          resources:
+            requests: { cpu: &quot;50m&quot;, memory: &quot;64Mi&quot; }
+            limits:   { cpu: &quot;200m&quot;, memory: &quot;128Mi&quot; }
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector: { app: redis }
+  ports:
+    - port: 6379
+      targetPort: 6379</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/redis.yaml
+kubectl rollout status deployment/redis
+kubectl get pvc redis-data           # Bound (le pod a déclenché le provisioning) / Bound</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl rollout status deployment/redis</code> confirme <code>successfully rolled out</code>, et <code>kubectl get pvc redis-data</code> est <strong><code>Bound</code></strong> (le pod Redis a été le premier consommateur → PV provisionné, cf. guide stockage). Le Service <code>redis</code> donne au tier de données une <strong>adresse stable</strong> (<code>redis:6379</code>) que l&#39;app utilisera. Le tier de données est en place, isolé et persistant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl rollout status deployment/redis</code> confirms <code>successfully rolled out</code>, and <code>kubectl get pvc redis-data</code> is <strong><code>Bound</code></strong> (the Redis pod was the first consumer → PV provisioned, see the storage guide). The <code>redis</code> Service gives the data tier a <strong>stable address</strong> (<code>redis:6379</code>) the app will use. The data tier is in place, isolated and persistent.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Externaliser la <strong>configuration</strong> : un <strong>ConfigMap</strong> (non sensible) et un <strong>Secret</strong> (sensible).</p>
+<p><strong>🤔 Config ≠ image.</strong> On ne code jamais un message ou un mot de passe dans l&#39;image. Crée <code>k8s/config.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Externalize the <strong>configuration</strong>: a <strong>ConfigMap</strong> (non-sensitive) and a <strong>Secret</strong> (sensitive).</p>
+<p><strong>🤔 Config ≠ image.</strong> You never bake a message or a password into the image. Create <code>k8s/config.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># k8s/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  PODINFO_UI_MESSAGE: &quot;Shop Platform — déployé sur Kubernetes&quot;
+  PODINFO_CACHE_SERVER: &quot;tcp://redis:6379&quot;      # &lt;- branche l&#39;app sur le tier Redis / wires the app to Redis
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+type: Opaque
+stringData:
+  API_TOKEN: &quot;démo-token-ne-pas-utiliser-en-prod&quot;   # stringData : en clair ici, encodé par k8s / plaintext here, k8s encodes it</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/config.yaml
+kubectl get configmap app-config
+kubectl get secret app-secret         # TYPE Opaque, DATA 1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get configmap app-config</code> et <code>kubectl get secret app-secret</code> existent. Le ConfigMap porte le message d&#39;UI <strong>et</strong> l&#39;adresse du cache Redis (<code>tcp://redis:6379</code>) — c&#39;est par là que les deux tiers se connectent. Le Secret contient l&#39;<code>API_TOKEN</code> (<code>kubectl get secret app-secret -o jsonpath=&#39;{.data.API_TOKEN}&#39; | base64 -d</code> le décode). <strong>La config vit hors de l&#39;image</strong>, versionnable et modifiable sans reconstruire quoi que ce soit.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get configmap app-config</code> and <code>kubectl get secret app-secret</code> exist. The ConfigMap carries the UI message <strong>and</strong> the Redis cache address (<code>tcp://redis:6379</code>) — that&#39;s how the two tiers connect. The Secret holds the <code>API_TOKEN</code> (<code>kubectl get secret app-secret -o jsonpath=&#39;{.data.API_TOKEN}&#39; | base64 -d</code> decodes it). <strong>Config lives outside the image</strong>, versionable and changeable without rebuilding anything.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer le <strong>tier applicatif</strong> : <code>podinfo</code>, avec <strong>probes</strong>, <strong>requests/limits</strong>, et config injectée.</p>
+<p><strong>🤔 Tout est là.</strong> Ce manifeste réunit le guide workloads (probes, resources), le guide config (ConfigMap/Secret → env) et le guide networking (Service). Crée <code>k8s/app.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>application tier</strong>: <code>podinfo</code>, with <strong>probes</strong>, <strong>requests/limits</strong>, and injected config.</p>
+<p><strong>🤔 It all comes together.</strong> This manifest combines the workloads guide (probes, resources), the config guide (ConfigMap/Secret → env) and the networking guide (Service). Create <code>k8s/app.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># k8s/app.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: podinfo }
+  template:
+    metadata:
+      labels: { app: podinfo }
+    spec:
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.7.0
+          ports: [{ containerPort: 9898 }]
+          envFrom:
+            - configMapRef: { name: app-config }   # PODINFO_UI_MESSAGE, PODINFO_CACHE_SERVER
+          env:
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef: { name: app-secret, key: API_TOKEN }
+          resources:
+            requests: { cpu: &quot;25m&quot;, memory: &quot;32Mi&quot; }   # requests bas -&gt; le HPA réagit vite / low requests -&gt; HPA reacts fast
+            limits:   { cpu: &quot;200m&quot;, memory: &quot;128Mi&quot; }
+          readinessProbe:
+            httpGet: { path: /readyz, port: 9898 }
+            initialDelaySeconds: 2
+          livenessProbe:
+            httpGet: { path: /healthz, port: 9898 }
+            initialDelaySeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+spec:
+  selector: { app: podinfo }
+  ports:
+    - port: 80
+      targetPort: 9898</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/app.yaml
+kubectl rollout status deployment/app
+kubectl get pods -l app=podinfo        # 2 pods READY 1/1 / two ready pods</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl rollout status deployment/app</code> réussit et deux pods <code>app-…</code> sont <code>READY 1/1</code> — leurs <strong>readiness probes</strong> (<code>/readyz</code>) passent, donc le Service <code>app</code> les intègre. Vérifie que la config est injectée : <code>kubectl exec deploy/app -- env | grep -E &#39;PODINFO_UI_MESSAGE|API_TOKEN&#39;</code> montre le message (du ConfigMap) et le token (du Secret). Le tier applicatif tourne, configuré et surveillé.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl rollout status deployment/app</code> succeeds and two <code>app-…</code> pods are <code>READY 1/1</code> — their <strong>readiness probes</strong> (<code>/readyz</code>) pass, so the <code>app</code> Service includes them. Verify the config is injected: <code>kubectl exec deploy/app -- env | grep -E &#39;PODINFO_UI_MESSAGE|API_TOKEN&#39;</code> shows the message (from the ConfigMap) and the token (from the Secret). The app tier runs, configured and monitored.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exposer l&#39;application au public via un <strong>Ingress</strong>, et prouver le <strong>flux multi-tier</strong> (app → Redis).</p>
+<p>Crée <code>k8s/ingress.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Expose the application publicly via an <strong>Ingress</strong>, and prove the <strong>multi-tier flow</strong> (app → Redis).</p>
+<p>Create <code>k8s/ingress.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app
+                port:
+                  number: 80</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/ingress.yaml
+curl -s localhost:8080/ | grep -i message      # le message du ConfigMap / the ConfigMap message
+
+# Flux multi-tier : l&#39;app écrit dans Redis via le cache / multi-tier flow: app writes to Redis
+curl -s -X POST localhost:8080/cache/demo -d &#39;hello-k8s&#39;
+curl -s localhost:8080/cache/demo               # -&gt; hello-k8s (relu depuis Redis) / read back from Redis</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl localhost:8080/</code> renvoie la réponse JSON de podinfo, avec le <strong>message du ConfigMap</strong> — la chaîne <strong>Ingress → Service → pod</strong> fonctionne de bout en bout. Mieux : le <code>POST /cache/demo</code> puis <code>GET /cache/demo</code> renvoie <code>hello-k8s</code> — l&#39;application a <strong>écrit puis relu dans Redis</strong> (via <code>PODINFO_CACHE_SERVER</code>). Tu viens de valider le <strong>flux des trois tiers</strong> : présentation (Ingress) → application (podinfo) → données (Redis). <em>(La donnée est dans le PVC : elle survivrait à un redémarrage de Redis.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl localhost:8080/</code> returns podinfo&#39;s JSON response, with the <strong>ConfigMap message</strong> — the <strong>Ingress → Service → pod</strong> chain works end to end. Better: the <code>POST /cache/demo</code> then <code>GET /cache/demo</code> returns <code>hello-k8s</code> — the application <strong>wrote then read back from Redis</strong> (via <code>PODINFO_CACHE_SERVER</code>). You&#39;ve just validated the <strong>three-tier flow</strong>: presentation (Ingress) → application (podinfo) → data (Redis). <em>(The data is in the PVC: it would survive a Redis restart.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter un <strong>HPA</strong> et le voir <strong>autoscaler</strong> l&#39;app sous charge.</p>
+<p><strong>🤔 Pourquoi ça marche ici.</strong> Le HPA a besoin de <strong>metrics-server</strong> (présent sur k3s) et de <strong>requests CPU</strong> sur les pods (on a mis <code>25m</code>). On cible 50 % → dès que la charge dépasse ~12m CPU par pod, il ajoute des répliques. Crée <code>k8s/hpa.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Add an <strong>HPA</strong> and watch it <strong>autoscale</strong> the app under load.</p>
+<p><strong>🤔 Why it works here.</strong> The HPA needs <strong>metrics-server</strong> (present on k3s) and <strong>CPU requests</strong> on the pods (we set <code>25m</code>). We target 50% → as soon as load exceeds ~12m CPU per pod, it adds replicas. Create <code>k8s/hpa.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># k8s/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/hpa.yaml
+kubectl get hpa app                     # attends que TARGETS affiche un % (pas &lt;unknown&gt;) / wait for a % in TARGETS
+
+# Génère de la charge depuis un pod (laisse tourner) / generate load from a pod (leave it running)
+kubectl run load --image=busybox:1.36 --restart=Never -- \
+  /bin/sh -c &quot;while true; do wget -q -O- http://app/; done&quot;
+
+# Observe la montée en répliques (~1-3 min) / watch replicas climb (~1-3 min)
+kubectl get hpa app -w</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au début, <code>kubectl get hpa app</code> montre <code>REPLICAS 2</code>. Après ~1-3 min de charge (le temps que metrics-server mesure et que le HPA réconcilie), la colonne <code>TARGETS</code> dépasse <code>50%</code> et <code>REPLICAS</code> <strong>grimpe</strong> (3, 4… jusqu&#39;à 6 max) — <code>kubectl get pods -l app=podinfo</code> confirme les nouveaux pods. <strong>Arrête la charge</strong> (<code>kubectl delete pod load</code>) : après quelques minutes (fenêtre de stabilisation anti-oscillation), le HPA <strong>redescend</strong> à 2. Tu as une appli qui <strong>s&#39;adapte à la demande</strong>, automatiquement. C&#39;est un argument d&#39;entretien en or.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> at first, <code>kubectl get hpa app</code> shows <code>REPLICAS 2</code>. After ~1-3 min of load (time for metrics-server to measure and the HPA to reconcile), the <code>TARGETS</code> column exceeds <code>50%</code> and <code>REPLICAS</code> <strong>climbs</strong> (3, 4… up to 6 max) — <code>kubectl get pods -l app=podinfo</code> confirms the new pods. <strong>Stop the load</strong> (<code>kubectl delete pod load</code>): after a few minutes (anti-flapping stabilization window), the HPA <strong>scales back</strong> to 2. You have an app that <strong>adapts to demand</strong>, automatically. That&#39;s a golden interview argument.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Isoler</strong> le tier de données : une <strong>NetworkPolicy</strong> pour que Redis n&#39;accepte <strong>que</strong> l&#39;application.</p>
+<p><strong>🤔 Défense en profondeur.</strong> Aujourd&#39;hui, n&#39;importe quel pod peut joindre Redis. On restreint : seul un pod labellisé <code>app: podinfo</code> peut entrer sur le port 6379. Crée <code>k8s/netpol.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Isolate</strong> the data tier: a <strong>NetworkPolicy</strong> so Redis accepts <strong>only</strong> the application.</p>
+<p><strong>🤔 Defense in depth.</strong> Today, any pod can reach Redis. We restrict: only a pod labeled <code>app: podinfo</code> may enter on port 6379. Create <code>k8s/netpol.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># k8s/netpol.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-only-from-app
+spec:
+  podSelector:
+    matchLabels: { app: redis }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app: podinfo }
+      ports:
+        - protocol: TCP
+          port: 6379</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/netpol.yaml
+
+# L&#39;app (label app=podinfo) atteint toujours Redis / the app still reaches Redis :
+curl -s -X POST localhost:8080/cache/check -d &#39;ok&#39; &amp;&amp; curl -s localhost:8080/cache/check   # ok
+
+# Un pod QUELCONQUE est bloqué / a RANDOM pod is blocked :
+kubectl run intrus --image=redis:7-alpine --restart=Never -it --rm -- \
+  redis-cli -h redis -t 5 ping || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> l&#39;application continue de lire/écrire dans Redis (le <code>POST/GET /cache/check</code> renvoie <code>ok</code>) — parce que ses pods portent <code>app: podinfo</code>, la source autorisée. En revanche, le pod <code>intrus</code> (sans ce label) <strong>timeoute</strong> sur <code>redis-cli ping</code> → <code>BLOQUÉ</code>. Le tier de données est <strong>cloisonné</strong> : même à l&#39;intérieur du cluster, seul l&#39;app y accède. C&#39;est de la <strong>défense en profondeur</strong>, appliquée pour de vrai par k3s. <em>(Rappel du guide networking : k3s applique les NetworkPolicy.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the application keeps reading/writing to Redis (the <code>POST/GET /cache/check</code> returns <code>ok</code>) — because its pods carry <code>app: podinfo</code>, the allowed source. But the <code>intrus</code> pod (without that label) <strong>times out</strong> on <code>redis-cli ping</code> → <code>BLOCKED</code>. The data tier is <strong>partitioned</strong>: even inside the cluster, only the app reaches it. That&#39;s <strong>defense in depth</strong>, actually enforced by k3s. <em>(Reminder from the networking guide: k3s enforces NetworkPolicies.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Documenter — la partie qui transforme un dossier de manifestes en <strong>livrable de CV</strong>.</p>
+<p><strong>🤔 Le README fait la moitié de la valeur.</strong> Crée un <code>README.md</code> à la racine en suivant ce plan (chaque titre devient une section <code>##</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Document — the part that turns a manifest folder into a <strong>CV deliverable</strong>.</p>
+<p><strong>🤔 The README is half the value.</strong> Create a root <code>README.md</code> following this outline (each heading becomes a <code>##</code> section):</p>
+</div>
+<h1>Shop Platform — appli multi-tier sur Kubernetes</h1>
+<div data-lang="fr"><p>Ajoute un <code>architecture.md</code> avec un <strong>schéma Mermaid</strong> (colle ce contenu dans un bloc <code> </code>`<code>mermaid </code> ; ici en retrait pour l&#39;affichage) :</p>
+</div>
+<div data-lang="en"><p>Add an <code>architecture.md</code> with a <strong>Mermaid diagram</strong> (paste this into a <code> </code>`<code>mermaid </code> block; shown indented here for display):</p>
+</div>
+<p>graph LR       U[Utilisateur] --&gt; I[Ingress Traefik :8080]       I --&gt; S1[Service app :80]       S1 --&gt; A[podinfo x2..6 + HPA]       A --&gt; S2[Service redis :6379]       S2 --&gt; R[(Redis + PVC)]       CM[ConfigMap] -.-&gt; A       SEC[Secret] -.-&gt; A       NP[NetworkPolicy] -.-&gt;|Redis &lt;- app only| R</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ton dépôt a un <code>README.md</code> (quoi, pourquoi, comment déployer) et un <code>architecture.md</code> (le schéma). Ouvre-les comme un recruteur : en deux minutes, comprend-on <strong>l&#39;architecture, les objets Kubernetes utilisés, et pourquoi tes choix sont bons</strong> ? Si oui, c&#39;est vendable.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> your repo has a <code>README.md</code> (what, why, how to deploy) and an <code>architecture.md</code> (the diagram). Open them like a recruiter: in two minutes, is the <strong>architecture, the Kubernetes objects used, and why your choices are sound</strong> clear? If so, it&#39;s sellable.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Prouver la reproductibilité en <strong>une commande</strong>, committer, puis nettoyer.</p>
+<p><strong>🤔 Le test qui rassure.</strong> Tout ton déploiement doit se rejouer avec <code>kubectl apply -f k8s/</code>. Vérifie-le, puis committe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prove reproducibility in <strong>one command</strong>, commit, then clean up.</p>
+<p><strong>🤔 The reassuring test.</strong> Your whole deployment must replay with <code>kubectl apply -f k8s/</code>. Verify it, then commit:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/            # idempotent : &quot;unchanged&quot; partout / idempotent: &quot;unchanged&quot; everywhere
+kubectl get all,ingress,pvc,hpa,networkpolicy      # l&#39;inventaire complet du projet / the full project inventory
+
+cat &gt; .gitignore &lt;&lt;&#39;EOF&#39;
+*.tmp
+EOF
+git add .
+git commit -m &quot;Shop Platform : appli multi-tier Kubernetes (ingress, config, PVC, HPA, netpol)&quot;</code></pre>
+<div data-lang="fr"><p>Nettoyage — supprime tout d&#39;un coup grâce au <strong>namespace</strong> :</p>
+</div>
+<div data-lang="en"><p>Cleanup — delete everything at once thanks to the <strong>namespace</strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl delete namespace shop      # supprime tous les objets du projet / deletes all project objects
+# k3d cluster delete shoplab       # (optionnel) supprime le cluster / (optional) delete the cluster</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> un second <code>kubectl apply -f k8s/</code> affiche <code>unchanged</code> pour chaque objet = déploiement <strong>reproductible et idempotent</strong>. <code>kubectl get all,ingress,pvc,hpa,networkpolicy</code> liste l&#39;inventaire complet (2 Deployments, 2 Services, Ingress, PVC, HPA, NetworkPolicy) — la preuve visuelle de ton assemblage. Ton dépôt Git, lui, reste : <strong>pousse-le sur GitHub et mets le lien sur ton CV</strong>. Supprimer le <strong>namespace</strong> emporte tout proprement (un seul geste).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> a second <code>kubectl apply -f k8s/</code> prints <code>unchanged</code> for each object = a <strong>reproducible, idempotent</strong> deployment. <code>kubectl get all,ingress,pvc,hpa,networkpolicy</code> lists the full inventory (2 Deployments, 2 Services, Ingress, PVC, HPA, NetworkPolicy) — the visual proof of your assembly. Your Git repo stays: <strong>push it to GitHub and put the link on your CV</strong>. Deleting the <strong>namespace</strong> takes everything down cleanly (one gesture).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. HPA en <code>&lt;unknown&gt;</code> pour les TARGETS.</strong> Deux causes : metrics-server pas encore prêt (~1 min après création du cluster), ou <strong>pas de requests CPU</strong> sur les pods. Sans <code>resources.requests.cpu</code>, le HPA <strong>ne peut pas</strong> calculer un pourcentage.</p>
+<p><strong>2. Attendre un scale-up instantané.</strong> Le HPA réconcilie toutes les ~15 s et lisse les mesures ; la montée prend <strong>1-3 min</strong>, la descente <strong>plus</strong> (fenêtre de stabilisation ~5 min). C&#39;est normal, pas un bug.</p>
+<p><strong>3. Ingress en 404.</strong> <code>ingressClassName: traefik</code> manquant/incorrect, ou le Service <code>app</code> sans Endpoints (readiness KO). Vérifie <code>kubectl get ingress</code>, <code>kubectl get endpoints app</code>.</p>
+<p><strong>4. Secret « en clair » dans Git.</strong> <code>stringData</code> est pratique en démo mais le Secret <strong>n&#39;est encodé qu&#39;en base64</strong>, pas chiffré. Ne committe <strong>jamais</strong> un vrai secret ; en prod → Secret chiffré au repos, SealedSecrets, ou un gestionnaire externe (Vault).</p>
+<p><strong>5. Répliquer le tier de données comme l&#39;app.</strong> Mettre <code>replicas: 3</code> sur Redis simple = trois caches <strong>indépendants</strong> et incohérents. Le stateful se traite avec PVC + (souvent) StatefulSet, pas comme un Deployment stateless.</p>
+<p><strong>6. NetworkPolicy qui bloque aussi l&#39;app.</strong> Si tu te trompes de label dans <code>from.podSelector</code>, tu bloques <strong>tout le monde</strong>, y compris podinfo. Teste <strong>toujours</strong> que la source légitime passe encore.</p>
+<p><strong>7. Probes trop agressives sur podinfo.</strong> Une liveness sur <code>/healthz</code> avec un délai trop court peut tuer le pod au démarrage. Garde un <code>initialDelaySeconds</code> raisonnable (fait ici).</p>
+</div>
+<div data-lang="en"><p><strong>1. HPA <code>&lt;unknown&gt;</code> for TARGETS.</strong> Two causes: metrics-server not ready yet (~1 min after cluster creation), or <strong>no CPU requests</strong> on the pods. Without <code>resources.requests.cpu</code>, the HPA <strong>can&#39;t</strong> compute a percentage.</p>
+<p><strong>2. Expecting an instant scale-up.</strong> The HPA reconciles every ~15 s and smooths measurements; scale-up takes <strong>1-3 min</strong>, scale-down <strong>more</strong> (~5 min stabilization window). That&#39;s normal, not a bug.</p>
+<p><strong>3. Ingress 404.</strong> Missing/wrong <code>ingressClassName: traefik</code>, or the <code>app</code> Service without Endpoints (readiness failing). Check <code>kubectl get ingress</code>, <code>kubectl get endpoints app</code>.</p>
+<p><strong>4. &quot;Cleartext&quot; Secret in Git.</strong> <code>stringData</code> is handy in a demo but the Secret is <strong>only base64-encoded</strong>, not encrypted. <strong>Never</strong> commit a real secret; in prod → Secret encrypted at rest, SealedSecrets, or an external manager (Vault).</p>
+<p><strong>5. Replicating the data tier like the app.</strong> Setting <code>replicas: 3</code> on plain Redis = three <strong>independent</strong>, incoherent caches. Stateful is handled with a PVC + (often) a StatefulSet, not like a stateless Deployment.</p>
+<p><strong>6. A NetworkPolicy that also blocks the app.</strong> If you get the label wrong in <code>from.podSelector</code>, you block <strong>everyone</strong>, including podinfo. <strong>Always</strong> test that the legitimate source still gets through.</p>
+<p><strong>7. Overly aggressive probes on podinfo.</strong> A liveness on <code>/healthz</code> with too short a delay can kill the pod at startup. Keep a reasonable <code>initialDelaySeconds</code> (done here).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Ton livrable est prêt pour un CV quand…</p>
+<ul class="checklist"><li><code>kubectl apply -f k8s/</code> déploie <strong>toute</strong> la plateforme, idempotent.</li><li>Le <strong>tier données</strong> Redis est <strong>persistant</strong> (PVC <code>Bound</code>) et <strong>isolé</strong> (NetworkPolicy).</li><li>L&#39;<strong>app</strong> lit sa <strong>config</strong> (ConfigMap) et son <strong>secret</strong>, avec <strong>probes</strong> actives.</li><li>L&#39;<strong>Ingress</strong> sert l&#39;app, et le <strong>flux app → Redis</strong> est prouvé (<code>/cache</code>).</li><li>Le <strong>HPA</strong> monte <strong>et</strong> redescend sous/sans charge.</li><li>Le dépôt a un <strong>README</strong> clair et un <strong>schéma</strong> d&#39;architecture.</li><li>Tu sais <strong>justifier</strong> chaque choix (stateless vs stateful, config hors image, isolation réseau).</li></ul>
+<p>Sept cases cochées = tu ne présentes pas un TP, tu présentes un <strong>déploiement Kubernetes de production miniature</strong>.</p>
+</div>
+<div data-lang="en"><p>Your deliverable is CV-ready when…</p>
+<ul class="checklist"><li><code>kubectl apply -f k8s/</code> deploys <strong>the whole</strong> platform, idempotently.</li><li>The Redis <strong>data tier</strong> is <strong>persistent</strong> (PVC <code>Bound</code>) and <strong>isolated</strong> (NetworkPolicy).</li><li>The <strong>app</strong> reads its <strong>config</strong> (ConfigMap) and <strong>secret</strong>, with active <strong>probes</strong>.</li><li>The <strong>Ingress</strong> serves the app, and the <strong>app → Redis flow</strong> is proven (<code>/cache</code>).</li><li>The <strong>HPA</strong> scales up <strong>and</strong> back down under/without load.</li><li>The repo has a clear <strong>README</strong> and an architecture <strong>diagram</strong>.</li><li>You can <strong>justify</strong> every choice (stateless vs stateful, config out of image, network isolation).</li></ul>
+<p>Seven boxes ticked = you&#39;re not presenting a lab, you&#39;re presenting a <strong>miniature production Kubernetes deployment</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>track Kubernetes → CKA/CKAD</strong>, projet compris. Pour aller plus loin :</p>
+<ol><li><strong>Passe les examens</strong> — avec toute la track, tu couvres les domaines du <strong>CKA</strong> (administration) et du <strong>CKAD</strong> (développement). Entraîne-toi au format chronométré.</li><li><strong>Industrialise ce projet</strong> — passe les manifestes en <strong>Kustomize</strong> ou <strong>Helm</strong> (overlays dev/staging/prod), ajoute un <strong>pipeline CI/CD</strong> (guide CI/CD) et du <strong>GitOps</strong> (ArgoCD). Le même déploiement, versionné et automatisé.</li><li><strong>Rejoue sur un vrai cloud</strong> — EKS/AKS/GKE (tracks cloud) : tes manifestes <strong>ne changent pas</strong>, seul le cluster change. La preuve que ton architecture était bonne.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>Kubernetes → CKA/CKAD track</strong>, project included. To go further:</p>
+<ol><li><strong>Sit the exams</strong> — with the whole track, you cover the <strong>CKA</strong> (admin) and <strong>CKAD</strong> (developer) domains. Practice in the timed format.</li><li><strong>Industrialize this project</strong> — move the manifests to <strong>Kustomize</strong> or <strong>Helm</strong> (dev/staging/prod overlays), add a <strong>CI/CD pipeline</strong> (CI/CD guide) and <strong>GitOps</strong> (ArgoCD). The same deployment, versioned and automated.</li><li><strong>Replay on a real cloud</strong> — EKS/AKS/GKE (cloud tracks): your manifests <strong>don&#39;t change</strong>, only the cluster does. Proof your architecture was sound.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">19</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire projet multi-tier.</p>
+</div>
+<div data-lang="en"><p>Multi-tier project cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Déploiement complet / full deploy
+kubectl apply -f k8s/                       # tout le dossier / the whole folder
+kubectl get all,ingress,pvc,hpa,networkpolicy   # inventaire / inventory
+
+# Config injectée / injected config
+#   envFrom.configMapRef  +  env.valueFrom.secretKeyRef
+kubectl exec deploy/app -- env | grep PODINFO
+
+# HPA
+kubectl get hpa app -w                      # TARGETS % + REPLICAS
+kubectl top pods -l app=podinfo             # conso réelle (metrics-server) / real usage
+
+# Flux multi-tier (podinfo cache -&gt; redis) / multi-tier flow
+curl -s -X POST localhost:8080/cache/k -d &#39;v&#39; &amp;&amp; curl -s localhost:8080/cache/k
+
+# Nettoyage / cleanup (un geste / one gesture)
+kubectl delete namespace shop</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://kubernetes.io/docs/concepts/configuration/configmap/">ConfigMaps</a> et <a href="https://kubernetes.io/docs/concepts/configuration/secret/">Secrets</a>.</li><li><a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/">Horizontal Pod Autoscaler</a> et le <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/">walkthrough HPA</a>.</li><li><a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Ingress</a> et <a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/">NetworkPolicy</a>.</li><li><a href="https://github.com/stefanprodan/podinfo">podinfo</a> — l&#39;appli de démo utilisée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://kubernetes.io/docs/concepts/configuration/configmap/">ConfigMaps</a> and <a href="https://kubernetes.io/docs/concepts/configuration/secret/">Secrets</a>.</li><li><a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/">Horizontal Pod Autoscaler</a> and the <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/">HPA walkthrough</a>.</li><li><a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Ingress</a> and <a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/">NetworkPolicy</a>.</li><li><a href="https://github.com/stefanprodan/podinfo">podinfo</a> — the demo app used.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>kubectl get hpa</code> montre <code>&lt;unknown&gt;</code> dans TARGETS.</strong> metrics-server met ~1 min à collecter, et il faut des <strong>requests CPU</strong> sur les pods. Vérifie <code>kubectl top pods</code> (doit renvoyer des valeurs) et que <code>resources.requests.cpu</code> est présent.</p>
+<p><strong>Le HPA ne monte pas sous charge.</strong> La charge est trop faible, ou le pod <code>load</code> ne tourne pas. Vérifie <code>kubectl get pod load</code> (Running) et <code>kubectl top pods -l app=podinfo</code> (le CPU doit dépasser 12m). Laisse <strong>1-3 min</strong>.</p>
+<p><strong><code>curl localhost:8080/</code> renvoie 404.</strong> L&#39;Ingress n&#39;est pas pris (<code>ingressClassName: traefik</code> ?) ou le Service <code>app</code> n&#39;a pas d&#39;Endpoints (readiness KO : <code>kubectl get endpoints app</code>). Vérifie aussi que le cluster a été créé avec <code>-p &quot;8080:80@loadbalancer&quot;</code>.</p>
+<p><strong><code>/cache/...</code> renvoie une erreur.</strong> <code>PODINFO_CACHE_SERVER</code> est absent/incorrect (doit valoir <code>tcp://redis:6379</code>), ou la NetworkPolicy bloque l&#39;app (mauvais label). Vérifie le ConfigMap et le label <code>app: podinfo</code>.</p>
+<p><strong>Le pod <code>intrus</code> n&#39;est PAS bloqué.</strong> La NetworkPolicy n&#39;est pas appliquée (vérifie que tu es sur k3s/k3d), ou son <code>podSelector</code>/<code>from</code> est mal ciblé. <code>kubectl describe networkpolicy redis-only-from-app</code>.</p>
+<p><strong>L&#39;image podinfo ne se tire pas (<code>ErrImagePull</code>).</strong> Le tag <code>6.7.0</code> peut avoir changé ; prends un tag récent depuis les <a href="https://github.com/stefanprodan/podinfo/releases">releases podinfo</a> (ex. <code>ghcr.io/stefanprodan/podinfo:&lt;version&gt;</code>).</p>
+</div>
+<div data-lang="en"><p><strong><code>kubectl get hpa</code> shows <code>&lt;unknown&gt;</code> in TARGETS.</strong> metrics-server takes ~1 min to collect, and pods need <strong>CPU requests</strong>. Check <code>kubectl top pods</code> (must return values) and that <code>resources.requests.cpu</code> is present.</p>
+<p><strong>The HPA won&#39;t scale up under load.</strong> The load is too weak, or the <code>load</code> pod isn&#39;t running. Check <code>kubectl get pod load</code> (Running) and <code>kubectl top pods -l app=podinfo</code> (CPU must exceed 12m). Give it <strong>1-3 min</strong>.</p>
+<p><strong><code>curl localhost:8080/</code> returns 404.</strong> The Ingress isn&#39;t picked up (<code>ingressClassName: traefik</code>?) or the <code>app</code> Service has no Endpoints (readiness failing: <code>kubectl get endpoints app</code>). Also check the cluster was created with <code>-p &quot;8080:80@loadbalancer&quot;</code>.</p>
+<p><strong><code>/cache/...</code> returns an error.</strong> <code>PODINFO_CACHE_SERVER</code> is missing/wrong (must be <code>tcp://redis:6379</code>), or the NetworkPolicy blocks the app (wrong label). Check the ConfigMap and the <code>app: podinfo</code> label.</p>
+<p><strong>The <code>intrus</code> pod is NOT blocked.</strong> The NetworkPolicy isn&#39;t enforced (check you&#39;re on k3s/k3d), or its <code>podSelector</code>/<code>from</code> is mistargeted. <code>kubectl describe networkpolicy redis-only-from-app</code>.</p>
+<p><strong>The podinfo image won&#39;t pull (<code>ErrImagePull</code>).</strong> The <code>6.7.0</code> tag may have changed; use a recent tag from the <a href="https://github.com/stefanprodan/podinfo/releases">podinfo releases</a> (e.g. <code>ghcr.io/stefanprodan/podinfo:&lt;version&gt;</code>).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
