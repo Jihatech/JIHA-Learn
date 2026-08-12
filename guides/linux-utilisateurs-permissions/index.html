@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — utilisateurs, groupes &amp; permissions — jiha.tech</title>
+  <title data-lang="en">Linux — users, groups &amp; permissions — jiha.tech</title>
+  <meta name="description" content="Utilisateurs et permissions Linux au niveau LPIC-1 : les bases de comptes (passwd/shadow/group), la gestion des utilisateurs et des groupes (primaire vs secondaire), les permissions en octal et symbolique, umask, les permissions spéciales SUID/SGID/sticky, les ACL, et sudo/sudoers." data-lang="fr">
+  <meta name="description" content="Linux users and permissions at LPIC-1 level: the account databases (passwd/shadow/group), user and group management (primary vs secondary), octal and symbolic permissions, umask, the special SUID/SGID/sticky permissions, ACLs, and sudo/sudoers." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — utilisateurs, groupes &amp; permissions">
+  <meta property="og:description" content="Utilisateurs et permissions Linux au niveau LPIC-1 : les bases de comptes (passwd/shadow/group), la gestion des utilisateurs et des groupes (primaire vs secondaire), les permissions en octal et symbolique, umask, les permissions spéciales SUID/SGID/sticky, les ACL, et sudo/sudoers.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-utilisateurs-permissions/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-utilisateurs-permissions/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-utilisateurs-permissions">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-utilisateurs-permissions</div>
+    <div class="prompt" data-lang="en">~/guides/linux-utilisateurs-permissions</div>
+    <h1 data-lang="fr">Linux — utilisateurs, groupes &amp; permissions</h1>
+    <h1 data-lang="en">Linux — users, groups &amp; permissions</h1>
+    <p class="tagline" data-lang="fr">passwd/shadow, groupes, SUID/SGID/sticky, ACL, sudo.</p>
+    <p class="tagline" data-lang="en">passwd/shadow, groups, SUID/SGID/sticky, ACL, sudo.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 175 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 175 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Sur un serveur multi-utilisateur, <strong>la sécurité commence par les permissions</strong> : qui est qui, qui appartient à quel groupe, qui peut lire, écrire, exécuter quoi. Le guide fondamentaux t&#39;a montré <code>rwx</code> et <code>sudo</code> ; l&#39;examen <strong>LPIC-1</strong> creuse bien plus loin : <em>où sont stockés les comptes ? comment ajouter un utilisateur à un groupe sans casser les autres ? c&#39;est quoi un bit SUID et pourquoi <code>passwd</code> en a un ? comment donner un droit à un seul utilisateur précis sur un fichier (ACL) ? comment autoriser une commande <code>sudo</code> sans donner tous les pouvoirs ?</em></p>
+<p>Ce guide couvre le domaine <strong>Utilisateurs, groupes &amp; permissions</strong> en profondeur : les <strong>bases de comptes</strong> (<code>/etc/passwd</code>, <code>shadow</code>, <code>group</code>), la <strong>gestion</strong> des utilisateurs et des groupes (<strong>primaire</strong> vs <strong>secondaire</strong>), les permissions en <strong>octal</strong> et <strong>symbolique</strong> + <code>umask</code>, les <strong>permissions spéciales</strong> (<strong>SUID</strong>, <strong>SGID</strong>, <strong>sticky</strong>), les <strong>ACL</strong> (droits fins), et <strong><code>sudo</code>/<code>sudoers</code></strong>.</p>
+<p>On travaille sur <strong>ta machine Ubuntu</strong> (native, WSL2, ou VM Multipass) avec <code>sudo</code>. On crée de vrais utilisateurs de test — <strong>jetables</strong>, qu&#39;on supprime à la fin.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides <strong>fondamentaux</strong> et <strong>paquets</strong>, et tu vises <strong>LPIC-1</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas lire un <code>rwxr-xr-x</code> → revois les permissions dans le guide fondamentaux.</li><li>Tu veux les disques, systemd ou le réseau → ce sont les guides suivants.</li></ul>
+</div>
+<div data-lang="en"><p>On a multi-user server, <strong>security starts with permissions</strong>: who is who, who belongs to which group, who can read, write, execute what. The fundamentals guide showed you <code>rwx</code> and <code>sudo</code>; the <strong>LPIC-1</strong> exam digs much deeper: <em>where are accounts stored? how do you add a user to a group without breaking the others? what&#39;s a SUID bit and why does <code>passwd</code> have one? how do you grant a right to one specific user on a file (ACL)? how do you allow one <code>sudo</code> command without handing over all power?</em></p>
+<p>This guide covers the <strong>Users, groups &amp; permissions</strong> domain in depth: the <strong>account databases</strong> (<code>/etc/passwd</code>, <code>shadow</code>, <code>group</code>), <strong>management</strong> of users and groups (<strong>primary</strong> vs <strong>secondary</strong>), permissions in <strong>octal</strong> and <strong>symbolic</strong> + <code>umask</code>, the <strong>special permissions</strong> (<strong>SUID</strong>, <strong>SGID</strong>, <strong>sticky</strong>), <strong>ACLs</strong> (fine-grained rights), and <strong><code>sudo</code>/<code>sudoers</code></strong>.</p>
+<p>We work on <strong>your Ubuntu machine</strong> (native, WSL2, or Multipass VM) with <code>sudo</code>. We create real test users — <strong>throwaway</strong>, deleted at the end.</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>fundamentals</strong> and <strong>packages</strong> guides, and you&#39;re aiming for <strong>LPIC-1</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t read a <code>rwxr-xr-x</code> → review permissions in the fundamentals guide.</li><li>You want disks, systemd or networking → those are the next guides.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Lire les <strong>bases de comptes</strong> : <code>/etc/passwd</code>, <code>/etc/shadow</code>, <code>/etc/group</code>.</li><li><strong>Créer/modifier/supprimer</strong> des utilisateurs (<code>useradd</code>, <code>usermod</code>, <code>userdel</code>).</li><li>Gérer les <strong>groupes</strong> et distinguer <strong>primaire</strong> vs <strong>secondaire</strong> (<code>usermod -aG</code>, <code>id</code>).</li><li>Gérer le <strong>vieillissement</strong> des mots de passe (<code>chage</code>).</li><li>Poser des permissions en <strong>octal</strong> et en <strong>symbolique</strong>, et régler le <strong><code>umask</code></strong>.</li><li>Comprendre et poser <strong>SUID</strong>, <strong>SGID</strong>, <strong>sticky</strong>, et les <strong>trouver</strong> (<code>find -perm</code>).</li><li>Donner des droits <strong>fins</strong> avec les <strong>ACL</strong> (<code>setfacl</code>/<code>getfacl</code>).</li><li>Autoriser une commande précise via <strong><code>sudo</code>/<code>sudoers</code></strong> (<code>visudo</code>).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Read the <strong>account databases</strong>: <code>/etc/passwd</code>, <code>/etc/shadow</code>, <code>/etc/group</code>.</li><li><strong>Create/modify/delete</strong> users (<code>useradd</code>, <code>usermod</code>, <code>userdel</code>).</li><li>Manage <strong>groups</strong> and tell <strong>primary</strong> from <strong>secondary</strong> (<code>usermod -aG</code>, <code>id</code>).</li><li>Manage password <strong>aging</strong> (<code>chage</code>).</li><li>Set permissions in <strong>octal</strong> and <strong>symbolic</strong>, and configure the <strong><code>umask</code></strong>.</li><li>Understand and set <strong>SUID</strong>, <strong>SGID</strong>, <strong>sticky</strong>, and <strong>find</strong> them (<code>find -perm</code>).</li><li>Grant <strong>fine-grained</strong> rights with <strong>ACLs</strong> (<code>setfacl</code>/<code>getfacl</code>).</li><li>Allow a specific command via <strong><code>sudo</code>/<code>sudoers</code></strong> (<code>visudo</code>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>fondamentaux</strong> et <strong>paquets</strong> acquis.</li><li>Un système <strong>Ubuntu/Debian</strong> avec <code>sudo</code> (natif, WSL2, ou VM Multipass).</li><li>L&#39;outil ACL (souvent déjà là ; sinon installe-le) :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>fundamentals</strong> and <strong>packages</strong> guides under your belt.</li><li>An <strong>Ubuntu/Debian</strong> system with <code>sudo</code> (native, WSL2, or Multipass VM).</li><li>The ACL tool (often already present; otherwise install it):</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y acl</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-paquets/">
+    <span class="num">03</span>
+    <span class="title-line" data-lang="fr">Linux — gestion des paquets &amp; logiciels</span>
+    <span class="title-line" data-lang="en">Linux — package &amp; software management</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Les comptes vivent dans trois fichiers texte.</strong></p>
+<ul><li><strong><code>/etc/passwd</code></strong> (lisible par tous) : une ligne par utilisateur, 7 champs séparés par <code>:</code> → <code>nom:x:UID:GID:commentaire:home:shell</code>. Le <code>x</code> renvoie au mot de passe stocké ailleurs.</li><li><strong><code>/etc/shadow</code></strong> (lisible par <strong>root seul</strong>) : le <strong>mot de passe haché</strong> et les infos de <strong>vieillissement</strong> (dernière modif, âge min/max, avertissement, expiration).</li><li><strong><code>/etc/group</code></strong> : les groupes et leurs membres.</li></ul>
+<p><strong>Groupe primaire vs secondaires.</strong> Chaque utilisateur a <strong>un</strong> groupe <strong>primaire</strong> (le GID de <code>/etc/passwd</code>, appliqué aux nouveaux fichiers qu&#39;il crée) et <strong>zéro ou plusieurs</strong> groupes <strong>secondaires</strong> (appartenances additionnelles). Le piège fatal : <code>usermod -G</code> <strong>remplace</strong> toute la liste des secondaires ; il faut <code>usermod -aG</code> (<strong>a</strong>ppend) pour <strong>ajouter</strong> sans effacer les autres.</p>
+<p><strong>Les permissions, trois niveaux × trois droits.</strong> Pour chaque fichier : <strong>propriétaire</strong> (u), <strong>groupe</strong> (g), <strong>autres</strong> (o), chacun avec <strong>r</strong>(4) <strong>w</strong>(2) <strong>x</strong>(1). On les note en <strong>octal</strong> (<code>chmod 640</code>) ou en <strong>symbolique</strong> (<code>chmod u+x,g-w</code>). Le <strong><code>umask</code></strong> définit les droits <strong>retirés</strong> par défaut aux nouveaux fichiers (umask <code>022</code> → fichiers <code>644</code>, dossiers <code>755</code>).</p>
+<p><strong>Les permissions spéciales</strong> (le 4ᵉ chiffre octal) :</p>
+<ul><li><strong>SUID</strong> (<code>4000</code>, <code>s</code> sur le <code>x</code> du propriétaire) : le programme s&#39;exécute avec l&#39;identité de son <strong>propriétaire</strong>, pas de celui qui le lance. C&#39;est pourquoi <code>passwd</code> (SUID root) peut écrire dans <code>/etc/shadow</code>.</li><li><strong>SGID</strong> (<code>2000</code>) : sur un <strong>fichier</strong>, s&#39;exécute avec le <strong>groupe</strong> propriétaire ; sur un <strong>dossier</strong>, les nouveaux fichiers <strong>héritent du groupe</strong> du dossier (parfait pour un répertoire partagé).</li><li><strong>Sticky bit</strong> (<code>1000</code>, <code>t</code>) : sur un <strong>dossier</strong>, seul le <strong>propriétaire d&#39;un fichier</strong> peut le supprimer, même si d&#39;autres ont l&#39;écriture. C&#39;est ce qui protège <code>/tmp</code> (<code>drwxrwxrwt</code>).</li></ul>
+<p><strong>Les ACL</strong> dépassent le trio u/g/o : elles donnent un droit à <strong>un utilisateur ou groupe précis</strong>, en plus des permissions classiques. <code>setfacl</code> pose, <code>getfacl</code> lit. Un <code>+</code> à la fin du <code>ls -l</code> signale une ACL.</p>
+<p><strong><code>sudo</code></strong> délègue des droits <strong>root ciblés</strong>. La config est dans <code>/etc/sudoers</code> (et <code>/etc/sudoers.d/</code>), qu&#39;on édite <strong>toujours</strong> avec <strong><code>visudo</code></strong> (il valide la syntaxe — une erreur ici peut te verrouiller hors de root).</p>
+</div>
+<div data-lang="en"><p><strong>Accounts live in three text files.</strong></p>
+<ul><li><strong><code>/etc/passwd</code></strong> (world-readable): one line per user, 7 <code>:</code>-separated fields → <code>name:x:UID:GID:comment:home:shell</code>. The <code>x</code> points to the password stored elsewhere.</li><li><strong><code>/etc/shadow</code></strong> (readable by <strong>root only</strong>): the <strong>hashed password</strong> and <strong>aging</strong> info (last change, min/max age, warning, expiry).</li><li><strong><code>/etc/group</code></strong>: groups and their members.</li></ul>
+<p><strong>Primary vs secondary group.</strong> Each user has <strong>one</strong> <strong>primary</strong> group (the GID in <code>/etc/passwd</code>, applied to new files they create) and <strong>zero or more</strong> <strong>secondary</strong> groups (extra memberships). The fatal trap: <code>usermod -G</code> <strong>replaces</strong> the entire secondary list; you need <code>usermod -aG</code> (<strong>a</strong>ppend) to <strong>add</strong> without wiping the others.</p>
+<p><strong>Permissions, three levels × three rights.</strong> For each file: <strong>owner</strong> (u), <strong>group</strong> (g), <strong>others</strong> (o), each with <strong>r</strong>(4) <strong>w</strong>(2) <strong>x</strong>(1). Written in <strong>octal</strong> (<code>chmod 640</code>) or <strong>symbolic</strong> (<code>chmod u+x,g-w</code>). The <strong><code>umask</code></strong> defines the rights <strong>removed</strong> by default from new files (umask <code>022</code> → files <code>644</code>, dirs <code>755</code>).</p>
+<p><strong>Special permissions</strong> (the 4th octal digit):</p>
+<ul><li><strong>SUID</strong> (<code>4000</code>, <code>s</code> on the owner&#39;s <code>x</code>): the program runs with its <strong>owner&#39;s</strong> identity, not the caller&#39;s. That&#39;s why <code>passwd</code> (SUID root) can write to <code>/etc/shadow</code>.</li><li><strong>SGID</strong> (<code>2000</code>): on a <strong>file</strong>, runs with the owner <strong>group</strong>; on a <strong>directory</strong>, new files <strong>inherit the directory&#39;s group</strong> (perfect for a shared directory).</li><li><strong>Sticky bit</strong> (<code>1000</code>, <code>t</code>): on a <strong>directory</strong>, only a <strong>file&#39;s owner</strong> can delete it, even if others have write. That&#39;s what protects <code>/tmp</code> (<code>drwxrwxrwt</code>).</li></ul>
+<p><strong>ACLs</strong> go beyond the u/g/o trio: they grant a right to <strong>one specific user or group</strong>, on top of the classic permissions. <code>setfacl</code> sets, <code>getfacl</code> reads. A <code>+</code> at the end of <code>ls -l</code> flags an ACL.</p>
+<p><strong><code>sudo</code></strong> delegates <strong>targeted root</strong> rights. Config lives in <code>/etc/sudoers</code> (and <code>/etc/sudoers.d/</code>), which you <strong>always</strong> edit with <strong><code>visudo</code></strong> (it validates syntax — a mistake here can lock you out of root).</p>
+</div>
+
+<figure class="schema" id="figure-linux-permissions">
+  <p>[schema "linux-permissions" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> rwx × (propriétaire, groupe, autres) + le 4ᵉ chiffre SUID/SGID/sticky. Les ACL ajoutent des droits par utilisateur/groupe précis.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> rwx × (owner, group, others) + the 4th SUID/SGID/sticky digit. ACLs add rights for a specific user/group.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : bases de comptes → créer users/groupes → vieillissement → permissions octal/symbolique/umask → SUID/SGID/sticky → ACL → sudo.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: account databases → create users/groups → aging → octal/symbolic/umask permissions → SUID/SGID/sticky → ACL → sudo.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire les <strong>trois bases de comptes</strong> et comprendre leurs champs.</p>
+<p><strong>🤔 Tout est du texte.</strong> Aucun binaire mystérieux : des fichiers lisibles. Regarde ton propre compte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read the <strong>three account databases</strong> and understand their fields.</p>
+<p><strong>🤔 It&#39;s all text.</strong> No mysterious binary: readable files. Look at your own account:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>grep &quot;^$USER:&quot; /etc/passwd          # nom:x:UID:GID:commentaire:home:shell
+sudo grep &quot;^$USER:&quot; /etc/shadow     # mot de passe haché + vieillissement (root seul) / hash + aging (root only)
+id                                  # UID, GID primaire, groupes secondaires / UID, primary GID, secondary groups</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la ligne de <code>/etc/passwd</code> montre tes 7 champs (dont ton <code>home</code> et ton <code>shell</code>, souvent <code>/bin/bash</code>). <code>/etc/shadow</code> n&#39;est lisible qu&#39;avec <code>sudo</code> — c&#39;est <strong>là</strong> qu&#39;est le mot de passe (haché), <strong>pas</strong> dans <code>passwd</code>. <code>id</code> résume ton identité : <code>uid=1000(toi) gid=1000(toi) groups=…</code>. Tu vois la séparation <strong>identité publique</strong> (<code>passwd</code>) / <strong>secret</strong> (<code>shadow</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>/etc/passwd</code> line shows your 7 fields (including your <code>home</code> and <code>shell</code>, often <code>/bin/bash</code>). <code>/etc/shadow</code> is only readable with <code>sudo</code> — that&#39;s <strong>where</strong> the (hashed) password lives, <strong>not</strong> in <code>passwd</code>. <code>id</code> summarizes your identity: <code>uid=1000(you) gid=1000(you) groups=…</code>. You see the split between <strong>public identity</strong> (<code>passwd</code>) and <strong>secret</strong> (<code>shadow</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>utilisateur</strong> et un <strong>groupe</strong>, et gérer les appartenances <strong>primaire/secondaire</strong>.</p>
+<p><strong>🤔 Le piège <code>-aG</code>.</strong> Ajoute toujours un groupe secondaire avec <strong><code>-aG</code></strong> (append). Crée un utilisateur et un groupe de test :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>user</strong> and a <strong>group</strong>, and manage <strong>primary/secondary</strong> memberships.</p>
+<p><strong>🤔 The <code>-aG</code> trap.</strong> Always add a secondary group with <strong><code>-aG</code></strong> (append). Create a test user and group:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo useradd -m -s /bin/bash alice        # -m crée le home, -s fixe le shell / -m creates home, -s sets shell
+sudo groupadd devs
+sudo usermod -aG devs alice               # AJOUTE alice au groupe secondaire devs / ADD alice to secondary group
+id alice                                  # groups=...(alice),devs / voit devs en secondaire
+groups alice                              # même info, plus court / same info, shorter</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>id alice</code> montre son <strong>UID</strong>, son <strong>groupe primaire</strong> <code>alice</code> (créé automatiquement), et le <strong>secondaire</strong> <code>devs</code>. Preuve du piège : <code>sudo usermod -G devs alice</code> (<strong>sans <code>-a</code></strong>) <strong>remplacerait</strong> toute la liste secondaire — <code>-aG</code> <strong>ajoute</strong>, <code>-G</code> <strong>écrase</strong>. C&#39;est l&#39;erreur qui fait perdre à un admin ses accès <code>sudo</code> (en le sortant du groupe <code>sudo</code>). Retiens : <strong>toujours <code>-aG</code></strong> pour ajouter.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>id alice</code> shows her <strong>UID</strong>, her <strong>primary group</strong> <code>alice</code> (auto-created), and the <strong>secondary</strong> <code>devs</code>. Proof of the trap: <code>sudo usermod -G devs alice</code> (<strong>without <code>-a</code></strong>) would <strong>replace</strong> the whole secondary list — <code>-aG</code> <strong>adds</strong>, <code>-G</code> <strong>overwrites</strong>. That&#39;s the mistake that costs an admin their <code>sudo</code> access (by removing them from the <code>sudo</code> group). Remember: <strong>always <code>-aG</code></strong> to add.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer le <strong>vieillissement</strong> du mot de passe avec <strong><code>chage</code></strong>.</p>
+<p><strong>🤔 Un mot de passe a une durée de vie.</strong> Les stratégies de sécurité imposent expiration et rotation. Regarde et règle :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage password <strong>aging</strong> with <strong><code>chage</code></strong>.</p>
+<p><strong>🤔 A password has a lifetime.</strong> Security policies impose expiry and rotation. Look and set:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo chage -l alice                 # affiche la politique d&#39;âge actuelle / show current aging policy
+sudo chage -M 90 -W 7 alice         # max 90 jours, avertit 7 jours avant / max 90 days, warn 7 days before
+sudo chage -l alice                 # vérifie le changement / verify the change</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le premier <code>chage -l alice</code> montre la politique (souvent « jamais » par défaut) ; après <code>chage -M 90 -W 7</code>, <code>Maximum number of days between password change</code> passe à <strong>90</strong> et l&#39;avertissement à <strong>7</strong>. Ces valeurs vivent dans <code>/etc/shadow</code> (champs de vieillissement). C&#39;est ainsi qu&#39;on impose une <strong>rotation</strong> des mots de passe sur un parc.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first <code>chage -l alice</code> shows the policy (often &quot;never&quot; by default); after <code>chage -M 90 -W 7</code>, <code>Maximum number of days between password change</code> becomes <strong>90</strong> and the warning <strong>7</strong>. These values live in <code>/etc/shadow</code> (aging fields). That&#39;s how you enforce password <strong>rotation</strong> across a fleet.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser des permissions en <strong>octal</strong> et <strong>symbolique</strong>, et régler le <strong><code>umask</code></strong>.</p>
+<p><strong>🤔 Deux notations, un résultat.</strong> Crée un fichier et manipule ses droits des deux façons :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set permissions in <strong>octal</strong> and <strong>symbolic</strong>, and configure the <strong><code>umask</code></strong>.</p>
+<p><strong>🤔 Two notations, one result.</strong> Create a file and manipulate its rights both ways:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd /tmp &amp;&amp; touch demo.txt
+chmod 640 demo.txt          # octal : rw- r-- --- / owner rw, group r, others none
+ls -l demo.txt              # -rw-r-----
+chmod u+x,o+r demo.txt      # symbolique : ajoute x au proprio, r aux autres / symbolic
+ls -l demo.txt              # -rwxr--r--
+
+umask                       # le masque courant (souvent 0022) / current mask
+umask 027 ; touch masked.txt ; ls -l masked.txt   # 0640 : le masque retire g+w et o+rwx
+umask 022                   # remets la valeur usuelle / restore usual value</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>chmod 640</code> donne <code>-rw-r-----</code> (octal : 6=rw, 4=r, 0=rien), et <code>chmod u+x,o+r</code> le transforme en <code>-rwxr--r--</code> (symbolique : opère <strong>relativement</strong>). Avec <code>umask 027</code>, le nouveau fichier <code>masked.txt</code> naît en <code>-rw-r-----</code> : le masque <strong>retire</strong> les droits (027 = enlève l&#39;écriture au groupe et tout aux autres). Octal = <strong>valeur absolue</strong>, symbolique = <strong>ajout/retrait relatif</strong>, umask = <strong>droits retirés par défaut</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>chmod 640</code> gives <code>-rw-r-----</code> (octal: 6=rw, 4=r, 0=none), and <code>chmod u+x,o+r</code> turns it into <code>-rwxr--r--</code> (symbolic: operates <strong>relatively</strong>). With <code>umask 027</code>, the new <code>masked.txt</code> is born <code>-rw-r-----</code>: the mask <strong>removes</strong> rights (027 = strips group write and everything from others). Octal = <strong>absolute value</strong>, symbolic = <strong>relative add/remove</strong>, umask = <strong>rights removed by default</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre et poser les <strong>permissions spéciales</strong> : <strong>SUID</strong>, <strong>SGID</strong>, <strong>sticky</strong>.</p>
+<p><strong>🤔 Les vois-tu dans la nature ?</strong> Deux exemples déjà présents sur ton système :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand and set the <strong>special permissions</strong>: <strong>SUID</strong>, <strong>SGID</strong>, <strong>sticky</strong>.</p>
+<p><strong>🤔 Do you see them in the wild?</strong> Two examples already on your system:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ls -l /usr/bin/passwd       # -rwsr-xr-x : le &#39;s&#39; = SUID (s&#39;exécute en root) / &#39;s&#39; = SUID (runs as root)
+ls -ld /tmp                 # drwxrwxrwt : le &#39;t&#39; final = sticky bit / trailing &#39;t&#39; = sticky
+
+# Poser un SGID sur un dossier partagé : les fichiers créés héritent du groupe / new files inherit the group
+sudo mkdir /tmp/partage &amp;&amp; sudo chgrp devs /tmp/partage
+sudo chmod 2775 /tmp/partage      # le 2 = SGID / the leading 2 = SGID
+ls -ld /tmp/partage               # drwxrwsr-x : le &#39;s&#39; sur le groupe / &#39;s&#39; on the group
+
+# Trouver tous les binaires SUID du système (audit de sécurité classique) / find all SUID binaries
+find /usr/bin -perm -4000 -type f 2&gt;/dev/null</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls -l /usr/bin/passwd</code> montre <code>-rw<strong>s</strong>r-xr-x</code> : le <code>s</code> sur le <code>x</code> du propriétaire = <strong>SUID</strong>, la raison pour laquelle un utilisateur normal peut changer son mot de passe (le binaire s&#39;exécute en <strong>root</strong> le temps d&#39;écrire dans <code>/etc/shadow</code>). <code>/tmp</code> porte le <strong>sticky</strong> (<code>t</code> final) : chacun y écrit, mais <strong>ne supprime que ses propres fichiers</strong>. Ton <code>/tmp/partage</code> en <code>2775</code> porte le <strong>SGID</strong> (<code>s</code> sur le groupe) : tout fichier qu&#39;on y crée appartiendra au groupe <code>devs</code> — le motif du <strong>répertoire d&#39;équipe</strong>. Et <code>find -perm -4000</code> <strong>audite</strong> les binaires SUID (surface d&#39;attaque à surveiller).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls -l /usr/bin/passwd</code> shows <code>-rw<strong>s</strong>r-xr-x</code>: the <code>s</code> on the owner&#39;s <code>x</code> = <strong>SUID</strong>, why a normal user can change their password (the binary runs as <strong>root</strong> long enough to write to <code>/etc/shadow</code>). <code>/tmp</code> carries the <strong>sticky</strong> (trailing <code>t</code>): everyone writes there, but <strong>deletes only their own files</strong>. Your <code>/tmp/partage</code> at <code>2775</code> carries the <strong>SGID</strong> (<code>s</code> on the group): any file created there will belong to the <code>devs</code> group — the <strong>team directory</strong> pattern. And <code>find -perm -4000</code> <strong>audits</strong> SUID binaries (an attack surface to watch).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Donner un droit <strong>à un utilisateur précis</strong> avec une <strong>ACL</strong>, au-delà de u/g/o.</p>
+<p><strong>🤔 Quand u/g/o ne suffit pas.</strong> Tu veux que <strong>seul <code>alice</code></strong> puisse écrire dans un fichier, sans changer son propriétaire ni son groupe. C&#39;est le rôle des <strong>ACL</strong>. Crée <code>bob</code> pour comparer, puis pose l&#39;ACL :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Grant a right <strong>to a specific user</strong> with an <strong>ACL</strong>, beyond u/g/o.</p>
+<p><strong>🤔 When u/g/o isn&#39;t enough.</strong> You want <strong>only <code>alice</code></strong> to write to a file, without changing its owner or group. That&#39;s what <strong>ACLs</strong> are for. Create <code>bob</code> to compare, then set the ACL:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo useradd -m bob
+cd /tmp &amp;&amp; touch rapport.txt &amp;&amp; chmod 640 rapport.txt   # groupe: lecture seule / group: read-only
+
+sudo setfacl -m u:alice:rw rapport.txt      # alice précisément : lecture-écriture / alice specifically: rw
+getfacl rapport.txt                          # affiche l&#39;ACL / show the ACL
+ls -l rapport.txt                            # noter le &#39;+&#39; à la fin des permissions / note the trailing &#39;+&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>getfacl rapport.txt</code> liste une entrée <strong><code>user:alice:rw-</code></strong> en plus des permissions classiques — <code>alice</code> a l&#39;écriture que ni le groupe ni les autres n&#39;ont, <strong>sans</strong> être propriétaire. Le <code>ls -l</code> affiche un <strong><code>+</code></strong> après les droits (<code>-rw-r-----+</code>), signal visuel d&#39;une ACL. <code>bob</code>, lui, reste soumis aux droits « autres » (aucun). Les ACL = des droits <strong>chirurgicaux</strong>, par utilisateur/groupe nommé, quand les trois niveaux classiques ne suffisent pas.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>getfacl rapport.txt</code> lists a <strong><code>user:alice:rw-</code></strong> entry on top of the classic permissions — <code>alice</code> has the write that neither group nor others have, <strong>without</strong> being owner. <code>ls -l</code> shows a <strong><code>+</code></strong> after the rights (<code>-rw-r-----+</code>), the visual sign of an ACL. <code>bob</code> stays subject to the &quot;others&quot; rights (none). ACLs = <strong>surgical</strong> rights, per named user/group, when the three classic levels aren&#39;t enough.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Autoriser une <strong>commande précise</strong> en <code>sudo</code> — sans donner tous les pouvoirs — via <strong><code>visudo</code></strong>.</p>
+<p><strong>🤔 Le moindre privilège, appliqué à root.</strong> On autorise <code>alice</code> à redémarrer un service <strong>et rien d&#39;autre</strong>. On édite via <code>/etc/sudoers.d/</code> (fichier séparé, propre) avec <strong><code>visudo</code></strong> (qui valide la syntaxe). Crée la règle :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Allow a <strong>specific command</strong> with <code>sudo</code> — without granting all power — via <strong><code>visudo</code></strong>.</p>
+<p><strong>🤔 Least privilege, applied to root.</strong> We allow <code>alice</code> to restart a service <strong>and nothing else</strong>. We edit via <code>/etc/sudoers.d/</code> (a separate, clean file) with <strong><code>visudo</code></strong> (which validates syntax). Create the rule:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># visudo édite le fichier ET valide la syntaxe avant d&#39;enregistrer / edits AND validates before saving
+echo &#39;alice ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart ssh&#39; | sudo tee /etc/sudoers.d/alice
+sudo visudo -cf /etc/sudoers.d/alice        # -c = check : &quot;parsed OK&quot; attendu / -c = check: expect &quot;parsed OK&quot;
+
+sudo -l -U alice                            # liste ce qu&#39;alice a le droit de faire en sudo / what alice may sudo</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>visudo -cf /etc/sudoers.d/alice</code> répond <strong><code>parsed OK</code></strong> (syntaxe valide — c&#39;est <strong>le</strong> garde-fou : ne jamais éditer sudoers avec un éditeur brut). <code>sudo -l -U alice</code> affiche exactement <strong>une</strong> permission : <code>systemctl restart ssh</code>, en <code>NOPASSWD</code>. <code>alice</code> peut redémarrer ce service <strong>sans mot de passe</strong> mais <strong>ne peut rien faire d&#39;autre</strong> en root. C&#39;est le <strong>moindre privilège</strong> : on délègue une action précise, pas les clés du royaume. <em>(Toujours <code>/etc/sudoers.d/</code> + <code>visudo</code>, jamais un <code>nano /etc/sudoers</code> direct : une faute de syntaxe peut casser tout <code>sudo</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>visudo -cf /etc/sudoers.d/alice</code> answers <strong><code>parsed OK</code></strong> (valid syntax — <strong>the</strong> safeguard: never edit sudoers with a raw editor). <code>sudo -l -U alice</code> shows exactly <strong>one</strong> permission: <code>systemctl restart ssh</code>, as <code>NOPASSWD</code>. <code>alice</code> can restart that service <strong>without a password</strong> but <strong>can&#39;t do anything else</strong> as root. That&#39;s <strong>least privilege</strong>: you delegate a precise action, not the keys to the kingdom. <em>(Always <code>/etc/sudoers.d/</code> + <code>visudo</code>, never a direct <code>nano /etc/sudoers</code>: a syntax error can break all of <code>sudo</code>.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. <code>usermod -G</code> sans <code>-a</code>.</strong> Il <strong>remplace</strong> tous les groupes secondaires. Se retirer soi-même du groupe <code>sudo</code> ainsi = perdre ses droits admin. Toujours <strong><code>-aG</code></strong> pour ajouter.</p>
+<p><strong>2. Éditer <code>/etc/passwd</code>/<code>shadow</code>/<code>sudoers</code> à la main.</strong> Risque de corruption/verrouillage. Utilise les outils : <code>useradd</code>/<code>usermod</code>/<code>chage</code>/<code>passwd</code>, et <strong><code>visudo</code></strong> pour sudoers.</p>
+<p><strong>3. Chercher le mot de passe dans <code>/etc/passwd</code>.</strong> Il n&#39;y est pas (le <code>x</code>). Il est <strong>haché</strong> dans <code>/etc/shadow</code> (root seul).</p>
+<p><strong>4. Confondre octal et symbolique.</strong> <code>chmod 644</code> = <strong>absolu</strong> (écrase tout) ; <code>chmod u+x</code> = <strong>relatif</strong> (ajoute). Mélanger les deux logiques donne des résultats inattendus.</p>
+<p><strong>5. Confondre SUID sur fichier et SGID sur dossier.</strong> SUID = s&#39;exécuter en tant que propriétaire (fichiers exécutables). SGID sur <strong>dossier</strong> = héritage de groupe. Le sticky sur <strong>dossier</strong> = seul le propriétaire supprime.</p>
+<p><strong>6. Oublier le paquet <code>acl</code>.</strong> <code>setfacl</code>/<code>getfacl</code> viennent du paquet <code>acl</code> ; sur un système minimal il faut l&#39;installer. Et le système de fichiers doit supporter les ACL (ext4 : oui par défaut).</p>
+<p><strong>7. <code>userdel</code> sans <code>-r</code> laisse le home.</strong> <code>userdel alice</code> supprime le compte mais <strong>garde</strong> <code>/home/alice</code>. <code>userdel -r alice</code> supprime aussi le home et le mail.</p>
+</div>
+<div data-lang="en"><p><strong>1. <code>usermod -G</code> without <code>-a</code>.</strong> It <strong>replaces</strong> all secondary groups. Removing yourself from the <code>sudo</code> group this way = losing admin rights. Always <strong><code>-aG</code></strong> to add.</p>
+<p><strong>2. Editing <code>/etc/passwd</code>/<code>shadow</code>/<code>sudoers</code> by hand.</strong> Risk of corruption/lockout. Use the tools: <code>useradd</code>/<code>usermod</code>/<code>chage</code>/<code>passwd</code>, and <strong><code>visudo</code></strong> for sudoers.</p>
+<p><strong>3. Looking for the password in <code>/etc/passwd</code>.</strong> It&#39;s not there (the <code>x</code>). It&#39;s <strong>hashed</strong> in <code>/etc/shadow</code> (root only).</p>
+<p><strong>4. Confusing octal and symbolic.</strong> <code>chmod 644</code> = <strong>absolute</strong> (overwrites all); <code>chmod u+x</code> = <strong>relative</strong> (adds). Mixing the two logics gives surprising results.</p>
+<p><strong>5. Confusing SUID on a file and SGID on a directory.</strong> SUID = run as the owner (executable files). SGID on a <strong>directory</strong> = group inheritance. Sticky on a <strong>directory</strong> = only the owner deletes.</p>
+<p><strong>6. Forgetting the <code>acl</code> package.</strong> <code>setfacl</code>/<code>getfacl</code> come from the <code>acl</code> package; on a minimal system you must install it. And the filesystem must support ACLs (ext4: yes by default).</p>
+<p><strong>7. <code>userdel</code> without <code>-r</code> leaves the home.</strong> <code>userdel alice</code> deletes the account but <strong>keeps</strong> <code>/home/alice</code>. <code>userdel -r alice</code> also removes the home and mail.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis les 7 champs de <code>/etc/passwd</code> et tu sais où est le mot de passe (<code>shadow</code>).</li><li>Tu crées un user, l&#39;ajoutes à un groupe <strong>avec <code>-aG</code></strong>, et lis le tout avec <code>id</code>.</li><li>Tu règles le vieillissement d&#39;un mot de passe (<code>chage</code>).</li><li>Tu poses des droits en <strong>octal</strong> et <strong>symbolique</strong>, et tu expliques un <code>umask</code>.</li><li>Tu reconnais et poses <strong>SUID/SGID/sticky</strong>, et tu <strong>audites</strong> les SUID.</li><li>Tu donnes un droit à <strong>un utilisateur précis</strong> avec une <strong>ACL</strong>.</li><li>Tu autorises <strong>une</strong> commande <code>sudo</code> via <code>/etc/sudoers.d/</code> + <code>visudo</code>.</li></ul>
+<p>Sept cases cochées = tu tiens <strong>Utilisateurs, groupes &amp; permissions</strong> du LPIC-1.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read the 7 fields of <code>/etc/passwd</code> and know where the password lives (<code>shadow</code>).</li><li>You create a user, add them to a group <strong>with <code>-aG</code></strong>, and read it all with <code>id</code>.</li><li>You set a password&#39;s aging (<code>chage</code>).</li><li>You set rights in <strong>octal</strong> and <strong>symbolic</strong>, and explain a <code>umask</code>.</li><li>You recognize and set <strong>SUID/SGID/sticky</strong>, and <strong>audit</strong> SUIDs.</li><li>You grant a right to <strong>one specific user</strong> with an <strong>ACL</strong>.</li><li>You allow <strong>one</strong> <code>sudo</code> command via <code>/etc/sudoers.d/</code> + <code>visudo</code>.</li></ul>
+<p>Seven boxes ticked = you hold LPIC-1 <strong>Users, groups &amp; permissions</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Linux → LPIC-1 :</p>
+<ol><li><strong>Systèmes de fichiers, disques &amp; FHS</strong> — partitions, <code>mkfs</code>, <code>fstab</code>, LVM, liens.</li><li><strong>Boot, systemd &amp; processus</strong> — démarrage, units/targets, <code>journalctl</code>, cron/timers.</li><li><strong>Réseau &amp; sécurité système</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, pare-feu, durcissement.</li><li><strong>Scripting shell (bash)</strong> — variables, conditions, boucles, fonctions.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner et durcir un serveur Linux multi-utilisateur.</li></ol>
+<p><strong>Ménage :</strong> supprime les comptes de test — <code>sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs</code>.</p>
+</div>
+<div data-lang="en"><p>The rest of the Linux → LPIC-1 track:</p>
+<ol><li><strong>Filesystems, disks &amp; FHS</strong> — partitions, <code>mkfs</code>, <code>fstab</code>, LVM, links.</li><li><strong>Boot, systemd &amp; processes</strong> — startup, units/targets, <code>journalctl</code>, cron/timers.</li><li><strong>Networking &amp; system security</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, firewall, hardening.</li><li><strong>Shell scripting (bash)</strong> — variables, conditionals, loops, functions.</li><li><strong>Enterprise project</strong> — provision and harden a multi-user Linux server.</li></ol>
+<p><strong>Cleanup:</strong> delete the test accounts — <code>sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs</code>.</p>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">05</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire utilisateurs &amp; permissions.</p>
+</div>
+<div data-lang="en"><p>Users &amp; permissions cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Bases de comptes / account databases
+/etc/passwd  (nom:x:UID:GID:gecos:home:shell)   /etc/shadow (hash+âge)   /etc/group
+
+# Utilisateurs &amp; groupes / users &amp; groups
+sudo useradd -m -s /bin/bash NOM ; sudo passwd NOM ; sudo userdel -r NOM
+sudo groupadd GRP ; sudo usermod -aG GRP NOM     # -aG = AJOUTE (pas -G !) / ADD (not -G!)
+id NOM ; groups NOM ; sudo chage -l NOM ; sudo chage -M 90 -W 7 NOM
+
+# Permissions
+chmod 640 f       # octal (absolu)      chmod u+x,g-w f   # symbolique (relatif)
+umask 027         # droits retirés par défaut / rights removed by default
+chown user:grp f ; chgrp grp f
+
+# Spéciales (4e chiffre) / special (4th digit)
+chmod 4755 f  # SUID    chmod 2775 d  # SGID (dossier: héritage groupe)   chmod 1777 d  # sticky
+find / -perm -4000 -type f 2&gt;/dev/null            # audit SUID
+
+# ACL
+sudo setfacl -m u:alice:rw f ; getfacl f ; setfacl -x u:alice f   # ls -l montre un &#39;+&#39;
+
+# sudo
+sudo visudo -f /etc/sudoers.d/NOM ; sudo visudo -cf FICHIER ; sudo -l -U NOM</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://manpages.ubuntu.com/manpages/noble/man8/useradd.8.html"><code>man useradd</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man8/usermod.8.html"><code>man usermod</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man1/chage.1.html"><code>man chage</code></a>.</li><li><a href="https://www.linux.com/training-tutorials/understanding-linux-file-permissions/">Permissions &amp; special bits (LPIC 104.5)</a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/setfacl.1.html">ACL — <code>man setfacl</code></a> et <a href="https://manpages.ubuntu.com/manpages/noble/man1/getfacl.1.html"><code>getfacl</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/sudoers.5.html"><code>sudoers</code> — <code>man sudoers</code></a> et l&#39;usage de <code>visudo</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://manpages.ubuntu.com/manpages/noble/man8/useradd.8.html"><code>man useradd</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man8/usermod.8.html"><code>man usermod</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man1/chage.1.html"><code>man chage</code></a>.</li><li><a href="https://www.linux.com/training-tutorials/understanding-linux-file-permissions/">Permissions &amp; special bits (LPIC 104.5)</a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/setfacl.1.html">ACL — <code>man setfacl</code></a> and <a href="https://manpages.ubuntu.com/manpages/noble/man1/getfacl.1.html"><code>getfacl</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/sudoers.5.html"><code>sudoers</code> — <code>man sudoers</code></a> and using <code>visudo</code>.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>usermod: group &#39;X&#39; does not exist</code>.</strong> Crée le groupe d&#39;abord (<code>sudo groupadd X</code>), puis <code>usermod -aG X user</code>.</p>
+<p><strong>Un utilisateur a perdu ses groupes après <code>usermod -G</code>.</strong> Tu as oublié le <code>-a</code>. Rajoute-le aux groupes manquants avec <code>usermod -aG</code>. Vérifie avec <code>id</code>.</p>
+<p><strong>Les changements de groupe ne prennent pas effet.</strong> L&#39;appartenance est lue <strong>à la connexion</strong> : l&#39;utilisateur doit se <strong>reconnecter</strong> (ou <code>newgrp GRP</code> pour une session). Un shell déjà ouvert garde l&#39;ancienne liste.</p>
+<p><strong><code>setfacl: command not found</code>.</strong> Installe le paquet : <code>sudo apt install acl</code>. Et vérifie que le FS supporte les ACL (<code>mount | grep acl</code> ; ext4 les active par défaut).</p>
+<p><strong><code>sudo</code> cassé après édition de sudoers.</strong> Si tu as un shell root ouvert : <code>visudo</code> pour corriger. Sinon, redémarre en mode recovery. <strong>Leçon</strong> : toujours <code>visudo</code> (il refuse d&#39;enregistrer une syntaxe invalide).</p>
+<p><strong><code>chmod 2775</code> mais pas de <code>s</code> sur le groupe.</strong> Le dossier n&#39;a peut-être pas le <code>x</code> de groupe : le SGID s&#39;affiche <code>S</code> (majuscule) s&#39;il n&#39;y a pas de <code>x</code> sous-jacent. Vérifie que le <code>x</code> est présent (<code>2775</code> l&#39;inclut).</p>
+</div>
+<div data-lang="en"><p><strong><code>usermod: group &#39;X&#39; does not exist</code>.</strong> Create the group first (<code>sudo groupadd X</code>), then <code>usermod -aG X user</code>.</p>
+<p><strong>A user lost their groups after <code>usermod -G</code>.</strong> You forgot the <code>-a</code>. Re-add them to the missing groups with <code>usermod -aG</code>. Check with <code>id</code>.</p>
+<p><strong>Group changes don&#39;t take effect.</strong> Membership is read <strong>at login</strong>: the user must <strong>log back in</strong> (or <code>newgrp GRP</code> for one session). An already-open shell keeps the old list.</p>
+<p><strong><code>setfacl: command not found</code>.</strong> Install the package: <code>sudo apt install acl</code>. And check the FS supports ACLs (<code>mount | grep acl</code>; ext4 enables them by default).</p>
+<p><strong><code>sudo</code> broken after editing sudoers.</strong> If you have a root shell open: <code>visudo</code> to fix. Otherwise, reboot into recovery mode. <strong>Lesson</strong>: always <code>visudo</code> (it refuses to save invalid syntax).</p>
+<p><strong><code>chmod 2775</code> but no <code>s</code> on the group.</strong> The directory may lack group <code>x</code>: SGID shows as <code>S</code> (uppercase) when there&#39;s no underlying <code>x</code>. Check <code>x</code> is present (<code>2775</code> includes it).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
