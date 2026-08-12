@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — systèmes de fichiers, disques &amp; FHS — jiha.tech</title>
+  <title data-lang="en">Linux — filesystems, disks &amp; FHS — jiha.tech</title>
+  <meta name="description" content="Disques et systèmes de fichiers Linux au niveau LPIC-1, sans risque grâce à un disque virtuel (fichier loopback) : la hiérarchie FHS, le partitionnement (parted/fdisk), mkfs et le montage, la persistance via /etc/fstab et UUID, les liens durs et symboliques, et LVM (créer et étendre un volume)." data-lang="fr">
+  <meta name="description" content="Linux disks and filesystems at LPIC-1 level, risk-free thanks to a virtual disk (loopback file): the FHS hierarchy, partitioning (parted/fdisk), mkfs and mounting, persistence via /etc/fstab and UUID, hard and symbolic links, and LVM (create and extend a volume)." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — systèmes de fichiers, disques &amp; FHS">
+  <meta property="og:description" content="Disques et systèmes de fichiers Linux au niveau LPIC-1, sans risque grâce à un disque virtuel (fichier loopback) : la hiérarchie FHS, le partitionnement (parted/fdisk), mkfs et le montage, la persistance via /etc/fstab et UUID, les liens durs et symboliques, et LVM (créer et étendre un volume).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-fichiers-disques/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-fichiers-disques/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-fichiers-disques">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-fichiers-disques</div>
+    <div class="prompt" data-lang="en">~/guides/linux-fichiers-disques</div>
+    <h1 data-lang="fr">Linux — systèmes de fichiers, disques &amp; FHS</h1>
+    <h1 data-lang="en">Linux — filesystems, disks &amp; FHS</h1>
+    <p class="tagline" data-lang="fr">FHS, partitions, mkfs, fstab, UUID, liens, LVM.</p>
+    <p class="tagline" data-lang="en">FHS, partitions, mkfs, fstab, UUID, links, LVM.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 190 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 190 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Sur un serveur, <strong>les données vivent sur des disques</strong> — et l&#39;admin doit savoir les préparer : partitionner, formater, monter, faire persister, agrandir. Le guide fondamentaux t&#39;a montré l&#39;arborescence ; l&#39;examen <strong>LPIC-1</strong> attend la manœuvre complète : <em>où va quoi dans le système (FHS) ? comment découper un disque en partitions ? le formater ? le monter au démarrage par un identifiant stable (UUID) ? quelle différence entre un lien dur et un lien symbolique ? et comment agrandir un volume sans tout casser (LVM) ?</em></p>
+<p>Ce guide couvre le domaine <strong>Systèmes de fichiers &amp; périphériques</strong> en profondeur : la hiérarchie <strong>FHS</strong>, le <strong>partitionnement</strong>, <strong><code>mkfs</code></strong> et le <strong>montage</strong>, la persistance via <strong><code>/etc/fstab</code></strong> et <strong>UUID</strong>, les <strong>liens</strong> durs/symboliques, et <strong>LVM</strong>.</p>
+<p>Le génie du dispositif : on ne touche <strong>aucun disque réel</strong>. On fabrique un <strong>disque virtuel</strong> — un simple <strong>fichier</strong> attaché en périphérique via <code>losetup</code> (une « image de disque »). Tu partitionnes, formates et montes <strong>ce fichier</strong> comme un vrai disque, <strong>sans le moindre risque</strong> pour ta machine. Tout est refaisable dans une VM (Multipass recommandé pour les opérations bloc).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides <strong>fondamentaux</strong>, <strong>paquets</strong> et <strong>permissions</strong>, et tu vises <strong>LPIC-1</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas te déplacer dans l&#39;arborescence → reviens aux fondamentaux.</li><li>Tu veux systemd, le réseau ou le scripting → ce sont les guides suivants.</li></ul>
+</div>
+<div data-lang="en"><p>On a server, <strong>data lives on disks</strong> — and the admin must know how to prepare them: partition, format, mount, persist, grow. The fundamentals guide showed you the tree; the <strong>LPIC-1</strong> exam expects the full maneuver: <em>where does what go in the system (FHS)? how do you split a disk into partitions? format it? mount it at boot via a stable identifier (UUID)? what&#39;s the difference between a hard link and a symbolic link? and how do you grow a volume without breaking everything (LVM)?</em></p>
+<p>This guide covers the <strong>Filesystems &amp; devices</strong> domain in depth: the <strong>FHS</strong> hierarchy, <strong>partitioning</strong>, <strong><code>mkfs</code></strong> and <strong>mounting</strong>, persistence via <strong><code>/etc/fstab</code></strong> and <strong>UUID</strong>, hard/symbolic <strong>links</strong>, and <strong>LVM</strong>.</p>
+<p>The clever part: we touch <strong>no real disk</strong>. We build a <strong>virtual disk</strong> — a plain <strong>file</strong> attached as a device via <code>losetup</code> (a &quot;disk image&quot;). You partition, format and mount <strong>that file</strong> like a real disk, <strong>with zero risk</strong> to your machine. All reproducible in a VM (Multipass recommended for the block operations).</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>fundamentals</strong>, <strong>packages</strong> and <strong>permissions</strong> guides, and you&#39;re aiming for <strong>LPIC-1</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t navigate the tree → go back to the fundamentals.</li><li>You want systemd, networking or scripting → those are the next guides.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Situer les grands répertoires de la hiérarchie <strong>FHS</strong> et lire l&#39;usage disque (<code>df</code>, <code>du</code>, <code>lsblk</code>).</li><li>Fabriquer un <strong>disque virtuel</strong> (loopback) et le <strong>partitionner</strong> (<code>parted</code>/<code>fdisk</code>).</li><li><strong>Formater</strong> une partition (<code>mkfs.ext4</code>) et la <strong>monter</strong> (<code>mount</code>).</li><li>Identifier une partition par son <strong>UUID</strong> (<code>blkid</code>) et la <strong>persister</strong> dans <code>/etc/fstab</code>.</li><li>Créer et activer un <strong>swap</strong> (<code>mkswap</code>/<code>swapon</code>).</li><li>Distinguer <strong>lien dur</strong> et <strong>lien symbolique</strong> (inodes).</li><li>Créer un volume <strong>LVM</strong> (PV/VG/LV) et l&#39;<strong>étendre</strong> à chaud.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Locate the major directories of the <strong>FHS</strong> hierarchy and read disk usage (<code>df</code>, <code>du</code>, <code>lsblk</code>).</li><li>Build a <strong>virtual disk</strong> (loopback) and <strong>partition</strong> it (<code>parted</code>/<code>fdisk</code>).</li><li><strong>Format</strong> a partition (<code>mkfs.ext4</code>) and <strong>mount</strong> it (<code>mount</code>).</li><li>Identify a partition by its <strong>UUID</strong> (<code>blkid</code>) and <strong>persist</strong> it in <code>/etc/fstab</code>.</li><li>Create and activate <strong>swap</strong> (<code>mkswap</code>/<code>swapon</code>).</li><li>Distinguish <strong>hard link</strong> from <strong>symbolic link</strong> (inodes).</li><li>Create an <strong>LVM</strong> volume (PV/VG/LV) and <strong>extend</strong> it live.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>fondamentaux</strong>, <strong>paquets</strong> et <strong>permissions</strong> acquis.</li><li>Un système <strong>Ubuntu</strong> avec <code>sudo</code>. Pour ce guide (opérations bloc), une <strong>VM Multipass</strong> est le plus sûr : <code>multipass launch --name lab</code> puis <code>multipass shell lab</code>. <em>(WSL2 : <code>losetup</code>/LVM peuvent être limités selon le noyau — préfère une VM.)</em></li><li>Les outils LVM :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>fundamentals</strong>, <strong>packages</strong> and <strong>permissions</strong> guides under your belt.</li><li>An <strong>Ubuntu</strong> system with <code>sudo</code>. For this guide (block operations), a <strong>Multipass VM</strong> is safest: <code>multipass launch --name lab</code> then <code>multipass shell lab</code>. <em>(WSL2: <code>losetup</code>/LVM may be limited depending on the kernel — prefer a VM.)</em></li><li>The LVM tools:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt update &amp;&amp; sudo apt install -y lvm2</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-utilisateurs-permissions/">
+    <span class="num">04</span>
+    <span class="title-line" data-lang="fr">Linux — utilisateurs, groupes &amp; permissions</span>
+    <span class="title-line" data-lang="en">Linux — users, groups &amp; permissions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>La hiérarchie FHS</strong> (<em>Filesystem Hierarchy Standard</em>) normalise <strong>où va quoi</strong> :</p>
+<ul><li><strong><code>/etc</code></strong> : la configuration (fichiers texte). <strong><code>/home</code></strong> : les données des utilisateurs. <strong><code>/root</code></strong> : le home de root.</li><li><strong><code>/bin</code>, <code>/sbin</code>, <code>/usr</code></strong> : les programmes (binaires système et applicatifs). <strong><code>/lib</code></strong> : les bibliothèques.</li><li><strong><code>/var</code></strong> : les données <strong>variables</strong> (logs <code>/var/log</code>, bases, files d&#39;attente). <strong><code>/tmp</code></strong> : le temporaire.</li><li><strong><code>/boot</code></strong> : le noyau et le chargeur d&#39;amorçage. <strong><code>/dev</code></strong> : les périphériques. <strong><code>/proc</code>, <code>/sys</code></strong> : des vues <strong>virtuelles</strong> du noyau (pas de vrais fichiers). <strong><code>/mnt</code>, <code>/media</code></strong> : points de montage. <strong><code>/opt</code></strong> : logiciels tiers.</li></ul>
+<p><strong>Du disque au fichier, la chaîne :</strong></p>
+<ol><li>Un <strong>disque</strong> (<code>/dev/sda</code>, ou notre loopback <code>/dev/loopN</code>) est un <strong>périphérique bloc</strong>.</li><li>On le <strong>partitionne</strong> : le découper en tranches (<code>/dev/sda1</code>…). Deux tables : <strong>MBR</strong> (ancienne, ≤2 To, 4 partitions primaires) et <strong>GPT</strong> (moderne, recommandée).</li><li>On <strong>formate</strong> chaque partition avec un <strong>système de fichiers</strong> (<code>mkfs.ext4</code>, <code>mkfs.xfs</code>) : ça installe la structure qui range les fichiers.</li><li>On <strong>monte</strong> la partition sur un <strong>répertoire</strong> (le point de montage) : à partir de là, écrire dans ce dossier écrit sur le disque.</li></ol>
+<p><strong>L&#39;UUID, l&#39;identifiant stable.</strong> Le nom <code>/dev/sda1</code> peut <strong>changer</strong> selon l&#39;ordre de détection des disques. L&#39;<strong>UUID</strong> (identifiant unique du système de fichiers, via <code>blkid</code>) ne change <strong>jamais</strong> : c&#39;est <strong>lui</strong> qu&#39;on met dans <code>/etc/fstab</code> pour un montage fiable au démarrage.</p>
+<p><strong><code>/etc/fstab</code></strong> décrit les montages <strong>permanents</strong> : une ligne par système de fichiers → <code>identifiant  point-de-montage  type  options  dump  passe</code>. <code>mount -a</code> applique le fichier sans redémarrer.</p>
+<p><strong>Les liens.</strong> Un <strong>lien dur</strong> (<code>ln</code>) est un <strong>second nom</strong> pour le <strong>même inode</strong> (les mêmes données) : supprimer un nom ne détruit pas les données tant qu&#39;il en reste un. Un <strong>lien symbolique</strong> (<code>ln -s</code>) est un <strong>panneau indicateur</strong> qui pointe vers un <strong>chemin</strong> : si la cible disparaît, le lien est cassé. Un lien dur ne peut pas traverser les systèmes de fichiers ; un lien symbolique, si.</p>
+<p><strong>LVM</strong> (<em>Logical Volume Manager</em>) ajoute une couche de souplesse : des <strong>PV</strong> (physical volumes, tes disques/partitions) sont regroupés en un <strong>VG</strong> (volume group, un « pool » d&#39;espace), d&#39;où l&#39;on taille des <strong>LV</strong> (logical volumes, les « partitions virtuelles »). L&#39;avantage décisif : on <strong>agrandit</strong> un LV à chaud, sans re-partitionner.</p>
+</div>
+<div data-lang="en"><p><strong>The FHS hierarchy</strong> (<em>Filesystem Hierarchy Standard</em>) standardizes <strong>where what goes</strong>:</p>
+<ul><li><strong><code>/etc</code></strong>: configuration (text files). <strong><code>/home</code></strong>: user data. <strong><code>/root</code></strong>: root&#39;s home.</li><li><strong><code>/bin</code>, <code>/sbin</code>, <code>/usr</code></strong>: programs (system and application binaries). <strong><code>/lib</code></strong>: libraries.</li><li><strong><code>/var</code></strong>: <strong>variable</strong> data (logs <code>/var/log</code>, databases, queues). <strong><code>/tmp</code></strong>: temporary.</li><li><strong><code>/boot</code></strong>: the kernel and bootloader. <strong><code>/dev</code></strong>: devices. <strong><code>/proc</code>, <code>/sys</code></strong>: <strong>virtual</strong> kernel views (not real files). <strong><code>/mnt</code>, <code>/media</code></strong>: mount points. <strong><code>/opt</code></strong>: third-party software.</li></ul>
+<p><strong>From disk to file, the chain:</strong></p>
+<ol><li>A <strong>disk</strong> (<code>/dev/sda</code>, or our loopback <code>/dev/loopN</code>) is a <strong>block device</strong>.</li><li>You <strong>partition</strong> it: split it into slices (<code>/dev/sda1</code>…). Two tables: <strong>MBR</strong> (old, ≤2 TB, 4 primary partitions) and <strong>GPT</strong> (modern, recommended).</li><li>You <strong>format</strong> each partition with a <strong>filesystem</strong> (<code>mkfs.ext4</code>, <code>mkfs.xfs</code>): this installs the structure that organizes files.</li><li>You <strong>mount</strong> the partition on a <strong>directory</strong> (the mount point): from then on, writing in that folder writes to the disk.</li></ol>
+<p><strong>The UUID, the stable identifier.</strong> The name <code>/dev/sda1</code> can <strong>change</strong> depending on disk detection order. The <strong>UUID</strong> (the filesystem&#39;s unique identifier, via <code>blkid</code>) <strong>never</strong> changes: that&#39;s what goes in <code>/etc/fstab</code> for a reliable mount at boot.</p>
+<p><strong><code>/etc/fstab</code></strong> describes <strong>permanent</strong> mounts: one line per filesystem → <code>identifier  mount-point  type  options  dump  pass</code>. <code>mount -a</code> applies the file without rebooting.</p>
+<p><strong>Links.</strong> A <strong>hard link</strong> (<code>ln</code>) is a <strong>second name</strong> for the <strong>same inode</strong> (the same data): removing one name doesn&#39;t destroy the data as long as one remains. A <strong>symbolic link</strong> (<code>ln -s</code>) is a <strong>signpost</strong> pointing at a <strong>path</strong>: if the target disappears, the link is broken. A hard link can&#39;t cross filesystems; a symbolic one can.</p>
+<p><strong>LVM</strong> (<em>Logical Volume Manager</em>) adds a flexibility layer: <strong>PVs</strong> (physical volumes, your disks/partitions) are grouped into a <strong>VG</strong> (volume group, a space &quot;pool&quot;), from which you carve <strong>LVs</strong> (logical volumes, the &quot;virtual partitions&quot;). The decisive advantage: you <strong>grow</strong> an LV live, without repartitioning.</p>
+</div>
+
+<figure class="schema" id="figure-linux-disk-chain">
+  <p>[schema "linux-disk-chain" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Disque → partitions → système de fichiers → point de montage. UUID identifie de façon stable ; LVM (PV→VG→LV) permet d&#39;étendre à chaud.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Disk → partitions → filesystem → mount point. UUID identifies stably; LVM (PV→VG→LV) allows live extension.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : FHS &amp; usage disque → disque virtuel &amp; partition → mkfs &amp; montage → fstab &amp; UUID &amp; swap → liens → LVM.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: FHS &amp; disk usage → virtual disk &amp; partition → mkfs &amp; mount → fstab &amp; UUID &amp; swap → links → LVM.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Parcourir la <strong>FHS</strong> et lire l&#39;<strong>usage disque</strong>.</p>
+<p><strong>🤔 Savoir lire l&#39;état des lieux.</strong> Trois commandes d&#39;admin quotidiennes :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tour the <strong>FHS</strong> and read <strong>disk usage</strong>.</p>
+<p><strong>🤔 Knowing how to read the lay of the land.</strong> Three everyday admin commands:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ls /                        # les répertoires FHS : etc, var, usr, home, boot, dev, proc… / the FHS dirs
+lsblk                       # les périphériques bloc et leurs points de montage / block devices &amp; mounts
+df -h                       # espace par système de fichiers monté / space per mounted filesystem
+du -sh /var/log             # taille cumulée d&#39;un répertoire / cumulative size of a directory</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls /</code> montre l&#39;arborescence FHS (<code>etc</code>, <code>var</code>, <code>usr</code>, <code>home</code>, <code>boot</code>, <code>dev</code>, <code>proc</code>…), et tu sais dire <strong>ce que contient chacun</strong> (config, données variables, binaires, home…). <code>lsblk</code> liste tes disques et partitions (ex. <code>sda</code> → <code>sda1</code> monté sur <code>/</code>). <code>df -h</code> donne l&#39;espace <strong>par système de fichiers</strong> (au niveau montage), <code>du -sh</code> la taille <strong>d&#39;un répertoire</strong> (au niveau fichiers). Retiens la nuance : <strong><code>df</code></strong> = disques/montages, <strong><code>du</code></strong> = dossiers.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls /</code> shows the FHS tree (<code>etc</code>, <code>var</code>, <code>usr</code>, <code>home</code>, <code>boot</code>, <code>dev</code>, <code>proc</code>…), and you can say <strong>what each holds</strong> (config, variable data, binaries, home…). <code>lsblk</code> lists your disks and partitions (e.g. <code>sda</code> → <code>sda1</code> mounted on <code>/</code>). <code>df -h</code> gives space <strong>per filesystem</strong> (at the mount level), <code>du -sh</code> the size <strong>of a directory</strong> (at the file level). Remember the nuance: <strong><code>df</code></strong> = disks/mounts, <strong><code>du</code></strong> = folders.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Fabriquer un <strong>disque virtuel</strong> (loopback) et le <strong>partitionner</strong> en GPT.</p>
+<p><strong>🤔 Zéro risque.</strong> On crée un <strong>fichier</strong> de 512 Mo qu&#39;on présente au système comme un disque (<code>/dev/loopN</code>). Toutes les opérations suivantes portent sur <strong>ce fichier</strong>, jamais sur tes vrais disques.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Build a <strong>virtual disk</strong> (loopback) and <strong>partition</strong> it as GPT.</p>
+<p><strong>🤔 Zero risk.</strong> We create a 512 MB <strong>file</strong> that we present to the system as a disk (<code>/dev/loopN</code>). All following operations act on <strong>that file</strong>, never on your real disks.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>fallocate -l 512M ~/disk.img                      # crée un fichier de 512 Mo / create a 512 MB file
+LOOP=$(sudo losetup --show -fP ~/disk.img)        # l&#39;attache en périphérique, ex. /dev/loop0 / attach as device
+echo &quot;Mon disque virtuel = $LOOP&quot;
+
+sudo parted -s &quot;$LOOP&quot; mklabel gpt \
+  mkpart primary ext4 1MiB 100%                    # table GPT + 1 partition / GPT table + 1 partition
+lsblk &quot;$LOOP&quot;                                       # montre LOOP -&gt; LOOPp1 / shows LOOP -&gt; LOOPp1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>echo $LOOP</code> affiche ton périphérique (souvent <code>/dev/loop0</code>), et <code>lsblk &quot;$LOOP&quot;</code> montre le disque virtuel <strong>avec sa partition</strong> (<code>loop0</code> → <code>loop0p1</code>). Tu viens de créer une <strong>table de partitions GPT</strong> et une <strong>partition</strong> sur un disque qui n&#39;est qu&#39;un fichier. Le <code>-P</code> de <code>losetup</code> a fait apparaître la partition comme <code>${LOOP}p1</code>. <em>(Garde le terminal ouvert : <code>$LOOP</code> sert aux étapes suivantes.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>echo $LOOP</code> shows your device (often <code>/dev/loop0</code>), and <code>lsblk &quot;$LOOP&quot;</code> shows the virtual disk <strong>with its partition</strong> (<code>loop0</code> → <code>loop0p1</code>). You&#39;ve just created a <strong>GPT partition table</strong> and a <strong>partition</strong> on a disk that&#39;s just a file. <code>losetup</code>&#39;s <code>-P</code> made the partition appear as <code>${LOOP}p1</code>. <em>(Keep the terminal open: <code>$LOOP</code> is used in the next steps.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Formater</strong> la partition et la <strong>monter</strong>.</p>
+<p><strong>🤔 Formater = installer un système de fichiers.</strong> La partition existe mais elle est <strong>vide de structure</strong> : <code>mkfs</code> y pose un système de fichiers ext4. Puis on la <strong>monte</strong> sur un dossier.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Format</strong> the partition and <strong>mount</strong> it.</p>
+<p><strong>🤔 Formatting = installing a filesystem.</strong> The partition exists but has <strong>no structure</strong>: <code>mkfs</code> lays down an ext4 filesystem. Then we <strong>mount</strong> it on a folder.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo mkfs.ext4 &quot;${LOOP}p1&quot;               # formate la partition en ext4 / format the partition as ext4
+sudo mkdir -p /mnt/data
+sudo mount &quot;${LOOP}p1&quot; /mnt/data          # monte la partition sur /mnt/data / mount it
+df -h /mnt/data                           # confirme : monté, ~470 Mo dispo / mounted, ~470 MB free
+echo &quot;test&quot; | sudo tee /mnt/data/hello.txt   # écrire ici écrit sur le disque virtuel / writing here writes to disk</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>df -h /mnt/data</code> montre la partition <strong>montée</strong> (source <code>${LOOP}p1</code>, quelques centaines de Mo disponibles). Le fichier <code>hello.txt</code> écrit dans <code>/mnt/data</code> est <strong>stocké sur le disque virtuel</strong> : démonte (<code>sudo umount /mnt/data</code>) puis remonte, il est toujours là. Tu as bouclé la chaîne <strong>partition → formatage → montage → données</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>df -h /mnt/data</code> shows the partition <strong>mounted</strong> (source <code>${LOOP}p1</code>, a few hundred MB free). The <code>hello.txt</code> file written in <code>/mnt/data</code> is <strong>stored on the virtual disk</strong>: unmount (<code>sudo umount /mnt/data</code>) then remount, it&#39;s still there. You&#39;ve closed the chain <strong>partition → format → mount → data</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Persister</strong> le montage via <strong>UUID</strong> dans <code>/etc/fstab</code>, et créer un <strong>swap</strong>.</p>
+<p><strong>🤔 Pourquoi l&#39;UUID.</strong> <code>${LOOP}p1</code> peut changer de numéro ; l&#39;<strong>UUID</strong> est gravé dans le système de fichiers. Récupère-le et écris la ligne <code>fstab</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Persist</strong> the mount via <strong>UUID</strong> in <code>/etc/fstab</code>, and create <strong>swap</strong>.</p>
+<p><strong>🤔 Why the UUID.</strong> <code>${LOOP}p1</code> can change number; the <strong>UUID</strong> is baked into the filesystem. Get it and write the <code>fstab</code> line:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>UUID=$(sudo blkid -s UUID -o value &quot;${LOOP}p1&quot;)     # l&#39;UUID de la partition / the partition&#39;s UUID
+echo &quot;UUID=$UUID&quot;
+
+# nofail = ne bloque pas le boot si absent (utile pour un disque loopback) / don&#39;t block boot if missing
+echo &quot;UUID=$UUID  /mnt/data  ext4  defaults,nofail  0  2&quot; | sudo tee -a /etc/fstab
+
+sudo umount /mnt/data 2&gt;/dev/null ; sudo mount -a    # relit fstab et monte tout / re-read fstab &amp; mount all
+df -h /mnt/data                                       # remonté via fstab / remounted via fstab</code></pre>
+<div data-lang="fr"><p>Crée maintenant un <strong>swap</strong> (mémoire d&#39;appoint sur disque) via un fichier :</p>
+</div>
+<div data-lang="en"><p>Now create <strong>swap</strong> (disk-backed overflow memory) via a file:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo fallocate -l 128M /swapfile &amp;&amp; sudo chmod 600 /swapfile
+sudo mkswap /swapfile &amp;&amp; sudo swapon /swapfile
+swapon --show                                         # /swapfile listé / /swapfile listed
+sudo swapoff /swapfile                                # on le désactive (démo) / disable it (demo)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>mount -a</code>, <code>df -h /mnt/data</code> remonte la partition <strong>sans que tu la nommes</strong> — <code>fstab</code> l&#39;a fait via l&#39;<strong>UUID</strong> (<code>mount -a</code> relit le fichier et monte tout ce qui n&#39;est pas déjà monté). Un <code>mount -a</code> <strong>sans erreur</strong> = ta ligne <code>fstab</code> est correcte (une faute ici bloquerait le prochain démarrage — d&#39;où l&#39;importance de tester avec <code>mount -a</code>). Le swap : <code>swapon --show</code> liste <code>/swapfile</code> avant qu&#39;on le désactive. L&#39;option <strong><code>nofail</code></strong> évite qu&#39;un disque loopback absent au boot ne bloque la VM.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>mount -a</code>, <code>df -h /mnt/data</code> remounts the partition <strong>without you naming it</strong> — <code>fstab</code> did it via the <strong>UUID</strong> (<code>mount -a</code> re-reads the file and mounts everything not already mounted). A <code>mount -a</code> <strong>with no error</strong> = your <code>fstab</code> line is correct (a mistake here would block the next boot — hence testing with <code>mount -a</code>). Swap: <code>swapon --show</code> lists <code>/swapfile</code> before we disable it. The <strong><code>nofail</code></strong> option prevents a loopback disk missing at boot from blocking the VM.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Distinguer <strong>lien dur</strong> et <strong>lien symbolique</strong> par l&#39;<strong>inode</strong>.</p>
+<p><strong>🤔 Deux noms, ou un panneau ?</strong> Un lien <strong>dur</strong> partage l&#39;inode (les données) ; un lien <strong>symbolique</strong> pointe vers un <strong>chemin</strong>. Observe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Distinguish <strong>hard link</strong> from <strong>symbolic link</strong> via the <strong>inode</strong>.</p>
+<p><strong>🤔 Two names, or a signpost?</strong> A <strong>hard</strong> link shares the inode (the data); a <strong>symbolic</strong> link points at a <strong>path</strong>. Observe:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd /mnt/data
+echo &quot;contenu original&quot; | sudo tee original.txt
+sudo ln original.txt dur.txt          # lien DUR : même inode / HARD link: same inode
+sudo ln -s original.txt sym.txt       # lien SYMBOLIQUE : pointe vers le chemin / SYMBOLIC: points at the path
+ls -li                                # -i montre l&#39;inode / -i shows the inode
+
+sudo rm original.txt                  # supprime le NOM original / delete the original NAME
+cat dur.txt                           # marche encore (l&#39;inode survit) / still works (inode survives)
+cat sym.txt                           # CASSÉ : la cible a disparu / BROKEN: the target is gone</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls -li</code> montre que <code>original.txt</code> et <code>dur.txt</code> partagent le <strong>même numéro d&#39;inode</strong> (colonne de gauche) — ce sont <strong>deux noms d&#39;une même donnée</strong> — tandis que <code>sym.txt</code> a un inode <strong>différent</strong> et s&#39;affiche <code>sym.txt -&gt; original.txt</code>. Après avoir supprimé <code>original.txt</code> : <code>cat dur.txt</code> <strong>marche toujours</strong> (l&#39;inode et ses données survivent tant qu&#39;un nom pointe dessus), mais <code>cat sym.txt</code> <strong>échoue</strong> (<code>No such file</code>) — le panneau indique un chemin qui n&#39;existe plus. C&#39;est <strong>la</strong> distinction d&#39;examen : lien dur = inode partagé, lien symbolique = chemin.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls -li</code> shows <code>original.txt</code> and <code>dur.txt</code> share the <strong>same inode number</strong> (left column) — they&#39;re <strong>two names for one piece of data</strong> — while <code>sym.txt</code> has a <strong>different</strong> inode and shows as <code>sym.txt -&gt; original.txt</code>. After deleting <code>original.txt</code>: <code>cat dur.txt</code> <strong>still works</strong> (the inode and its data survive as long as a name points to it), but <code>cat sym.txt</code> <strong>fails</strong> (<code>No such file</code>) — the signpost points at a path that no longer exists. That&#39;s <strong>the</strong> exam distinction: hard link = shared inode, symbolic link = path.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un volume <strong>LVM</strong> et l&#39;<strong>étendre</strong> à chaud — le superpouvoir des disques.</p>
+<p><strong>🤔 La souplesse LVM.</strong> On empile : deux disques virtuels → un <strong>VG</strong> (pool) → un <strong>LV</strong> (volume) qu&#39;on formate et monte, puis qu&#39;on <strong>agrandit</strong> sans démonter. Fabrique deux nouveaux loopbacks :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create an <strong>LVM</strong> volume and <strong>extend</strong> it live — the disk superpower.</p>
+<p><strong>🤔 LVM flexibility.</strong> We stack: two virtual disks → a <strong>VG</strong> (pool) → an <strong>LV</strong> (volume) we format and mount, then <strong>grow</strong> without unmounting. Build two new loopbacks:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>fallocate -l 256M ~/pv1.img &amp;&amp; fallocate -l 256M ~/pv2.img
+P1=$(sudo losetup --show -f ~/pv1.img) ; P2=$(sudo losetup --show -f ~/pv2.img)
+
+sudo pvcreate &quot;$P1&quot; &quot;$P2&quot;                 # marque les 2 comme Physical Volumes / mark both as PVs
+sudo vgcreate vg_lab &quot;$P1&quot; &quot;$P2&quot;          # pool de ~512 Mo / a ~512 MB pool
+sudo lvcreate -L 200M -n lv_data vg_lab   # taille un volume de 200 Mo / carve a 200 MB volume
+
+sudo mkfs.ext4 /dev/vg_lab/lv_data
+sudo mkdir -p /mnt/lv &amp;&amp; sudo mount /dev/vg_lab/lv_data /mnt/lv
+df -h /mnt/lv                             # ~200 Mo / ~200 MB
+
+# Étendre à chaud : +200 Mo, sans démonter / grow live: +200 MB, without unmounting
+sudo lvextend -L +200M /dev/vg_lab/lv_data
+sudo resize2fs /dev/vg_lab/lv_data        # étend le système de fichiers dans le LV agrandi / grow the FS
+df -h /mnt/lv                             # ~400 Mo, toujours monté / ~400 MB, still mounted</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>lvcreate</code>, <code>df -h /mnt/lv</code> montre ~200 Mo. Après <code>lvextend -L +200M</code> <strong>puis</strong> <code>resize2fs</code>, le <strong>même point de montage</strong> affiche ~400 Mo — <strong>sans jamais démonter</strong>, sans re-partitionner. C&#39;est le gain décisif de LVM : agrandir un volume en production, à chaud. Retiens les deux temps : <strong><code>lvextend</code></strong> agrandit le volume logique, <strong><code>resize2fs</code></strong> étend le système de fichiers <em>à l&#39;intérieur</em> (l&#39;un sans l&#39;autre ne suffit pas). <code>sudo vgs</code> et <code>sudo lvs</code> résument l&#39;état.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>lvcreate</code>, <code>df -h /mnt/lv</code> shows ~200 MB. After <code>lvextend -L +200M</code> <strong>then</strong> <code>resize2fs</code>, the <strong>same mount point</strong> shows ~400 MB — <strong>without ever unmounting</strong>, without repartitioning. That&#39;s LVM&#39;s decisive win: growing a volume in production, live. Remember the two steps: <strong><code>lvextend</code></strong> grows the logical volume, <strong><code>resize2fs</code></strong> grows the filesystem <em>inside</em> it (one without the other isn&#39;t enough). <code>sudo vgs</code> and <code>sudo lvs</code> summarize the state.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Une faute dans <code>/etc/fstab</code> bloque le démarrage.</strong> Une ligne erronée peut empêcher la machine de booter. <strong>Teste toujours</strong> avec <code>sudo mount -a</code> <strong>avant</strong> de redémarrer, et mets <code>nofail</code> sur les disques non essentiels.</p>
+<p><strong>2. Monter par <code>/dev/sdaX</code> au lieu de l&#39;UUID.</strong> Le nom de périphérique peut changer (ordre de détection) → mauvais disque monté. Dans <code>fstab</code>, utilise l&#39;<strong>UUID</strong> (<code>blkid</code>).</p>
+<p><strong>3. <code>lvextend</code> sans <code>resize2fs</code>.</strong> Agrandir le volume logique ne suffit pas : le <strong>système de fichiers</strong> ne le sait pas encore. Il faut <code>resize2fs</code> (ext4) ou <code>xfs_growfs</code> (xfs) après.</p>
+<p><strong>4. Confondre lien dur et symbolique.</strong> Le lien <strong>dur</strong> partage l&#39;inode (survit à la suppression de l&#39;original, ne traverse pas les FS) ; le <strong>symbolique</strong> pointe un chemin (se casse si la cible part, traverse les FS). Vérifie avec <code>ls -li</code>.</p>
+<p><strong>5. <code>df</code> vs <code>du</code> divergent.</strong> <code>df</code> compte au niveau <strong>système de fichiers</strong> (blocs), <code>du</code> au niveau <strong>fichiers</strong>. Un fichier supprimé mais encore ouvert par un process fait diverger les deux — c&#39;est normal.</p>
+<p><strong>6. Formater le disque au lieu de la partition.</strong> <code>mkfs.ext4 /dev/loop0</code> (le disque) <strong>détruit la table de partitions</strong>. On formate la <strong>partition</strong> : <code>/dev/loop0p1</code>.</p>
+<p><strong>7. Oublier de démonter avant de détacher un loopback.</strong> <code>losetup -d</code> sur un périphérique encore monté échoue. Ordre : <code>umount</code> → <code>losetup -d</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. A mistake in <code>/etc/fstab</code> blocks boot.</strong> A bad line can stop the machine from booting. <strong>Always test</strong> with <code>sudo mount -a</code> <strong>before</strong> rebooting, and put <code>nofail</code> on non-essential disks.</p>
+<p><strong>2. Mounting by <code>/dev/sdaX</code> instead of UUID.</strong> The device name can change (detection order) → wrong disk mounted. In <code>fstab</code>, use the <strong>UUID</strong> (<code>blkid</code>).</p>
+<p><strong>3. <code>lvextend</code> without <code>resize2fs</code>.</strong> Growing the logical volume isn&#39;t enough: the <strong>filesystem</strong> doesn&#39;t know yet. You need <code>resize2fs</code> (ext4) or <code>xfs_growfs</code> (xfs) afterward.</p>
+<p><strong>4. Confusing hard and symbolic links.</strong> The <strong>hard</strong> link shares the inode (survives deleting the original, doesn&#39;t cross FSes); the <strong>symbolic</strong> one points at a path (breaks if the target leaves, crosses FSes). Check with <code>ls -li</code>.</p>
+<p><strong>5. <code>df</code> vs <code>du</code> diverge.</strong> <code>df</code> counts at the <strong>filesystem</strong> level (blocks), <code>du</code> at the <strong>file</strong> level. A deleted-but-still-open file makes them diverge — that&#39;s normal.</p>
+<p><strong>6. Formatting the disk instead of the partition.</strong> <code>mkfs.ext4 /dev/loop0</code> (the disk) <strong>destroys the partition table</strong>. You format the <strong>partition</strong>: <code>/dev/loop0p1</code>.</p>
+<p><strong>7. Forgetting to unmount before detaching a loopback.</strong> <code>losetup -d</code> on a still-mounted device fails. Order: <code>umount</code> → <code>losetup -d</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu situes les répertoires <strong>FHS</strong> et tu lis <code>df</code>/<code>du</code>/<code>lsblk</code>.</li><li>Tu <strong>partitionnes</strong> un disque (virtuel) en GPT.</li><li>Tu <strong>formates</strong> (<code>mkfs.ext4</code>) et <strong>montes</strong> une partition.</li><li>Tu récupères un <strong>UUID</strong> et tu <strong>persistes</strong> un montage dans <code>fstab</code> (testé par <code>mount -a</code>).</li><li>Tu crées et actives un <strong>swap</strong>.</li><li>Tu distingues <strong>lien dur</strong> et <strong>symbolique</strong> via l&#39;inode.</li><li>Tu crées un volume <strong>LVM</strong> et tu l&#39;<strong>étends</strong> avec <code>lvextend</code> + <code>resize2fs</code>.</li></ul>
+<p>Sept cases cochées = tu tiens <strong>Systèmes de fichiers &amp; périphériques</strong> du LPIC-1.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You locate the <strong>FHS</strong> directories and read <code>df</code>/<code>du</code>/<code>lsblk</code>.</li><li>You <strong>partition</strong> a (virtual) disk as GPT.</li><li>You <strong>format</strong> (<code>mkfs.ext4</code>) and <strong>mount</strong> a partition.</li><li>You get a <strong>UUID</strong> and <strong>persist</strong> a mount in <code>fstab</code> (tested by <code>mount -a</code>).</li><li>You create and activate <strong>swap</strong>.</li><li>You distinguish <strong>hard</strong> from <strong>symbolic</strong> link via the inode.</li><li>You create an <strong>LVM</strong> volume and <strong>extend</strong> it with <code>lvextend</code> + <code>resize2fs</code>.</li></ul>
+<p>Seven boxes ticked = you hold LPIC-1 <strong>Filesystems &amp; devices</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Linux → LPIC-1 :</p>
+<ol><li><strong>Boot, systemd &amp; processus</strong> — démarrage, units/targets, <code>journalctl</code>, cron/timers.</li><li><strong>Réseau &amp; sécurité système</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, pare-feu, durcissement.</li><li><strong>Scripting shell (bash)</strong> — variables, conditions, boucles, fonctions.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner et durcir un serveur Linux multi-utilisateur.</li></ol>
+<p><strong>Ménage :</strong> démonte et détache tout — <code>sudo umount /mnt/data /mnt/lv ; sudo swapoff /swapfile 2&gt;/dev/null ; sudo vgremove -f vg_lab ; sudo pvremove -f &quot;$P1&quot; &quot;$P2&quot; ; sudo losetup -D ; sudo sed -i &#39;\#/mnt/data#d&#39; /etc/fstab ; rm -f ~/disk.img ~/pv1.img ~/pv2.img ; sudo rm -f /swapfile</code>.</p>
+</div>
+<div data-lang="en"><p>The rest of the Linux → LPIC-1 track:</p>
+<ol><li><strong>Boot, systemd &amp; processes</strong> — startup, units/targets, <code>journalctl</code>, cron/timers.</li><li><strong>Networking &amp; system security</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, firewall, hardening.</li><li><strong>Shell scripting (bash)</strong> — variables, conditionals, loops, functions.</li><li><strong>Enterprise project</strong> — provision and harden a multi-user Linux server.</li></ol>
+<p><strong>Cleanup:</strong> unmount and detach everything — <code>sudo umount /mnt/data /mnt/lv ; sudo swapoff /swapfile 2&gt;/dev/null ; sudo vgremove -f vg_lab ; sudo pvremove -f &quot;$P1&quot; &quot;$P2&quot; ; sudo losetup -D ; sudo sed -i &#39;\#/mnt/data#d&#39; /etc/fstab ; rm -f ~/disk.img ~/pv1.img ~/pv2.img ; sudo rm -f /swapfile</code>.</p>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">06</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire fichiers, disques &amp; FHS.</p>
+</div>
+<div data-lang="en"><p>Filesystems, disks &amp; FHS cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># État / state
+lsblk ; df -h ; du -sh DOSSIER ; blkid
+
+# Disque virtuel (démo sûre) / virtual disk (safe demo)
+fallocate -l 512M img ; LOOP=$(sudo losetup --show -fP img) ; sudo losetup -d &quot;$LOOP&quot;
+
+# Partition -&gt; FS -&gt; montage / partition -&gt; FS -&gt; mount
+sudo parted -s &quot;$LOOP&quot; mklabel gpt mkpart primary ext4 1MiB 100%
+sudo mkfs.ext4 &quot;${LOOP}p1&quot; ; sudo mount &quot;${LOOP}p1&quot; /mnt/data ; sudo umount /mnt/data
+
+# Persistance / persistence  (tester : sudo mount -a)
+UUID=$(sudo blkid -s UUID -o value DEV)
+# /etc/fstab : UUID=...  /mnt/data  ext4  defaults,nofail  0  2
+
+# Swap
+sudo fallocate -l 128M /swapfile ; sudo chmod 600 /swapfile
+sudo mkswap /swapfile ; sudo swapon /swapfile ; swapon --show
+
+# Liens / links
+ln cible dur          # dur (même inode) / hard (same inode)
+ln -s cible sym       # symbolique (chemin) / symbolic (path)     ; ls -li
+
+# LVM
+sudo pvcreate DEV... ; sudo vgcreate VG DEV... ; sudo lvcreate -L 200M -n LV VG
+sudo lvextend -L +200M /dev/VG/LV ; sudo resize2fs /dev/VG/LV      # étendre / extend
+sudo pvs ; sudo vgs ; sudo lvs</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html">FHS — Filesystem Hierarchy Standard</a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man8/parted.8.html"><code>man parted</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man8/mkfs.ext4.8.html"><code>man mkfs.ext4</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/fstab.5.html"><code>man fstab</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/ln.1.html"><code>man ln</code></a> (liens durs/symboliques) et <code>man blkid</code>.</li><li><a href="https://ubuntu.com/server/docs/manage-logical-volumes">LVM — guide</a> (pvcreate/vgcreate/lvcreate/lvextend).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html">FHS — Filesystem Hierarchy Standard</a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man8/parted.8.html"><code>man parted</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man8/mkfs.ext4.8.html"><code>man mkfs.ext4</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/fstab.5.html"><code>man fstab</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/ln.1.html"><code>man ln</code></a> (hard/symbolic links) and <code>man blkid</code>.</li><li><a href="https://ubuntu.com/server/docs/manage-logical-volumes">LVM — guide</a> (pvcreate/vgcreate/lvcreate/lvextend).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>losetup: cannot find an unused loop device</code>.</strong> Rare ; détache d&#39;anciens loopbacks (<code>losetup -a</code> pour lister, <code>sudo losetup -D</code> pour tout détacher) ou vérifie que tu es dans une VM (pas un conteneur sans <code>/dev/loop*</code>).</p>
+<p><strong><code>${LOOP}p1</code> n&#39;existe pas après le partitionnement.</strong> Il manque le <code>-P</code> à <code>losetup</code> (scan des partitions) : <code>sudo losetup -d &quot;$LOOP&quot;</code> puis ré-attache avec <code>sudo losetup --show -fP ~/disk.img</code>. Ou force la relecture : <code>sudo partprobe &quot;$LOOP&quot;</code>.</p>
+<p><strong><code>mount -a</code> renvoie une erreur.</strong> Ta ligne <code>fstab</code> est mauvaise (UUID erroné, type, options). Corrige-la <strong>avant</strong> tout redémarrage. <code>sudo findmnt --verify</code> aide à valider <code>fstab</code>.</p>
+<p><strong><code>vgremove</code>/<code>losetup -d</code> : « device is busy ».</strong> Un montage tient le device. Démonte d&#39;abord (<code>sudo umount /mnt/lv</code>), puis retire le VG/PV, puis détache le loopback.</p>
+<p><strong><code>resize2fs</code> : « nothing to do ».</strong> Le système de fichiers occupe déjà tout le LV ; tu as sans doute oublié le <code>lvextend</code> <strong>avant</strong> (l&#39;ordre est lvextend → resize2fs).</p>
+<p><strong>Après reboot de la VM, <code>/mnt/data</code> n&#39;est pas monté.</strong> Normal : un disque <strong>loopback</strong> ne se recrée pas au démarrage (le <code>nofail</code> évite juste que ça bloque). Sur un <strong>vrai</strong> disque, la ligne <code>fstab</code> par UUID, elle, remonterait automatiquement.</p>
+</div>
+<div data-lang="en"><p><strong><code>losetup: cannot find an unused loop device</code>.</strong> Rare; detach old loopbacks (<code>losetup -a</code> to list, <code>sudo losetup -D</code> to detach all) or check you&#39;re in a VM (not a container without <code>/dev/loop*</code>).</p>
+<p><strong><code>${LOOP}p1</code> doesn&#39;t exist after partitioning.</strong> <code>losetup</code> is missing <code>-P</code> (partition scan): <code>sudo losetup -d &quot;$LOOP&quot;</code> then re-attach with <code>sudo losetup --show -fP ~/disk.img</code>. Or force a re-read: <code>sudo partprobe &quot;$LOOP&quot;</code>.</p>
+<p><strong><code>mount -a</code> returns an error.</strong> Your <code>fstab</code> line is wrong (bad UUID, type, options). Fix it <strong>before</strong> any reboot. <code>sudo findmnt --verify</code> helps validate <code>fstab</code>.</p>
+<p><strong><code>vgremove</code>/<code>losetup -d</code>: &quot;device is busy&quot;.</strong> A mount holds the device. Unmount first (<code>sudo umount /mnt/lv</code>), then remove the VG/PV, then detach the loopback.</p>
+<p><strong><code>resize2fs</code>: &quot;nothing to do&quot;.</strong> The filesystem already fills the whole LV; you probably forgot the <code>lvextend</code> <strong>first</strong> (the order is lvextend → resize2fs).</p>
+<p><strong>After the VM reboots, <code>/mnt/data</code> isn&#39;t mounted.</strong> Normal: a <strong>loopback</strong> disk isn&#39;t recreated at boot (the <code>nofail</code> just keeps it from blocking). On a <strong>real</strong> disk, the UUID <code>fstab</code> line would remount automatically.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
