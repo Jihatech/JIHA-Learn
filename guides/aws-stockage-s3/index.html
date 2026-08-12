@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — stockage S3 en profondeur — jiha.tech</title>
+  <title data-lang="en">AWS — S3 storage in depth — jiha.tech</title>
+  <meta name="description" content="S3 en profondeur pour le SAA-C03 : le modèle bucket/objet, le versioning (protection contre l&#39;écrasement), les classes de stockage (Standard/IA/Glacier et leurs compromis coût), les règles de cycle de vie (transition et expiration automatiques), le chiffrement au repos (SSE-S3/KMS), l&#39;hébergement de site web statique, et les URL présignées (accès temporaire sans rendre public). Tout en LocalStack." data-lang="fr">
+  <meta name="description" content="S3 in depth for SAA-C03: the bucket/object model, versioning (overwrite protection), storage classes (Standard/IA/Glacier and their cost tradeoffs), lifecycle rules (automatic transition and expiration), encryption at rest (SSE-S3/KMS), static website hosting, and presigned URLs (temporary access without going public). All on LocalStack." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — stockage S3 en profondeur">
+  <meta property="og:description" content="S3 en profondeur pour le SAA-C03 : le modèle bucket/objet, le versioning (protection contre l&#39;écrasement), les classes de stockage (Standard/IA/Glacier et leurs compromis coût), les règles de cycle de vie (transition et expiration automatiques), le chiffrement au repos (SSE-S3/KMS), l&#39;hébergement de site web statique, et les URL présignées (accès temporaire sans rendre public). Tout en LocalStack.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-stockage-s3/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-stockage-s3/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-stockage-s3">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-stockage-s3</div>
+    <div class="prompt" data-lang="en">~/guides/aws-stockage-s3</div>
+    <h1 data-lang="fr">AWS — stockage S3 en profondeur</h1>
+    <h1 data-lang="en">AWS — S3 storage in depth</h1>
+    <p class="tagline" data-lang="fr">versioning, classes, cycle de vie, chiffrement, site statique, URL présignées.</p>
+    <p class="tagline" data-lang="en">versioning, classes, lifecycle, encryption, static site, presigned URLs.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>S3 (Simple Storage Service) est le service le plus utilisé d&#39;AWS et le deuxième plus testé à l&#39;examen SAA, juste après IAM. C&#39;est un <strong>stockage d&#39;objets</strong> : tu ranges des fichiers dans des buckets, et AWS s&#39;occupe de la durabilité (99,999999999 % — onze neuf), de la disponibilité et de la mise à l&#39;échelle. Sauvegardes, sites web, journaux, data lakes, artefacts de build : S3 est partout.</p>
+<p>Mais « ranger des fichiers » ne fait pas de toi un architecte. Le SAA teste ce qui <strong>entoure</strong> le stockage : comment <strong>protéger</strong> tes données de l&#39;écrasement accidentel (<strong>versioning</strong>), comment <strong>payer moins</strong> selon la fréquence d&#39;accès (<strong>classes de stockage</strong> et <strong>règles de cycle de vie</strong>), comment <strong>chiffrer</strong> au repos (<strong>SSE</strong>), comment <strong>héberger un site web</strong> statique, et comment <strong>partager un objet privé temporairement</strong> sans le rendre public (<strong>URL présignées</strong>). C&#39;est exactement ce guide.</p>
+<p>Tout se fait en <strong>LocalStack</strong> : tu crées de vrais buckets, tu actives le versioning, tu poses des règles de cycle de vie et du chiffrement, tu génères des URL présignées — les mêmes commandes qu&#39;en réel, sans compte ni facture.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>AWS fondamentaux</em> et <em>IAM &amp; sécurité</em>, et tu veux maîtriser le service de stockage phare.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu cherches une base de données (requêtes, index) → S3 stocke des <strong>objets</strong>, pas des données structurées interrogeables ; c&#39;est DynamoDB/RDS (guides suivants).</li><li>Tu veux un système de fichiers partagé monté sur des serveurs → c&#39;est EFS, pas S3.</li></ul>
+</div>
+<div data-lang="en"><p>S3 (Simple Storage Service) is AWS&#39;s most-used service and the second most tested on the SAA exam, right after IAM. It&#39;s <strong>object storage</strong>: you store files in buckets, and AWS handles durability (99.999999999% — eleven nines), availability and scaling. Backups, websites, logs, data lakes, build artifacts: S3 is everywhere.</p>
+<p>But &quot;storing files&quot; doesn&#39;t make you an architect. The SAA tests what <strong>surrounds</strong> storage: how to <strong>protect</strong> your data from accidental overwrite (<strong>versioning</strong>), how to <strong>pay less</strong> based on access frequency (<strong>storage classes</strong> and <strong>lifecycle rules</strong>), how to <strong>encrypt</strong> at rest (<strong>SSE</strong>), how to <strong>host a static website</strong>, and how to <strong>temporarily share a private object</strong> without making it public (<strong>presigned URLs</strong>). That&#39;s exactly this guide.</p>
+<p>Everything runs on <strong>LocalStack</strong>: you create real buckets, enable versioning, set lifecycle rules and encryption, generate presigned URLs — the same commands as the real thing, no account or bill.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>AWS fundamentals</em> and <em>IAM &amp; security</em>, and you want to master the flagship storage service.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You want a database (queries, indexes) → S3 stores <strong>objects</strong>, not queryable structured data; that&#39;s DynamoDB/RDS (later guides).</li><li>You want a shared filesystem mounted on servers → that&#39;s EFS, not S3.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Manipuler <strong>buckets et objets</strong> (cp, sync, préfixes) et le modèle clé/valeur de S3.</li><li>Activer le <strong>versioning</strong> et restaurer une version antérieure d&#39;un objet.</li><li>Choisir une <strong>classe de stockage</strong> (Standard/IA/Glacier) selon le coût et l&#39;accès.</li><li>Écrire une <strong>règle de cycle de vie</strong> (transition et expiration automatiques).</li><li>Activer le <strong>chiffrement au repos</strong> (SSE-S3/AES256) par défaut sur un bucket.</li><li>Héberger un <strong>site web statique</strong> sur S3.</li><li>Générer une <strong>URL présignée</strong> pour un accès temporaire sans rendre l&#39;objet public.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Handle <strong>buckets and objects</strong> (cp, sync, prefixes) and S3&#39;s key/value model.</li><li>Enable <strong>versioning</strong> and restore a previous version of an object.</li><li>Choose a <strong>storage class</strong> (Standard/IA/Glacier) based on cost and access.</li><li>Write a <strong>lifecycle rule</strong> (automatic transition and expiration).</li><li>Enable <strong>encryption at rest</strong> (SSE-S3/AES256) by default on a bucket.</li><li>Host a <strong>static website</strong> on S3.</li><li>Generate a <strong>presigned URL</strong> for temporary access without making the object public.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>AWS fondamentaux</strong> et <strong>IAM &amp; sécurité</strong> terminés.</li><li><strong>LocalStack qui tourne</strong> (<code>docker run -d --name localstack -p 4566:4566 localstack/localstack:3.8.1</code>) et <strong><code>awslocal</code></strong> configuré.</li><li>De quoi créer quelques fichiers de test (<code>echo</code>, un éditeur).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>AWS fundamentals</strong> and <strong>IAM &amp; security</strong> guides done.</li><li><strong>LocalStack running</strong> (<code>docker run -d --name localstack -p 4566:4566 localstack/localstack:3.8.1</code>) and <strong><code>awslocal</code></strong> configured.</li><li>A way to create a few test files (<code>echo</code>, an editor).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-iam-securite/">
+    <span class="num">45</span>
+    <span class="title-line" data-lang="fr">AWS — IAM &amp; sécurité</span>
+    <span class="title-line" data-lang="en">AWS — IAM &amp; security</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Bucket et objet.</strong> Un <strong>bucket</strong> est un conteneur (nom <strong>unique mondialement</strong>). Un <strong>objet</strong> est un fichier + ses métadonnées, identifié par une <strong>clé</strong> (son « chemin »). S3 est <strong>plat</strong> : <code>photos/2026/chat.jpg</code> n&#39;est pas un dossier imbriqué, c&#39;est <strong>une clé</strong> qui contient des <code>/</code>. On parle de <strong>préfixe</strong> (<code>photos/</code>) pour filtrer, mais il n&#39;y a pas de vraie hiérarchie.</p>
+<p><strong>Versioning.</strong> Activé sur un bucket, il conserve <strong>chaque version</strong> d&#39;un objet à chaque écrasement. Écraser <code>contrat.pdf</code> ne perd pas l&#39;ancien : il devient une version antérieure, récupérable. Supprimer pose un <strong>marqueur de suppression</strong> (l&#39;objet est masqué mais restaurable). C&#39;est la protection n°1 contre l&#39;erreur humaine.</p>
+<p><strong>Classes de stockage.</strong> S3 propose plusieurs niveaux, du plus cher/rapide au moins cher/lent : <strong>Standard</strong> (accès fréquent), <strong>Standard-IA</strong> (Infrequent Access — accès rare, stockage moins cher mais récupération payante), <strong>Glacier</strong>/<strong>Glacier Deep Archive</strong> (archivage, récupération en minutes à heures). Choisir la bonne classe selon la fréquence d&#39;accès est un pilier du domaine <strong>coût</strong> du SAA.</p>
+<p><strong>Cycle de vie (lifecycle).</strong> Des <strong>règles automatiques</strong> sur un bucket : « après 30 jours, passe les objets en Standard-IA », « après 90 jours, en Glacier », « après 365 jours, supprime-les ». Tu automatises l&#39;optimisation des coûts sans y penser.</p>
+<p><strong>Chiffrement (SSE).</strong> Le <strong>Server-Side Encryption</strong> chiffre les objets <strong>au repos</strong>, côté serveur. <strong>SSE-S3</strong> (AES256, clés gérées par AWS) est le défaut simple. <strong>SSE-KMS</strong> utilise une clé du service KMS (traçabilité, rotation). On peut l&#39;imposer <strong>par défaut</strong> sur un bucket.</p>
+<p><strong>Site web statique.</strong> S3 peut <strong>servir</strong> directement des fichiers HTML/CSS/JS comme un site web (document d&#39;index, page d&#39;erreur). Combiné à une bucket policy publique, c&#39;est l&#39;hébergement le moins cher pour un site statique.</p>
+<p><strong>URL présignée.</strong> Une URL <strong>temporaire et signée</strong> qui donne un accès <strong>limité dans le temps</strong> à un objet <strong>privé</strong>, sans le rendre public ni distribuer de clés. Idéal pour « télécharge ce fichier, ce lien expire dans 1 heure ».</p>
+</div>
+<div data-lang="en"><p><strong>Bucket and object.</strong> A <strong>bucket</strong> is a container (<strong>globally unique</strong> name). An <strong>object</strong> is a file + its metadata, identified by a <strong>key</strong> (its &quot;path&quot;). S3 is <strong>flat</strong>: <code>photos/2026/cat.jpg</code> isn&#39;t a nested folder, it&#39;s <strong>one key</strong> containing <code>/</code>. We speak of a <strong>prefix</strong> (<code>photos/</code>) to filter, but there&#39;s no real hierarchy.</p>
+<p><strong>Versioning.</strong> Enabled on a bucket, it keeps <strong>every version</strong> of an object on each overwrite. Overwriting <code>contract.pdf</code> doesn&#39;t lose the old one: it becomes a previous version, recoverable. Deleting places a <strong>delete marker</strong> (the object is hidden but restorable). It&#39;s the #1 protection against human error.</p>
+<p><strong>Storage classes.</strong> S3 offers several tiers, from most expensive/fast to cheapest/slow: <strong>Standard</strong> (frequent access), <strong>Standard-IA</strong> (Infrequent Access — rare access, cheaper storage but paid retrieval), <strong>Glacier</strong>/<strong>Glacier Deep Archive</strong> (archival, retrieval in minutes to hours). Choosing the right class by access frequency is a pillar of the SAA <strong>cost</strong> domain.</p>
+<p><strong>Lifecycle.</strong> <strong>Automatic rules</strong> on a bucket: &quot;after 30 days, move objects to Standard-IA&quot;, &quot;after 90 days, to Glacier&quot;, &quot;after 365 days, delete them&quot;. You automate cost optimization without thinking about it.</p>
+<p><strong>Encryption (SSE).</strong> <strong>Server-Side Encryption</strong> encrypts objects <strong>at rest</strong>, server-side. <strong>SSE-S3</strong> (AES256, AWS-managed keys) is the simple default. <strong>SSE-KMS</strong> uses a KMS service key (traceability, rotation). You can enforce it <strong>by default</strong> on a bucket.</p>
+<p><strong>Static website.</strong> S3 can <strong>serve</strong> HTML/CSS/JS files directly like a website (index document, error page). Combined with a public bucket policy, it&#39;s the cheapest hosting for a static site.</p>
+<p><strong>Presigned URL.</strong> A <strong>temporary, signed</strong> URL giving <strong>time-limited</strong> access to a <strong>private</strong> object, without making it public or distributing keys. Ideal for &quot;download this file, this link expires in 1 hour&quot;.</p>
+</div>
+
+<figure class="schema" id="figure-aws-s3-lifecycle">
+  <p>[schema "aws-s3-lifecycle" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le cycle de vie d&#39;un objet S3 : créé en Standard (accès fréquent), transféré en Standard-IA après 30 j, archivé en Glacier après 90 j, supprimé après 365 j — automatiquement, pour optimiser le coût selon l&#39;âge et la fréquence d&#39;accès.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> An S3 object&#39;s lifecycle: created in Standard (frequent access), moved to Standard-IA after 30 d, archived in Glacier after 90 d, deleted after 365 d — automatically, to optimize cost by age and access frequency.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Manipuler <strong>buckets et objets</strong> : créer, copier, synchroniser, lister avec des <strong>préfixes</strong>.</p>
+<p><strong>🤔 Le modèle plat.</strong> S3 n&#39;a pas de dossiers : <code>rapports/2026/q1.txt</code> est <strong>une clé</strong>. Le <code>s3 sync</code> copie un arbre local en préservant les clés <code>dossier/sous-dossier/fichier</code>. Le préfixe (<code>rapports/</code>) sert à <strong>filtrer</strong> un listing, pas à créer une hiérarchie réelle.</p>
+<p>Crée un bucket et remplis-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Handle <strong>buckets and objects</strong>: create, copy, sync, list with <strong>prefixes</strong>.</p>
+<p><strong>🤔 The flat model.</strong> S3 has no folders: <code>reports/2026/q1.txt</code> is <strong>one key</strong>. <code>s3 sync</code> copies a local tree preserving the <code>folder/subfolder/file</code> keys. The prefix (<code>reports/</code>) is for <strong>filtering</strong> a listing, not for creating a real hierarchy.</p>
+<p>Create a bucket and fill it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>awslocal s3 mb s3://atelier-s3
+
+# Copier un objet avec une clé &quot;en dossier&quot; / copy an object with a &quot;folder&quot; key
+echo &quot;rapport Q1&quot; &gt; q1.txt
+awslocal s3 cp q1.txt s3://atelier-s3/rapports/2026/q1.txt
+
+# Synchroniser un dossier local entier / sync a whole local folder
+mkdir -p site &amp;&amp; echo &quot;&lt;h1&gt;Accueil&lt;/h1&gt;&quot; &gt; site/index.html &amp;&amp; echo &quot;body{}&quot; &gt; site/style.css
+awslocal s3 sync site/ s3://atelier-s3/site/
+
+# Lister avec un préfixe / list with a prefix
+awslocal s3 ls s3://atelier-s3/rapports/2026/
+awslocal s3 ls s3://atelier-s3/ --recursive</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 cp</code> crée l&#39;objet de clé <code>rapports/2026/q1.txt</code>. <code>s3 sync</code> téléverse <code>site/index.html</code> et <code>site/style.css</code> (deux objets). <code>s3 ls --recursive</code> liste <strong>toutes</strong> les clés à plat, avec leur taille — tu vois bien que <code>rapports/2026/q1.txt</code> est une seule clé, pas trois dossiers. Le préfixe <code>rapports/2026/</code> filtre le listing à ce « sous-dossier » virtuel.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 cp</code> creates the object with key <code>rapports/2026/q1.txt</code>. <code>s3 sync</code> uploads <code>site/index.html</code> and <code>site/style.css</code> (two objects). <code>s3 ls --recursive</code> lists <strong>all</strong> keys flat, with their size — you see clearly that <code>rapports/2026/q1.txt</code> is a single key, not three folders. The prefix <code>rapports/2026/</code> filters the listing to that virtual &quot;subfolder&quot;.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Activer le <strong>versioning</strong> et récupérer une <strong>version antérieure</strong> après un écrasement.</p>
+<p><strong>🤔 La protection contre l&#39;erreur.</strong> Sans versioning, écraser un objet écrase l&#39;ancien <strong>définitivement</strong>. Avec versioning, chaque écriture crée une <strong>nouvelle version</strong> et garde les précédentes. C&#39;est la parade au « j&#39;ai écrasé le bon fichier par erreur ».</p>
+<p>Active le versioning et écrase un objet :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enable <strong>versioning</strong> and recover a <strong>previous version</strong> after an overwrite.</p>
+<p><strong>🤔 Protection against error.</strong> Without versioning, overwriting an object overwrites the old one <strong>permanently</strong>. With versioning, each write creates a <strong>new version</strong> and keeps the previous ones. It&#39;s the answer to &quot;I overwrote the right file by mistake&quot;.</p>
+<p>Enable versioning and overwrite an object:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Activer le versioning sur le bucket / enable versioning on the bucket
+awslocal s3api put-bucket-versioning --bucket atelier-s3 \
+  --versioning-configuration Status=Enabled
+
+# Écrire deux versions de la même clé / write two versions of the same key
+echo &quot;contrat v1&quot; &gt; contrat.txt ; awslocal s3 cp contrat.txt s3://atelier-s3/contrat.txt
+echo &quot;contrat v2&quot; &gt; contrat.txt ; awslocal s3 cp contrat.txt s3://atelier-s3/contrat.txt
+
+# Lister les versions / list the versions
+awslocal s3api list-object-versions --bucket atelier-s3 --prefix contrat.txt \
+  --query &#39;Versions[].[VersionId,IsLatest]&#39; --output table</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>list-object-versions</code> montre <strong>deux</strong> versions de <code>contrat.txt</code>, chacune avec un <code>VersionId</code> distinct ; une seule a <code>IsLatest=True</code> (la v2). Pour <strong>récupérer la v1</strong>, tu télécharges par son VersionId : <code>awslocal s3api get-object --bucket atelier-s3 --key contrat.txt --version-id &lt;ID_de_v1&gt; recupere.txt</code> → <code>recupere.txt</code> contient « contrat v1 ». Rien n&#39;est perdu : le versioning garde tout l&#39;historique. (En réel, chaque version compte dans la facture de stockage — d&#39;où l&#39;intérêt des règles de cycle de vie pour purger les vieilles versions.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>list-object-versions</code> shows <strong>two</strong> versions of <code>contrat.txt</code>, each with a distinct <code>VersionId</code>; only one has <code>IsLatest=True</code> (v2). To <strong>recover v1</strong>, you download it by its VersionId: <code>awslocal s3api get-object --bucket atelier-s3 --key contrat.txt --version-id &lt;v1_ID&gt; recovered.txt</code> → <code>recovered.txt</code> contains &quot;contrat v1&quot;. Nothing is lost: versioning keeps the full history. (In reality, each version counts in the storage bill — hence lifecycle rules to purge old versions.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Choisir une <strong>classe de stockage</strong> selon le coût et la fréquence d&#39;accès.</p>
+<p><strong>🤔 Le domaine « coût » du SAA.</strong> Toutes les données ne se valent pas : un fichier consulté 100 fois/jour va en <strong>Standard</strong> ; une archive légale consultée une fois/an va en <strong>Glacier</strong> (bien moins cher au stockage, mais récupération lente et payante). L&#39;examen te donne un scénario (« logs rarement lus », « backup à conserver 7 ans ») et attend la bonne classe.</p>
+<p>Dépose des objets dans différentes classes :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Choose a <strong>storage class</strong> based on cost and access frequency.</p>
+<p><strong>🤔 The SAA &quot;cost&quot; domain.</strong> Not all data is equal: a file accessed 100×/day goes to <strong>Standard</strong>; a legal archive accessed once/year goes to <strong>Glacier</strong> (much cheaper to store, but slow, paid retrieval). The exam gives a scenario (&quot;rarely-read logs&quot;, &quot;backup to keep 7 years&quot;) and expects the right class.</p>
+<p>Store objects in different classes:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;log rarement lu&quot; &gt; vieux.log
+# Standard-IA : accès rare, stockage moins cher / Infrequent Access
+awslocal s3 cp vieux.log s3://atelier-s3/archives/vieux.log --storage-class STANDARD_IA
+
+echo &quot;archive legale&quot; &gt; archive.dat
+# Glacier : archivage long terme / long-term archival
+awslocal s3 cp archive.dat s3://atelier-s3/archives/archive.dat --storage-class GLACIER
+
+# Vérifier la classe de chaque objet / check each object&#39;s class
+awslocal s3api head-object --bucket atelier-s3 --key archives/vieux.log   --query &#39;StorageClass&#39; --output text
+awslocal s3api head-object --bucket atelier-s3 --key archives/archive.dat --query &#39;StorageClass&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>head-object</code> sur <code>vieux.log</code> renvoie <code>STANDARD_IA</code>, sur <code>archive.dat</code> renvoie <code>GLACIER</code>. (Un objet en <code>STANDARD</code> renvoie souvent <code>None</code>/vide, car Standard est la classe par défaut implicite.) Retiens la logique de choix : <strong>fréquent → Standard</strong> ; <strong>rare mais récupérable vite → Standard-IA</strong> ; <strong>archivage, récupération lente OK → Glacier</strong> ; <strong>archivage très long, très froid → Glacier Deep Archive</strong>. C&#39;est un compromis coût-de-stockage vs coût/délai-de-récupération.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>head-object</code> on <code>vieux.log</code> returns <code>STANDARD_IA</code>, on <code>archive.dat</code> returns <code>GLACIER</code>. (A <code>STANDARD</code> object often returns <code>None</code>/empty, since Standard is the implicit default class.) Remember the choice logic: <strong>frequent → Standard</strong>; <strong>rare but quick to retrieve → Standard-IA</strong>; <strong>archival, slow retrieval OK → Glacier</strong>; <strong>very long, very cold archival → Glacier Deep Archive</strong>. It&#39;s a storage-cost vs retrieval-cost/delay tradeoff.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Automatiser l&#39;optimisation des coûts avec une <strong>règle de cycle de vie</strong>.</p>
+<p><strong>🤔 Pourquoi automatiser.</strong> Passer les objets à la main d&#39;une classe à l&#39;autre est intenable. Une <strong>règle de cycle de vie</strong> le fait toute seule selon l&#39;<strong>âge</strong> : transition après N jours, expiration après M jours. Tu la poses une fois, S3 s&#39;occupe du reste — l&#39;optimisation de coût « set and forget ».</p>
+<p>Pose une règle de cycle de vie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Automate cost optimization with a <strong>lifecycle rule</strong>.</p>
+<p><strong>🤔 Why automate.</strong> Moving objects by hand from one class to another is untenable. A <strong>lifecycle rule</strong> does it on its own by <strong>age</strong>: transition after N days, expiration after M days. You set it once, S3 handles the rest — &quot;set and forget&quot; cost optimization.</p>
+<p>Set a lifecycle rule:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Rules&quot;: [
+    {
+      &quot;ID&quot;: &quot;archivage-progressif&quot;,
+      &quot;Status&quot;: &quot;Enabled&quot;,
+      &quot;Filter&quot;: { &quot;Prefix&quot;: &quot;archives/&quot; },
+      &quot;Transitions&quot;: [
+        { &quot;Days&quot;: 30, &quot;StorageClass&quot;: &quot;STANDARD_IA&quot; },
+        { &quot;Days&quot;: 90, &quot;StorageClass&quot;: &quot;GLACIER&quot; }
+      ],
+      &quot;Expiration&quot;: { &quot;Days&quot;: 365 }
+    }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Enregistre le JSON ci-dessus dans lifecycle.json / save the JSON above as lifecycle.json
+awslocal s3api put-bucket-lifecycle-configuration --bucket atelier-s3 \
+  --lifecycle-configuration file://lifecycle.json
+
+# Relire la règle posée / read the rule back
+awslocal s3api get-bucket-lifecycle-configuration --bucket atelier-s3 \
+  --query &#39;Rules[0].[ID,Status]&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>put-bucket-lifecycle-configuration</code> réussit (aucune erreur), et <code>get-bucket-lifecycle-configuration</code> te réaffiche la règle <code>archivage-progressif Enabled</code>. La règle dit : pour tout objet sous <code>archives/</code>, passe en Standard-IA à 30 jours, en Glacier à 90 jours, supprime à 365 jours. En réel, S3 applique ces transitions automatiquement chaque nuit. (LocalStack enregistre la règle mais ne fait pas « vieillir » les objets — c&#39;est la <strong>configuration</strong> que tu valides ici, exactement ce que l&#39;architecte écrit.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>put-bucket-lifecycle-configuration</code> succeeds (no error), and <code>get-bucket-lifecycle-configuration</code> shows you back the <code>archivage-progressif Enabled</code> rule. The rule says: for any object under <code>archives/</code>, move to Standard-IA at 30 days, to Glacier at 90 days, delete at 365 days. In real AWS, S3 applies these transitions automatically each night. (LocalStack stores the rule but doesn&#39;t &quot;age&quot; objects — it&#39;s the <strong>configuration</strong> you validate here, exactly what the architect writes.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Imposer le <strong>chiffrement au repos</strong> (SSE) par défaut sur un bucket.</p>
+<p><strong>🤔 Chiffrer sans y penser.</strong> Le chiffrement au repos protège tes données si quelqu&#39;un accède au stockage physique. En posant un <strong>chiffrement par défaut</strong> sur le bucket, <strong>tout</strong> nouvel objet est chiffré automatiquement — plus besoin d&#39;y penser à chaque <code>put</code>. <code>SSE-S3</code> (AES256) est le plus simple ; <code>SSE-KMS</code> ajoute la traçabilité via le service de clés KMS.</p>
+<p>Active le chiffrement par défaut :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enforce <strong>encryption at rest</strong> (SSE) by default on a bucket.</p>
+<p><strong>🤔 Encrypt without thinking.</strong> Encryption at rest protects your data if someone accesses the physical storage. By setting <strong>default encryption</strong> on the bucket, <strong>every</strong> new object is encrypted automatically — no need to think about it on each <code>put</code>. <code>SSE-S3</code> (AES256) is the simplest; <code>SSE-KMS</code> adds traceability via the KMS key service.</p>
+<p>Enable default encryption:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Rules&quot;: [
+    { &quot;ApplyServerSideEncryptionByDefault&quot;: { &quot;SSEAlgorithm&quot;: &quot;AES256&quot; } }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Enregistre dans encryption.json / save as encryption.json
+awslocal s3api put-bucket-encryption --bucket atelier-s3 \
+  --server-side-encryption-configuration file://encryption.json
+
+# Vérifier / verify
+awslocal s3api get-bucket-encryption --bucket atelier-s3 \
+  --query &#39;ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm&#39; \
+  --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>get-bucket-encryption</code> renvoie <code>AES256</code> — le chiffrement par défaut (SSE-S3) est actif. Désormais, tout objet déposé dans <code>atelier-s3</code> est chiffré au repos, sans rien préciser au moment du <code>put</code>. En réel, un objet uploadé montrerait un en-tête <code>x-amz-server-side-encryption: AES256</code>. C&#39;est une bonne pratique de sécurité qu&#39;on impose au niveau du bucket, pas objet par objet.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>get-bucket-encryption</code> returns <code>AES256</code> — default encryption (SSE-S3) is active. From now on, any object stored in <code>atelier-s3</code> is encrypted at rest, without specifying anything at <code>put</code> time. In real AWS, an uploaded object would show an <code>x-amz-server-side-encryption: AES256</code> header. It&#39;s a security best practice enforced at the bucket level, not object by object.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Héberger un <strong>site web statique</strong> sur S3.</p>
+<p><strong>🤔 L&#39;hébergement le moins cher.</strong> Pour un site sans backend (HTML/CSS/JS), pas besoin de serveur : S3 sert les fichiers directement. Tu actives le mode « site web » (document d&#39;index, page d&#39;erreur) et tu rends les objets lisibles publiquement via une bucket policy. C&#39;est un cas d&#39;usage classique du SAA (souvent combiné à CloudFront pour la performance).</p>
+<p>Configure l&#39;hébergement statique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Host a <strong>static website</strong> on S3.</p>
+<p><strong>🤔 The cheapest hosting.</strong> For a backend-less site (HTML/CSS/JS), no server needed: S3 serves the files directly. You enable &quot;website&quot; mode (index document, error page) and make objects publicly readable via a bucket policy. It&#39;s a classic SAA use case (often combined with CloudFront for performance).</p>
+<p>Configure static hosting:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Un bucket dédié au site / a bucket dedicated to the site
+awslocal s3 mb s3://mon-site-statique
+echo &quot;&lt;h1&gt;Bienvenue sur mon site&lt;/h1&gt;&quot; &gt; index.html
+echo &quot;&lt;h1&gt;404 - page introuvable&lt;/h1&gt;&quot; &gt; erreur.html
+awslocal s3 cp index.html  s3://mon-site-statique/index.html
+awslocal s3 cp erreur.html s3://mon-site-statique/erreur.html
+
+# Activer le mode site web (index + page d&#39;erreur) / enable website mode
+awslocal s3 website s3://mon-site-statique/ --index-document index.html --error-document erreur.html
+
+# Servir le contenu / serve the content (LocalStack expose le site sur ce chemin)
+curl -s http://localhost:4566/mon-site-statique/index.html</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 website</code> configure l&#39;hébergement (aucune erreur). <code>curl http://localhost:4566/mon-site-statique/index.html</code> renvoie <code>&lt;h1&gt;Bienvenue sur mon site&lt;/h1&gt;</code>. En réel, le site serait accessible via l&#39;URL de point de terminaison du site (<code>http://mon-site-statique.s3-website-&lt;region&gt;.amazonaws.com</code>), et tu attacherais une <strong>bucket policy publique</strong> (<code>Principal:&quot;*&quot;</code>, <code>s3:GetObject</code>) — vu au guide IAM — pour que les visiteurs puissent lire les objets. LocalStack sert le contenu directement pour le test.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 website</code> configures hosting (no error). <code>curl http://localhost:4566/mon-site-statique/index.html</code> returns <code>&lt;h1&gt;Bienvenue sur mon site&lt;/h1&gt;</code>. In real AWS, the site would be reachable via the website endpoint URL (<code>http://mon-site-statique.s3-website-&lt;region&gt;.amazonaws.com</code>), and you&#39;d attach a <strong>public bucket policy</strong> (<code>Principal:&quot;*&quot;</code>, <code>s3:GetObject</code>) — seen in the IAM guide — so visitors can read the objects. LocalStack serves the content directly for testing.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer une <strong>URL présignée</strong> — un accès temporaire à un objet <strong>privé</strong>, sans le rendre public.</p>
+<p><strong>🤔 Le meilleur des deux mondes.</strong> Tu veux qu&#39;un utilisateur télécharge un objet privé (une facture, une image) <strong>sans</strong> rendre le bucket public <strong>ni</strong> lui donner des clés AWS. La solution : une <strong>URL présignée</strong>, signée avec <strong>tes</strong> droits, <strong>valable un temps limité</strong>. Passé le délai, le lien ne marche plus. C&#39;est LE motif de partage sécurisé.</p>
+<p>Génère une URL présignée et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate a <strong>presigned URL</strong> — temporary access to a <strong>private</strong> object, without making it public.</p>
+<p><strong>🤔 The best of both worlds.</strong> You want a user to download a private object (an invoice, an image) <strong>without</strong> making the bucket public <strong>nor</strong> giving them AWS keys. The solution: a <strong>presigned URL</strong>, signed with <strong>your</strong> rights, <strong>valid for a limited time</strong>. After the delay, the link stops working. It&#39;s THE secure-sharing pattern.</p>
+<p>Generate a presigned URL and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;facture privee 2026&quot; &gt; facture.pdf
+awslocal s3 cp facture.pdf s3://atelier-s3/factures/facture.pdf
+
+# URL présignée valable 1 heure (3600 s) / presigned URL valid 1 hour
+url=$(awslocal s3 presign s3://atelier-s3/factures/facture.pdf --expires-in 3600)
+echo &quot;$url&quot;
+# Le lien fonctionne sans identifiants AWS / the link works with no AWS credentials
+curl -s &quot;$url&quot;
+
+# --- Nettoyage complet / full cleanup ---
+awslocal s3 rb s3://atelier-s3 --force
+awslocal s3 rb s3://mon-site-statique --force</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 presign</code> renvoie une longue URL contenant <code>?AWSAccessKeyId=...&amp;Signature=...&amp;Expires=...</code>. Le <code>curl</code> sur cette URL renvoie <code>facture privee 2026</code> — <strong>sans aucun identifiant AWS</strong>, juste avec le lien signé. C&#39;est ça, la magie : un accès délégué, temporaire, révoqué automatiquement à l&#39;expiration. Le bucket, lui, reste <strong>privé</strong>. <code>s3 rb --force</code> vide et supprime les deux buckets — labo rangé. ⚠️ Ne partage une URL présignée que par un canal sûr : quiconque a le lien (avant expiration) a l&#39;accès.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 presign</code> returns a long URL containing <code>?AWSAccessKeyId=...&amp;Signature=...&amp;Expires=...</code>. The <code>curl</code> on that URL returns <code>facture privee 2026</code> — <strong>with no AWS credentials at all</strong>, just the signed link. That&#39;s the magic: delegated, temporary access, auto-revoked at expiry. The bucket itself stays <strong>private</strong>. <code>s3 rb --force</code> empties and deletes both buckets — lab tidied. ⚠️ Only share a presigned URL over a safe channel: anyone with the link (before expiry) has the access.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire que les préfixes sont des dossiers.</strong> S3 est plat : <code>a/b/c.txt</code> est <strong>une clé</strong>. Il n&#39;y a pas de dossier <code>a/</code> à créer ou supprimer — supprimer « le dossier » revient à supprimer tous les objets qui partagent ce préfixe.</p>
+<p><strong>2. Activer le versioning et oublier les vieilles versions.</strong> Chaque version compte dans la facture. Sans règle de cycle de vie qui purge les versions non-courantes, le coût enfle silencieusement.</p>
+<p><strong>3. Choisir Glacier pour des données consultées souvent.</strong> Glacier est peu cher <strong>au stockage</strong> mais la <strong>récupération</strong> est lente et payante. Pour de l&#39;accès fréquent, c&#39;est un contresens : Standard revient moins cher au total.</p>
+<p><strong>4. Confondre ARN de bucket et d&#39;objets dans les règles.</strong> Une bucket policy <code>s3:GetObject</code> doit cibler <code>arn:aws:s3:::bucket/*</code> (les objets), pas <code>arn:aws:s3:::bucket</code> (le bucket). Erreur vue au guide IAM, encore plus fréquente ici.</p>
+<p><strong>5. Rendre un bucket public pour partager un seul fichier.</strong> N&#39;ouvre pas tout le bucket : utilise une <strong>URL présignée</strong> pour un accès temporaire à un objet précis. Le bucket reste privé.</p>
+<p><strong>6. Oublier « Block Public Access » (en réel).</strong> Sur le vrai AWS, même avec une bucket policy publique, l&#39;accès est bloqué tant que « Block Public Access » est actif (il l&#39;est par défaut). Le désactiver est une décision explicite. LocalStack ne simule pas ce garde-fou — attention en réel.</p>
+<p><strong>7. Nom de bucket non conforme.</strong> En réel, un nom de bucket doit être en minuscules, sans underscore, unique mondialement, et respecter des règles DNS. <code>Mon_Bucket</code> est invalide.</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking prefixes are folders.</strong> S3 is flat: <code>a/b/c.txt</code> is <strong>one key</strong>. There&#39;s no <code>a/</code> folder to create or delete — deleting &quot;the folder&quot; means deleting all objects sharing that prefix.</p>
+<p><strong>2. Enabling versioning and forgetting old versions.</strong> Each version counts in the bill. Without a lifecycle rule purging noncurrent versions, cost swells silently.</p>
+<p><strong>3. Choosing Glacier for frequently-accessed data.</strong> Glacier is cheap <strong>to store</strong> but <strong>retrieval</strong> is slow and paid. For frequent access, it&#39;s a mistake: Standard is cheaper overall.</p>
+<p><strong>4. Confusing bucket and objects ARN in rules.</strong> A bucket policy <code>s3:GetObject</code> must target <code>arn:aws:s3:::bucket/*</code> (the objects), not <code>arn:aws:s3:::bucket</code> (the bucket). Mistake seen in the IAM guide, even more frequent here.</p>
+<p><strong>5. Making a bucket public to share one file.</strong> Don&#39;t open the whole bucket: use a <strong>presigned URL</strong> for temporary access to a precise object. The bucket stays private.</p>
+<p><strong>6. Forgetting &quot;Block Public Access&quot; (in real AWS).</strong> On real AWS, even with a public bucket policy, access is blocked while &quot;Block Public Access&quot; is on (it is by default). Disabling it is an explicit decision. LocalStack doesn&#39;t simulate this guardrail — beware in real life.</p>
+<p><strong>7. Non-compliant bucket name.</strong> In reality, a bucket name must be lowercase, no underscore, globally unique, and follow DNS rules. <code>My_Bucket</code> is invalid.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées des objets avec des clés « en dossier » et tu comprends le modèle plat.</li><li>Tu actives le versioning et tu récupères une version antérieure par son VersionId.</li><li>Tu déposes un objet en <code>STANDARD_IA</code> et un en <code>GLACIER</code>, et tu sais quand choisir quoi.</li><li>Tu poses une règle de cycle de vie (transition + expiration) et tu la relis.</li><li>Tu imposes le chiffrement <code>AES256</code> par défaut sur un bucket.</li><li>Tu héberges un site statique servi par S3.</li><li>Tu génères une URL présignée qui donne un accès temporaire sans clé.</li></ul>
+<p>Sept cases = tu maîtrises S3 au niveau SAA. La suite : le réseau VPC.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create objects with &quot;folder&quot; keys and understand the flat model.</li><li>You enable versioning and recover a previous version by its VersionId.</li><li>You store an object in <code>STANDARD_IA</code> and one in <code>GLACIER</code>, and know when to pick which.</li><li>You set a lifecycle rule (transition + expiration) and read it back.</li><li>You enforce <code>AES256</code> default encryption on a bucket.</li><li>You host a static site served by S3.</li><li>You generate a presigned URL giving temporary keyless access.</li></ul>
+<p>Seven boxes = you master S3 at SAA level. Next up: VPC networking.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track AWS → SAA-C03 :</p>
+<ol><li><strong>AWS — réseau VPC</strong> : réseaux virtuels, sous-réseaux publics/privés, tables de routage, passerelle Internet, groupes de sécurité vs NACL — comment isoler et connecter tes ressources.</li><li>Plus loin : compute (EC2/Lambda), découplage (SQS/SNS/DynamoDB), le <strong>projet d&#39;entreprise</strong> serverless, puis <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AWS → SAA-C03 track continues:</p>
+<ol><li><strong>AWS — VPC networking</strong>: virtual networks, public/private subnets, route tables, internet gateway, security groups vs NACLs — how to isolate and connect your resources.</li><li>Further along: compute (EC2/Lambda), decoupling (SQS/SNS/DynamoDB), the serverless <strong>enterprise project</strong>, then <strong>going real</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire S3.</p>
+</div>
+<div data-lang="en"><p>S3 cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Objets / Objects
+awslocal s3 cp f s3://b/cle ; awslocal s3 sync dossier/ s3://b/prefixe/
+awslocal s3 ls s3://b/ --recursive
+awslocal s3 rb s3://b --force                       # vider + supprimer / empty + delete
+
+# Versioning
+awslocal s3api put-bucket-versioning --bucket b --versioning-configuration Status=Enabled
+awslocal s3api list-object-versions --bucket b --prefix cle
+awslocal s3api get-object --bucket b --key cle --version-id &lt;ID&gt; sortie
+
+# Classe de stockage / Storage class
+awslocal s3 cp f s3://b/cle --storage-class STANDARD_IA   # ou GLACIER
+awslocal s3api head-object --bucket b --key cle --query StorageClass
+
+# Cycle de vie &amp; chiffrement / Lifecycle &amp; encryption
+awslocal s3api put-bucket-lifecycle-configuration --bucket b --lifecycle-configuration file://lc.json
+awslocal s3api put-bucket-encryption --bucket b --server-side-encryption-configuration file://enc.json
+
+# Site statique &amp; URL présignée / Static site &amp; presigned URL
+awslocal s3 website s3://b/ --index-document index.html --error-document erreur.html
+awslocal s3 presign s3://b/cle --expires-in 3600</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html">Documentation Amazon S3</a> — la référence complète.</li><li><a href="https://aws.amazon.com/s3/storage-classes/">Classes de stockage S3</a> — comparatif coût/accès.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html">Gestion du cycle de vie</a> — transitions et expiration.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html">Chiffrement S3</a> — SSE-S3, SSE-KMS.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html">URL présignées</a> — accès temporaire délégué.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html">Amazon S3 documentation</a> — the full reference.</li><li><a href="https://aws.amazon.com/s3/storage-classes/">S3 storage classes</a> — cost/access comparison.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html">Lifecycle management</a> — transitions and expiration.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html">S3 encryption</a> — SSE-S3, SSE-KMS.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html">Presigned URLs</a> — delegated temporary access.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>BucketAlreadyExists</code> / <code>BucketAlreadyOwnedByYou</code>.</strong> Le nom est pris (mondial en réel). Choisis un nom unique (préfixe avec un identifiant).</p>
+<p><strong><code>NoSuchBucket</code>.</strong> Tu cibles un bucket qui n&#39;existe pas (faute de frappe, ou déjà supprimé). Vérifie avec <code>awslocal s3 ls</code>.</p>
+<p><strong>Le versioning ne garde pas d&#39;anciennes versions.</strong> Il n&#39;était pas activé <strong>avant</strong> l&#39;écrasement. Le versioning ne protège que les écritures <strong>postérieures</strong> à son activation.</p>
+<p><strong><code>head-object</code> renvoie <code>StorageClass: None</code>.</strong> Normal pour un objet en <strong>Standard</strong> (la classe par défaut n&#39;est pas affichée). Les classes non-standard (IA, Glacier) s&#39;affichent bien.</p>
+<p><strong><code>MalformedXML</code> / erreur sur put-bucket-lifecycle.</strong> Le JSON de la règle est invalide (champ mal nommé, <code>Status</code> manquant). Compare à l&#39;exemple ; <code>Status</code> doit valoir <code>Enabled</code>.</p>
+<p><strong>L&#39;URL présignée renvoie <code>SignatureDoesNotMatch</code> ou est expirée.</strong> Le délai <code>--expires-in</code> est passé, ou l&#39;horloge/région diffère. Régénère l&#39;URL.</p>
+</div>
+<div data-lang="en"><p><strong><code>BucketAlreadyExists</code> / <code>BucketAlreadyOwnedByYou</code>.</strong> The name is taken (global in reality). Pick a unique name (prefix with an identifier).</p>
+<p><strong><code>NoSuchBucket</code>.</strong> You target a bucket that doesn&#39;t exist (typo, or already deleted). Check with <code>awslocal s3 ls</code>.</p>
+<p><strong>Versioning doesn&#39;t keep old versions.</strong> It wasn&#39;t enabled <strong>before</strong> the overwrite. Versioning only protects writes <strong>after</strong> its activation.</p>
+<p><strong><code>head-object</code> returns <code>StorageClass: None</code>.</strong> Normal for a <strong>Standard</strong> object (the default class isn&#39;t shown). Non-standard classes (IA, Glacier) display fine.</p>
+<p><strong><code>MalformedXML</code> / error on put-bucket-lifecycle.</strong> The rule JSON is invalid (misnamed field, missing <code>Status</code>). Compare to the example; <code>Status</code> must be <code>Enabled</code>.</p>
+<p><strong>The presigned URL returns <code>SignatureDoesNotMatch</code> or is expired.</strong> The <code>--expires-in</code> delay passed, or the clock/region differs. Regenerate the URL.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
