@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Kubernetes — stockage persistant — jiha.tech</title>
+  <title data-lang="en">Kubernetes — persistent storage — jiha.tech</title>
+  <meta name="description" content="Le stockage persistant Kubernetes en local sur k3d : PersistentVolume et PersistentVolumeClaim, provisionnement dynamique par StorageClass (et le piège WaitForFirstConsumer), access modes et reclaim policy, PV statique, et StatefulSet avec stockage stable par réplica. Le domaine Storage du CKA/CKAD." data-lang="fr">
+  <meta name="description" content="Kubernetes persistent storage locally on k3d: PersistentVolume and PersistentVolumeClaim, dynamic provisioning by StorageClass (and the WaitForFirstConsumer trap), access modes and reclaim policy, static PV, and StatefulSet with stable per-replica storage. The CKA/CKAD Storage domain." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kubernetes — stockage persistant">
+  <meta property="og:description" content="Le stockage persistant Kubernetes en local sur k3d : PersistentVolume et PersistentVolumeClaim, provisionnement dynamique par StorageClass (et le piège WaitForFirstConsumer), access modes et reclaim policy, PV statique, et StatefulSet avec stockage stable par réplica. Le domaine Storage du CKA/CKAD.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/kubernetes-stockage/">
+  <link rel="canonical" href="https://jiha.tech/guides/kubernetes-stockage/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="kubernetes-stockage">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/kubernetes-stockage</div>
+    <div class="prompt" data-lang="en">~/guides/kubernetes-stockage</div>
+    <h1 data-lang="fr">Kubernetes — stockage persistant</h1>
+    <h1 data-lang="en">Kubernetes — persistent storage</h1>
+    <p class="tagline" data-lang="fr">PV, PVC, StorageClass, reclaim, StatefulSet.</p>
+    <p class="tagline" data-lang="en">PV, PVC, StorageClass, reclaim, StatefulSet.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 190 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 190 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un conteneur est <strong>éphémère</strong> : quand il meurt, son disque meurt avec lui. Pour une base de données, un upload, un cache sur disque, c&#39;est inacceptable. Kubernetes sépare donc le <strong>stockage</strong> du cycle de vie du pod, avec un modèle que l&#39;examen <strong>CKA/CKAD</strong> teste en profondeur : <em>comment réclamer du stockage sans savoir quel disque physique il y a derrière ? comment garantir que la donnée survit au pod ? comment donner à chaque réplica d&#39;une base son propre volume stable ?</em></p>
+<p>Ce guide couvre tout le domaine <strong>Storage</strong> : <strong><code>PersistentVolume</code></strong> (PV) et <strong><code>PersistentVolumeClaim</code></strong> (PVC), le <strong>provisionnement dynamique</strong> par <strong><code>StorageClass</code></strong> (et son piège <strong><code>WaitForFirstConsumer</code></strong>), les <strong>access modes</strong> et la <strong>reclaim policy</strong>, le <strong>PV statique</strong>, et le <strong><code>StatefulSet</code></strong> avec stockage stable par réplica.</p>
+<p>On travaille en <strong>local sur k3d</strong>, qui embarque le provisioner <strong><code>local-path</code></strong> : une vraie StorageClass par défaut, donc le provisionnement dynamique <strong>marche tout seul</strong> sur ta machine. Zéro cloud.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides <strong>fondamentaux</strong>, <strong>workloads</strong> et <strong>networking</strong>, et tu vises la certification.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas ce qu&#39;est un pod ou un volume <code>emptyDir</code> → reviens aux fondamentaux et au guide workloads.</li><li>Tu cherches le RBAC, la sauvegarde etcd ou les mises à jour de cluster → c&#39;est le guide suivant.</li></ul>
+</div>
+<div data-lang="en"><p>A container is <strong>ephemeral</strong>: when it dies, its disk dies with it. For a database, an upload, an on-disk cache, that&#39;s unacceptable. So Kubernetes separates <strong>storage</strong> from the pod&#39;s lifecycle, with a model the <strong>CKA/CKAD</strong> exam tests deeply: <em>how do you claim storage without knowing the physical disk behind it? how do you guarantee data survives the pod? how do you give each replica of a database its own stable volume?</em></p>
+<p>This guide covers the whole <strong>Storage</strong> domain: <strong><code>PersistentVolume</code></strong> (PV) and <strong><code>PersistentVolumeClaim</code></strong> (PVC), <strong>dynamic provisioning</strong> by <strong><code>StorageClass</code></strong> (and its <strong><code>WaitForFirstConsumer</code></strong> trap), <strong>access modes</strong> and <strong>reclaim policy</strong>, the <strong>static PV</strong>, and the <strong><code>StatefulSet</code></strong> with stable per-replica storage.</p>
+<p>We work <strong>locally on k3d</strong>, which ships the <strong><code>local-path</code></strong> provisioner: a real default StorageClass, so dynamic provisioning <strong>just works</strong> on your machine. No cloud.</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>fundamentals</strong>, <strong>workloads</strong> and <strong>networking</strong> guides, and you&#39;re aiming for the cert.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know what a pod or an <code>emptyDir</code> volume is → go back to the fundamentals and the workloads guide.</li><li>You&#39;re after RBAC, etcd backup or cluster upgrades → that&#39;s the next guide.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Lire les <strong>StorageClass</strong> disponibles et comprendre le <strong>binding mode</strong>.</li><li>Créer un <strong>PVC</strong> provisionné <strong>dynamiquement</strong>, et expliquer <code>WaitForFirstConsumer</code>.</li><li><strong>Monter</strong> un PVC dans un pod, y écrire, et prouver la <strong>persistance</strong> au-delà du pod.</li><li>Distinguer les <strong>access modes</strong> (RWO/ROX/RWX) et les <strong>reclaim policy</strong> (Delete/Retain).</li><li>Créer un <strong>PV statique</strong> et le lier à un PVC (le modèle manuel).</li><li>Déployer un <strong>StatefulSet</strong> avec <code>volumeClaimTemplates</code> : un volume <strong>stable par réplica</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Read available <strong>StorageClasses</strong> and understand the <strong>binding mode</strong>.</li><li>Create a <strong>dynamically</strong> provisioned <strong>PVC</strong>, and explain <code>WaitForFirstConsumer</code>.</li><li><strong>Mount</strong> a PVC in a pod, write to it, and prove <strong>persistence</strong> beyond the pod.</li><li>Distinguish <strong>access modes</strong> (RWO/ROX/RWX) and <strong>reclaim policies</strong> (Delete/Retain).</li><li>Create a <strong>static PV</strong> and bind it to a PVC (the manual model).</li><li>Deploy a <strong>StatefulSet</strong> with <code>volumeClaimTemplates</code>: a <strong>stable per-replica</strong> volume.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>fondamentaux</strong>, <strong>workloads &amp; scheduling</strong> et <strong>services &amp; networking</strong> acquis.</li><li><strong>Docker</strong> lancé, <strong>k3d</strong> et <strong>kubectl</strong> installés.</li></ul>
+<p>On crée un cluster <strong>mono-nœud</strong> dédié (le stockage <code>local-path</code> est <strong>local au nœud</strong> ; un seul nœud rend la persistance déterministe dans nos démos) :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>fundamentals</strong>, <strong>workloads &amp; scheduling</strong> and <strong>services &amp; networking</strong> guides under your belt.</li><li><strong>Docker</strong> running, <strong>k3d</strong> and <strong>kubectl</strong> installed.</li></ul>
+<p>We create a dedicated <strong>single-node</strong> cluster (<code>local-path</code> storage is <strong>node-local</strong>; a single node makes persistence deterministic in our demos):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># (optionnel) libère de la RAM en supprimant les clusters précédents / (optional) free RAM by deleting previous clusters
+# k3d cluster delete netlab ckalab
+k3d cluster create stolab
+kubectl create namespace sto
+kubectl config set-context --current --namespace=sto</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-services-networking/">
+    <span class="num">15</span>
+    <span class="title-line" data-lang="fr">Kubernetes — services, networking &amp; ingress</span>
+    <span class="title-line" data-lang="en">Kubernetes — services, networking &amp; ingress</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Le stockage Kubernetes repose sur une <strong>séparation des rôles</strong>, comme un service de location.</p>
+<ul><li>Le <strong><code>PersistentVolume</code></strong> (PV) est <strong>le disque</strong> : une ressource de stockage réelle dans le cluster (un chemin local, un disque cloud, un partage NFS…). C&#39;est l&#39;<strong>offre</strong>.</li><li>Le <strong><code>PersistentVolumeClaim</code></strong> (PVC) est <strong>la demande</strong> : « je veux 1 Gi, en lecture-écriture ». Le pod ne connaît <strong>que</strong> le PVC ; il ignore le disque physique derrière.</li><li>Kubernetes <strong>lie</strong> (<em>bind</em>) un PVC à un PV compatible. Une fois lié, le pod monte le PVC comme un volume.</li></ul>
+<p><strong>Deux façons d&#39;obtenir un PV :</strong></p>
+<ul><li><strong>Statique</strong> : un admin crée le PV à la main, à l&#39;avance. Le PVC s&#39;y lie s&#39;il correspond (taille, access mode, class).</li><li><strong>Dynamique</strong> : une <strong><code>StorageClass</code></strong> crée le PV <strong>automatiquement</strong> au moment du PVC, via un <strong>provisioner</strong>. Plus besoin d&#39;admin. Sur k3d, la classe <code>local-path</code> fait ça.</li></ul>
+<p><strong>Le piège <code>WaitForFirstConsumer</code>.</strong> Une StorageClass a un <strong><code>volumeBindingMode</code></strong>. En <code>Immediate</code>, le PV est créé dès le PVC. En <strong><code>WaitForFirstConsumer</code></strong> (le mode de <code>local-path</code>), le PV n&#39;est créé que <strong>lorsqu&#39;un pod consomme</strong> le PVC — donc <strong>un PVC seul reste <code>Pending</code></strong>, et ce n&#39;est pas un bug. Ça permet au scheduler de placer d&#39;abord le pod, puis de créer le volume au bon endroit.</p>
+<p><strong>Access modes.</strong> <code>ReadWriteOnce</code> (RWO, un seul nœud en écriture — le plus courant), <code>ReadOnlyMany</code> (ROX), <code>ReadWriteMany</code> (RWX, plusieurs nœuds — rare, exige un backend qui le supporte). <code>ReadWriteOncePod</code> (RWOP) restreint à un seul <strong>pod</strong>.</p>
+<p><strong>Reclaim policy.</strong> Que devient le PV quand on supprime le PVC ? <strong><code>Delete</code></strong> (le disque est effacé — défaut du dynamique) ou <strong><code>Retain</code></strong> (le PV et la donnée survivent, pour récupération manuelle).</p>
+<p><strong>Le StatefulSet.</strong> Un Deployment donne des pods <strong>interchangeables</strong> et <strong>sans</strong> stockage propre. Un <strong>StatefulSet</strong> donne à chaque réplica une <strong>identité stable</strong> (<code>web-0</code>, <code>web-1</code>…) <strong>et</strong>, via <code>volumeClaimTemplates</code>, <strong>son propre PVC</strong> (<code>data-web-0</code>, <code>data-web-1</code>…) qui le suit. C&#39;est le contrôleur des bases de données et des systèmes à état.</p>
+</div>
+<div data-lang="en"><p>Kubernetes storage rests on a <strong>separation of roles</strong>, like a rental service.</p>
+<ul><li>The <strong><code>PersistentVolume</code></strong> (PV) is <strong>the disk</strong>: a real storage resource in the cluster (a local path, a cloud disk, an NFS share…). It&#39;s the <strong>supply</strong>.</li><li>The <strong><code>PersistentVolumeClaim</code></strong> (PVC) is <strong>the request</strong>: &quot;I want 1 Gi, read-write&quot;. The pod knows <strong>only</strong> the PVC; it ignores the physical disk behind it.</li><li>Kubernetes <strong>binds</strong> a PVC to a compatible PV. Once bound, the pod mounts the PVC as a volume.</li></ul>
+<p><strong>Two ways to get a PV:</strong></p>
+<ul><li><strong>Static</strong>: an admin creates the PV by hand, ahead of time. The PVC binds to it if it matches (size, access mode, class).</li><li><strong>Dynamic</strong>: a <strong><code>StorageClass</code></strong> creates the PV <strong>automatically</strong> at PVC time, via a <strong>provisioner</strong>. No admin needed. On k3d, the <code>local-path</code> class does this.</li></ul>
+<p><strong>The <code>WaitForFirstConsumer</code> trap.</strong> A StorageClass has a <strong><code>volumeBindingMode</code></strong>. In <code>Immediate</code>, the PV is created as soon as the PVC exists. In <strong><code>WaitForFirstConsumer</code></strong> (<code>local-path</code>&#39;s mode), the PV is created only <strong>when a pod consumes</strong> the PVC — so <strong>a lone PVC stays <code>Pending</code></strong>, and that&#39;s not a bug. It lets the scheduler place the pod first, then create the volume in the right place.</p>
+<p><strong>Access modes.</strong> <code>ReadWriteOnce</code> (RWO, a single node writing — the most common), <code>ReadOnlyMany</code> (ROX), <code>ReadWriteMany</code> (RWX, multiple nodes — rare, needs a backend that supports it). <code>ReadWriteOncePod</code> (RWOP) restricts to a single <strong>pod</strong>.</p>
+<p><strong>Reclaim policy.</strong> What happens to the PV when the PVC is deleted? <strong><code>Delete</code></strong> (the disk is wiped — dynamic default) or <strong><code>Retain</code></strong> (the PV and data survive, for manual recovery).</p>
+<p><strong>The StatefulSet.</strong> A Deployment gives <strong>interchangeable</strong> pods with <strong>no</strong> storage of their own. A <strong>StatefulSet</strong> gives each replica a <strong>stable identity</strong> (<code>web-0</code>, <code>web-1</code>…) <strong>and</strong>, via <code>volumeClaimTemplates</code>, <strong>its own PVC</strong> (<code>data-web-0</code>, <code>data-web-1</code>…) that follows it. It&#39;s the controller for databases and stateful systems.</p>
+</div>
+
+<figure class="schema" id="figure-kubernetes-storage-binding">
+  <p>[schema "kubernetes-storage-binding" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le pod monte un PVC (la demande) ; le PVC est lié à un PV (le disque), créé à la main (statique) ou par une StorageClass (dynamique).</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The pod mounts a PVC (the request); the PVC binds to a PV (the disk), created by hand (static) or by a StorageClass (dynamic).</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : StorageClass → PVC dynamique (Pending) → montage &amp; persistance → PV statique &amp; reclaim → StatefulSet.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: StorageClass → dynamic PVC (Pending) → mount &amp; persistence → static PV &amp; reclaim → StatefulSet.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Inspecter la <strong>StorageClass</strong> par défaut et lire son <strong>binding mode</strong>.</p>
+<p><strong>🤔 Ce que k3d te donne.</strong> k3s installe la classe <code>local-path</code> <strong>par défaut</strong>. Regarde-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Inspect the default <strong>StorageClass</strong> and read its <strong>binding mode</strong>.</p>
+<p><strong>🤔 What k3d gives you.</strong> k3s installs the <code>local-path</code> class <strong>by default</strong>. Look at it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl get storageclass
+kubectl get storageclass local-path -o jsonpath=&#39;{.provisioner}{&quot;\n&quot;}{.volumeBindingMode}{&quot;\n&quot;}&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get storageclass</code> liste <code>local-path</code> avec la mention <strong><code>(default)</code></strong>. La commande <code>jsonpath</code> affiche <code>rancher.io/local-path</code> (le provisioner) puis <strong><code>WaitForFirstConsumer</code></strong> (le binding mode). Retiens ce dernier point : il explique <strong>tout</strong> le comportement de l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get storageclass</code> lists <code>local-path</code> with the <strong><code>(default)</code></strong> marker. The <code>jsonpath</code> command prints <code>rancher.io/local-path</code> (the provisioner) then <strong><code>WaitForFirstConsumer</code></strong> (the binding mode). Remember this last point: it explains <strong>all</strong> the behavior in the next step.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>PVC</strong> dynamique — et comprendre pourquoi il reste <strong><code>Pending</code></strong>.</p>
+<p><strong>🤔 Pas de <code>storageClassName</code> → classe par défaut.</strong> En l&#39;omettant, le PVC prend <code>local-path</code>. Crée <code>pvc.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a dynamic <strong>PVC</strong> — and understand why it stays <strong><code>Pending</code></strong>.</p>
+<p><strong>🤔 No <code>storageClassName</code> → default class.</strong> By omitting it, the PVC takes <code>local-path</code>. Create <code>pvc.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+spec:
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  resources:
+    requests:
+      storage: 1Gi</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f pvc.yaml
+kubectl get pvc data          # STATUS Pending — attendu ! / Pending — expected!
+kubectl describe pvc data | grep -i &#39;waiting\|WaitForFirstConsumer&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get pvc data</code> montre <code>STATUS Pending</code>, et <code>describe</code> affiche <code>waiting for first consumer to be created before binding</code>. <strong>Ce n&#39;est pas une erreur</strong> : avec <code>WaitForFirstConsumer</code>, aucun PV n&#39;est créé tant qu&#39;aucun pod ne monte ce PVC. On corrige ça à l&#39;étape suivante en lui donnant un consommateur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get pvc data</code> shows <code>STATUS Pending</code>, and <code>describe</code> shows <code>waiting for first consumer to be created before binding</code>. <strong>It&#39;s not an error</strong>: with <code>WaitForFirstConsumer</code>, no PV is created until a pod mounts this PVC. We fix that in the next step by giving it a consumer.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Monter</strong> le PVC dans un pod → le PV est provisionné, le PVC passe <code>Bound</code>, et on écrit de la donnée.</p>
+<p>Crée <code>writer.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Mount</strong> the PVC in a pod → the PV gets provisioned, the PVC goes <code>Bound</code>, and we write data.</p>
+<p>Create <code>writer.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># writer.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: [&quot;sh&quot;, &quot;-c&quot;, &quot;echo &#39;donnée persistante&#39; &gt; /data/note.txt &amp;&amp; sleep 3600&quot;]
+      volumeMounts:
+        - name: vol
+          mountPath: /data
+  volumes:
+    - name: vol
+      persistentVolumeClaim:
+        claimName: data</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f writer.yaml
+kubectl get pvc data          # STATUS passe à Bound / STATUS becomes Bound
+kubectl get pv                # un PV a été créé automatiquement / a PV was auto-created
+kubectl exec writer -- cat /data/note.txt      # &quot;donnée persistante&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dès que le pod <code>writer</code> est planifié, <code>kubectl get pvc data</code> passe <strong><code>Bound</code></strong>, et <code>kubectl get pv</code> montre un PV <strong>créé automatiquement</strong> par le provisioner <code>local-path</code> (nom <code>pvc-…</code>). Le fichier <code>/data/note.txt</code> existe. Le <code>WaitForFirstConsumer</code> a joué : le pod a été le déclencheur. Tu viens de faire du provisionnement <strong>dynamique</strong> de bout en bout.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> as soon as the <code>writer</code> pod is scheduled, <code>kubectl get pvc data</code> goes <strong><code>Bound</code></strong>, and <code>kubectl get pv</code> shows a PV <strong>auto-created</strong> by the <code>local-path</code> provisioner (name <code>pvc-…</code>). The <code>/data/note.txt</code> file exists. <code>WaitForFirstConsumer</code> did its job: the pod was the trigger. You&#39;ve just done <strong>dynamic</strong> provisioning end to end.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Prouver la <strong>persistance</strong> : supprimer le pod, en recréer un, retrouver la donnée.</p>
+<p><strong>🤔 Le disque survit au pod.</strong> Le PVC (et son PV) sont <strong>indépendants</strong> du pod. Détruis le pod, recrée-le sur le <strong>même</strong> PVC :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prove <strong>persistence</strong>: delete the pod, recreate one, find the data again.</p>
+<p><strong>🤔 The disk survives the pod.</strong> The PVC (and its PV) are <strong>independent</strong> of the pod. Destroy the pod, recreate it on the <strong>same</strong> PVC:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl delete pod writer
+kubectl get pvc data          # toujours Bound (le PVC n&#39;a pas bougé) / still Bound
+
+# un nouveau pod, en lecture seule de la même donnée / a new pod, reading the same data
+kubectl run reader --image=busybox:1.36 --restart=Never -it --rm \
+  --overrides=&#39;{&quot;spec&quot;:{&quot;containers&quot;:[{&quot;name&quot;:&quot;r&quot;,&quot;image&quot;:&quot;busybox:1.36&quot;,&quot;command&quot;:[&quot;cat&quot;,&quot;/data/note.txt&quot;],&quot;volumeMounts&quot;:[{&quot;name&quot;:&quot;v&quot;,&quot;mountPath&quot;:&quot;/data&quot;}]}],&quot;volumes&quot;:[{&quot;name&quot;:&quot;v&quot;,&quot;persistentVolumeClaim&quot;:{&quot;claimName&quot;:&quot;data&quot;}}]}}&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après suppression du pod <code>writer</code>, le PVC <code>data</code> reste <strong><code>Bound</code></strong> et le PV intact. Le nouveau pod <code>reader</code>, monté sur le <strong>même</strong> PVC, affiche <code>donnée persistante</code> — <strong>la donnée a survécu</strong> à la destruction du pod qui l&#39;avait écrite. C&#39;est toute la promesse du stockage persistant : le cycle de vie de la <strong>donnée</strong> est découplé de celui du <strong>pod</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after deleting the <code>writer</code> pod, the <code>data</code> PVC stays <strong><code>Bound</code></strong> and the PV intact. The new <code>reader</code> pod, mounted on the <strong>same</strong> PVC, prints <code>donnée persistante</code> — <strong>the data survived</strong> the destruction of the pod that wrote it. That&#39;s the whole promise of persistent storage: the <strong>data</strong>&#39;s lifecycle is decoupled from the <strong>pod</strong>&#39;s.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>PV statique</strong> (le modèle manuel), le lier à un PVC, et fixer une <strong>reclaim policy <code>Retain</code></strong>.</p>
+<p><strong>🤔 Statique vs dynamique.</strong> Ici pas de StorageClass qui provisionne : <strong>toi</strong> tu déclares le disque (un <code>hostPath</code> sur le nœud), et un PVC vient s&#39;y lier. On isole du dynamique avec une <strong>class dédiée <code>manual</code></strong> (présente des deux côtés) pour que <code>local-path</code> ne s&#39;en mêle pas. Crée <code>static.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>static PV</strong> (the manual model), bind it to a PVC, and set a <strong><code>Retain</code> reclaim policy</strong>.</p>
+<p><strong>🤔 Static vs dynamic.</strong> Here no StorageClass provisions anything: <strong>you</strong> declare the disk (a <code>hostPath</code> on the node), and a PVC comes to bind to it. We isolate from dynamic with a dedicated <strong><code>manual</code> class</strong> (present on both sides) so <code>local-path</code> doesn&#39;t interfere. Create <code>static.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># static.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-manual
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  persistentVolumeReclaimPolicy: Retain      # la donnée survit à la suppression du PVC / data survives PVC deletion
+  storageClassName: manual
+  hostPath:
+    path: /tmp/pv-manual                      # sur le nœud k3d / on the k3d node
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-manual
+spec:
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  resources:
+    requests:
+      storage: 200Mi                          # &lt;= capacité du PV / &lt;= PV capacity
+  storageClassName: manual</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f static.yaml
+kubectl get pv pv-manual            # STATUS Bound, CLAIM sto/claim-manual / bound to our claim
+kubectl get pvc claim-manual        # STATUS Bound, VOLUME pv-manual</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>pv-manual</code> passe <strong><code>Bound</code></strong> au PVC <code>claim-manual</code> — liaison <strong>manuelle</strong> réussie, sans provisioner : ils partagent <code>storageClassName: manual</code>, et la demande (200Mi, RWO) est compatible avec l&#39;offre (500Mi, RWO). Le PV porte <code>RECLAIM POLICY Retain</code> : si tu supprimes le PVC, le PV passera en <code>Released</code> <strong>sans effacer la donnée</strong> (à l&#39;inverse du <code>Delete</code> dynamique). Vérifie-le : <code>kubectl delete pvc claim-manual</code>, puis <code>kubectl get pv</code> → <code>pv-manual</code> en <code>Released</code>, toujours là.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>pv-manual</code> goes <strong><code>Bound</code></strong> to the <code>claim-manual</code> PVC — a successful <strong>manual</strong> binding, no provisioner: they share <code>storageClassName: manual</code>, and the request (200Mi, RWO) is compatible with the supply (500Mi, RWO). The PV carries <code>RECLAIM POLICY Retain</code>: if you delete the PVC, the PV goes to <code>Released</code> <strong>without wiping the data</strong> (unlike the dynamic <code>Delete</code>). Check it: <code>kubectl delete pvc claim-manual</code>, then <code>kubectl get pv</code> → <code>pv-manual</code> in <code>Released</code>, still there.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer un <strong>StatefulSet</strong> : chaque réplica reçoit <strong>son propre</strong> PVC stable et <strong>son</strong> identité.</p>
+<p><strong>🤔 Ce que le Deployment ne sait pas faire.</strong> Un StatefulSet a besoin d&#39;un <strong>Service headless</strong> (identités DNS stables, cf. guide networking) et d&#39;un <strong><code>volumeClaimTemplates</code></strong> (un PVC par pod). Crée <code>sts.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy a <strong>StatefulSet</strong>: each replica gets <strong>its own</strong> stable PVC and <strong>its</strong> identity.</p>
+<p><strong>🤔 What a Deployment can&#39;t do.</strong> A StatefulSet needs a <strong>headless Service</strong> (stable DNS identities, see the networking guide) and a <strong><code>volumeClaimTemplates</code></strong> (one PVC per pod). Create <code>sts.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># sts.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web            # service &quot;gouvernant&quot; headless / headless &quot;governing&quot; service
+spec:
+  clusterIP: None
+  selector: { app: web }
+  ports: [{ port: 80 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: web
+  replicas: 3
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [&quot;ReadWriteOnce&quot;]
+        resources:
+          requests:
+            storage: 200Mi</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f sts.yaml
+kubectl rollout status statefulset/web         # attends les 3 pods / wait for the 3 pods
+kubectl get pods -l app=web                     # web-0, web-1, web-2 (ordre stable) / stable order
+kubectl get pvc                                 # data-web-0, data-web-1, data-web-2</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les pods s&#39;appellent <strong><code>web-0</code>, <code>web-1</code>, <code>web-2</code></strong> (noms <strong>stables et ordonnés</strong>, pas de hash aléatoire), et <code>kubectl get pvc</code> liste <strong>un PVC par pod</strong> : <code>data-web-0</code>, <code>data-web-1</code>, <code>data-web-2</code> — chacun provisionné dynamiquement. Preuve du lien stable : écris une marque dans <code>web-0</code> (<code>kubectl exec web-0 -- sh -c &quot;echo web-0 &gt; /usr/share/nginx/html/id&quot;</code>), supprime le pod (<code>kubectl delete pod web-0</code>) ; il <strong>renaît sous le même nom</strong> et <strong>remonte son PVC <code>data-web-0</code></strong> → <code>kubectl exec web-0 -- cat /usr/share/nginx/html/id</code> renvoie encore <code>web-0</code>. Identité <strong>et</strong> stockage suivent le réplica. C&#39;est le contrôleur des bases de données.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the pods are named <strong><code>web-0</code>, <code>web-1</code>, <code>web-2</code></strong> (<strong>stable, ordered</strong> names, no random hash), and <code>kubectl get pvc</code> lists <strong>one PVC per pod</strong>: <code>data-web-0</code>, <code>data-web-1</code>, <code>data-web-2</code> — each dynamically provisioned. Proof of the stable link: write a mark in <code>web-0</code> (<code>kubectl exec web-0 -- sh -c &quot;echo web-0 &gt; /usr/share/nginx/html/id&quot;</code>), delete the pod (<code>kubectl delete pod web-0</code>); it <strong>reborn under the same name</strong> and <strong>remounts its <code>data-web-0</code> PVC</strong> → <code>kubectl exec web-0 -- cat /usr/share/nginx/html/id</code> still returns <code>web-0</code>. Identity <strong>and</strong> storage follow the replica. That&#39;s the database controller.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. S&#39;affoler d&#39;un PVC <code>Pending</code>.</strong> Avec <code>WaitForFirstConsumer</code> (le défaut k3d), c&#39;est <strong>normal</strong> tant qu&#39;aucun pod ne monte le PVC. Regarde <code>kubectl describe pvc</code> : <code>waiting for first consumer</code>.</p>
+<p><strong>2. Demander plus que l&#39;offre (PV statique).</strong> Un PVC de 1Gi ne se liera pas à un PV de 500Mi. La demande doit être <strong>≤</strong> la capacité, et les <strong>access modes</strong> doivent correspondre.</p>
+<p><strong>3. Oublier <code>storageClassName: &quot;&quot;</code> ou une class dédiée pour du statique.</strong> Sans class explicite, un PVC prend la classe <strong>par défaut</strong> et déclenche le provisionnement dynamique au lieu de se lier à ton PV statique. Utilise une class dédiée (ici <code>manual</code>) des deux côtés.</p>
+<p><strong>4. Croire que <code>Delete</code> garde la donnée.</strong> Reclaim <code>Delete</code> (défaut dynamique) <strong>efface</strong> le disque quand le PVC part. Pour garder la donnée, il faut <code>Retain</code>.</p>
+<p><strong>5. <code>ReadWriteMany</code> par réflexe.</strong> RWX exige un backend qui le supporte (NFS, CephFS…). <code>local-path</code> et la plupart des disques bloc ne font que <strong>RWO</strong>. Demander RWX là où il n&#39;existe pas = PVC qui ne se lie jamais.</p>
+<p><strong>6. Utiliser un Deployment pour une base répliquée.</strong> Sans identité ni volume stable, deux répliques écrasent la même donnée ou perdent la leur. Base à état = <strong>StatefulSet</strong>.</p>
+<p><strong>7. Supprimer un StatefulSet croyant supprimer ses PVC.</strong> Les <code>volumeClaimTemplates</code> <strong>ne sont pas</strong> supprimés avec le StatefulSet (par sécurité). Nettoie explicitement : <code>kubectl delete pvc -l app=web</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Panicking at a <code>Pending</code> PVC.</strong> With <code>WaitForFirstConsumer</code> (the k3d default), it&#39;s <strong>normal</strong> until a pod mounts the PVC. Look at <code>kubectl describe pvc</code>: <code>waiting for first consumer</code>.</p>
+<p><strong>2. Requesting more than the supply (static PV).</strong> A 1Gi PVC won&#39;t bind to a 500Mi PV. The request must be <strong>≤</strong> the capacity, and the <strong>access modes</strong> must match.</p>
+<p><strong>3. Forgetting <code>storageClassName: &quot;&quot;</code> or a dedicated class for static.</strong> Without an explicit class, a PVC takes the <strong>default</strong> class and triggers dynamic provisioning instead of binding to your static PV. Use a dedicated class (here <code>manual</code>) on both sides.</p>
+<p><strong>4. Believing <code>Delete</code> keeps the data.</strong> Reclaim <code>Delete</code> (dynamic default) <strong>wipes</strong> the disk when the PVC leaves. To keep the data, use <code>Retain</code>.</p>
+<p><strong>5. Reflexively using <code>ReadWriteMany</code>.</strong> RWX needs a backend that supports it (NFS, CephFS…). <code>local-path</code> and most block disks only do <strong>RWO</strong>. Requesting RWX where it doesn&#39;t exist = a PVC that never binds.</p>
+<p><strong>6. Using a Deployment for a replicated database.</strong> Without stable identity or volume, two replicas overwrite the same data or lose theirs. Stateful = <strong>StatefulSet</strong>.</p>
+<p><strong>7. Deleting a StatefulSet thinking it deletes its PVCs.</strong> The <code>volumeClaimTemplates</code> are <strong>not</strong> deleted with the StatefulSet (by safety). Clean up explicitly: <code>kubectl delete pvc -l app=web</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis la StorageClass par défaut et son <code>volumeBindingMode</code>.</li><li>Tu expliques pourquoi un PVC <code>local-path</code> reste <code>Pending</code> sans consommateur.</li><li>Tu montes un PVC, écris, supprimes le pod et <strong>retrouves</strong> la donnée.</li><li>Tu distingues <strong>access modes</strong> et <strong>reclaim policy</strong>.</li><li>Tu lies un <strong>PV statique</strong> à un PVC via une class dédiée.</li><li>Tu déploies un <strong>StatefulSet</strong> et tu vois un PVC stable par réplica.</li></ul>
+<p>Six cases cochées = tu maîtrises le domaine <strong>Storage</strong> du CKA/CKAD.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read the default StorageClass and its <code>volumeBindingMode</code>.</li><li>You explain why a <code>local-path</code> PVC stays <code>Pending</code> without a consumer.</li><li>You mount a PVC, write, delete the pod and <strong>find</strong> the data again.</li><li>You distinguish <strong>access modes</strong> and <strong>reclaim policy</strong>.</li><li>You bind a <strong>static PV</strong> to a PVC via a dedicated class.</li><li>You deploy a <strong>StatefulSet</strong> and see a stable per-replica PVC.</li></ul>
+<p>Six boxes ticked = you&#39;ve got the CKA/CKAD <strong>Storage</strong> domain.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Kubernetes → CKA/CKAD :</p>
+<ol><li><strong>Cluster ops, sécurité &amp; RBAC</strong> — kubeconfig/contextes, RBAC (Roles/Bindings, ServiceAccount), sauvegarde <strong>etcd</strong>, mises à jour, troubleshooting.</li><li><strong>Projet d&#39;entreprise</strong> — appli multi-tier (ingress + config + <strong>stockage</strong> + probes + autoscaling) : le livrable de CV.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Kubernetes → CKA/CKAD track:</p>
+<ol><li><strong>Cluster ops, security &amp; RBAC</strong> — kubeconfig/contexts, RBAC (Roles/Bindings, ServiceAccount), <strong>etcd</strong> backup, upgrades, troubleshooting.</li><li><strong>Enterprise project</strong> — multi-tier app (ingress + config + <strong>storage</strong> + probes + autoscaling): the CV deliverable.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">17</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire stockage.</p>
+</div>
+<div data-lang="en"><p>Storage cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># StorageClass
+kubectl get storageclass                         # (default) = classe utilisée si non précisée / used if unspecified
+#   volumeBindingMode: WaitForFirstConsumer -&gt; PVC Pending jusqu&#39;au pod / until a pod
+
+# PVC dynamique / dynamic PVC  (omet storageClassName -&gt; défaut / omit -&gt; default)
+#   accessModes: [ReadWriteOnce] ; resources.requests.storage: 1Gi
+kubectl get pvc                                  # STATUS Bound / Pending
+kubectl get pv                                   # PV créés (dynamiques nommés pvc-…) / created PVs
+
+# PV statique / static PV
+#   PV + PVC partagent storageClassName (ex: manual) / share storageClassName
+#   persistentVolumeReclaimPolicy: Retain | Delete
+
+# Monter dans un pod / mount in a pod
+#   volumes[].persistentVolumeClaim.claimName + containers[].volumeMounts
+
+# StatefulSet
+#   serviceName (headless) + volumeClaimTemplates -&gt; data-&lt;sts&gt;-&lt;n&gt;
+kubectl get pods -l app=web        # web-0, web-1… (stables)
+kubectl delete pvc -l app=web      # nettoyer les PVC d&#39;un StatefulSet / clean STS PVCs</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes</a> — PV, PVC, reclaim, access modes.</li><li><a href="https://kubernetes.io/docs/concepts/storage/storage-classes/">Storage Classes</a> et <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/#volume-binding-mode">volume binding mode</a>.</li><li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/">StatefulSet</a>.</li><li><a href="https://docs.k3s.io/storage">k3s — local-path storage</a> (le provisioner par défaut).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes</a> — PV, PVC, reclaim, access modes.</li><li><a href="https://kubernetes.io/docs/concepts/storage/storage-classes/">Storage Classes</a> and <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/#volume-binding-mode">volume binding mode</a>.</li><li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/">StatefulSet</a>.</li><li><a href="https://docs.k3s.io/storage">k3s — local-path storage</a> (the default provisioner).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le PVC reste <code>Pending</code>.</strong> Deux causes : soit <code>WaitForFirstConsumer</code> et <strong>aucun pod</strong> ne le monte encore (normal — crée le pod) ; soit <strong>aucun PV compatible</strong> (statique : taille/access mode/class ne matchent pas). <code>kubectl describe pvc</code> tranche.</p>
+<p><strong>Le pod reste <code>Pending</code> avec <code>unbound PersistentVolumeClaim</code>.</strong> Le PVC monté n&#39;est pas <code>Bound</code> : voir ci-dessus. Le pod attend son volume.</p>
+<p><strong><code>kubectl get pv</code> ne montre rien après un PVC dynamique.</strong> Normal tant que le PVC est <code>Pending</code> (WaitForFirstConsumer) : le PV n&#39;est créé qu&#39;à l&#39;arrivée du pod.</p>
+<p><strong>Un PVC statique ne se lie pas.</strong> Vérifie que <strong>PV et PVC partagent le même <code>storageClassName</code></strong>, que la capacité du PV <strong>≥</strong> la demande, et que les access modes correspondent exactement.</p>
+<p><strong>Après suppression d&#39;un StatefulSet, les PVC restent.</strong> C&#39;est voulu (protection de la donnée). Supprime-les à la main : <code>kubectl delete pvc -l app=web</code>.</p>
+<p><strong>La donnée d&#39;un pod recréé a disparu (multi-nœuds).</strong> <code>local-path</code> est <strong>local au nœud</strong> : si le pod renaît sur un autre nœud, il ne retrouve pas son disque. En démo mono-nœud, pas de souci ; en multi-nœuds, il faut un stockage réseau ou une affinité.</p>
+</div>
+<div data-lang="en"><p><strong>The PVC stays <code>Pending</code>.</strong> Two causes: either <code>WaitForFirstConsumer</code> and <strong>no pod</strong> mounts it yet (normal — create the pod); or <strong>no compatible PV</strong> (static: size/access mode/class don&#39;t match). <code>kubectl describe pvc</code> decides.</p>
+<p><strong>The pod stays <code>Pending</code> with <code>unbound PersistentVolumeClaim</code>.</strong> The mounted PVC isn&#39;t <code>Bound</code>: see above. The pod waits for its volume.</p>
+<p><strong><code>kubectl get pv</code> shows nothing after a dynamic PVC.</strong> Normal while the PVC is <code>Pending</code> (WaitForFirstConsumer): the PV is only created when the pod arrives.</p>
+<p><strong>A static PVC won&#39;t bind.</strong> Check that <strong>PV and PVC share the same <code>storageClassName</code></strong>, that the PV capacity is <strong>≥</strong> the request, and that access modes match exactly.</p>
+<p><strong>After deleting a StatefulSet, the PVCs remain.</strong> That&#39;s intended (data protection). Delete them by hand: <code>kubectl delete pvc -l app=web</code>.</p>
+<p><strong>A recreated pod&#39;s data is gone (multi-node).</strong> <code>local-path</code> is <strong>node-local</strong>: if the pod is reborn on another node, it won&#39;t find its disk. In a single-node demo, no problem; multi-node needs network storage or an affinity.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
