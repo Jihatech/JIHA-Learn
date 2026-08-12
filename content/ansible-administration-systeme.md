@@ -97,6 +97,7 @@ By the end of this guide, you can:
 - Tous les guides Ansible précédents du track (jusqu'à *Vault*).
 - **Ansible ≥ 2.16** (`ansible --version`).
 - Un dossier de travail et les droits **root** (via `become`). Les étapes 1-2-3-5 sont **testables sur `localhost`** en `connection: local`.
+- Pour l'étape 2 (mot de passe haché), le filtre `password_hash` requiert **passlib** sur ansible-core récent : `pip install passlib` (ou `apt install python3-passlib` ; déjà présent sur un paquet `ansible` packagé). Et le module `cron` (étape 5) a besoin du paquet **`cron`** installé (on l'installe dans le playbook).
 - Pour les étapes 4 (services), 6 (pare-feu) et 7 (LVM) : une **VM gérée** avec systemd (ta VM `web1` du guide *inventaire*), car un conteneur n'a ni systemd, ni firewalld, ni disque à partitionner. Certains modules vivent dans des **collections** (`ansible.posix.firewalld`, `community.general.lvol`) préinstallées sur un paquet `ansible`, à installer sinon (`ansible-galaxy collection install ...`).
 :::
 
@@ -104,6 +105,7 @@ By the end of this guide, you can:
 - All previous Ansible track guides (through *Vault*).
 - **Ansible ≥ 2.16** (`ansible --version`).
 - A working folder and **root** rights (via `become`). Steps 1-2-3-5 are **testable on `localhost`** with `connection: local`.
+- For step 2 (hashed password), the `password_hash` filter requires **passlib** on recent ansible-core: `pip install passlib` (or `apt install python3-passlib`; already present on a packaged `ansible` package). And the `cron` module (step 5) needs the **`cron`** package installed (we install it in the playbook).
 - For steps 4 (services), 6 (firewall) and 7 (LVM): a **managed VM** with systemd (your `web1` VM from the *inventory* guide), because a container has neither systemd, nor firewalld, nor a disk to partition. Some modules live in **collections** (`ansible.posix.firewalld`, `community.general.lvol`) preinstalled on an `ansible` package, otherwise installable (`ansible-galaxy collection install ...`).
 :::
 
@@ -237,15 +239,17 @@ Add to `admin.yml`:
 :::
 
 ```yaml
-    - name: Poser un mot de passe haché + expiration
+    - name: Créer un compte AVEC son mot de passe haché (en une seule tâche)
       ansible.builtin.user:
-        name: deploy
+        name: webadmin
         password: "{{ 'MotDePasseDemo2026' | password_hash('sha512') }}"
         password_expire_max: 90        # expire dans 90 jours / expires in 90 days
-        update_password: on_create     # ne rehash pas à chaque run / don't rehash every run
+        update_password: on_create     # pose le hash à la CRÉATION, ne le rejoue jamais / set at CREATION only
+        shell: /bin/bash
+        state: present
 
-    - name: Vérifier l'entrée shadow (champ non vide = mot de passe posé)
-      ansible.builtin.shell: "getent shadow deploy | cut -d: -f2 | cut -c1-3"
+    - name: Vérifier l'entrée shadow (préfixe du hash)
+      ansible.builtin.shell: "getent shadow webadmin | cut -d: -f2 | cut -c1-3"
       register: shadow3
       changed_when: false
 
@@ -255,11 +259,11 @@ Add to `admin.yml`:
 ```
 
 :::lang fr
-**✅ Vérification :** la dernière tâche affiche `préfixe du hash = $6$` — le `$6$` prouve un hash **SHA512** dans `/etc/shadow`. ⚠️ **`update_password: on_create` est crucial** : sans lui, `password_hash` regénère un sel différent à **chaque** exécution → la tâche serait toujours `changed` (fausse non-idempotence). Avec `on_create`, le mot de passe n'est posé qu'à la création du compte. En prod, le mot de passe vient d'une variable Vault, jamais en clair dans le playbook.
+**✅ Vérification :** la dernière tâche affiche `préfixe du hash = $6$` — le `$6$` prouve un hash **SHA512** dans `/etc/shadow`. Comme `webadmin` est créé **avec** son mot de passe dans la **même** tâche, `on_create` le pose bien à la création. **Relance** le playbook : le compte existe déjà, le hash n'est **pas** rejoué → la tâche passe `ok` et le hash reste `$6$` (idempotence prouvée). ⚠️ **`update_password: on_create` est crucial** : sans lui, `password_hash` regénère un sel différent à **chaque** exécution → la tâche serait toujours `changed`. ⚠️ Le filtre `password_hash` exige **passlib** sur ansible-core récent : `pip install passlib` (ou `apt install python3-passlib`) si tu obtiens `passlib must be installed`. En prod, le mot de passe vient d'une variable **Vault**, jamais en clair dans le playbook.
 :::
 
 :::lang en
-**✅ Check:** the last task prints `préfixe du hash = $6$` — the `$6$` proves a **SHA512** hash in `/etc/shadow`. ⚠️ **`update_password: on_create` is crucial**: without it, `password_hash` regenerates a different salt on **every** run → the task would always be `changed` (false non-idempotence). With `on_create`, the password is set only at account creation. In prod, the password comes from a Vault variable, never clear in the playbook.
+**✅ Check:** the last task prints `préfixe du hash = $6$` — the `$6$` proves a **SHA512** hash in `/etc/shadow`. Since `webadmin` is created **with** its password in the **same** task, `on_create` does set it at creation. **Rerun** the playbook: the account already exists, the hash is **not** replayed → the task goes `ok` and the hash stays `$6$` (idempotence proven). ⚠️ **`update_password: on_create` is crucial**: without it, `password_hash` regenerates a different salt on **every** run → the task would always be `changed`. ⚠️ The `password_hash` filter requires **passlib** on recent ansible-core: `pip install passlib` (or `apt install python3-passlib`) if you get `passlib must be installed`. In prod, the password comes from a **Vault** variable, never clear in the playbook.
 :::
 
 ### step-03
@@ -391,6 +395,12 @@ Add to `admin.yml` (or a dedicated playbook):
 :::
 
 ```yaml
+    - name: S'assurer que cron est installé (le module cron a besoin du binaire crontab)
+      ansible.builtin.apt:
+        name: cron
+        state: present
+        update_cache: true
+
     - name: Une sauvegarde quotidienne à 3h du matin
       ansible.builtin.cron:
         name: "sauvegarde atelier"
@@ -419,11 +429,11 @@ crontab -l -u root       # ou sudo crontab -l / or sudo crontab -l
 ```
 
 :::lang fr
-**✅ Vérification :** `crontab -l -u root` (ou `sudo crontab -l`) montre les deux jobs avec leur commentaire `#Ansible: sauvegarde atelier` et `#Ansible: nettoyage au demarrage`, plus la ligne `PATH=/usr/local/bin:...`. La ligne horaire est `0 3 * * *` pour la sauvegarde et `@reboot` pour le nettoyage. **Relance** le playbook : `ok` partout, **aucun doublon** — la clé `name` fait l'idempotence. Retire un job avec `state: absent` (+ le même `name`).
+**✅ Vérification :** `crontab -l -u root` (ou `sudo crontab -l`) montre les deux jobs avec leur commentaire `#Ansible: sauvegarde atelier` et `#Ansible: nettoyage au demarrage`, plus la ligne `PATH="/usr/local/bin:..."` (le module met la valeur entre guillemets). La ligne horaire est `0 3 * * *` pour la sauvegarde et `@reboot` pour le nettoyage. **Relance** le playbook : `ok` partout, **aucun doublon** — la clé `name` fait l'idempotence. Retire un job avec `state: absent` (+ le même `name`).
 :::
 
 :::lang en
-**✅ Check:** `crontab -l -u root` (or `sudo crontab -l`) shows both jobs with their `#Ansible: sauvegarde atelier` and `#Ansible: nettoyage au demarrage` comments, plus the `PATH=/usr/local/bin:...` line. The time line is `0 3 * * *` for the backup and `@reboot` for the cleanup. **Rerun** the playbook: `ok` everywhere, **no duplicate** — the `name` key does the idempotence. Remove a job with `state: absent` (+ the same `name`).
+**✅ Check:** `crontab -l -u root` (or `sudo crontab -l`) shows both jobs with their `#Ansible: sauvegarde atelier` and `#Ansible: nettoyage au demarrage` comments, plus the `PATH="/usr/local/bin:..."` line (the module quotes the value). The time line is `0 3 * * *` for the backup and `@reboot` for the cleanup. **Rerun** the playbook: `ok` everywhere, **no duplicate** — the `name` key does the idempotence. Remove a job with `state: absent` (+ the same `name`).
 :::
 
 ### step-06
@@ -716,6 +726,12 @@ Administration modules cheat sheet.
 **`df` ne montre pas la place après `lvol`.** Tu as agrandi le volume mais pas le système de fichiers. Ajoute `resizefs: true` à la tâche `lvol`.
 
 **`cron` crée un doublon à chaque run.** Tu as changé (ou oublié) le paramètre `name`. Le `name` est la clé d'idempotence : garde-le stable.
+
+**`password_hash ... passlib must be installed`.** Le filtre de hachage a besoin de passlib sur ansible-core récent (le repli `crypt` a été retiré). Installe-le : `pip install passlib` (ou `apt install python3-passlib`).
+
+**`Could not import the python3-apt module`.** Ansible a choisi un interpréteur Python sans les bindings apt (fréquent sur une machine à plusieurs Python). Installe `python3-apt`, ou force le bon interpréteur : `-e ansible_python_interpreter=/usr/bin/python3` (celui qui a `python3-apt`).
+
+**`Failed to find required executable "crontab"`.** Le paquet `cron` n'est pas installé. Le module `cron` a besoin du binaire `crontab` : ajoute une tâche `ansible.builtin.apt: { name: cron, state: present }` avant tes tâches `cron` (c'est fait à l'étape 5).
 :::
 
 :::lang en
@@ -732,4 +748,10 @@ Administration modules cheat sheet.
 **`df` doesn't show the space after `lvol`.** You grew the volume but not the filesystem. Add `resizefs: true` to the `lvol` task.
 
 **`cron` creates a duplicate each run.** You changed (or omitted) the `name` parameter. `name` is the idempotence key: keep it stable.
+
+**`password_hash ... passlib must be installed`.** The hashing filter needs passlib on recent ansible-core (the `crypt` fallback was dropped). Install it: `pip install passlib` (or `apt install python3-passlib`).
+
+**`Could not import the python3-apt module`.** Ansible picked a Python interpreter without apt bindings (common on a multi-Python machine). Install `python3-apt`, or force the right interpreter: `-e ansible_python_interpreter=/usr/bin/python3` (the one with `python3-apt`).
+
+**`Failed to find required executable "crontab"`.** The `cron` package isn't installed. The `cron` module needs the `crontab` binary: add an `ansible.builtin.apt: { name: cron, state: present }` task before your `cron` tasks (done in step 5).
 :::

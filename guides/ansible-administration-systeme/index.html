@@ -181,9 +181,9 @@
   <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
   <h2 data-lang="fr">Prérequis honnêtes</h2>
   <h2 data-lang="en">Honest prerequisites</h2>
-<div data-lang="fr"><ul><li>Tous les guides Ansible précédents du track (jusqu&#39;à <em>Vault</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>Un dossier de travail et les droits <strong>root</strong> (via <code>become</code>). Les étapes 1-2-3-5 sont <strong>testables sur <code>localhost</code></strong> en <code>connection: local</code>.</li><li>Pour les étapes 4 (services), 6 (pare-feu) et 7 (LVM) : une <strong>VM gérée</strong> avec systemd (ta VM <code>web1</code> du guide <em>inventaire</em>), car un conteneur n&#39;a ni systemd, ni firewalld, ni disque à partitionner. Certains modules vivent dans des <strong>collections</strong> (<code>ansible.posix.firewalld</code>, <code>community.general.lvol</code>) préinstallées sur un paquet <code>ansible</code>, à installer sinon (<code>ansible-galaxy collection install ...</code>).</li></ul>
+<div data-lang="fr"><ul><li>Tous les guides Ansible précédents du track (jusqu&#39;à <em>Vault</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>Un dossier de travail et les droits <strong>root</strong> (via <code>become</code>). Les étapes 1-2-3-5 sont <strong>testables sur <code>localhost</code></strong> en <code>connection: local</code>.</li><li>Pour l&#39;étape 2 (mot de passe haché), le filtre <code>password_hash</code> requiert <strong>passlib</strong> sur ansible-core récent : <code>pip install passlib</code> (ou <code>apt install python3-passlib</code> ; déjà présent sur un paquet <code>ansible</code> packagé). Et le module <code>cron</code> (étape 5) a besoin du paquet <strong><code>cron</code></strong> installé (on l&#39;installe dans le playbook).</li><li>Pour les étapes 4 (services), 6 (pare-feu) et 7 (LVM) : une <strong>VM gérée</strong> avec systemd (ta VM <code>web1</code> du guide <em>inventaire</em>), car un conteneur n&#39;a ni systemd, ni firewalld, ni disque à partitionner. Certains modules vivent dans des <strong>collections</strong> (<code>ansible.posix.firewalld</code>, <code>community.general.lvol</code>) préinstallées sur un paquet <code>ansible</code>, à installer sinon (<code>ansible-galaxy collection install ...</code>).</li></ul>
 </div>
-<div data-lang="en"><ul><li>All previous Ansible track guides (through <em>Vault</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>A working folder and <strong>root</strong> rights (via <code>become</code>). Steps 1-2-3-5 are <strong>testable on <code>localhost</code></strong> with <code>connection: local</code>.</li><li>For steps 4 (services), 6 (firewall) and 7 (LVM): a <strong>managed VM</strong> with systemd (your <code>web1</code> VM from the <em>inventory</em> guide), because a container has neither systemd, nor firewalld, nor a disk to partition. Some modules live in <strong>collections</strong> (<code>ansible.posix.firewalld</code>, <code>community.general.lvol</code>) preinstalled on an <code>ansible</code> package, otherwise installable (<code>ansible-galaxy collection install ...</code>).</li></ul>
+<div data-lang="en"><ul><li>All previous Ansible track guides (through <em>Vault</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>A working folder and <strong>root</strong> rights (via <code>become</code>). Steps 1-2-3-5 are <strong>testable on <code>localhost</code></strong> with <code>connection: local</code>.</li><li>For step 2 (hashed password), the <code>password_hash</code> filter requires <strong>passlib</strong> on recent ansible-core: <code>pip install passlib</code> (or <code>apt install python3-passlib</code>; already present on a packaged <code>ansible</code> package). And the <code>cron</code> module (step 5) needs the <strong><code>cron</code></strong> package installed (we install it in the playbook).</li><li>For steps 4 (services), 6 (firewall) and 7 (LVM): a <strong>managed VM</strong> with systemd (your <code>web1</code> VM from the <em>inventory</em> guide), because a container has neither systemd, nor firewalld, nor a disk to partition. Some modules live in <strong>collections</strong> (<code>ansible.posix.firewalld</code>, <code>community.general.lvol</code>) preinstalled on an <code>ansible</code> package, otherwise installable (<code>ansible-galaxy collection install ...</code>).</li></ul>
 </div>
 
 <h3 data-lang="fr">Guides prérequis</h3>
@@ -294,24 +294,26 @@
 <p><strong>🤔 Why the hash?</strong> The <code>user</code> module writes directly into <code>/etc/shadow</code>, which expects a <strong>hash</strong>, not a password. Passing clear text wouldn&#39;t work (or would store the clear text). We generate the hash with <code>password_hash(&#39;sha512&#39;)</code>, ideally from a <strong>Vault</strong> variable (previous guide). Here, for the demo, we start from a simple variable.</p>
 <p>Add to <code>admin.yml</code>:</p>
 </div>
-<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Poser un mot de passe haché + expiration
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Créer un compte AVEC son mot de passe haché (en une seule tâche)
       ansible.builtin.user:
-        name: deploy
+        name: webadmin
         password: &quot;{{ &#39;MotDePasseDemo2026&#39; | password_hash(&#39;sha512&#39;) }}&quot;
         password_expire_max: 90        # expire dans 90 jours / expires in 90 days
-        update_password: on_create     # ne rehash pas à chaque run / don&#39;t rehash every run
+        update_password: on_create     # pose le hash à la CRÉATION, ne le rejoue jamais / set at CREATION only
+        shell: /bin/bash
+        state: present
 
-    - name: Vérifier l&#39;entrée shadow (champ non vide = mot de passe posé)
-      ansible.builtin.shell: &quot;getent shadow deploy | cut -d: -f2 | cut -c1-3&quot;
+    - name: Vérifier l&#39;entrée shadow (préfixe du hash)
+      ansible.builtin.shell: &quot;getent shadow webadmin | cut -d: -f2 | cut -c1-3&quot;
       register: shadow3
       changed_when: false
 
     - name: Montrer le préfixe du hash
       ansible.builtin.debug:
         msg: &quot;préfixe du hash = {{ shadow3.stdout }} (doit être $6$ = SHA512)&quot;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> la dernière tâche affiche <code>préfixe du hash = $6$</code> — le <code>$6$</code> prouve un hash <strong>SHA512</strong> dans <code>/etc/shadow</code>. ⚠️ <strong><code>update_password: on_create</code> est crucial</strong> : sans lui, <code>password_hash</code> regénère un sel différent à <strong>chaque</strong> exécution → la tâche serait toujours <code>changed</code> (fausse non-idempotence). Avec <code>on_create</code>, le mot de passe n&#39;est posé qu&#39;à la création du compte. En prod, le mot de passe vient d&#39;une variable Vault, jamais en clair dans le playbook.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la dernière tâche affiche <code>préfixe du hash = $6$</code> — le <code>$6$</code> prouve un hash <strong>SHA512</strong> dans <code>/etc/shadow</code>. Comme <code>webadmin</code> est créé <strong>avec</strong> son mot de passe dans la <strong>même</strong> tâche, <code>on_create</code> le pose bien à la création. <strong>Relance</strong> le playbook : le compte existe déjà, le hash n&#39;est <strong>pas</strong> rejoué → la tâche passe <code>ok</code> et le hash reste <code>$6$</code> (idempotence prouvée). ⚠️ <strong><code>update_password: on_create</code> est crucial</strong> : sans lui, <code>password_hash</code> regénère un sel différent à <strong>chaque</strong> exécution → la tâche serait toujours <code>changed</code>. ⚠️ Le filtre <code>password_hash</code> exige <strong>passlib</strong> sur ansible-core récent : <code>pip install passlib</code> (ou <code>apt install python3-passlib</code>) si tu obtiens <code>passlib must be installed</code>. En prod, le mot de passe vient d&#39;une variable <strong>Vault</strong>, jamais en clair dans le playbook.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> the last task prints <code>préfixe du hash = $6$</code> — the <code>$6$</code> proves a <strong>SHA512</strong> hash in <code>/etc/shadow</code>. ⚠️ <strong><code>update_password: on_create</code> is crucial</strong>: without it, <code>password_hash</code> regenerates a different salt on <strong>every</strong> run → the task would always be <code>changed</code> (false non-idempotence). With <code>on_create</code>, the password is set only at account creation. In prod, the password comes from a Vault variable, never clear in the playbook.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> the last task prints <code>préfixe du hash = $6$</code> — the <code>$6$</code> proves a <strong>SHA512</strong> hash in <code>/etc/shadow</code>. Since <code>webadmin</code> is created <strong>with</strong> its password in the <strong>same</strong> task, <code>on_create</code> does set it at creation. <strong>Rerun</strong> the playbook: the account already exists, the hash is <strong>not</strong> replayed → the task goes <code>ok</code> and the hash stays <code>$6$</code> (idempotence proven). ⚠️ <strong><code>update_password: on_create</code> is crucial</strong>: without it, <code>password_hash</code> regenerates a different salt on <strong>every</strong> run → the task would always be <code>changed</code>. ⚠️ The <code>password_hash</code> filter requires <strong>passlib</strong> on recent ansible-core: <code>pip install passlib</code> (or <code>apt install python3-passlib</code>) if you get <code>passlib must be installed</code>. In prod, the password comes from a <strong>Vault</strong> variable, never clear in the playbook.</p>
 </div>
 
 </div>
@@ -405,7 +407,13 @@
 <p><strong>🤔 <code>name</code> is a key.</strong> The <code>cron</code> module&#39;s <code>name</code> parameter isn&#39;t decorative: it&#39;s the job&#39;s <strong>unique identifier</strong> (written as a <code>#Ansible: &lt;name&gt;</code> comment in the crontab). Rerunning with the same <code>name</code> <strong>updates</strong> the existing job instead of creating a duplicate. That&#39;s cron idempotence.</p>
 <p>Add to <code>admin.yml</code> (or a dedicated playbook):</p>
 </div>
-<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Une sauvegarde quotidienne à 3h du matin
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: S&#39;assurer que cron est installé (le module cron a besoin du binaire crontab)
+      ansible.builtin.apt:
+        name: cron
+        state: present
+        update_cache: true
+
+    - name: Une sauvegarde quotidienne à 3h du matin
       ansible.builtin.cron:
         name: &quot;sauvegarde atelier&quot;
         minute: &quot;0&quot;
@@ -427,9 +435,9 @@
         value: /usr/local/bin:/usr/bin:/bin</code></pre>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook admin.yml
 crontab -l -u root       # ou sudo crontab -l / or sudo crontab -l</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>crontab -l -u root</code> (ou <code>sudo crontab -l</code>) montre les deux jobs avec leur commentaire <code>#Ansible: sauvegarde atelier</code> et <code>#Ansible: nettoyage au demarrage</code>, plus la ligne <code>PATH=/usr/local/bin:...</code>. La ligne horaire est <code>0 3 <em> </em> *</code> pour la sauvegarde et <code>@reboot</code> pour le nettoyage. <strong>Relance</strong> le playbook : <code>ok</code> partout, <strong>aucun doublon</strong> — la clé <code>name</code> fait l&#39;idempotence. Retire un job avec <code>state: absent</code> (+ le même <code>name</code>).</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>crontab -l -u root</code> (ou <code>sudo crontab -l</code>) montre les deux jobs avec leur commentaire <code>#Ansible: sauvegarde atelier</code> et <code>#Ansible: nettoyage au demarrage</code>, plus la ligne <code>PATH=&quot;/usr/local/bin:...&quot;</code> (le module met la valeur entre guillemets). La ligne horaire est <code>0 3 <em> </em> *</code> pour la sauvegarde et <code>@reboot</code> pour le nettoyage. <strong>Relance</strong> le playbook : <code>ok</code> partout, <strong>aucun doublon</strong> — la clé <code>name</code> fait l&#39;idempotence. Retire un job avec <code>state: absent</code> (+ le même <code>name</code>).</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>crontab -l -u root</code> (or <code>sudo crontab -l</code>) shows both jobs with their <code>#Ansible: sauvegarde atelier</code> and <code>#Ansible: nettoyage au demarrage</code> comments, plus the <code>PATH=/usr/local/bin:...</code> line. The time line is <code>0 3 <em> </em> *</code> for the backup and <code>@reboot</code> for the cleanup. <strong>Rerun</strong> the playbook: <code>ok</code> everywhere, <strong>no duplicate</strong> — the <code>name</code> key does the idempotence. Remove a job with <code>state: absent</code> (+ the same <code>name</code>).</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>crontab -l -u root</code> (or <code>sudo crontab -l</code>) shows both jobs with their <code>#Ansible: sauvegarde atelier</code> and <code>#Ansible: nettoyage au demarrage</code> comments, plus the <code>PATH=&quot;/usr/local/bin:...&quot;</code> line (the module quotes the value). The time line is <code>0 3 <em> </em> *</code> for the backup and <code>@reboot</code> for the cleanup. <strong>Rerun</strong> the playbook: <code>ok</code> everywhere, <strong>no duplicate</strong> — the <code>name</code> key does the idempotence. Remove a job with <code>state: absent</code> (+ the same <code>name</code>).</p>
 </div>
 
 </div>
@@ -586,7 +594,16 @@ crontab -l -u root       # ou sudo crontab -l / or sudo crontab -l</code></pre>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-projet-entreprise/">
+    <span class="num">27</span>
+    <span class="title-line" data-lang="fr">Ansible — projet d&#39;entreprise : plateforme web 3-tiers</span>
+    <span class="title-line" data-lang="en">Ansible — enterprise project: 3-tier web platform</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">
@@ -656,6 +673,9 @@ crontab -l -u root       # ou sudo crontab -l / or sudo crontab -l</code></pre>
 <p><strong><code>ModuleNotFoundError</code> / <code>couldn&#39;t resolve module ansible.posix.firewalld</code>.</strong> La collection n&#39;est pas installée. <code>ansible-galaxy collection install ansible.posix</code> (ou <code>community.general</code> pour LVM/ufw).</p>
 <p><strong><code>df</code> ne montre pas la place après <code>lvol</code>.</strong> Tu as agrandi le volume mais pas le système de fichiers. Ajoute <code>resizefs: true</code> à la tâche <code>lvol</code>.</p>
 <p><strong><code>cron</code> crée un doublon à chaque run.</strong> Tu as changé (ou oublié) le paramètre <code>name</code>. Le <code>name</code> est la clé d&#39;idempotence : garde-le stable.</p>
+<p><strong><code>password_hash ... passlib must be installed</code>.</strong> Le filtre de hachage a besoin de passlib sur ansible-core récent (le repli <code>crypt</code> a été retiré). Installe-le : <code>pip install passlib</code> (ou <code>apt install python3-passlib</code>).</p>
+<p><strong><code>Could not import the python3-apt module</code>.</strong> Ansible a choisi un interpréteur Python sans les bindings apt (fréquent sur une machine à plusieurs Python). Installe <code>python3-apt</code>, ou force le bon interpréteur : <code>-e ansible_python_interpreter=/usr/bin/python3</code> (celui qui a <code>python3-apt</code>).</p>
+<p><strong><code>Failed to find required executable &quot;crontab&quot;</code>.</strong> Le paquet <code>cron</code> n&#39;est pas installé. Le module <code>cron</code> a besoin du binaire <code>crontab</code> : ajoute une tâche <code>ansible.builtin.apt: { name: cron, state: present }</code> avant tes tâches <code>cron</code> (c&#39;est fait à l&#39;étape 5).</p>
 </div>
 <div data-lang="en"><p><strong><code>System has not been booted with systemd</code>.</strong> You&#39;re running a <code>service</code> task on a container without systemd (<code>localhost</code>). Use a real VM (your Multipass fleet VM).</p>
 <p><strong>My <code>user</code> task is always <code>changed</code>.</strong> The password is rehashed each run. Add <code>update_password: on_create</code>.</p>
@@ -664,6 +684,9 @@ crontab -l -u root       # ou sudo crontab -l / or sudo crontab -l</code></pre>
 <p><strong><code>ModuleNotFoundError</code> / <code>couldn&#39;t resolve module ansible.posix.firewalld</code>.</strong> The collection isn&#39;t installed. <code>ansible-galaxy collection install ansible.posix</code> (or <code>community.general</code> for LVM/ufw).</p>
 <p><strong><code>df</code> doesn&#39;t show the space after <code>lvol</code>.</strong> You grew the volume but not the filesystem. Add <code>resizefs: true</code> to the <code>lvol</code> task.</p>
 <p><strong><code>cron</code> creates a duplicate each run.</strong> You changed (or omitted) the <code>name</code> parameter. <code>name</code> is the idempotence key: keep it stable.</p>
+<p><strong><code>password_hash ... passlib must be installed</code>.</strong> The hashing filter needs passlib on recent ansible-core (the <code>crypt</code> fallback was dropped). Install it: <code>pip install passlib</code> (or <code>apt install python3-passlib</code>).</p>
+<p><strong><code>Could not import the python3-apt module</code>.</strong> Ansible picked a Python interpreter without apt bindings (common on a multi-Python machine). Install <code>python3-apt</code>, or force the right interpreter: <code>-e ansible_python_interpreter=/usr/bin/python3</code> (the one with <code>python3-apt</code>).</p>
+<p><strong><code>Failed to find required executable &quot;crontab&quot;</code>.</strong> The <code>cron</code> package isn&#39;t installed. The <code>cron</code> module needs the <code>crontab</code> binary: add an <code>ansible.builtin.apt: { name: cron, state: present }</code> task before your <code>cron</code> tasks (done in step 5).</p>
 </div>
 </section>
 
