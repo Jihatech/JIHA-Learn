@@ -580,7 +580,7 @@ kubectl delete pvc -l app=web      # nettoyer les PVC d'un StatefulSet / clean S
 :::lang fr
 **Le PVC reste `Pending`.** Deux causes : soit `WaitForFirstConsumer` et **aucun pod** ne le monte encore (normal — crée le pod) ; soit **aucun PV compatible** (statique : taille/access mode/class ne matchent pas). `kubectl describe pvc` tranche.
 
-**Le pod reste `Pending` avec `unbound PersistentVolumeClaim`.** Le PVC monté n'est pas `Bound` : voir ci-dessus. Le pod attend son volume.
+**Le pod reste `Pending` avec `unbound immediate PersistentVolumeClaim`.** Le PVC monté ne peut pas se lier — typiquement un PVC **statique sans PV compatible** (ou une class en mode `Immediate` sans PV). *(À ne pas confondre avec `WaitForFirstConsumer`, où c'est au contraire le pod qui **débloque** la liaison en se planifiant.)* Vérifie le PVC avec `kubectl describe pvc`.
 
 **`kubectl get pv` ne montre rien après un PVC dynamique.** Normal tant que le PVC est `Pending` (WaitForFirstConsumer) : le PV n'est créé qu'à l'arrivée du pod.
 
@@ -594,7 +594,7 @@ kubectl delete pvc -l app=web      # nettoyer les PVC d'un StatefulSet / clean S
 :::lang en
 **The PVC stays `Pending`.** Two causes: either `WaitForFirstConsumer` and **no pod** mounts it yet (normal — create the pod); or **no compatible PV** (static: size/access mode/class don't match). `kubectl describe pvc` decides.
 
-**The pod stays `Pending` with `unbound PersistentVolumeClaim`.** The mounted PVC isn't `Bound`: see above. The pod waits for its volume.
+**The pod stays `Pending` with `unbound immediate PersistentVolumeClaim`.** The mounted PVC can't bind — typically a **static PVC with no compatible PV** (or an `Immediate`-mode class with no PV). *(Don't confuse this with `WaitForFirstConsumer`, where the pod instead **unblocks** binding by scheduling.)* Check the PVC with `kubectl describe pvc`.
 
 **`kubectl get pv` shows nothing after a dynamic PVC.** Normal while the PVC is `Pending` (WaitForFirstConsumer): the PV is only created when the pod arrives.
 
