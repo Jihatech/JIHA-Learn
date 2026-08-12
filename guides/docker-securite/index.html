@@ -251,8 +251,8 @@
 <div data-lang="en"><p><strong>Goal.</strong> Run a container as <strong>non-root</strong>.</p>
 <p><strong>🤔 Root by default = danger.</strong> Observe the default, then fix it two ways (<code>--user</code>, then <code>USER</code> in the image):</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm alpine id                     # uid=0(root) — le DÉFAUT / the DEFAULT
-docker run --rm --user 1000:1000 alpine id    # uid=1000 — imposé au run / forced at run
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm alpine:3.20 id                     # uid=0(root) — le DÉFAUT / the DEFAULT
+docker run --rm --user 1000:1000 alpine:3.20 id    # uid=1000 — imposé au run / forced at run
 
 # figé dans l&#39;image / baked into the image
 cat &gt; Dockerfile &lt;&lt;&#39;EOF&#39;
@@ -262,9 +262,9 @@ USER app
 ENTRYPOINT [&quot;id&quot;]
 EOF
 docker build -t nonroot . &amp;&amp; docker run --rm nonroot   # uid=1000(app)</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker run alpine id</code> révèle <strong><code>uid=0(root)</code></strong> — le conteneur tourne en <strong>root</strong> par défaut, ce que <strong>personne</strong> ne veut pour une application. <code>--user 1000:1000</code> l&#39;abaisse au run, et l&#39;image <code>nonroot</code> (avec <strong><code>USER app</code></strong>) tourne en <code>uid=1000</code> <strong>de façon permanente</strong>. Un attaquant qui compromet l&#39;app n&#39;a plus les droits root, ni dans le conteneur, ni (s&#39;il s&#39;échappe) sur l&#39;hôte. <strong>Un service ne doit jamais tourner en root</strong> — c&#39;est la première ligne de défense.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker run alpine:3.20 id</code> révèle <strong><code>uid=0(root)</code></strong> — le conteneur tourne en <strong>root</strong> par défaut, ce que <strong>personne</strong> ne veut pour une application. <code>--user 1000:1000</code> l&#39;abaisse au run, et l&#39;image <code>nonroot</code> (avec <strong><code>USER app</code></strong>) tourne en <code>uid=1000</code> <strong>de façon permanente</strong>. Un attaquant qui compromet l&#39;app n&#39;a plus les droits root, ni dans le conteneur, ni (s&#39;il s&#39;échappe) sur l&#39;hôte. <strong>Un service ne doit jamais tourner en root</strong> — c&#39;est la première ligne de défense.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker run alpine id</code> reveals <strong><code>uid=0(root)</code></strong> — the container runs as <strong>root</strong> by default, which <strong>nobody</strong> wants for an application. <code>--user 1000:1000</code> lowers it at run, and the <code>nonroot</code> image (with <strong><code>USER app</code></strong>) runs as <code>uid=1000</code> <strong>permanently</strong>. An attacker who compromises the app no longer has root rights, neither in the container, nor (if they escape) on the host. <strong>A service must never run as root</strong> — it&#39;s the first line of defense.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker run alpine:3.20 id</code> reveals <strong><code>uid=0(root)</code></strong> — the container runs as <strong>root</strong> by default, which <strong>nobody</strong> wants for an application. <code>--user 1000:1000</code> lowers it at run, and the <code>nonroot</code> image (with <strong><code>USER app</code></strong>) runs as <code>uid=1000</code> <strong>permanently</strong>. An attacker who compromises the app no longer has root rights, neither in the container, nor (if they escape) on the host. <strong>A service must never run as root</strong> — it&#39;s the first line of defense.</p>
 </div>
 
 </div>
@@ -278,11 +278,11 @@ docker build -t nonroot . &amp;&amp; docker run --rm nonroot   # uid=1000(app)</
 <div data-lang="en"><p><strong>Goal.</strong> <strong>Drop unneeded capabilities</strong>.</p>
 <p><strong>🤔 Root, split up.</strong> A privileged operation (changing a file&#39;s owner = CAP_CHOWN) works by default; drop all capabilities and it <strong>fails</strong>:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm alpine chown 65534 /etc/hostname &amp;&amp; echo &quot;chown OK (CAP_CHOWN présent par défaut)&quot;
-docker run --rm --cap-drop ALL alpine chown 65534 /etc/hostname \
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm alpine:3.20 chown 65534 /etc/hostname &amp;&amp; echo &quot;chown OK (CAP_CHOWN présent par défaut)&quot;
+docker run --rm --cap-drop ALL alpine:3.20 chown 65534 /etc/hostname \
   || echo &quot;chown REFUSÉ (toutes capabilities retirées) / DENIED (all caps dropped)&quot;
 # rendre juste CAP_CHOWN / add back only CAP_CHOWN
-docker run --rm --cap-drop ALL --cap-add CHOWN alpine chown 65534 /etc/hostname &amp;&amp; echo &quot;chown OK (CHOWN rajouté)&quot;</code></pre>
+docker run --rm --cap-drop ALL --cap-add CHOWN alpine:3.20 chown 65534 /etc/hostname &amp;&amp; echo &quot;chown OK (CHOWN rajouté)&quot;</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> le premier <code>chown</code> <strong>réussit</strong> (Docker accorde <strong>CAP_CHOWN</strong> par défaut). Avec <strong><code>--cap-drop ALL</code></strong>, le même <code>chown</code> <strong>échoue</strong> (<code>Operation not permitted</code>) — la capability a été retirée. En rajoutant <strong>uniquement</strong> <code>--cap-add CHOWN</code>, il remarche. C&#39;est le <strong>moindre privilège</strong> appliqué aux capabilities : on part de <strong>zéro</strong> (<code>--cap-drop ALL</code>) et on n&#39;accorde <strong>que</strong> le strict nécessaire. Un conteneur web, par exemple, n&#39;a besoin de quasiment <strong>aucune</strong> capability.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> the first <code>chown</code> <strong>succeeds</strong> (Docker grants <strong>CAP_CHOWN</strong> by default). With <strong><code>--cap-drop ALL</code></strong>, the same <code>chown</code> <strong>fails</strong> (<code>Operation not permitted</code>) — the capability was removed. Adding back <strong>only</strong> <code>--cap-add CHOWN</code>, it works again. That&#39;s <strong>least privilege</strong> applied to capabilities: start from <strong>zero</strong> (<code>--cap-drop ALL</code>) and grant <strong>only</strong> the strict minimum. A web container, for instance, needs almost <strong>no</strong> capabilities.</p>
@@ -299,10 +299,10 @@ docker run --rm --cap-drop ALL --cap-add CHOWN alpine chown 65534 /etc/hostname 
 <div data-lang="en"><p><strong>Goal.</strong> Enforce a <strong>read-only rootfs</strong>, with a <code>tmpfs</code> for the rare writes.</p>
 <p><strong>🤔 An immutable container.</strong> In <code>--read-only</code>, nothing can write to the filesystem — except the <code>tmpfs</code>es you allow:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm --read-only alpine sh -c &quot;touch /tmp/x&quot; \
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm --read-only alpine:3.20 sh -c &quot;touch /tmp/x&quot; \
   || echo &quot;écriture REFUSÉE (rootfs en lecture seule) / write DENIED (read-only rootfs)&quot;
 # on autorise UNIQUEMENT /tmp en écriture (en mémoire) / allow ONLY /tmp to write (in memory)
-docker run --rm --read-only --tmpfs /tmp alpine sh -c &quot;touch /tmp/x &amp;&amp; echo &#39;écriture OK dans /tmp&#39;&quot;</code></pre>
+docker run --rm --read-only --tmpfs /tmp alpine:3.20 sh -c &quot;touch /tmp/x &amp;&amp; echo &#39;écriture OK dans /tmp&#39;&quot;</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> sous <strong><code>--read-only</code></strong>, <code>touch /tmp/x</code> <strong>échoue</strong> (<code>Read-only file system</code>) — le conteneur ne peut <strong>rien</strong> écrire, donc un intrus ne peut ni déposer d&#39;outil, ni altérer de fichier. En ajoutant <strong><code>--tmpfs /tmp</code></strong>, seul <code>/tmp</code> (en RAM) redevient inscriptible, juste ce qu&#39;il faut à l&#39;appli. C&#39;est le motif de l&#39;<strong>immuabilité</strong> : un rootfs figé + des zones d&#39;écriture <strong>explicitement</strong> délimitées. Combiné au non-root et aux capabilities minimales, ça réduit drastiquement ce qu&#39;un attaquant peut faire.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> under <strong><code>--read-only</code></strong>, <code>touch /tmp/x</code> <strong>fails</strong> (<code>Read-only file system</code>) — the container can write <strong>nothing</strong>, so an intruder can neither drop a tool nor tamper with a file. Adding <strong><code>--tmpfs /tmp</code></strong>, only <code>/tmp</code> (in RAM) becomes writable again, just what the app needs. That&#39;s the <strong>immutability</strong> pattern: a frozen rootfs + <strong>explicitly</strong> delimited write zones. Combined with non-root and minimal capabilities, it drastically shrinks what an attacker can do.</p>
@@ -319,12 +319,12 @@ docker run --rm --read-only --tmpfs /tmp alpine sh -c &quot;touch /tmp/x &amp;&a
 <div data-lang="en"><p><strong>Goal.</strong> Set <strong>resource limits</strong> against denial of service.</p>
 <p><strong>🤔 Bound RAM, CPU, processes.</strong> An unbounded container can choke the host. Set the limits and verify them, then demonstrate <code>--pids-limit</code>:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name borne --memory=64m --cpus=0.5 --pids-limit=64 alpine sleep 300
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name borne --memory=64m --cpus=0.5 --pids-limit=64 alpine:3.20 sleep 300
 docker inspect borne --format &#39;mem={{.HostConfig.Memory}} cpus={{.HostConfig.NanoCpus}} pids={{.HostConfig.PidsLimit}}&#39;
 docker stats --no-stream borne          # colonne MEM USAGE / LIMIT -&gt; .../ 64MiB
 
 # --pids-limit en action : bloque la prolifération de processus (fork bomb) / blocks process proliferation
-docker run --rm --pids-limit=5 alpine sh -c \
+docker run --rm --pids-limit=5 alpine:3.20 sh -c \
   &#39;for i in $(seq 20); do /bin/sleep 30 &amp; done; wait&#39; 2&gt;&amp;1 | grep -m1 -i &quot;can&#39;t fork\|resource&quot; \
   &amp;&amp; echo &quot;-&gt; pids-limit a bloqué des forks / pids-limit blocked forks&quot;</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker inspect</code> confirme les limites posées (<code>mem=67108864</code> = 64 Mio, <code>cpus=500000000</code> = 0,5 CPU, <code>pids=64</code>), et <code>docker stats</code> affiche la <strong>LIMIT</strong> de mémoire à <code>64MiB</code>. La démo <code>--pids-limit=5</code> tente de lancer 20 <code>sleep</code> en parallèle mais <strong>bute</strong> sur la limite de 5 processus → des messages <code>can&#39;t fork</code> / <code>Resource temporarily unavailable</code>. C&#39;est la protection <strong>anti-DoS</strong> : quoi qu&#39;il arrive dans le conteneur (bug, attaque), il ne peut pas consommer plus que sa <strong>part</strong> de RAM, CPU et processus. <em>(Nettoyage : <code>docker rm -f borne</code>.)</em></p>
@@ -343,7 +343,7 @@ docker run --rm --pids-limit=5 alpine sh -c \
 <div data-lang="en"><p><strong>Goal.</strong> Watch a <strong>secret leak</strong> through an <code>ENV</code>, and know the alternatives.</p>
 <p><strong>🤔 The scary demonstration.</strong> Pass a &quot;password&quot; as an environment variable, then find it in cleartext:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name fuite -e DB_PASSWORD=s3cr3t-en-clair alpine sleep 300
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name fuite -e DB_PASSWORD=s3cr3t-en-clair alpine:3.20 sleep 300
 docker inspect fuite --format &#39;{{.Config.Env}}&#39;      # le secret est VISIBLE en clair / the secret is VISIBLE
 docker exec fuite printenv DB_PASSWORD               # ...et lisible depuis /proc, les logs... / and from /proc, logs
 docker rm -f fuite</code></pre>
@@ -363,18 +363,19 @@ docker rm -f fuite</code></pre>
 <div data-lang="en"><p><strong>Goal.</strong> <strong>Scan</strong> an image for vulnerabilities, and place <strong>content trust</strong>.</p>
 <p><strong>🤔 What you pull from the net has a past.</strong> A public image may carry CVEs. Scan it (scanners need the network):</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Option A : docker scout (intégré au CLI Docker récent) / built into recent Docker CLI
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Option A (portable, aucune install) : Trivy via conteneur / portable, no install: Trivy in a container
+docker run --rm aquasec/trivy image --severity HIGH,CRITICAL nginx:1.27-alpine
+
+# Option B : docker scout — livré avec Docker Desktop ; sur Docker CE, plugin à installer
+# Option B: docker scout — bundled with Docker Desktop; on Docker CE, a plugin to install
 docker scout quickview nginx:1.27-alpine        # résumé des vulnérabilités par sévérité / vuln summary by severity
 # docker scout cves nginx:1.27-alpine           # le détail des CVE / the CVE details
 
-# Option B : Trivy (via conteneur, aucune install) / via a container, no install
-docker run --rm aquasec/trivy image --severity HIGH,CRITICAL nginx:1.27-alpine
-
 # Content trust : n&#39;autoriser que les images SIGNÉES / only allow SIGNED images
 # export DOCKER_CONTENT_TRUST=1   (puis docker pull/run échoue sur une image non signée)</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker scout quickview</code> (ou Trivy) affiche un <strong>tableau des vulnérabilités</strong> par sévérité (<code>CRITICAL</code>/<code>HIGH</code>/…) — tu vois <strong>combien</strong> de failles connues traînent dans l&#39;image et lesquelles. C&#39;est le réflexe <strong>avant de mettre en prod</strong> : une image « qui marche » peut être criblée de CVE. Enfin, <strong><code>DOCKER_CONTENT_TRUST=1</code></strong> impose de ne tirer/lancer que des images <strong>signées</strong> (authenticité + intégrité) — les images officielles de Docker Hub le sont. Scanner (les failles) et signer (l&#39;authenticité) sont les deux volets de la <strong>confiance dans les images</strong>. <em>(Selon ta version/ton compte, <code>docker scout</code> peut demander une connexion ; Trivy fonctionne sans.)</em></p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> Trivy (ou <code>docker scout</code>) affiche un <strong>tableau des vulnérabilités</strong> par sévérité (<code>CRITICAL</code>/<code>HIGH</code>/…) — tu vois <strong>combien</strong> de failles connues traînent dans l&#39;image et lesquelles. C&#39;est le réflexe <strong>avant de mettre en prod</strong> : une image « qui marche » peut être criblée de CVE. Enfin, <strong><code>DOCKER_CONTENT_TRUST=1</code></strong> impose de ne tirer/lancer que des images <strong>signées</strong> (authenticité + intégrité) — les images officielles de Docker Hub le sont. Scanner (les failles) et signer (l&#39;authenticité) sont les deux volets de la <strong>confiance dans les images</strong>. <em>(<code>docker scout</code> est livré avec <strong>Docker Desktop</strong> ; sur <strong>Docker CE</strong> il faut l&#39;installer, et certaines fonctions demandent une connexion. <strong>Trivy</strong> fonctionne partout, sans compte.)</em></p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker scout quickview</code> (or Trivy) shows a <strong>vulnerability table</strong> by severity (<code>CRITICAL</code>/<code>HIGH</code>/…) — you see <strong>how many</strong> known flaws linger in the image and which. It&#39;s the reflex <strong>before going to prod</strong>: an image &quot;that works&quot; can be riddled with CVEs. Finally, <strong><code>DOCKER_CONTENT_TRUST=1</code></strong> enforces pulling/running only <strong>signed</strong> images (authenticity + integrity) — Docker Hub&#39;s official images are. Scanning (the flaws) and signing (the authenticity) are the two sides of <strong>image trust</strong>. <em>(Depending on your version/account, <code>docker scout</code> may ask you to sign in; Trivy works without.)</em></p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker scout quickview</code> (or Trivy) shows a <strong>vulnerability table</strong> by severity (<code>CRITICAL</code>/<code>HIGH</code>/…) — you see <strong>how many</strong> known flaws linger in the image and which. It&#39;s the reflex <strong>before going to prod</strong>: an image &quot;that works&quot; can be riddled with CVEs. Finally, <strong><code>DOCKER_CONTENT_TRUST=1</code></strong> enforces pulling/running only <strong>signed</strong> images (authenticity + integrity) — Docker Hub&#39;s official images are. Scanning (the flaws) and signing (the authenticity) are the two sides of <strong>image trust</strong>. <em>(<code>docker scout</code> is bundled with <strong>Docker Desktop</strong>; on <strong>Docker CE</strong> you must install it, and some features require a sign-in. <strong>Trivy</strong> works everywhere, no account.)</em></p>
 </div>
 
 </div>
@@ -472,8 +473,8 @@ docker run --security-opt=no-new-privileges img
 # Secrets : PAS en ENV / NOT in ENV
 #   -&gt; secrets Docker (fichier), RUN --mount=type=secret (build), Vault
 
-# Scan &amp; confiance / trust
-docker scout quickview IMG        # ou / or : docker run --rm aquasec/trivy image IMG
+# Scan &amp; confiance / trust  (Trivy = portable ; scout = Docker Desktop)
+docker run --rm aquasec/trivy image IMG   # ou / or : docker scout quickview IMG
 export DOCKER_CONTENT_TRUST=1     # n&#39;autorise que les images signées / only signed images</code></pre>
 </section>
 
@@ -497,14 +498,14 @@ export DOCKER_CONTENT_TRUST=1     # n&#39;autorise que les images signées / onl
 <p><strong><code>--cap-drop ALL</code> casse mon conteneur.</strong> Une capability lui manque. Identifie laquelle (souvent <code>NET_BIND_SERVICE</code> pour un port &lt; 1024, <code>CHOWN</code>, <code>SETUID</code>/<code>SETGID</code>) et rajoute <strong>uniquement</strong> celle-là avec <code>--cap-add</code>.</p>
 <p><strong><code>--read-only</code> : « Read-only file system ».</strong> L&#39;appli écrit quelque part (logs, <code>/tmp</code>, <code>/run</code>). Ajoute un <strong><code>--tmpfs</code></strong> (ou un volume) sur ce chemin précis, garde le reste read-only.</p>
 <p><strong><code>--pids-limit</code> / <code>--memory</code> : le conteneur est tué (<code>OOMKilled</code>).</strong> Il dépasse la limite. Augmente-la si c&#39;est légitime, ou corrige la fuite ; regarde <code>docker stats</code> et <code>docker inspect --format &#39;{{.State.OOMKilled}}&#39;</code>.</p>
-<p><strong><code>docker scout</code> demande de me connecter.</strong> Certaines fonctions requièrent un compte Docker. Utilise <strong>Trivy</strong> (<code>docker run --rm aquasec/trivy image IMG</code>) qui fonctionne sans compte.</p>
+<p><strong><code>docker scout</code> est inconnu ou demande de me connecter.</strong> Sur <strong>Docker CE</strong>, <code>docker scout</code> n&#39;est <strong>pas</strong> installé par défaut (il est livré avec Docker Desktop), et certaines fonctions requièrent un compte. Utilise <strong>Trivy</strong> (<code>docker run --rm aquasec/trivy image IMG</code>) qui fonctionne partout, sans compte.</p>
 <p><strong><code>--privileged</code> était plus simple.</strong> Oui, mais il ouvre tout. Trouve la <strong>capability précise</strong> ou le <strong>device</strong> requis et n&#39;accorde que lui (<code>--cap-add</code>, <code>--device</code>).</p>
 </div>
 <div data-lang="en"><p><strong>My non-root app can&#39;t write to a folder.</strong> The folder belongs to root: at build, <code>chown</code> the folder to the app user (<code>RUN chown -R app /data</code>), or mount a volume with the right permissions.</p>
 <p><strong><code>--cap-drop ALL</code> breaks my container.</strong> It&#39;s missing a capability. Identify which (often <code>NET_BIND_SERVICE</code> for a port &lt; 1024, <code>CHOWN</code>, <code>SETUID</code>/<code>SETGID</code>) and add back <strong>only</strong> that one with <code>--cap-add</code>.</p>
 <p><strong><code>--read-only</code>: &quot;Read-only file system&quot;.</strong> The app writes somewhere (logs, <code>/tmp</code>, <code>/run</code>). Add a <strong><code>--tmpfs</code></strong> (or a volume) on that specific path, keep the rest read-only.</p>
 <p><strong><code>--pids-limit</code> / <code>--memory</code>: the container is killed (<code>OOMKilled</code>).</strong> It exceeds the limit. Raise it if legitimate, or fix the leak; check <code>docker stats</code> and <code>docker inspect --format &#39;{{.State.OOMKilled}}&#39;</code>.</p>
-<p><strong><code>docker scout</code> asks me to sign in.</strong> Some features require a Docker account. Use <strong>Trivy</strong> (<code>docker run --rm aquasec/trivy image IMG</code>), which works without an account.</p>
+<p><strong><code>docker scout</code> is unknown or asks me to sign in.</strong> On <strong>Docker CE</strong>, <code>docker scout</code> is <strong>not</strong> installed by default (it&#39;s bundled with Docker Desktop), and some features require an account. Use <strong>Trivy</strong> (<code>docker run --rm aquasec/trivy image IMG</code>), which works everywhere, no account.</p>
 <p><strong><code>--privileged</code> was simpler.</strong> Yes, but it opens everything. Find the <strong>precise capability</strong> or <strong>device</strong> required and grant only that (<code>--cap-add</code>, <code>--device</code>).</p>
 </div>
 </section>

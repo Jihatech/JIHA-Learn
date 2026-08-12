@@ -175,8 +175,8 @@ We'll go: non-root → capabilities → read-only → limits → secrets → sca
 :::
 
 ```bash
-docker run --rm alpine id                     # uid=0(root) — le DÉFAUT / the DEFAULT
-docker run --rm --user 1000:1000 alpine id    # uid=1000 — imposé au run / forced at run
+docker run --rm alpine:3.20 id                     # uid=0(root) — le DÉFAUT / the DEFAULT
+docker run --rm --user 1000:1000 alpine:3.20 id    # uid=1000 — imposé au run / forced at run
 
 # figé dans l'image / baked into the image
 cat > Dockerfile <<'EOF'
@@ -189,11 +189,11 @@ docker build -t nonroot . && docker run --rm nonroot   # uid=1000(app)
 ```
 
 :::lang fr
-**✅ Vérification :** `docker run alpine id` révèle **`uid=0(root)`** — le conteneur tourne en **root** par défaut, ce que **personne** ne veut pour une application. `--user 1000:1000` l'abaisse au run, et l'image `nonroot` (avec **`USER app`**) tourne en `uid=1000` **de façon permanente**. Un attaquant qui compromet l'app n'a plus les droits root, ni dans le conteneur, ni (s'il s'échappe) sur l'hôte. **Un service ne doit jamais tourner en root** — c'est la première ligne de défense.
+**✅ Vérification :** `docker run alpine:3.20 id` révèle **`uid=0(root)`** — le conteneur tourne en **root** par défaut, ce que **personne** ne veut pour une application. `--user 1000:1000` l'abaisse au run, et l'image `nonroot` (avec **`USER app`**) tourne en `uid=1000` **de façon permanente**. Un attaquant qui compromet l'app n'a plus les droits root, ni dans le conteneur, ni (s'il s'échappe) sur l'hôte. **Un service ne doit jamais tourner en root** — c'est la première ligne de défense.
 :::
 
 :::lang en
-**✅ Check:** `docker run alpine id` reveals **`uid=0(root)`** — the container runs as **root** by default, which **nobody** wants for an application. `--user 1000:1000` lowers it at run, and the `nonroot` image (with **`USER app`**) runs as `uid=1000` **permanently**. An attacker who compromises the app no longer has root rights, neither in the container, nor (if they escape) on the host. **A service must never run as root** — it's the first line of defense.
+**✅ Check:** `docker run alpine:3.20 id` reveals **`uid=0(root)`** — the container runs as **root** by default, which **nobody** wants for an application. `--user 1000:1000` lowers it at run, and the `nonroot` image (with **`USER app`**) runs as `uid=1000` **permanently**. An attacker who compromises the app no longer has root rights, neither in the container, nor (if they escape) on the host. **A service must never run as root** — it's the first line of defense.
 :::
 
 ### step-02
@@ -211,11 +211,11 @@ docker build -t nonroot . && docker run --rm nonroot   # uid=1000(app)
 :::
 
 ```bash
-docker run --rm alpine chown 65534 /etc/hostname && echo "chown OK (CAP_CHOWN présent par défaut)"
-docker run --rm --cap-drop ALL alpine chown 65534 /etc/hostname \
+docker run --rm alpine:3.20 chown 65534 /etc/hostname && echo "chown OK (CAP_CHOWN présent par défaut)"
+docker run --rm --cap-drop ALL alpine:3.20 chown 65534 /etc/hostname \
   || echo "chown REFUSÉ (toutes capabilities retirées) / DENIED (all caps dropped)"
 # rendre juste CAP_CHOWN / add back only CAP_CHOWN
-docker run --rm --cap-drop ALL --cap-add CHOWN alpine chown 65534 /etc/hostname && echo "chown OK (CHOWN rajouté)"
+docker run --rm --cap-drop ALL --cap-add CHOWN alpine:3.20 chown 65534 /etc/hostname && echo "chown OK (CHOWN rajouté)"
 ```
 
 :::lang fr
@@ -241,10 +241,10 @@ docker run --rm --cap-drop ALL --cap-add CHOWN alpine chown 65534 /etc/hostname 
 :::
 
 ```bash
-docker run --rm --read-only alpine sh -c "touch /tmp/x" \
+docker run --rm --read-only alpine:3.20 sh -c "touch /tmp/x" \
   || echo "écriture REFUSÉE (rootfs en lecture seule) / write DENIED (read-only rootfs)"
 # on autorise UNIQUEMENT /tmp en écriture (en mémoire) / allow ONLY /tmp to write (in memory)
-docker run --rm --read-only --tmpfs /tmp alpine sh -c "touch /tmp/x && echo 'écriture OK dans /tmp'"
+docker run --rm --read-only --tmpfs /tmp alpine:3.20 sh -c "touch /tmp/x && echo 'écriture OK dans /tmp'"
 ```
 
 :::lang fr
@@ -270,12 +270,12 @@ docker run --rm --read-only --tmpfs /tmp alpine sh -c "touch /tmp/x && echo 'éc
 :::
 
 ```bash
-docker run -d --name borne --memory=64m --cpus=0.5 --pids-limit=64 alpine sleep 300
+docker run -d --name borne --memory=64m --cpus=0.5 --pids-limit=64 alpine:3.20 sleep 300
 docker inspect borne --format 'mem={{.HostConfig.Memory}} cpus={{.HostConfig.NanoCpus}} pids={{.HostConfig.PidsLimit}}'
 docker stats --no-stream borne          # colonne MEM USAGE / LIMIT -> .../ 64MiB
 
 # --pids-limit en action : bloque la prolifération de processus (fork bomb) / blocks process proliferation
-docker run --rm --pids-limit=5 alpine sh -c \
+docker run --rm --pids-limit=5 alpine:3.20 sh -c \
   'for i in $(seq 20); do /bin/sleep 30 & done; wait' 2>&1 | grep -m1 -i "can't fork\|resource" \
   && echo "-> pids-limit a bloqué des forks / pids-limit blocked forks"
 ```
@@ -303,7 +303,7 @@ docker run --rm --pids-limit=5 alpine sh -c \
 :::
 
 ```bash
-docker run -d --name fuite -e DB_PASSWORD=s3cr3t-en-clair alpine sleep 300
+docker run -d --name fuite -e DB_PASSWORD=s3cr3t-en-clair alpine:3.20 sleep 300
 docker inspect fuite --format '{{.Config.Env}}'      # le secret est VISIBLE en clair / the secret is VISIBLE
 docker exec fuite printenv DB_PASSWORD               # ...et lisible depuis /proc, les logs... / and from /proc, logs
 docker rm -f fuite
@@ -332,23 +332,24 @@ docker rm -f fuite
 :::
 
 ```bash
-# Option A : docker scout (intégré au CLI Docker récent) / built into recent Docker CLI
+# Option A (portable, aucune install) : Trivy via conteneur / portable, no install: Trivy in a container
+docker run --rm aquasec/trivy image --severity HIGH,CRITICAL nginx:1.27-alpine
+
+# Option B : docker scout — livré avec Docker Desktop ; sur Docker CE, plugin à installer
+# Option B: docker scout — bundled with Docker Desktop; on Docker CE, a plugin to install
 docker scout quickview nginx:1.27-alpine        # résumé des vulnérabilités par sévérité / vuln summary by severity
 # docker scout cves nginx:1.27-alpine           # le détail des CVE / the CVE details
-
-# Option B : Trivy (via conteneur, aucune install) / via a container, no install
-docker run --rm aquasec/trivy image --severity HIGH,CRITICAL nginx:1.27-alpine
 
 # Content trust : n'autoriser que les images SIGNÉES / only allow SIGNED images
 # export DOCKER_CONTENT_TRUST=1   (puis docker pull/run échoue sur une image non signée)
 ```
 
 :::lang fr
-**✅ Vérification :** `docker scout quickview` (ou Trivy) affiche un **tableau des vulnérabilités** par sévérité (`CRITICAL`/`HIGH`/…) — tu vois **combien** de failles connues traînent dans l'image et lesquelles. C'est le réflexe **avant de mettre en prod** : une image « qui marche » peut être criblée de CVE. Enfin, **`DOCKER_CONTENT_TRUST=1`** impose de ne tirer/lancer que des images **signées** (authenticité + intégrité) — les images officielles de Docker Hub le sont. Scanner (les failles) et signer (l'authenticité) sont les deux volets de la **confiance dans les images**. *(Selon ta version/ton compte, `docker scout` peut demander une connexion ; Trivy fonctionne sans.)*
+**✅ Vérification :** Trivy (ou `docker scout`) affiche un **tableau des vulnérabilités** par sévérité (`CRITICAL`/`HIGH`/…) — tu vois **combien** de failles connues traînent dans l'image et lesquelles. C'est le réflexe **avant de mettre en prod** : une image « qui marche » peut être criblée de CVE. Enfin, **`DOCKER_CONTENT_TRUST=1`** impose de ne tirer/lancer que des images **signées** (authenticité + intégrité) — les images officielles de Docker Hub le sont. Scanner (les failles) et signer (l'authenticité) sont les deux volets de la **confiance dans les images**. *(`docker scout` est livré avec **Docker Desktop** ; sur **Docker CE** il faut l'installer, et certaines fonctions demandent une connexion. **Trivy** fonctionne partout, sans compte.)*
 :::
 
 :::lang en
-**✅ Check:** `docker scout quickview` (or Trivy) shows a **vulnerability table** by severity (`CRITICAL`/`HIGH`/…) — you see **how many** known flaws linger in the image and which. It's the reflex **before going to prod**: an image "that works" can be riddled with CVEs. Finally, **`DOCKER_CONTENT_TRUST=1`** enforces pulling/running only **signed** images (authenticity + integrity) — Docker Hub's official images are. Scanning (the flaws) and signing (the authenticity) are the two sides of **image trust**. *(Depending on your version/account, `docker scout` may ask you to sign in; Trivy works without.)*
+**✅ Check:** `docker scout quickview` (or Trivy) shows a **vulnerability table** by severity (`CRITICAL`/`HIGH`/…) — you see **how many** known flaws linger in the image and which. It's the reflex **before going to prod**: an image "that works" can be riddled with CVEs. Finally, **`DOCKER_CONTENT_TRUST=1`** enforces pulling/running only **signed** images (authenticity + integrity) — Docker Hub's official images are. Scanning (the flaws) and signing (the authenticity) are the two sides of **image trust**. *(`docker scout` is bundled with **Docker Desktop**; on **Docker CE** you must install it, and some features require a sign-in. **Trivy** works everywhere, no account.)*
 :::
 
 ## pitfalls
@@ -459,8 +460,8 @@ docker run --security-opt=no-new-privileges img
 # Secrets : PAS en ENV / NOT in ENV
 #   -> secrets Docker (fichier), RUN --mount=type=secret (build), Vault
 
-# Scan & confiance / trust
-docker scout quickview IMG        # ou / or : docker run --rm aquasec/trivy image IMG
+# Scan & confiance / trust  (Trivy = portable ; scout = Docker Desktop)
+docker run --rm aquasec/trivy image IMG   # ou / or : docker scout quickview IMG
 export DOCKER_CONTENT_TRUST=1     # n'autorise que les images signées / only signed images
 ```
 
@@ -491,7 +492,7 @@ export DOCKER_CONTENT_TRUST=1     # n'autorise que les images signées / only si
 
 **`--pids-limit` / `--memory` : le conteneur est tué (`OOMKilled`).** Il dépasse la limite. Augmente-la si c'est légitime, ou corrige la fuite ; regarde `docker stats` et `docker inspect --format '{{.State.OOMKilled}}'`.
 
-**`docker scout` demande de me connecter.** Certaines fonctions requièrent un compte Docker. Utilise **Trivy** (`docker run --rm aquasec/trivy image IMG`) qui fonctionne sans compte.
+**`docker scout` est inconnu ou demande de me connecter.** Sur **Docker CE**, `docker scout` n'est **pas** installé par défaut (il est livré avec Docker Desktop), et certaines fonctions requièrent un compte. Utilise **Trivy** (`docker run --rm aquasec/trivy image IMG`) qui fonctionne partout, sans compte.
 
 **`--privileged` était plus simple.** Oui, mais il ouvre tout. Trouve la **capability précise** ou le **device** requis et n'accorde que lui (`--cap-add`, `--device`).
 :::
@@ -505,7 +506,7 @@ export DOCKER_CONTENT_TRUST=1     # n'autorise que les images signées / only si
 
 **`--pids-limit` / `--memory`: the container is killed (`OOMKilled`).** It exceeds the limit. Raise it if legitimate, or fix the leak; check `docker stats` and `docker inspect --format '{{.State.OOMKilled}}'`.
 
-**`docker scout` asks me to sign in.** Some features require a Docker account. Use **Trivy** (`docker run --rm aquasec/trivy image IMG`), which works without an account.
+**`docker scout` is unknown or asks me to sign in.** On **Docker CE**, `docker scout` is **not** installed by default (it's bundled with Docker Desktop), and some features require an account. Use **Trivy** (`docker run --rm aquasec/trivy image IMG`), which works everywhere, no account.
 
 **`--privileged` was simpler.** Yes, but it opens everything. Find the **precise capability** or **device** required and grant only that (`--cap-add`, `--device`).
 :::
