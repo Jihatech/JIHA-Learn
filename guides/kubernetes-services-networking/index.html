@@ -289,9 +289,9 @@ kubectl get endpoints app1                 # 2 IP:80 — les deux pods app1 / th
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl run client --image=busybox:1.36 --restart=Never -it --rm -- \
   sh -c &quot;nslookup app1; echo &#39;---&#39;; wget -qO- app1 | grep Hostname&quot;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>nslookup app1</code> résout vers le nom complet <strong><code>app1.net.svc.cluster.local</code></strong> et l&#39;IP du Service (pas celle d&#39;un pod). Le <code>wget -qO- app1</code> renvoie une ligne <code>Hostname: app1-…</code> — un des deux pods <code>app1</code> a répondu, via le nom court <code>app1</code> (même namespace). Relance : le <code>Hostname</code> <strong>alterne</strong> entre les deux pods → le Service <strong>répartit</strong> le trafic. <em>(Depuis un autre namespace, il faudrait <code>app1.net</code>.)</em></p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>nslookup app1</code> résout vers le nom complet <strong><code>app1.net.svc.cluster.local</code></strong> et l&#39;IP du Service (pas celle d&#39;un pod). Le <code>wget -qO- app1</code> renvoie une ligne <code>Hostname: app1-…</code> — un des deux pods <code>app1</code> a répondu, via le nom court <code>app1</code> (même namespace). Relance-le plusieurs fois : sur l&#39;ensemble des essais, les réponses se <strong>répartissent</strong> sur les deux pods → le Service <strong>load-balance</strong>. <em>(kube-proxy en mode iptables répartit de façon <strong>statistique</strong>, pas en tour de rôle strict : deux essais de suite peuvent tomber sur le même pod — c&#39;est normal. Depuis un autre namespace, il faudrait <code>app1.net</code>.)</em></p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>nslookup app1</code> resolves to the full name <strong><code>app1.net.svc.cluster.local</code></strong> and the Service IP (not a pod&#39;s). The <code>wget -qO- app1</code> returns a <code>Hostname: app1-…</code> line — one of the two <code>app1</code> pods answered, via the short name <code>app1</code> (same namespace). Re-run: the <code>Hostname</code> <strong>alternates</strong> between the two pods → the Service <strong>load-balances</strong>. <em>(From another namespace, you&#39;d need <code>app1.net</code>.)</em></p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>nslookup app1</code> resolves to the full name <strong><code>app1.net.svc.cluster.local</code></strong> and the Service IP (not a pod&#39;s). The <code>wget -qO- app1</code> returns a <code>Hostname: app1-…</code> line — one of the two <code>app1</code> pods answered, via the short name <code>app1</code> (same namespace). Re-run it several times: across the runs, responses are <strong>spread</strong> across both pods → the Service <strong>load-balances</strong>. <em>(kube-proxy in iptables mode balances <strong>statistically</strong>, not strict round-robin: two runs in a row can hit the same pod — that&#39;s normal. From another namespace, you&#39;d need <code>app1.net</code>.)</em></p>
 </div>
 
 </div>
@@ -399,7 +399,7 @@ spec:
     - port: 80
       targetPort: 80</code></pre>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f headless.yaml
-kubectl run client --image=busybox:1.36 --restart=Never -it --rm -- \
+kubectl run dnsclient --image=busybox:1.36 --restart=Never -it --rm -- \
   nslookup app1-headless</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>nslookup app1-headless</code> renvoie <strong>deux</strong> enregistrements <code>Address</code> — les IP <strong>des deux pods</strong> <code>app1</code> directement (compare avec <code>kubectl get pods -l app=app1 -o wide</code>). Un Service <code>ClusterIP</code> classique n&#39;aurait renvoyé <strong>qu&#39;une</strong> IP (la virtuelle). C&#39;est toute la différence : headless = « donne-moi les pods », ClusterIP = « donne-moi une porte d&#39;entrée load-balancée ».</p>
 </div>
@@ -430,7 +430,7 @@ spec:
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f deny.yaml
 # Test depuis un pod NON autorisé (timeout attendu) / from a NON-allowed pod (timeout expected)
 kubectl run probe --image=busybox:1.36 --restart=Never -it --rm -- \
-  wget -qO- --timeout=5 app1 || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
+  wget -qO- -T 5 app1 || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
 <div data-lang="fr"><p>Étape B — autoriser <strong>uniquement</strong> les pods portant <code>access: app1</code>. Crée <code>allow.yaml</code> :</p>
 </div>
 <div data-lang="en"><p>Step B — allow <strong>only</strong> pods carrying <code>access: app1</code>. Create <code>allow.yaml</code>:</p>
@@ -456,10 +456,10 @@ spec:
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f allow.yaml
 # Pod autorisé (label access=app1) -&gt; passe / allowed pod (label access=app1) -&gt; succeeds
 kubectl run ok --image=busybox:1.36 --labels=&quot;access=app1&quot; --restart=Never -it --rm -- \
-  wget -qO- --timeout=5 app1 | grep Hostname
+  wget -qO- -T 5 app1 | grep Hostname
 # Pod non-labellisé -&gt; toujours bloqué / unlabeled pod -&gt; still blocked
 kubectl run ko --image=busybox:1.36 --restart=Never -it --rm -- \
-  wget -qO- --timeout=5 app1 || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
+  wget -qO- -T 5 app1 || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>deny.yaml</code>, le pod <code>probe</code> <strong>timeoute</strong> en joignant <code>app1</code> (trafic bloqué). Après <code>allow.yaml</code>, le pod <code>ok</code> (label <code>access=app1</code>) <strong>reçoit</strong> la réponse <code>Hostname: app1-…</code>, tandis que le pod <code>ko</code> (sans label) <strong>timeoute encore</strong>. Le pare-feu discrimine <strong>par label de source</strong> — et il s&#39;applique vraiment parce que <strong>k3s embarque un contrôleur de NetworkPolicy</strong> (un cluster flannel nu, lui, ignorerait ces policies). <em>(Nettoyage : <code>kubectl delete networkpolicy --all</code>.)</em></p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> after <code>deny.yaml</code>, the <code>probe</code> pod <strong>times out</strong> reaching <code>app1</code> (traffic blocked). After <code>allow.yaml</code>, the <code>ok</code> pod (label <code>access=app1</code>) <strong>gets</strong> the <code>Hostname: app1-…</code> response, while the <code>ko</code> pod (no label) <strong>still times out</strong>. The firewall discriminates <strong>by source label</strong> — and it truly applies because <strong>k3s ships a NetworkPolicy controller</strong> (a bare flannel cluster would ignore these policies). <em>(Cleanup: <code>kubectl delete networkpolicy --all</code>.)</em></p>
@@ -581,14 +581,14 @@ kubectl get networkpolicy</code></pre>
 <p><strong><code>curl localhost:8080/app1</code> renvoie 404 (Traefik).</strong> L&#39;Ingress n&#39;est pas (encore) pris en compte, ou <code>ingressClassName</code> est absent/incorrect. <code>kubectl describe ingress web</code> et vérifie que Traefik tourne (<code>-n kube-system</code>).</p>
 <p><strong><code>curl localhost:30080</code> : connection refused.</strong> Le mapping de port hôte manque. Recrée le cluster avec <code>-p &quot;30080:30080@server:0&quot;</code>, ou utilise l&#39;Ingress.</p>
 <p><strong>La NetworkPolicy ne bloque rien.</strong> Sur k3s elle devrait ; vérifie que tu testes le bon namespace et que la policy <strong>sélectionne</strong> bien le pod cible (<code>kubectl describe networkpolicy</code>). Rappelle-toi qu&#39;une policy est <strong>additive</strong> : plusieurs policies s&#39;additionnent (union des autorisations).</p>
-<p><strong>Le pod <code>client</code>/<code>probe</code> reste ouvert et bloque le terminal.</strong> Avec <code>-it --rm --restart=Never</code>, il se supprime à la sortie. Si un pod jetable traîne, <code>kubectl delete pod client probe ok ko --ignore-not-found</code>.</p>
+<p><strong>Le pod <code>client</code>/<code>probe</code> reste ouvert et bloque le terminal.</strong> Avec <code>-it --rm --restart=Never</code>, il se supprime à la sortie. Si un pod jetable traîne, <code>kubectl delete pod client dnsclient probe ok ko --ignore-not-found</code>.</p>
 <p><strong><code>nslookup</code> échoue dans busybox.</strong> Utilise le nom complet <code>app1.net.svc.cluster.local</code>, ou vérifie CoreDNS (<code>kubectl -n kube-system get pods -l k8s-app=kube-dns</code>).</p>
 </div>
 <div data-lang="en"><p><strong><code>kubectl get endpoints &lt;svc&gt;</code> is empty.</strong> The selector matches no ready pod. Check labels (<code>kubectl get pods --show-labels</code>), <code>Ready</code> status, and that <code>targetPort</code> = the container port.</p>
 <p><strong><code>curl localhost:8080/app1</code> returns 404 (Traefik).</strong> The Ingress isn&#39;t picked up (yet), or <code>ingressClassName</code> is missing/wrong. <code>kubectl describe ingress web</code> and check Traefik is running (<code>-n kube-system</code>).</p>
 <p><strong><code>curl localhost:30080</code>: connection refused.</strong> The host port mapping is missing. Recreate the cluster with <code>-p &quot;30080:30080@server:0&quot;</code>, or use the Ingress.</p>
 <p><strong>The NetworkPolicy blocks nothing.</strong> On k3s it should; check you&#39;re testing the right namespace and that the policy actually <strong>selects</strong> the target pod (<code>kubectl describe networkpolicy</code>). Remember a policy is <strong>additive</strong>: multiple policies add up (union of allowances).</p>
-<p><strong>The <code>client</code>/<code>probe</code> pod hangs and blocks the terminal.</strong> With <code>-it --rm --restart=Never</code>, it deletes itself on exit. If a throwaway pod lingers, <code>kubectl delete pod client probe ok ko --ignore-not-found</code>.</p>
+<p><strong>The <code>client</code>/<code>probe</code> pod hangs and blocks the terminal.</strong> With <code>-it --rm --restart=Never</code>, it deletes itself on exit. If a throwaway pod lingers, <code>kubectl delete pod client dnsclient probe ok ko --ignore-not-found</code>.</p>
 <p><strong><code>nslookup</code> fails in busybox.</strong> Use the full name <code>app1.net.svc.cluster.local</code>, or check CoreDNS (<code>kubectl -n kube-system get pods -l k8s-app=kube-dns</code>).</p>
 </div>
 </section>

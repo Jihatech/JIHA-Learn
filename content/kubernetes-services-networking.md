@@ -242,11 +242,11 @@ kubectl run client --image=busybox:1.36 --restart=Never -it --rm -- \
 ```
 
 :::lang fr
-**✅ Vérification :** `nslookup app1` résout vers le nom complet **`app1.net.svc.cluster.local`** et l'IP du Service (pas celle d'un pod). Le `wget -qO- app1` renvoie une ligne `Hostname: app1-…` — un des deux pods `app1` a répondu, via le nom court `app1` (même namespace). Relance : le `Hostname` **alterne** entre les deux pods → le Service **répartit** le trafic. *(Depuis un autre namespace, il faudrait `app1.net`.)*
+**✅ Vérification :** `nslookup app1` résout vers le nom complet **`app1.net.svc.cluster.local`** et l'IP du Service (pas celle d'un pod). Le `wget -qO- app1` renvoie une ligne `Hostname: app1-…` — un des deux pods `app1` a répondu, via le nom court `app1` (même namespace). Relance-le plusieurs fois : sur l'ensemble des essais, les réponses se **répartissent** sur les deux pods → le Service **load-balance**. *(kube-proxy en mode iptables répartit de façon **statistique**, pas en tour de rôle strict : deux essais de suite peuvent tomber sur le même pod — c'est normal. Depuis un autre namespace, il faudrait `app1.net`.)*
 :::
 
 :::lang en
-**✅ Check:** `nslookup app1` resolves to the full name **`app1.net.svc.cluster.local`** and the Service IP (not a pod's). The `wget -qO- app1` returns a `Hostname: app1-…` line — one of the two `app1` pods answered, via the short name `app1` (same namespace). Re-run: the `Hostname` **alternates** between the two pods → the Service **load-balances**. *(From another namespace, you'd need `app1.net`.)*
+**✅ Check:** `nslookup app1` resolves to the full name **`app1.net.svc.cluster.local`** and the Service IP (not a pod's). The `wget -qO- app1` returns a `Hostname: app1-…` line — one of the two `app1` pods answered, via the short name `app1` (same namespace). Re-run it several times: across the runs, responses are **spread** across both pods → the Service **load-balances**. *(kube-proxy in iptables mode balances **statistically**, not strict round-robin: two runs in a row can hit the same pod — that's normal. From another namespace, you'd need `app1.net`.)*
 :::
 
 ### step-03
@@ -392,7 +392,7 @@ spec:
 
 ```bash
 kubectl apply -f headless.yaml
-kubectl run client --image=busybox:1.36 --restart=Never -it --rm -- \
+kubectl run dnsclient --image=busybox:1.36 --restart=Never -it --rm -- \
   nslookup app1-headless
 ```
 
@@ -435,7 +435,7 @@ spec:
 kubectl apply -f deny.yaml
 # Test depuis un pod NON autorisé (timeout attendu) / from a NON-allowed pod (timeout expected)
 kubectl run probe --image=busybox:1.36 --restart=Never -it --rm -- \
-  wget -qO- --timeout=5 app1 || echo "BLOQUÉ (attendu) / BLOCKED (expected)"
+  wget -qO- -T 5 app1 || echo "BLOQUÉ (attendu) / BLOCKED (expected)"
 ```
 
 :::lang fr
@@ -471,10 +471,10 @@ spec:
 kubectl apply -f allow.yaml
 # Pod autorisé (label access=app1) -> passe / allowed pod (label access=app1) -> succeeds
 kubectl run ok --image=busybox:1.36 --labels="access=app1" --restart=Never -it --rm -- \
-  wget -qO- --timeout=5 app1 | grep Hostname
+  wget -qO- -T 5 app1 | grep Hostname
 # Pod non-labellisé -> toujours bloqué / unlabeled pod -> still blocked
 kubectl run ko --image=busybox:1.36 --restart=Never -it --rm -- \
-  wget -qO- --timeout=5 app1 || echo "BLOQUÉ (attendu) / BLOCKED (expected)"
+  wget -qO- -T 5 app1 || echo "BLOQUÉ (attendu) / BLOCKED (expected)"
 ```
 
 :::lang fr
@@ -623,7 +623,7 @@ kubectl get networkpolicy
 
 **La NetworkPolicy ne bloque rien.** Sur k3s elle devrait ; vérifie que tu testes le bon namespace et que la policy **sélectionne** bien le pod cible (`kubectl describe networkpolicy`). Rappelle-toi qu'une policy est **additive** : plusieurs policies s'additionnent (union des autorisations).
 
-**Le pod `client`/`probe` reste ouvert et bloque le terminal.** Avec `-it --rm --restart=Never`, il se supprime à la sortie. Si un pod jetable traîne, `kubectl delete pod client probe ok ko --ignore-not-found`.
+**Le pod `client`/`probe` reste ouvert et bloque le terminal.** Avec `-it --rm --restart=Never`, il se supprime à la sortie. Si un pod jetable traîne, `kubectl delete pod client dnsclient probe ok ko --ignore-not-found`.
 
 **`nslookup` échoue dans busybox.** Utilise le nom complet `app1.net.svc.cluster.local`, ou vérifie CoreDNS (`kubectl -n kube-system get pods -l k8s-app=kube-dns`).
 :::
@@ -637,7 +637,7 @@ kubectl get networkpolicy
 
 **The NetworkPolicy blocks nothing.** On k3s it should; check you're testing the right namespace and that the policy actually **selects** the target pod (`kubectl describe networkpolicy`). Remember a policy is **additive**: multiple policies add up (union of allowances).
 
-**The `client`/`probe` pod hangs and blocks the terminal.** With `-it --rm --restart=Never`, it deletes itself on exit. If a throwaway pod lingers, `kubectl delete pod client probe ok ko --ignore-not-found`.
+**The `client`/`probe` pod hangs and blocks the terminal.** With `-it --rm --restart=Never`, it deletes itself on exit. If a throwaway pod lingers, `kubectl delete pod client dnsclient probe ok ko --ignore-not-found`.
 
 **`nslookup` fails in busybox.** Use the full name `app1.net.svc.cluster.local`, or check CoreDNS (`kubectl -n kube-system get pods -l k8s-app=kube-dns`).
 :::
