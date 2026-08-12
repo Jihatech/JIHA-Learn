@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — projet d&#39;entreprise : plateforme web 3-tiers — jiha.tech</title>
+  <title data-lang="en">Ansible — enterprise project: 3-tier web platform — jiha.tech</title>
+  <meta name="description" content="Le capstone RHCE/EX294 : provisionne une plateforme web 3-tiers (load-balancer + app + base de données) sur un parc de VM locales, entièrement avec Ansible. Inventaire à groupes, rôles réutilisables (commun/app/db/loadbalancer), secrets chiffrés avec Vault, configs templatées Jinja2 qui découvrent les backends via hostvars/groups, handlers, et un site.yml idempotent. Un livrable prêt pour ton CV, avec README d&#39;architecture." data-lang="fr">
+  <meta name="description" content="The RHCE/EX294 capstone: provision a 3-tier web platform (load-balancer + app + database) on a local VM fleet, entirely with Ansible. Grouped inventory, reusable roles (commun/app/db/loadbalancer), Vault-encrypted secrets, Jinja2-templated configs discovering backends via hostvars/groups, handlers, and an idempotent site.yml. A CV-ready deliverable, with an architecture README." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — projet d&#39;entreprise : plateforme web 3-tiers">
+  <meta property="og:description" content="Le capstone RHCE/EX294 : provisionne une plateforme web 3-tiers (load-balancer + app + base de données) sur un parc de VM locales, entièrement avec Ansible. Inventaire à groupes, rôles réutilisables (commun/app/db/loadbalancer), secrets chiffrés avec Vault, configs templatées Jinja2 qui découvrent les backends via hostvars/groups, handlers, et un site.yml idempotent. Un livrable prêt pour ton CV, avec README d&#39;architecture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-projet-entreprise</div>
+    <h1 data-lang="fr">Ansible — projet d&#39;entreprise : plateforme web 3-tiers</h1>
+    <h1 data-lang="en">Ansible — enterprise project: 3-tier web platform</h1>
+    <p class="tagline" data-lang="fr">inventaire, rôles, Vault, templates, handlers : un site.yml complet.</p>
+    <p class="tagline" data-lang="en">inventory, roles, Vault, templates, handlers: a complete site.yml.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 300 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 300 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>C&#39;est le moment d&#39;assembler <strong>tout</strong> ce que tu as appris dans le track Ansible en <strong>un seul projet</strong> que tu pourras montrer en entretien : une <strong>plateforme web 3-tiers</strong> provisionnée de bout en bout par Ansible. Un <strong>load-balancer</strong> nginx distribue le trafic vers deux <strong>serveurs d&#39;application</strong>, qui lisent leurs données dans une <strong>base PostgreSQL</strong> — le tout configuré, sécurisé et reproductible par un unique <code>site.yml</code> idempotent.</p>
+<p>Ce projet mobilise toute la boîte à outils RHCE : un <strong>inventaire à groupes</strong> (<code>loadbalancer</code>, <code>app</code>, <code>database</code>), des <strong>rôles réutilisables</strong> (<code>commun</code>, <code>db</code>, <code>app</code>, <code>loadbalancer</code>), des <strong>secrets chiffrés avec Vault</strong> (le mot de passe PostgreSQL n&#39;apparaît jamais en clair), des <strong>templates Jinja2</strong> qui <strong>découvrent</strong> dynamiquement les backends via <code>groups</code>/<code>hostvars</code>, des <strong>handlers</strong> qui ne rechargent un service que si sa config a bougé, et l&#39;<strong>administration système par modules</strong> (utilisateurs, paquets, services, pare-feu). Rien de bidon : c&#39;est une architecture qu&#39;on déploie vraiment en entreprise.</p>
+<p>Tu le montes sur un <strong>parc de VM locales</strong> (Multipass), sans louer un seul serveur cloud. À la fin, tu auras un dépôt Git propre — rôles, inventaire, Vault, <code>site.yml</code>, README d&#39;architecture — que tu peux <strong>mettre sur ton CV et ton GitHub</strong> comme preuve concrète de tes compétences Ansible/RHCE.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé tout le track Ansible (des fondamentaux à l&#39;administration système). C&#39;est l&#39;examen final.</p>
+<p><strong>Ce que tu vas produire :</strong> un projet Git complet et idempotent qui, en une commande (<code>ansible-playbook site.yml</code>), transforme quatre machines nues en une plateforme web fonctionnelle et sécurisée.</p>
+</div>
+<div data-lang="en"><p>Time to assemble <strong>everything</strong> you learned in the Ansible track into <strong>one project</strong> you can show in an interview: a <strong>3-tier web platform</strong> provisioned end to end by Ansible. An nginx <strong>load-balancer</strong> distributes traffic to two <strong>application servers</strong>, which read their data from a <strong>PostgreSQL database</strong> — all configured, secured and reproducible by a single idempotent <code>site.yml</code>.</p>
+<p>This project mobilizes the whole RHCE toolbox: a <strong>grouped inventory</strong> (<code>loadbalancer</code>, <code>app</code>, <code>database</code>), <strong>reusable roles</strong> (<code>commun</code>, <code>db</code>, <code>app</code>, <code>loadbalancer</code>), <strong>Vault-encrypted secrets</strong> (the PostgreSQL password never appears in clear), <strong>Jinja2 templates</strong> that dynamically <strong>discover</strong> the backends via <code>groups</code>/<code>hostvars</code>, <strong>handlers</strong> that reload a service only if its config moved, and <strong>system administration via modules</strong> (users, packages, services, firewall). Nothing fake: it&#39;s an architecture actually deployed in companies.</p>
+<p>You build it on a <strong>local VM fleet</strong> (Multipass), without renting a single cloud server. In the end you&#39;ll have a clean Git repo — roles, inventory, Vault, <code>site.yml</code>, architecture README — that you can <strong>put on your CV and GitHub</strong> as concrete proof of your Ansible/RHCE skills.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the whole Ansible track (from fundamentals to system administration). This is the final exam.</p>
+<p><strong>What you&#39;ll produce:</strong> a complete, idempotent Git project that, in one command (<code>ansible-playbook site.yml</code>), turns four bare machines into a working, secured web platform.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu as construit et tu sais expliquer :</p>
+<ul><li>Un <strong>inventaire à groupes</strong> modélisant une architecture 3-tiers.</li><li>Quatre <strong>rôles réutilisables</strong> avec <code>defaults</code>, <code>templates</code>, <code>handlers</code>, <code>meta</code> et dépendances.</li><li>Un <strong>coffre Vault</strong> pour le mot de passe de la base, jamais en clair.</li><li>Des <strong>templates Jinja2</strong> qui génèrent la config du load-balancer à partir de <code>groups[&#39;app&#39;]</code> et <code>hostvars</code>.</li><li>Un <strong><code>site.yml</code></strong> qui orchestre les rôles par tier, <strong>idempotent</strong> de bout en bout.</li><li>Un <strong>README d&#39;architecture</strong> et un pitch prêt pour l&#39;entretien.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ve built and can explain:</p>
+<ul><li>A <strong>grouped inventory</strong> modeling a 3-tier architecture.</li><li>Four <strong>reusable roles</strong> with <code>defaults</code>, <code>templates</code>, <code>handlers</code>, <code>meta</code> and dependencies.</li><li>A <strong>Vault</strong> for the database password, never in clear.</li><li><strong>Jinja2 templates</strong> generating the load-balancer config from <code>groups[&#39;app&#39;]</code> and <code>hostvars</code>.</li><li>A <strong><code>site.yml</code></strong> orchestrating roles per tier, <strong>idempotent</strong> end to end.</li><li>An <strong>architecture README</strong> and an interview-ready pitch.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Tout le track Ansible</strong> terminé (fondamentaux → inventaire → tâches → variables/facts → rôles → Vault → administration système).</li><li><strong>Ansible ≥ 2.16</strong> et <strong>Multipass</strong> installés.</li><li>Assez de RAM pour <strong>4 petites VM</strong> (~1 Go chacune ; réduis à 512 Mo si besoin, ou fusionne <code>app2</code> avec <code>app1</code> pour ne faire que 3 VM).</li><li>Les <strong>collections</strong> <code>community.general</code> (ufw), <code>ansible.posix</code> (firewalld/mount) et <code>community.postgresql</code> (base) — on les déclare dans un <code>requirements.yml</code>.</li><li>⚠️ Ce projet se déploie sur de <strong>vraies VM</strong> (systemd, PostgreSQL, nginx). Tu peux <strong>valider la structure sans VM</strong> (<code>--syntax-check</code>, <code>ansible-inventory --graph</code>, rendu de templates, Vault), mais l&#39;exécution complète exige le parc.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>The whole Ansible track</strong> done (fundamentals → inventory → tasks → variables/facts → roles → Vault → system administration).</li><li><strong>Ansible ≥ 2.16</strong> and <strong>Multipass</strong> installed.</li><li>Enough RAM for <strong>4 small VMs</strong> (~1 GB each; drop to 512 MB if needed, or merge <code>app2</code> into <code>app1</code> for just 3 VMs).</li><li>The <strong>collections</strong> <code>community.general</code> (ufw), <code>ansible.posix</code> (firewalld/mount) and <code>community.postgresql</code> (database) — declared in a <code>requirements.yml</code>.</li><li>⚠️ This project deploys on <strong>real VMs</strong> (systemd, PostgreSQL, nginx). You can <strong>validate the structure without VMs</strong> (<code>--syntax-check</code>, <code>ansible-inventory --graph</code>, template rendering, Vault), but a full run requires the fleet.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-administration-systeme/">
+    <span class="num">26</span>
+    <span class="title-line" data-lang="fr">Ansible — administration système par modules</span>
+    <span class="title-line" data-lang="en">Ansible — system administration via modules</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Architecture 3-tiers.</strong> Trois couches séparées : le <strong>load-balancer</strong> (point d&#39;entrée public, répartit la charge), les <strong>serveurs d&#39;application</strong> (le code, réplicable horizontalement), la <strong>base de données</strong> (l&#39;état persistant, un seul nœud ici). Chaque tier est un <strong>groupe</strong> d&#39;inventaire, et chaque groupe reçoit un <strong>rôle</strong>.</p>
+<p><strong>Découverte dynamique des backends.</strong> Le load-balancer ne doit pas connaître ses backends « en dur » : il les <strong>découvre</strong> à partir de l&#39;inventaire. Le template nginx boucle sur <code>groups[&#39;app&#39;]</code> et lit l&#39;IP de chaque app via <code>hostvars[h][&#39;ansible_host&#39;]</code>. Ajoute un <code>app3</code> à l&#39;inventaire, relance : le LB l&#39;intègre automatiquement.</p>
+<p><strong>Séparation config / secrets.</strong> Les valeurs publiques (ports, noms de base, versions) vivent en clair dans <code>group_vars/</code>. Le <strong>mot de passe</strong> de la base vit dans un fichier <strong>Vault</strong> chiffré (<code>group_vars/all/vault.yml</code>). Convention : la variable chiffrée s&#39;appelle <code>vault_db_password</code>, et une variable claire <code>db_password: &quot;{{ vault_db_password }}&quot;</code> fait le pont — on garde des noms lisibles ET des secrets protégés.</p>
+<p><strong>Orchestration par tiers.</strong> Le <code>site.yml</code> est une suite de <strong>plays</strong>, un par tier, chacun ciblant son groupe et appliquant ses rôles. Le rôle <code>commun</code> (base commune) est appliqué partout, en <strong>dépendance</strong> des autres rôles. L&#39;ordre compte : la base <strong>avant</strong> les apps (qui s&#39;y connectent), les apps <strong>avant</strong> le load-balancer (qui les référence).</p>
+<p><strong>Idempotence de bout en bout.</strong> Le critère de qualité d&#39;un projet Ansible : relancer <code>site.yml</code> une seconde fois ne doit produire <strong>que des <code>ok</code></strong> (0 <code>changed</code>). C&#39;est la preuve que ton infrastructure est décrite comme un <strong>état voulu</strong>, pas comme une suite de commandes.</p>
+</div>
+<div data-lang="en"><p><strong>3-tier architecture.</strong> Three separate layers: the <strong>load-balancer</strong> (public entry point, spreads the load), the <strong>application servers</strong> (the code, horizontally replicable), the <strong>database</strong> (persistent state, a single node here). Each tier is an inventory <strong>group</strong>, and each group gets a <strong>role</strong>.</p>
+<p><strong>Dynamic backend discovery.</strong> The load-balancer must not know its backends &quot;hardcoded&quot;: it <strong>discovers</strong> them from the inventory. The nginx template loops over <code>groups[&#39;app&#39;]</code> and reads each app&#39;s IP via <code>hostvars[h][&#39;ansible_host&#39;]</code>. Add an <code>app3</code> to the inventory, rerun: the LB integrates it automatically.</p>
+<p><strong>Config / secrets separation.</strong> Public values (ports, database name, versions) live in clear in <code>group_vars/</code>. The database <strong>password</strong> lives in an encrypted <strong>Vault</strong> file (<code>group_vars/all/vault.yml</code>). Convention: the encrypted variable is <code>vault_db_password</code>, and a clear variable <code>db_password: &quot;{{ vault_db_password }}&quot;</code> bridges it — you keep readable names AND protected secrets.</p>
+<p><strong>Orchestration per tier.</strong> The <code>site.yml</code> is a sequence of <strong>plays</strong>, one per tier, each targeting its group and applying its roles. The <code>commun</code> role (shared base) is applied everywhere, as a <strong>dependency</strong> of the other roles. Order matters: the database <strong>before</strong> the apps (which connect to it), the apps <strong>before</strong> the load-balancer (which references them).</p>
+<p><strong>End-to-end idempotence.</strong> The quality criterion of an Ansible project: rerunning <code>site.yml</code> a second time must produce <strong>only <code>ok</code></strong> (0 <code>changed</code>). It proves your infrastructure is described as a <strong>desired state</strong>, not a sequence of commands.</p>
+</div>
+
+<figure class="schema" id="figure-ansible-3tier-architecture">
+  <p>[schema "ansible-3tier-architecture" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La plateforme 3-tiers : Internet → load-balancer (lb1) → serveurs d&#39;app (app1, app2) → base PostgreSQL (db1). Chaque tier est un groupe d&#39;inventaire piloté par un rôle ; le LB découvre ses backends via groups/hostvars.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The 3-tier platform: Internet → load-balancer (lb1) → app servers (app1, app2) → PostgreSQL database (db1). Each tier is an inventory group driven by a role; the LB discovers its backends via groups/hostvars.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer le parc de 4 VM et écrire l&#39;<strong>inventaire à groupes</strong> de l&#39;architecture 3-tiers.</p>
+<p><strong>🤔 Pourquoi cette structure.</strong> Chaque tier = un groupe (<code>loadbalancer</code>, <code>app</code>, <code>database</code>), et un parent <code>prod</code> les rassemble pour les réglages communs. C&#39;est cette structure qui rend le <code>site.yml</code> lisible : « applique le rôle db au groupe database ».</p>
+<p>Crée le projet, le cloud-init (avec <strong>ta</strong> clé), et lance les VM :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch the 4-VM fleet and write the <strong>grouped inventory</strong> of the 3-tier architecture.</p>
+<p><strong>🤔 Why this structure.</strong> Each tier = a group (<code>loadbalancer</code>, <code>app</code>, <code>database</code>), and a parent <code>prod</code> gathers them for common settings. It&#39;s this structure that makes the <code>site.yml</code> readable: &quot;apply the db role to the database group&quot;.</p>
+<p>Create the project, the cloud-init (with <strong>your</strong> key), and launch the VMs:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/projet-plateforme/{group_vars/all,roles} &amp;&amp; cd ~/projet-plateforme
+
+cat &gt; cloud-init.yaml &lt;&lt;EOF
+#cloud-config
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - $(cat ~/.ssh/id_ed25519.pub)
+EOF
+
+for vm in lb1 app1 app2 db1; do
+  multipass launch 24.04 --name &quot;$vm&quot; --cpus 1 --memory 1G --disk 5G --cloud-init cloud-init.yaml
+done
+multipass list      # relève les 4 IPv4 / note the 4 IPv4s</code></pre>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-plateforme/inventory.ini  (remplace les IP)
+[loadbalancer]
+lb1 ansible_host=&lt;IP_lb1&gt;
+
+[app]
+app1 ansible_host=&lt;IP_app1&gt;
+app2 ansible_host=&lt;IP_app2&gt;
+
+[database]
+db1 ansible_host=&lt;IP_db1&gt;
+
+[prod:children]
+loadbalancer
+app
+database
+
+[prod:vars]
+ansible_user=ubuntu</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-inventory -i inventory.ini --graph
+ansible -i inventory.ini prod -m ping</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-inventory --graph</code> montre l&#39;arbre avec <code>loadbalancer</code>, <code>app</code> (deux hôtes) et <code>database</code> sous <code>prod</code>. <code>ansible prod -m ping</code> renvoie <code>pong</code> (vert) pour les <strong>quatre</strong> VM. Ton parc 3-tiers est debout et pilotable. On configure <code>ansible.cfg</code> (inventaire + Vault) à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-inventory --graph</code> shows the tree with <code>loadbalancer</code>, <code>app</code> (two hosts) and <code>database</code> under <code>prod</code>. <code>ansible prod -m ping</code> returns <code>pong</code> (green) for <strong>all four</strong> VMs. Your 3-tier fleet is up and drivable. We configure <code>ansible.cfg</code> (inventory + Vault) in the next step.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le <strong>coffre Vault</strong> pour le mot de passe de la base, et la config projet (<code>ansible.cfg</code>, <code>requirements.yml</code>).</p>
+<p><strong>🤔 Le pont clair/chiffré.</strong> On chiffre <code>vault_db_password</code> dans <code>group_vars/all/vault.yml</code>, et on expose <code>db_password: &quot;{{ vault_db_password }}&quot;</code> en clair dans <code>group_vars/all/main.yml</code>. Les rôles utilisent <code>db_password</code> (nom lisible) ; la vraie valeur reste chiffrée. C&#39;est la convention pro.</p>
+<p>Mets en place la config et les secrets :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <strong>Vault</strong> for the database password, and the project config (<code>ansible.cfg</code>, <code>requirements.yml</code>).</p>
+<p><strong>🤔 The clear/encrypted bridge.</strong> We encrypt <code>vault_db_password</code> in <code>group_vars/all/vault.yml</code>, and expose <code>db_password: &quot;{{ vault_db_password }}&quot;</code> in clear in <code>group_vars/all/main.yml</code>. Roles use <code>db_password</code> (readable name); the real value stays encrypted. It&#39;s the pro convention.</p>
+<p>Set up the config and secrets:</p>
+</div>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-plateforme/ansible.cfg
+[defaults]
+inventory = inventory.ini
+vault_password_file = .vault_pass
+host_key_checking = false
+roles_path = roles</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;MotDePasseDuCoffre2026&quot; &gt; .vault_pass &amp;&amp; chmod 600 .vault_pass
+printf &#39;.vault_pass\n&#39; &gt; .gitignore
+
+# Variables PUBLIQUES / PUBLIC variables
+cat &gt; group_vars/all/main.yml &lt;&lt;&#39;YML&#39;
+app_name: boutique
+app_port: 8080
+db_name: boutique
+db_user: boutique
+db_password: &quot;{{ vault_db_password }}&quot;   # pont vers le secret chiffré / bridge to the encrypted secret
+YML
+
+# Le SECRET, chiffré / the SECRET, encrypted
+cat &gt; group_vars/all/vault.yml &lt;&lt;&#39;YML&#39;
+vault_db_password: &quot;Pg-S3cr3t-Prod-2026&quot;
+YML
+ansible-vault encrypt group_vars/all/vault.yml
+
+# Dépendances du projet / project dependencies
+cat &gt; requirements.yml &lt;&lt;&#39;YML&#39;
+collections:
+  - name: community.general
+  - name: ansible.posix
+  - name: community.postgresql
+YML
+# Avec réseau : ansible-galaxy collection install -r requirements.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>head -c 40 group_vars/all/vault.yml</code> montre l&#39;en-tête <code>$ANSIBLE_VAULT;1.1;AES256</code> (le secret est chiffré). <code>ansible -m debug -a &quot;var=db_password&quot; prod --limit db1</code> (une fois les VM prêtes) afficherait le mot de passe déchiffré à la volée — mais <strong>jamais</strong> en clair sur le disque. <code>.vault_pass</code> est dans <code>.gitignore</code>. La séparation config/secret est en place.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>head -c 40 group_vars/all/vault.yml</code> shows the <code>$ANSIBLE_VAULT;1.1;AES256</code> header (the secret is encrypted). <code>ansible -m debug -a &quot;var=db_password&quot; prod --limit db1</code> (once the VMs are ready) would print the on-the-fly decrypted password — but <strong>never</strong> in clear on disk. <code>.vault_pass</code> is in <code>.gitignore</code>. The config/secret separation is in place.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le rôle <strong><code>commun</code></strong> — la base appliquée à <strong>toutes</strong> les machines (paquets, utilisateur de service, fuseau, pare-feu de base).</p>
+<p><strong>🤔 Pourquoi un rôle commun.</strong> Chaque tier partage un socle : un utilisateur <code>deploy</code>, des paquets utilitaires, le bon fuseau horaire, un pare-feu qui autorise SSH. Le mettre dans un rôle <code>commun</code> évite de le répéter, et on l&#39;attache en <strong>dépendance</strong> aux autres rôles (il tourne toujours en premier).</p>
+<p>Génère et remplis le rôle :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong><code>commun</code></strong> role — the base applied to <strong>all</strong> machines (packages, service user, timezone, baseline firewall).</p>
+<p><strong>🤔 Why a commun role.</strong> Each tier shares a base: a <code>deploy</code> user, utility packages, the right timezone, a firewall allowing SSH. Putting it in a <code>commun</code> role avoids repeating it, and we attach it as a <strong>dependency</strong> to the other roles (it always runs first).</p>
+<p>Scaffold and fill the role:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-galaxy init roles/commun</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/commun/defaults/main.yml
+commun_paquets: [vim, curl, htop]
+commun_timezone: &quot;Europe/Paris&quot;</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/commun/tasks/main.yml
+- name: Paquets utilitaires
+  ansible.builtin.apt:
+    name: &quot;{{ commun_paquets }}&quot;
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Utilisateur de service deploy
+  ansible.builtin.user:
+    name: deploy
+    shell: /bin/bash
+    state: present
+
+- name: Fuseau horaire
+  community.general.timezone:
+    name: &quot;{{ commun_timezone }}&quot;
+
+- name: Pare-feu — autoriser SSH puis activer
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+- name: Activer ufw (politique par défaut refus entrant)
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-playbook -i inventory.ini roles/commun/tests/test.yml --syntax-check</code> passe (ou on validera via <code>site.yml</code>). Sur le parc, appliqué à un hôte, le rôle installe les paquets, crée <code>deploy</code>, règle le fuseau et active ufw en n&#39;ouvrant que SSH. ⚠️ <strong>On active SSH dans ufw AVANT</strong> de passer la politique en <code>deny incoming</code> — sinon on se coupe l&#39;accès. L&#39;ordre des tâches est critique ici.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-playbook -i inventory.ini roles/commun/tests/test.yml --syntax-check</code> passes (or we&#39;ll validate via <code>site.yml</code>). On the fleet, applied to a host, the role installs the packages, creates <code>deploy</code>, sets the timezone and enables ufw opening only SSH. ⚠️ <strong>We allow SSH in ufw BEFORE</strong> switching the policy to <code>deny incoming</code> — otherwise you cut your own access. Task order is critical here.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le rôle <strong><code>db</code></strong> — installer PostgreSQL et créer la base + l&#39;utilisateur applicatif, avec le mot de passe <strong>Vault</strong>.</p>
+<p><strong>🤔 Le tier persistant.</strong> La base est le seul tier avec état. On installe PostgreSQL, on crée une base <code>boutique</code> et un utilisateur <code>boutique</code> dont le mot de passe vient du coffre (<code>db_password</code>). On ouvre le port 5432 <strong>uniquement</strong> pour le réseau du parc (les apps), pas au monde.</p>
+<p>Génère et remplis :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong><code>db</code></strong> role — install PostgreSQL and create the database + application user, with the <strong>Vault</strong> password.</p>
+<p><strong>🤔 The persistent tier.</strong> The database is the only stateful tier. We install PostgreSQL, create a <code>boutique</code> database and a <code>boutique</code> user whose password comes from the vault (<code>db_password</code>). We open port 5432 <strong>only</strong> to the fleet network (the apps), not to the world.</p>
+<p>Scaffold and fill:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-galaxy init roles/db</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/db/meta/main.yml — dépend de commun (REMPLACE la ligne dependencies: [])
+dependencies:
+  - role: commun</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/db/tasks/main.yml
+- name: Installer PostgreSQL et le driver Python
+  ansible.builtin.apt:
+    name: [postgresql, python3-psycopg2]
+    state: present
+    update_cache: true
+
+- name: PostgreSQL démarré et activé
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Créer la base applicative
+  community.postgresql.postgresql_db:
+    name: &quot;{{ db_name }}&quot;
+    state: present
+  become: true
+  become_user: postgres
+
+- name: Créer l&#39;utilisateur applicatif (mot de passe depuis Vault)
+  community.postgresql.postgresql_user:
+    db: &quot;{{ db_name }}&quot;
+    name: &quot;{{ db_user }}&quot;
+    password: &quot;{{ db_password }}&quot;
+    priv: ALL
+    state: present
+  become: true
+  become_user: postgres
+  no_log: true            # ne journalise pas le secret / don&#39;t log the secret</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>db1</code>, après le rôle, <code>sudo -u postgres psql -c &quot;\l&quot;</code> liste la base <code>boutique</code>, et <code>\du</code> montre l&#39;utilisateur <code>boutique</code>. Le mot de passe vient de Vault, jamais écrit en clair (et <code>no_log: true</code> l&#39;empêche d&#39;apparaître dans les logs Ansible). ⚠️ <code>python3-psycopg2</code> est <strong>requis</strong> : les modules <code>postgresql_*</code> s&#39;exécutent via ce driver Python sur la cible.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <code>db1</code>, after the role, <code>sudo -u postgres psql -c &quot;\l&quot;</code> lists the <code>boutique</code> database, and <code>\du</code> shows the <code>boutique</code> user. The password comes from Vault, never written in clear (and <code>no_log: true</code> prevents it appearing in Ansible logs). ⚠️ <code>python3-psycopg2</code> is <strong>required</strong>: the <code>postgresql_*</code> modules run via this Python driver on the target.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le rôle <strong><code>app</code></strong> — déployer l&#39;application sur les serveurs <code>app</code>, templater sa config (qui pointe vers la base).</p>
+<p><strong>🤔 Le tier réplicable.</strong> Les serveurs d&#39;app sont <strong>identiques</strong> : même rôle, même config, seule l&#39;identité de la machine change. La config est <strong>templatée</strong> — l&#39;app connaît l&#39;adresse de la base via <code>hostvars[groups[&#39;database&#39;][0]]</code>, c&#39;est-à-dire « l&#39;IP du premier hôte du groupe database ». Un handler recharge nginx si la config a bougé.</p>
+<p>Génère et remplis :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong><code>app</code></strong> role — deploy the application on the <code>app</code> servers, template its config (pointing to the database).</p>
+<p><strong>🤔 The replicable tier.</strong> The app servers are <strong>identical</strong>: same role, same config, only the machine&#39;s identity changes. The config is <strong>templated</strong> — the app knows the database address via <code>hostvars[groups[&#39;database&#39;][0]]</code>, i.e. &quot;the IP of the first host of the database group&quot;. A handler reloads nginx if the config moved.</p>
+<p>Scaffold and fill:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-galaxy init roles/app</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/app/meta/main.yml (REMPLACE dependencies: [])
+dependencies:
+  - role: commun</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/app/tasks/main.yml
+- name: Installer nginx
+  ansible.builtin.apt: { name: nginx, state: present, update_cache: true }
+
+- name: Config de l&#39;app (templatée, pointe vers la base)
+  ansible.builtin.template:
+    src: app.conf.j2
+    dest: /etc/app.conf
+  notify: Recharger nginx
+
+- name: Page servie (identifie le serveur)
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+  notify: Recharger nginx
+
+- name: nginx démarré et activé
+  ansible.builtin.service: { name: nginx, state: started, enabled: true }</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# roles/app/templates/app.conf.j2 #}
+# Config générée par Ansible pour {{ inventory_hostname }}
+app_name={{ app_name }}
+listen_port={{ app_port }}
+db_host={{ hostvars[groups[&#39;database&#39;][0]][&#39;ansible_host&#39;] }}
+db_name={{ db_name }}
+db_user={{ db_user }}
+# le mot de passe n&#39;est PAS écrit ici / password NOT written here</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# roles/app/templates/index.html.j2 #}
+&lt;h1&gt;{{ app_name }}&lt;/h1&gt;
+&lt;p&gt;Servi par {{ inventory_hostname }} ({{ ansible_host | default(&#39;local&#39;) }})&lt;/p&gt;</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/app/handlers/main.yml
+- name: Recharger nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>app1</code>, <code>/etc/app.conf</code> contient <code>db_host=&lt;IP de db1&gt;</code> — l&#39;app a <strong>découvert</strong> la base via <code>hostvars</code>, sans qu&#39;on l&#39;écrive en dur. <code>curl localhost</code> sur <code>app1</code> renvoie « Servi par app1 », sur <code>app2</code> « Servi par app2 ». Le mot de passe de la base <strong>n&#39;est pas</strong> dans <code>app.conf</code> (bonne hygiène). Le handler « Recharger nginx » ne se déclenche que si un template a changé.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <code>app1</code>, <code>/etc/app.conf</code> contains <code>db_host=&lt;db1&#39;s IP&gt;</code> — the app <strong>discovered</strong> the database via <code>hostvars</code>, without hardcoding it. <code>curl localhost</code> on <code>app1</code> returns &quot;Servi par app1&quot;, on <code>app2</code> &quot;Servi par app2&quot;. The database password is <strong>not</strong> in <code>app.conf</code> (good hygiene). The &quot;Recharger nginx&quot; handler fires only if a template changed.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le rôle <strong><code>loadbalancer</code></strong> — nginx en reverse-proxy qui <strong>découvre</strong> ses backends <code>app</code> via <code>groups</code>/<code>hostvars</code>.</p>
+<p><strong>🤔 Le cœur du projet.</strong> Le LB ne connaît pas ses backends à l&#39;avance : le template boucle sur <code>groups[&#39;app&#39;]</code> et génère un <code>upstream</code> avec l&#39;IP de chaque serveur d&#39;app. Ajoute un <code>app3</code> à l&#39;inventaire, relance <code>site.yml</code> : la config du LB l&#39;intègre <strong>automatiquement</strong>. C&#39;est la puissance de l&#39;inventaire + templating.</p>
+<p>Génère et remplis :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong><code>loadbalancer</code></strong> role — nginx as a reverse-proxy that <strong>discovers</strong> its <code>app</code> backends via <code>groups</code>/<code>hostvars</code>.</p>
+<p><strong>🤔 The heart of the project.</strong> The LB doesn&#39;t know its backends in advance: the template loops over <code>groups[&#39;app&#39;]</code> and generates an <code>upstream</code> with each app server&#39;s IP. Add an <code>app3</code> to the inventory, rerun <code>site.yml</code>: the LB config integrates it <strong>automatically</strong>. That&#39;s the power of inventory + templating.</p>
+<p>Scaffold and fill:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-galaxy init roles/loadbalancer</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/loadbalancer/meta/main.yml (REMPLACE dependencies: [])
+dependencies:
+  - role: commun</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/loadbalancer/tasks/main.yml
+- name: Installer nginx
+  ansible.builtin.apt: { name: nginx, state: present, update_cache: true }
+
+- name: Config du reverse-proxy (backends découverts dynamiquement)
+  ansible.builtin.template:
+    src: lb.conf.j2
+    dest: /etc/nginx/sites-available/default
+  notify: Recharger nginx
+
+- name: Ouvrir le port 80 (trafic public)
+  community.general.ufw: { rule: allow, port: &quot;80&quot;, proto: tcp }
+
+- name: nginx démarré et activé
+  ansible.builtin.service: { name: nginx, state: started, enabled: true }</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# roles/loadbalancer/templates/lb.conf.j2 #}
+# Load-balancer généré par Ansible — backends du groupe &#39;app&#39;
+upstream boutique {
+{% for h in groups[&#39;app&#39;] %}
+    server {{ hostvars[h][&#39;ansible_host&#39;] }}:{{ app_port | default(80) }};   # {{ h }}
+{% endfor %}
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://boutique;
+        proxy_set_header Host $host;
+    }
+}</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/loadbalancer/handlers/main.yml
+- name: Recharger nginx
+  ansible.builtin.service: { name: nginx, state: reloaded }</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>lb1</code>, <code>/etc/nginx/sites-available/default</code> contient un bloc <code>upstream boutique { ... }</code> avec <strong>une ligne <code>server</code> par app</strong> (app1 <strong>et</strong> app2, avec leurs IP réelles) — généré par la boucle sur <code>groups[&#39;app&#39;]</code>. <code>curl http://&lt;IP_lb1&gt;</code> depuis ton laptop renvoie alternativement « Servi par app1 » et « Servi par app2 » (répartition de charge). Tu as prouvé la découverte dynamique des backends. ⚠️ <code>app_port</code> doit correspondre au port où nginx écoute sur les apps (ici on sert sur 80 par défaut nginx ; ajuste <code>app_port</code> si tu changes l&#39;écoute).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <code>lb1</code>, <code>/etc/nginx/sites-available/default</code> contains an <code>upstream boutique { ... }</code> block with <strong>one <code>server</code> line per app</strong> (app1 <strong>and</strong> app2, with their real IPs) — generated by the loop over <code>groups[&#39;app&#39;]</code>. <code>curl http://&lt;lb1_IP&gt;</code> from your laptop returns alternately &quot;Servi par app1&quot; and &quot;Servi par app2&quot; (load spreading). You&#39;ve proven dynamic backend discovery. ⚠️ <code>app_port</code> must match the port nginx listens on the apps (here we serve on nginx&#39;s default 80; adjust <code>app_port</code> if you change the listen).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le <strong><code>site.yml</code></strong> qui orchestre tout, le lancer, et <strong>prouver l&#39;idempotence</strong>.</p>
+<p><strong>🤔 L&#39;ordre des plays.</strong> La base <strong>d&#39;abord</strong> (les apps s&#39;y connectent), les apps <strong>ensuite</strong>, le load-balancer <strong>en dernier</strong> (il référence les apps). Chaque play cible son groupe et applique son rôle ; le rôle <code>commun</code> tourne en dépendance au début de chacun. Un <code>site.yml</code> bien ordonné se lit comme le plan d&#39;architecture.</p>
+<p>Écris le <code>site.yml</code> et lance-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong><code>site.yml</code></strong> orchestrating everything, run it, and <strong>prove idempotence</strong>.</p>
+<p><strong>🤔 The order of plays.</strong> The database <strong>first</strong> (the apps connect to it), the apps <strong>next</strong>, the load-balancer <strong>last</strong> (it references the apps). Each play targets its group and applies its role; the <code>commun</code> role runs as a dependency at the start of each. A well-ordered <code>site.yml</code> reads like the architecture plan.</p>
+<p>Write the <code>site.yml</code> and run it:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-plateforme/site.yml
+- name: Tier base de données
+  hosts: database
+  become: true
+  roles:
+    - db
+
+- name: Tier application
+  hosts: app
+  become: true
+  roles:
+    - app
+
+- name: Tier load-balancer
+  hosts: loadbalancer
+  become: true
+  roles:
+    - loadbalancer</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Valider la structure sans exécuter / validate structure without running
+ansible-playbook site.yml --syntax-check
+ansible-playbook site.yml --list-hosts        # qui sera touché, par tier / who gets touched
+
+# Déployer TOUTE la plateforme en une commande / deploy the WHOLE platform in one command
+ansible-playbook site.yml
+
+# LA preuve : relancer, tout doit être &quot;ok&quot; / THE proof: rerun, all must be &quot;ok&quot;
+ansible-playbook site.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le 1er <code>ansible-playbook site.yml</code> déroule les trois tiers dans l&#39;ordre (database → app → loadbalancer), avec des <code>changed</code> (installation, config). Le <strong>récap final</strong> (<code>PLAY RECAP</code>) montre <code>failed=0</code> sur les 4 hôtes. <code>curl http://&lt;IP_lb1&gt;</code> sert la boutique via les deux apps. <strong>La preuve d&#39;or :</strong> relance <code>site.yml</code> — le récap affiche <code>changed=0</code> partout (que des <code>ok</code>). Idempotence parfaite = ton infra est un état voulu reproductible. Bravo, la plateforme est déployée. 🎉</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the 1st <code>ansible-playbook site.yml</code> runs the three tiers in order (database → app → loadbalancer), with <code>changed</code> (install, config). The <strong>final recap</strong> (<code>PLAY RECAP</code>) shows <code>failed=0</code> on the 4 hosts. <code>curl http://&lt;lb1_IP&gt;</code> serves the shop via the two apps. <strong>The golden proof:</strong> rerun <code>site.yml</code> — the recap shows <code>changed=0</code> everywhere (only <code>ok</code>). Perfect idempotence = your infra is a reproducible desired state. Well done, the platform is deployed. 🎉</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Se couper l&#39;accès SSH avec ufw.</strong> Passer la politique <code>deny incoming</code> <strong>avant</strong> d&#39;autoriser OpenSSH te déconnecte de la VM. Toujours <code>allow OpenSSH</code> <strong>puis</strong> <code>enable</code>. (Dans un rôle <code>commun</code>, respecte l&#39;ordre des tâches.)</p>
+<p><strong>2. Ordre des tiers dans <code>site.yml</code>.</strong> Si les apps sont configurées avant la base, <code>hostvars[groups[&#39;database&#39;][0]]</code> existe mais la base n&#39;est pas prête → la connexion échouera à l&#39;usage. Base → apps → LB.</p>
+<p><strong>3. Mot de passe de base en clair.</strong> Le secret vit <strong>uniquement</strong> dans <code>group_vars/all/vault.yml</code> chiffré. Ne le mets jamais dans un template ni un fichier clair. Utilise <code>no_log: true</code> sur la tâche qui le manipule.</p>
+<p><strong>4. <code>hostvars[h][&#39;ansible_host&#39;]</code> indéfini.</strong> Si tu as omis <code>ansible_host=</code> dans l&#39;inventaire (en te reposant sur la résolution DNS du nom), <code>hostvars</code> n&#39;a pas la clé. Mets une IP explicite, ou un <code>| default(...)</code>.</p>
+<p><strong>5. Backends du LB en dur.</strong> Écrire les IP des apps directement dans <code>lb.conf.j2</code> tue tout l&#39;intérêt. Boucle <strong>toujours</strong> sur <code>groups[&#39;app&#39;]</code> — c&#39;est ce qui rend l&#39;ajout d&#39;un <code>app3</code> automatique.</p>
+<p><strong>6. Oublier <code>python3-psycopg2</code> sur la base.</strong> Les modules <code>postgresql_*</code> en ont besoin <strong>sur la cible</strong>. Sans lui : <code>Failed to import the required Python library (psycopg2)</code>.</p>
+<p><strong>7. Rôle <code>commun</code> non idempotent.</strong> Si <code>commun</code> (via <code>apt</code>, <code>user</code>, <code>timezone</code>) reste <code>changed</code> au 2e run, tout <code>site.yml</code> l&#39;est aussi. Vérifie chaque rôle <strong>isolément</strong> avant d&#39;assembler.</p>
+<p><strong>8. <code>become</code> oublié.</strong> Installer des paquets, gérer des services, écrire dans <code>/etc</code> exige root. Mets <code>become: true</code> au niveau du play (comme dans <code>site.yml</code>), pas tâche par tâche.</p>
+</div>
+<div data-lang="en"><p><strong>1. Cutting your own SSH access with ufw.</strong> Switching the policy to <code>deny incoming</code> <strong>before</strong> allowing OpenSSH disconnects you from the VM. Always <code>allow OpenSSH</code> <strong>then</strong> <code>enable</code>. (In a <code>commun</code> role, respect task order.)</p>
+<p><strong>2. Tier order in <code>site.yml</code>.</strong> If the apps are configured before the database, <code>hostvars[groups[&#39;database&#39;][0]]</code> exists but the database isn&#39;t ready → the connection will fail in use. Database → apps → LB.</p>
+<p><strong>3. Clear database password.</strong> The secret lives <strong>only</strong> in the encrypted <code>group_vars/all/vault.yml</code>. Never put it in a template or clear file. Use <code>no_log: true</code> on the task handling it.</p>
+<p><strong>4. <code>hostvars[h][&#39;ansible_host&#39;]</code> undefined.</strong> If you omitted <code>ansible_host=</code> in the inventory (relying on DNS name resolution), <code>hostvars</code> lacks the key. Set an explicit IP, or a <code>| default(...)</code>.</p>
+<p><strong>5. Hardcoded LB backends.</strong> Writing the app IPs directly into <code>lb.conf.j2</code> kills the whole point. <strong>Always</strong> loop over <code>groups[&#39;app&#39;]</code> — that&#39;s what makes adding an <code>app3</code> automatic.</p>
+<p><strong>6. Forgetting <code>python3-psycopg2</code> on the database.</strong> The <code>postgresql_*</code> modules need it <strong>on the target</strong>. Without it: <code>Failed to import the required Python library (psycopg2)</code>.</p>
+<p><strong>7. Non-idempotent <code>commun</code> role.</strong> If <code>commun</code> (via <code>apt</code>, <code>user</code>, <code>timezone</code>) stays <code>changed</code> on the 2nd run, the whole <code>site.yml</code> is too. Check each role <strong>in isolation</strong> before assembling.</p>
+<p><strong>8. Forgetting <code>become</code>.</strong> Installing packages, managing services, writing to <code>/etc</code> needs root. Set <code>become: true</code> at play level (as in <code>site.yml</code>), not task by task.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que le projet est réussi quand…</p>
+<ul class="checklist"><li><code>ansible-inventory --graph</code> montre les 3 tiers sous <code>prod</code>.</li><li>Le mot de passe de la base est <strong>chiffré</strong> (Vault) et jamais en clair.</li><li>Les 4 rôles sont idempotents <strong>isolément</strong> et via <code>site.yml</code>.</li><li>La config du LB liste les apps via <code>groups[&#39;app&#39;]</code>/<code>hostvars</code> (pas en dur).</li><li><code>curl http://&lt;lb1&gt;</code> répartit sur <code>app1</code> et <code>app2</code>.</li><li>Un <strong>2e</strong> <code>ansible-playbook site.yml</code> affiche <code>changed=0</code> partout.</li><li>Ton dépôt Git a un <strong>README d&#39;architecture</strong> et pas de secret commité.</li></ul>
+<p>Sept cases = tu as un projet Ansible de niveau entreprise, prêt pour ton CV. 🏆</p>
+</div>
+<div data-lang="en"><p>You know the project is a success when…</p>
+<ul class="checklist"><li><code>ansible-inventory --graph</code> shows the 3 tiers under <code>prod</code>.</li><li>The database password is <strong>encrypted</strong> (Vault) and never in clear.</li><li>The 4 roles are idempotent <strong>in isolation</strong> and via <code>site.yml</code>.</li><li>The LB config lists the apps via <code>groups[&#39;app&#39;]</code>/<code>hostvars</code> (not hardcoded).</li><li><code>curl http://&lt;lb1&gt;</code> spreads across <code>app1</code> and <code>app2</code>.</li><li>A <strong>2nd</strong> <code>ansible-playbook site.yml</code> shows <code>changed=0</code> everywhere.</li><li>Your Git repo has an <strong>architecture README</strong> and no committed secret.</li></ul>
+<p>Seven boxes = you have an enterprise-grade Ansible project, ready for your CV. 🏆</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p><strong>Mettre ce projet sur ton CV.</strong> Tu viens de produire une preuve concrète. Voici comment la valoriser.</p>
+<p>Structure de dépôt à pousser sur GitHub (le README est ce que le recruteur lit en premier — écris-le comme un plan d&#39;architecture) :</p>
+</div>
+<div data-lang="en"><p><strong>Put this project on your CV.</strong> You&#39;ve just produced concrete proof. Here&#39;s how to leverage it.</p>
+<p>Repo structure to push to GitHub (the README is what a recruiter reads first — write it like an architecture plan):</p>
+</div>
+<p>projet-plateforme/     ├── README.md            # architecture, prérequis, &quot;ansible-playbook site.yml&quot;     ├── ansible.cfg     ├── inventory.ini     ├── requirements.yml     ├── site.yml     ├── group_vars/all/     │   ├── main.yml         # variables publiques     │   └── vault.yml        # secret CHIFFRÉ (le .vault_pass n&#39;est PAS commité)     └── roles/         ├── commun/          # base : paquets, user, fuseau, ufw         ├── db/              # PostgreSQL + base + user (mot de passe Vault)         ├── app/             # nginx + config templatée vers la base         └── loadbalancer/    # nginx reverse-proxy, backends dynamiques</p>
+<div data-lang="fr"><p><strong>Le pitch (2 phrases pour l&#39;entretien) :</strong> « J&#39;ai automatisé le déploiement d&#39;une plateforme web 3-tiers (load-balancer, deux serveurs d&#39;app, base PostgreSQL) entièrement avec Ansible : inventaire à groupes, rôles réutilisables, secrets chiffrés avec Vault, et une config de load-balancer qui découvre ses backends dynamiquement via l&#39;inventaire. Une seule commande, <code>ansible-playbook site.yml</code>, provisionne tout, de façon idempotente. »</p>
+<p><strong>Pour aller plus loin :</strong></p>
+<ol><li>Ajoute un <strong><code>app3</code></strong> et vérifie que le LB l&#39;intègre sans toucher au code.</li><li>Ajoute un <strong>rôle <code>monitoring</code></strong> (node_exporter) via une dépendance.</li><li>Branche ce projet sur le <strong>track Terraform</strong> : Terraform crée les VM, Ansible les configure — la combinaison gagnante en entreprise.</li><li>Passe l&#39;examen <strong>RHCE/EX294</strong> : tu en as tous les objectifs en main.</li></ol>
+</div>
+<div data-lang="en"><p><strong>The pitch (2 sentences for the interview):</strong> &quot;I automated the deployment of a 3-tier web platform (load-balancer, two app servers, PostgreSQL database) entirely with Ansible: grouped inventory, reusable roles, Vault-encrypted secrets, and a load-balancer config that discovers its backends dynamically via the inventory. A single command, <code>ansible-playbook site.yml</code>, provisions everything, idempotently.&quot;</p>
+<p><strong>To go further:</strong></p>
+<ol><li>Add an <strong><code>app3</code></strong> and verify the LB integrates it without touching the code.</li><li>Add a <strong><code>monitoring</code> role</strong> (node_exporter) via a dependency.</li><li>Wire this project to the <strong>Terraform track</strong>: Terraform creates the VMs, Ansible configures them — the winning enterprise combo.</li><li>Take the <strong>RHCE/EX294 exam</strong>: you have all its objectives in hand.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du projet.</p>
+</div>
+<div data-lang="en"><p>Project cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Structure &amp; validation / Structure &amp; validation
+ansible-inventory -i inventory.ini --graph     # voir les 3 tiers / see the 3 tiers
+ansible-playbook site.yml --syntax-check       # YAML/modules valides / valid YAML/modules
+ansible-playbook site.yml --list-hosts         # qui sera touché / who gets touched
+ansible-playbook site.yml --check --diff       # dry-run + différences / dry-run + diffs
+
+# Déploiement / Deployment
+ansible-galaxy collection install -r requirements.yml
+ansible-playbook site.yml                       # déployer tout / deploy everything
+ansible-playbook site.yml --tags config         # rejouer un sous-ensemble / replay a subset
+ansible-playbook site.yml --limit app           # un seul tier / a single tier
+
+# Secrets / Secrets
+ansible-vault edit group_vars/all/vault.yml     # éditer le secret / edit the secret
+ansible-vault view group_vars/all/vault.yml     # lire / read</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# Le motif clé : backends dynamiques / The key pattern: dynamic backends #}
+upstream backend {
+{% for h in groups[&#39;app&#39;] %}
+    server {{ hostvars[h][&#39;ansible_host&#39;] }};
+{% endfor %}
+}</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/tips_tricks/index.html">Bonnes pratiques Ansible</a> — organiser un vrai projet.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html">Réutiliser des rôles</a> — structure, dépendances.</li><li><a href="https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html">Variables spéciales</a> — <code>groups</code>, <code>hostvars</code>, <code>inventory_hostname</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/community/postgresql/index.html">Collection <code>community.postgresql</code></a> — modules base de données.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification que ce projet couronne.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/tips_tricks/index.html">Ansible best practices</a> — organizing a real project.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html">Reusing roles</a> — structure, dependencies.</li><li><a href="https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html">Special variables</a> — <code>groups</code>, <code>hostvars</code>, <code>inventory_hostname</code>.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/community/postgresql/index.html"><code>community.postgresql</code> collection</a> — database modules.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the certification this project crowns.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>UNREACHABLE</code> sur une VM après le rôle commun.</strong> Tu t&#39;es probablement coupé SSH avec ufw (politique <code>deny</code> avant <code>allow OpenSSH</code>). Reconnecte via la console Multipass (<code>multipass shell &lt;vm&gt;</code>), <code>sudo ufw allow OpenSSH</code>, et corrige l&#39;ordre des tâches.</p>
+<p><strong><code>Failed to import the required Python library (psycopg2)</code>.</strong> Il manque <code>python3-psycopg2</code> sur <code>db1</code>. Ajoute-le à la tâche <code>apt</code> du rôle <code>db</code>.</p>
+<p><strong>Le LB renvoie 502 Bad Gateway.</strong> nginx du LB n&#39;atteint pas les apps : vérifie que les apps écoutent bien sur le port attendu (<code>app_port</code>), que leur nginx tourne, et que le pare-feu des apps autorise le LB.</p>
+<p><strong><code>site.yml</code> reste <code>changed</code> au 2e run.</strong> Un rôle n&#39;est pas idempotent. Lance-le seul avec <code>--limit</code> et <code>--diff</code> pour trouver la tâche fautive (souvent un <code>command</code>/<code>shell</code> sans <code>changed_when</code>, ou un mot de passe rehashé).</p>
+<p><strong><code>hostvars[groups[&#39;database&#39;][0]]</code> : list index out of range.</strong> Le groupe <code>database</code> est vide ou mal nommé dans l&#39;inventaire. Vérifie <code>ansible-inventory --graph</code>.</p>
+<p><strong>Vault : <code>Attempting to decrypt but no vault secrets found</code>.</strong> <code>vault_password_file</code> n&#39;est pas lu — vérifie <code>ansible.cfg</code> et que <code>.vault_pass</code> existe. On lance depuis la racine du projet.</p>
+</div>
+<div data-lang="en"><p><strong><code>UNREACHABLE</code> on a VM after the commun role.</strong> You probably cut SSH with ufw (<code>deny</code> policy before <code>allow OpenSSH</code>). Reconnect via the Multipass console (<code>multipass shell &lt;vm&gt;</code>), <code>sudo ufw allow OpenSSH</code>, and fix the task order.</p>
+<p><strong><code>Failed to import the required Python library (psycopg2)</code>.</strong> <code>python3-psycopg2</code> is missing on <code>db1</code>. Add it to the <code>db</code> role&#39;s <code>apt</code> task.</p>
+<p><strong>The LB returns 502 Bad Gateway.</strong> The LB&#39;s nginx can&#39;t reach the apps: check the apps listen on the expected port (<code>app_port</code>), their nginx is running, and the apps&#39; firewall allows the LB.</p>
+<p><strong><code>site.yml</code> stays <code>changed</code> on the 2nd run.</strong> A role isn&#39;t idempotent. Run it alone with <code>--limit</code> and <code>--diff</code> to find the offending task (often a <code>command</code>/<code>shell</code> without <code>changed_when</code>, or a rehashed password).</p>
+<p><strong><code>hostvars[groups[&#39;database&#39;][0]]</code>: list index out of range.</strong> The <code>database</code> group is empty or misnamed in the inventory. Check <code>ansible-inventory --graph</code>.</p>
+<p><strong>Vault: <code>Attempting to decrypt but no vault secrets found</code>.</strong> <code>vault_password_file</code> isn&#39;t read — check <code>ansible.cfg</code> and that <code>.vault_pass</code> exists. Run from the project root.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

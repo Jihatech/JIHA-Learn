@@ -191,11 +191,11 @@ echo "--- view (lisible) ---"; ansible-vault view secrets.yml --vault-password-f
 ```
 
 :::lang fr
-**✅ Vérification :** après `encrypt`, la commande affiche `Encryption successful`. `head -c 120 secrets.yml` montre un en-tête `$ANSIBLE_VAULT;1.1;AES256` suivi d'un blob hexadécimal — **plus aucun secret en clair**. `ansible-vault view ... --vault-password-file .vault_pass` réaffiche `db_password: "S3cr3t-DB-2026"` et `api_token: ...`. Le fichier sur disque **reste chiffré** : `view` ne le modifie pas.
+**✅ Vérification :** `encrypt` réussit **en silence** (code de sortie 0, sans message sur les versions récentes) — la preuve est dans le fichier : `head -c 120 secrets.yml` montre un en-tête `$ANSIBLE_VAULT;1.1;AES256` suivi d'un blob hexadécimal — **plus aucun secret en clair**. `ansible-vault view ... --vault-password-file .vault_pass` réaffiche `db_password: "S3cr3t-DB-2026"` et `api_token: ...`. Le fichier sur disque **reste chiffré** : `view` ne le modifie pas.
 :::
 
 :::lang en
-**✅ Check:** after `encrypt`, the command prints `Encryption successful`. `head -c 120 secrets.yml` shows a `$ANSIBLE_VAULT;1.1;AES256` header followed by a hex blob — **no more clear-text secret**. `ansible-vault view ... --vault-password-file .vault_pass` re-displays `db_password: "S3cr3t-DB-2026"` and `api_token: ...`. The on-disk file **stays encrypted**: `view` doesn't modify it.
+**✅ Check:** `encrypt` succeeds **silently** (exit code 0, no message on recent versions) — the proof is in the file: `head -c 120 secrets.yml` shows a `$ANSIBLE_VAULT;1.1;AES256` header followed by a hex blob — **no more clear-text secret**. `ansible-vault view ... --vault-password-file .vault_pass` re-displays `db_password: "S3cr3t-DB-2026"` and `api_token: ...`. The on-disk file **stays encrypted**: `view` doesn't modify it.
 :::
 
 ### step-02
