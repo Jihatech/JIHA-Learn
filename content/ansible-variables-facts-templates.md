@@ -267,25 +267,33 @@ Add to `data.yml`, **at play level** (not inside a task) a `vars:` section:
   connection: local
   gather_facts: true
   vars:
-    port: 8080                 # valeur "par défaut" du play / play "default" value
+    app_port: 8080             # valeur "par défaut" du play / play "default" value
   tasks:
     # ... (tâches précédentes) ...
     - name: Quel port gagne ?
       ansible.builtin.debug:
-        msg: "port effectif = {{ port }}"
-```
-
-```bash
-ansible-playbook data.yml                    # -> port effectif = 8080 (valeur du play)
-ansible-playbook data.yml -e port=9090       # -> port effectif = 9090 (extra-vars gagne !)
+        msg: "port effectif = {{ app_port }}"
 ```
 
 :::lang fr
-**✅ Vérification :** sans `-e`, la tâche affiche `port effectif = 8080`. Avec `-e port=9090`, elle affiche `port effectif = 9090` — **la même variable, écrasée depuis la ligne de commande**. Rien n'a changé dans le fichier : c'est la précédence en action. Retiens : `-e` > vars du play > host_vars > group_vars > defaults.
+⚠️ On nomme la variable `app_port` et **pas** `port` : `port` est un **nom réservé** (variable de connexion) dans Ansible récent et déclencherait un avertissement inutile. Réflexe utile pour l'examen : évite les noms réservés (`port`, `hosts`, `name`, `user`…) pour tes variables.
 :::
 
 :::lang en
-**✅ Check:** without `-e`, the task prints `port effectif = 8080`. With `-e port=9090`, it prints `port effectif = 9090` — **the same variable, overridden from the command line**. Nothing changed in the file: that's precedence in action. Remember: `-e` > play vars > host_vars > group_vars > defaults.
+⚠️ We name the variable `app_port`, **not** `port`: `port` is a **reserved name** (connection variable) in recent Ansible and would trigger a needless warning. Useful exam reflex: avoid reserved names (`port`, `hosts`, `name`, `user`…) for your variables.
+:::
+
+```bash
+ansible-playbook data.yml                    # -> port effectif = 8080 (valeur du play)
+ansible-playbook data.yml -e app_port=9090   # -> port effectif = 9090 (extra-vars gagne !)
+```
+
+:::lang fr
+**✅ Vérification :** sans `-e`, la tâche affiche `port effectif = 8080`. Avec `-e app_port=9090`, elle affiche `port effectif = 9090` — **la même variable, écrasée depuis la ligne de commande**. Rien n'a changé dans le fichier : c'est la précédence en action. Retiens : `-e` > vars du play > host_vars > group_vars > defaults.
+:::
+
+:::lang en
+**✅ Check:** without `-e`, the task prints `port effectif = 8080`. With `-e app_port=9090`, it prints `port effectif = 9090` — **the same variable, overridden from the command line**. Nothing changed in the file: that's precedence in action. Remember: `-e` > play vars > host_vars > group_vars > defaults.
 :::
 
 ### step-04
@@ -559,7 +567,7 @@ Tu sais que c'est bon quand…
 
 - [ ] Tu lis un fact via `ansible_facts['...']` et tu filtres avec `setup -a filter=`.
 - [ ] Tu dérives une variable avec `set_fact` et tu la réutilises.
-- [ ] Tu **prouves** que `-e port=9090` écrase le `port: 8080` du play.
+- [ ] Tu **prouves** que `-e app_port=9090` écrase le `app_port: 8080` du play.
 - [ ] Tu protèges une variable avec `| default(...)` et tu exiges avec `| mandatory`.
 - [ ] Tu génères un `.conf` avec un template `for` + `if`, et il est idempotent.
 - [ ] Tu écris un custom fact `.fact` et tu le relis via `ansible_local.*`.
@@ -573,7 +581,7 @@ You know it works when…
 
 - [ ] You read a fact via `ansible_facts['...']` and filter with `setup -a filter=`.
 - [ ] You derive a variable with `set_fact` and reuse it.
-- [ ] You **prove** that `-e port=9090` overrides the play's `port: 8080`.
+- [ ] You **prove** that `-e app_port=9090` overrides the play's `app_port: 8080`.
 - [ ] You protect a variable with `| default(...)` and require it with `| mandatory`.
 - [ ] You generate a `.conf` with a `for` + `if` template, and it's idempotent.
 - [ ] You write a `.fact` custom fact and read it back via `ansible_local.*`.
@@ -615,7 +623,7 @@ ansible HOST -m setup -a "filter=ansible_mem*" # filtrer / filter
 ansible HOST -m setup -a "filter=ansible_local" # custom facts
 
 # Précédence / Precedence (extra-vars gagne toujours / always wins)
-ansible-playbook site.yml -e "port=9090"
+ansible-playbook site.yml -e "app_port=9090"
 ansible-playbook site.yml -e "@vars.yml"       # extra-vars depuis un fichier / from a file
 ```
 

@@ -312,17 +312,21 @@ ansible-playbook data.yml</code></pre>
   connection: local
   gather_facts: true
   vars:
-    port: 8080                 # valeur &quot;par défaut&quot; du play / play &quot;default&quot; value
+    app_port: 8080             # valeur &quot;par défaut&quot; du play / play &quot;default&quot; value
   tasks:
     # ... (tâches précédentes) ...
     - name: Quel port gagne ?
       ansible.builtin.debug:
-        msg: &quot;port effectif = {{ port }}&quot;</code></pre>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml                    # -&gt; port effectif = 8080 (valeur du play)
-ansible-playbook data.yml -e port=9090       # -&gt; port effectif = 9090 (extra-vars gagne !)</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> sans <code>-e</code>, la tâche affiche <code>port effectif = 8080</code>. Avec <code>-e port=9090</code>, elle affiche <code>port effectif = 9090</code> — <strong>la même variable, écrasée depuis la ligne de commande</strong>. Rien n&#39;a changé dans le fichier : c&#39;est la précédence en action. Retiens : <code>-e</code> &gt; vars du play &gt; host_vars &gt; group_vars &gt; defaults.</p>
+        msg: &quot;port effectif = {{ app_port }}&quot;</code></pre>
+<div data-lang="fr"><p>⚠️ On nomme la variable <code>app_port</code> et <strong>pas</strong> <code>port</code> : <code>port</code> est un <strong>nom réservé</strong> (variable de connexion) dans Ansible récent et déclencherait un avertissement inutile. Réflexe utile pour l&#39;examen : évite les noms réservés (<code>port</code>, <code>hosts</code>, <code>name</code>, <code>user</code>…) pour tes variables.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> without <code>-e</code>, the task prints <code>port effectif = 8080</code>. With <code>-e port=9090</code>, it prints <code>port effectif = 9090</code> — <strong>the same variable, overridden from the command line</strong>. Nothing changed in the file: that&#39;s precedence in action. Remember: <code>-e</code> &gt; play vars &gt; host_vars &gt; group_vars &gt; defaults.</p>
+<div data-lang="en"><p>⚠️ We name the variable <code>app_port</code>, <strong>not</strong> <code>port</code>: <code>port</code> is a <strong>reserved name</strong> (connection variable) in recent Ansible and would trigger a needless warning. Useful exam reflex: avoid reserved names (<code>port</code>, <code>hosts</code>, <code>name</code>, <code>user</code>…) for your variables.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml                    # -&gt; port effectif = 8080 (valeur du play)
+ansible-playbook data.yml -e app_port=9090   # -&gt; port effectif = 9090 (extra-vars gagne !)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sans <code>-e</code>, la tâche affiche <code>port effectif = 8080</code>. Avec <code>-e app_port=9090</code>, elle affiche <code>port effectif = 9090</code> — <strong>la même variable, écrasée depuis la ligne de commande</strong>. Rien n&#39;a changé dans le fichier : c&#39;est la précédence en action. Retiens : <code>-e</code> &gt; vars du play &gt; host_vars &gt; group_vars &gt; defaults.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> without <code>-e</code>, the task prints <code>port effectif = 8080</code>. With <code>-e app_port=9090</code>, it prints <code>port effectif = 9090</code> — <strong>the same variable, overridden from the command line</strong>. Nothing changed in the file: that&#39;s precedence in action. Remember: <code>-e</code> &gt; play vars &gt; host_vars &gt; group_vars &gt; defaults.</p>
 </div>
 
 </div>
@@ -517,11 +521,11 @@ server {{ hostvars[h][&#39;ansible_host&#39;] | default(&#39;127.0.0.1&#39;) }};
   <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
   <h2 data-lang="en">You know it works when…</h2>
 <div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
-<ul class="checklist"><li>Tu lis un fact via <code>ansible_facts[&#39;...&#39;]</code> et tu filtres avec <code>setup -a filter=</code>.</li><li>Tu dérives une variable avec <code>set_fact</code> et tu la réutilises.</li><li>Tu <strong>prouves</strong> que <code>-e port=9090</code> écrase le <code>port: 8080</code> du play.</li><li>Tu protèges une variable avec <code>| default(...)</code> et tu exiges avec <code>| mandatory</code>.</li><li>Tu génères un <code>.conf</code> avec un template <code>for</code> + <code>if</code>, et il est idempotent.</li><li>Tu écris un custom fact <code>.fact</code> et tu le relis via <code>ansible_local.*</code>.</li><li>Tu génères une liste de backends avec <code>groups[...]</code> et <code>hostvars[...]</code>.</li></ul>
+<ul class="checklist"><li>Tu lis un fact via <code>ansible_facts[&#39;...&#39;]</code> et tu filtres avec <code>setup -a filter=</code>.</li><li>Tu dérives une variable avec <code>set_fact</code> et tu la réutilises.</li><li>Tu <strong>prouves</strong> que <code>-e app_port=9090</code> écrase le <code>app_port: 8080</code> du play.</li><li>Tu protèges une variable avec <code>| default(...)</code> et tu exiges avec <code>| mandatory</code>.</li><li>Tu génères un <code>.conf</code> avec un template <code>for</code> + <code>if</code>, et il est idempotent.</li><li>Tu écris un custom fact <code>.fact</code> et tu le relis via <code>ansible_local.*</code>.</li><li>Tu génères une liste de backends avec <code>groups[...]</code> et <code>hostvars[...]</code>.</li></ul>
 <p>Sept cases = tu paramètres tes automatisations comme un ingénieur RHCE. La suite : rôles &amp; collections.</p>
 </div>
 <div data-lang="en"><p>You know it works when…</p>
-<ul class="checklist"><li>You read a fact via <code>ansible_facts[&#39;...&#39;]</code> and filter with <code>setup -a filter=</code>.</li><li>You derive a variable with <code>set_fact</code> and reuse it.</li><li>You <strong>prove</strong> that <code>-e port=9090</code> overrides the play&#39;s <code>port: 8080</code>.</li><li>You protect a variable with <code>| default(...)</code> and require it with <code>| mandatory</code>.</li><li>You generate a <code>.conf</code> with a <code>for</code> + <code>if</code> template, and it&#39;s idempotent.</li><li>You write a <code>.fact</code> custom fact and read it back via <code>ansible_local.*</code>.</li><li>You generate a backend list with <code>groups[...]</code> and <code>hostvars[...]</code>.</li></ul>
+<ul class="checklist"><li>You read a fact via <code>ansible_facts[&#39;...&#39;]</code> and filter with <code>setup -a filter=</code>.</li><li>You derive a variable with <code>set_fact</code> and reuse it.</li><li>You <strong>prove</strong> that <code>-e app_port=9090</code> overrides the play&#39;s <code>app_port: 8080</code>.</li><li>You protect a variable with <code>| default(...)</code> and require it with <code>| mandatory</code>.</li><li>You generate a <code>.conf</code> with a <code>for</code> + <code>if</code> template, and it&#39;s idempotent.</li><li>You write a <code>.fact</code> custom fact and read it back via <code>ansible_local.*</code>.</li><li>You generate a backend list with <code>groups[...]</code> and <code>hostvars[...]</code>.</li></ul>
 <p>Seven boxes = you parameterize your automations like an RHCE engineer. Next up: roles &amp; collections.</p>
 </div>
 </section>
@@ -540,7 +544,16 @@ server {{ hostvars[h][&#39;ansible_host&#39;] | default(&#39;127.0.0.1&#39;) }};
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-roles-collections/">
+    <span class="num">24</span>
+    <span class="title-line" data-lang="fr">Ansible — rôles &amp; collections</span>
+    <span class="title-line" data-lang="en">Ansible — roles &amp; collections</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">
@@ -558,7 +571,7 @@ ansible HOST -m setup -a &quot;filter=ansible_mem*&quot; # filtrer / filter
 ansible HOST -m setup -a &quot;filter=ansible_local&quot; # custom facts
 
 # Précédence / Precedence (extra-vars gagne toujours / always wins)
-ansible-playbook site.yml -e &quot;port=9090&quot;
+ansible-playbook site.yml -e &quot;app_port=9090&quot;
 ansible-playbook site.yml -e &quot;@vars.yml&quot;       # extra-vars depuis un fichier / from a file</code></pre>
 <pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># set_fact
 - ansible.builtin.set_fact:
