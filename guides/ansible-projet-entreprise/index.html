@@ -453,10 +453,10 @@ dependencies:
 - name: Installer nginx
   ansible.builtin.apt: { name: nginx, state: present, update_cache: true }
 
-- name: Config de l&#39;app (templatée, pointe vers la base)
+- name: Config nginx — écouter sur app_port (le port que le LB appelle)
   ansible.builtin.template:
-    src: app.conf.j2
-    dest: /etc/app.conf
+    src: nginx-site.conf.j2
+    dest: /etc/nginx/sites-available/default
   notify: Recharger nginx
 
 - name: Page servie (identifie le serveur)
@@ -465,8 +465,25 @@ dependencies:
     dest: /var/www/html/index.html
   notify: Recharger nginx
 
+- name: Config applicative (infos de connexion base, templatée)
+  ansible.builtin.template:
+    src: app.conf.j2
+    dest: /etc/app.conf
+
+- name: Ouvrir app_port pour le load-balancer
+  community.general.ufw: { rule: allow, port: &quot;{{ app_port }}&quot;, proto: tcp }
+
 - name: nginx démarré et activé
   ansible.builtin.service: { name: nginx, state: started, enabled: true }</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# roles/app/templates/nginx-site.conf.j2 — nginx écoute sur app_port #}
+server {
+    listen {{ app_port }} default_server;
+    root /var/www/html;
+    index index.html;
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}</code></pre>
 <pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# roles/app/templates/app.conf.j2 #}
 # Config générée par Ansible pour {{ inventory_hostname }}
 app_name={{ app_name }}
@@ -483,9 +500,9 @@ db_user={{ db_user }}
   ansible.builtin.service:
     name: nginx
     state: reloaded</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>app1</code>, <code>/etc/app.conf</code> contient <code>db_host=&lt;IP de db1&gt;</code> — l&#39;app a <strong>découvert</strong> la base via <code>hostvars</code>, sans qu&#39;on l&#39;écrive en dur. <code>curl localhost</code> sur <code>app1</code> renvoie « Servi par app1 », sur <code>app2</code> « Servi par app2 ». Le mot de passe de la base <strong>n&#39;est pas</strong> dans <code>app.conf</code> (bonne hygiène). Le handler « Recharger nginx » ne se déclenche que si un template a changé.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>app1</code>, <code>/etc/app.conf</code> contient <code>db_host=&lt;IP de db1&gt;</code> — l&#39;app a <strong>découvert</strong> la base via <code>hostvars</code>, sans qu&#39;on l&#39;écrive en dur. nginx écoute sur <code>app_port</code> (8080) : <code>curl localhost:8080</code> sur <code>app1</code> renvoie « Servi par app1 », sur <code>app2</code> « Servi par app2 ». Le rôle ouvre aussi <code>app_port</code> dans ufw pour laisser passer le load-balancer. Le mot de passe de la base <strong>n&#39;est pas</strong> dans <code>app.conf</code> (bonne hygiène). Le handler « Recharger nginx » ne se déclenche que si un template a changé.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> on <code>app1</code>, <code>/etc/app.conf</code> contains <code>db_host=&lt;db1&#39;s IP&gt;</code> — the app <strong>discovered</strong> the database via <code>hostvars</code>, without hardcoding it. <code>curl localhost</code> on <code>app1</code> returns &quot;Servi par app1&quot;, on <code>app2</code> &quot;Servi par app2&quot;. The database password is <strong>not</strong> in <code>app.conf</code> (good hygiene). The &quot;Recharger nginx&quot; handler fires only if a template changed.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <code>app1</code>, <code>/etc/app.conf</code> contains <code>db_host=&lt;db1&#39;s IP&gt;</code> — the app <strong>discovered</strong> the database via <code>hostvars</code>, without hardcoding it. nginx listens on <code>app_port</code> (8080): <code>curl localhost:8080</code> on <code>app1</code> returns &quot;Servi par app1&quot;, on <code>app2</code> &quot;Servi par app2&quot;. The role also opens <code>app_port</code> in ufw to let the load-balancer through. The database password is <strong>not</strong> in <code>app.conf</code> (good hygiene). The &quot;Recharger nginx&quot; handler fires only if a template changed.</p>
 </div>
 
 </div>
@@ -537,9 +554,9 @@ server {
 <pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/loadbalancer/handlers/main.yml
 - name: Recharger nginx
   ansible.builtin.service: { name: nginx, state: reloaded }</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>lb1</code>, <code>/etc/nginx/sites-available/default</code> contient un bloc <code>upstream boutique { ... }</code> avec <strong>une ligne <code>server</code> par app</strong> (app1 <strong>et</strong> app2, avec leurs IP réelles) — généré par la boucle sur <code>groups[&#39;app&#39;]</code>. <code>curl http://&lt;IP_lb1&gt;</code> depuis ton laptop renvoie alternativement « Servi par app1 » et « Servi par app2 » (répartition de charge). Tu as prouvé la découverte dynamique des backends. ⚠️ <code>app_port</code> doit correspondre au port où nginx écoute sur les apps (ici on sert sur 80 par défaut nginx ; ajuste <code>app_port</code> si tu changes l&#39;écoute).</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur <code>lb1</code>, <code>/etc/nginx/sites-available/default</code> contient un bloc <code>upstream boutique { ... }</code> avec <strong>une ligne <code>server</code> par app</strong> (app1 <strong>et</strong> app2, avec leurs IP réelles) — généré par la boucle sur <code>groups[&#39;app&#39;]</code>. <code>curl http://&lt;IP_lb1&gt;</code> depuis ton laptop renvoie alternativement « Servi par app1 » et « Servi par app2 » (répartition de charge). Tu as prouvé la découverte dynamique des backends. ✅ Cohérence par construction : la <strong>même</strong> variable <code>app_port</code> sert au rôle <code>app</code> (nginx écoute dessus + ufw l&#39;ouvre) <strong>et</strong> au rôle <code>loadbalancer</code> (l&#39;upstream l&#39;appelle). Change <code>app_port</code> dans <code>group_vars</code> et les deux tiers restent alignés — pas de risque de 502 par port qui ne correspond pas.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> on <code>lb1</code>, <code>/etc/nginx/sites-available/default</code> contains an <code>upstream boutique { ... }</code> block with <strong>one <code>server</code> line per app</strong> (app1 <strong>and</strong> app2, with their real IPs) — generated by the loop over <code>groups[&#39;app&#39;]</code>. <code>curl http://&lt;lb1_IP&gt;</code> from your laptop returns alternately &quot;Servi par app1&quot; and &quot;Servi par app2&quot; (load spreading). You&#39;ve proven dynamic backend discovery. ⚠️ <code>app_port</code> must match the port nginx listens on the apps (here we serve on nginx&#39;s default 80; adjust <code>app_port</code> if you change the listen).</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <code>lb1</code>, <code>/etc/nginx/sites-available/default</code> contains an <code>upstream boutique { ... }</code> block with <strong>one <code>server</code> line per app</strong> (app1 <strong>and</strong> app2, with their real IPs) — generated by the loop over <code>groups[&#39;app&#39;]</code>. <code>curl http://&lt;lb1_IP&gt;</code> from your laptop returns alternately &quot;Servi par app1&quot; and &quot;Servi par app2&quot; (load spreading). You&#39;ve proven dynamic backend discovery. ✅ Consistent by construction: the <strong>same</strong> <code>app_port</code> variable is used by the <code>app</code> role (nginx listens on it + ufw opens it) <strong>and</strong> by the <code>loadbalancer</code> role (the upstream calls it). Change <code>app_port</code> in <code>group_vars</code> and both tiers stay aligned — no risk of a 502 from a mismatched port.</p>
 </div>
 
 </div>
