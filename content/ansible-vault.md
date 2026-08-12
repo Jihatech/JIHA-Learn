@@ -217,22 +217,23 @@ echo "--- view (lisible) ---"; ansible-vault view secrets.yml --vault-password-f
 :::
 
 ```bash
-# En vrai : ansible-vault create db.yml --vault-password-file .vault_pass  (ouvre l'éditeur)
+# En vrai : ansible-vault create db.yml --vault-password-file .vault_pass  (ouvre TON éditeur)
 # Ici, éditeur scripté pour un test non-interactif / scripted editor for a non-interactive test
-printf '%s\n' 'cat > "$1" <<<"admin_user: pgadmin"' > /tmp/faux_editeur.sh
+printf '%s\n' '#!/bin/bash' 'cat > "$1" <<<"admin_user: pgadmin"' > /tmp/faux_editeur.sh
 chmod +x /tmp/faux_editeur.sh
-EDITOR='/tmp/faux_editeur.sh' ansible-vault create db.yml --vault-password-file .vault_pass
+# --skip-tty-check : nécessaire UNIQUEMENT pour ce test sans terminal / needed ONLY for this headless test
+EDITOR='/tmp/faux_editeur.sh' ansible-vault create db.yml --vault-password-file .vault_pass --skip-tty-check
 
 ansible-vault view db.yml --vault-password-file .vault_pass   # -> admin_user: pgadmin
 head -c 40 db.yml; echo                                        # -> $ANSIBLE_VAULT;1.1;AES256...
 ```
 
 :::lang fr
-**✅ Vérification :** `db.yml` est chiffré dès sa création (`head` montre l'en-tête Vault). `ansible-vault view db.yml ...` affiche `admin_user: pgadmin` — le contenu que le « faux éditeur » a écrit, qui n'a jamais existé en clair sur le disque. En usage réel, tu n'as pas besoin de cette bidouille : ton `$EDITOR` s'ouvre normalement. `edit` fonctionne pareil pour rouvrir et modifier `db.yml`.
+**✅ Vérification :** `db.yml` est chiffré dès sa création (`head` montre l'en-tête Vault). `ansible-vault view db.yml ...` affiche `admin_user: pgadmin` — le contenu que le « faux éditeur » a écrit, qui n'a jamais existé en clair sur le disque. **La ligne `#!/bin/bash` (shebang) et `--skip-tty-check` ne servent QUE pour ce test sans terminal** : `ansible-vault` exécute l'éditeur directement (d'où le shebang obligatoire) et refuse par défaut de s'ouvrir hors d'un vrai terminal (d'où `--skip-tty-check`). En usage réel, tu tapes juste `ansible-vault create db.yml --vault-password-file .vault_pass` et ton `$EDITOR` (nano, vim) s'ouvre — pas de bidouille. `edit` fonctionne pareil pour rouvrir et modifier `db.yml`.
 :::
 
 :::lang en
-**✅ Check:** `db.yml` is encrypted from creation (`head` shows the Vault header). `ansible-vault view db.yml ...` shows `admin_user: pgadmin` — the content the "fake editor" wrote, which never existed in clear on disk. In real use you don't need this trick: your `$EDITOR` opens normally. `edit` works the same way to reopen and modify `db.yml`.
+**✅ Check:** `db.yml` is encrypted from creation (`head` shows the Vault header). `ansible-vault view db.yml ...` shows `admin_user: pgadmin` — the content the "fake editor" wrote, which never existed in clear on disk. **The `#!/bin/bash` (shebang) line and `--skip-tty-check` are ONLY for this headless test**: `ansible-vault` execs the editor directly (hence the mandatory shebang) and by default refuses to open outside a real terminal (hence `--skip-tty-check`). In real use you just type `ansible-vault create db.yml --vault-password-file .vault_pass` and your `$EDITOR` (nano, vim) opens — no trick. `edit` works the same way to reopen and modify `db.yml`.
 :::
 
 ### step-03
@@ -376,14 +377,17 @@ ansible-vault rekey secrets.yml \
 
 # L'ancienne clé ne marche plus, la nouvelle oui / old key fails, new one works
 ansible-vault view secrets.yml --vault-password-file .vault_pass_new   # -> OK
+
+# Garder l'environnement cohérent : ansible.cfg pointe sur .vault_pass / keep env consistent
+cp .vault_pass_new .vault_pass          # le coffre "default" utilise maintenant la nouvelle clé
 ```
 
 :::lang fr
-**✅ Vérification :** `rekey` affiche `Rekey successful`. `ansible-vault view secrets.yml --vault-password-file .vault_pass_new` (la **nouvelle** clé) affiche les secrets. Si tu réessaies avec l'**ancienne** clé (`--vault-password-file .vault_pass`), tu obtiens `ERROR! Decryption failed` — la preuve que la rotation a bien eu lieu. (Pense ensuite à mettre à jour `ansible.cfg` / `.vault_pass` avec la nouvelle clé.)
+**✅ Vérification :** `rekey` affiche `Rekey successful`. `ansible-vault view secrets.yml --vault-password-file .vault_pass_new` (la **nouvelle** clé) affiche les secrets. Si tu réessaies avec l'**ancienne** clé (avant le `cp`), tu obtiens `ERROR! Decryption failed` — la preuve que la rotation a bien eu lieu. Le `cp .vault_pass_new .vault_pass` final **synchronise** le fichier de mot de passe pointé par `ansible.cfg` : le coffre `default` utilise désormais la nouvelle clé, et les commandes suivantes (qui lisent `ansible.cfg`) continuent de marcher.
 :::
 
 :::lang en
-**✅ Check:** `rekey` prints `Rekey successful`. `ansible-vault view secrets.yml --vault-password-file .vault_pass_new` (the **new** key) shows the secrets. If you retry with the **old** key (`--vault-password-file .vault_pass`), you get `ERROR! Decryption failed` — proof the rotation happened. (Then remember to update `ansible.cfg` / `.vault_pass` with the new key.)
+**✅ Check:** `rekey` prints `Rekey successful`. `ansible-vault view secrets.yml --vault-password-file .vault_pass_new` (the **new** key) shows the secrets. If you retry with the **old** key (before the `cp`), you get `ERROR! Decryption failed` — proof the rotation happened. The final `cp .vault_pass_new .vault_pass` **syncs** the password file pointed at by `ansible.cfg`: the `default` vault now uses the new key, and the following commands (which read `ansible.cfg`) keep working.
 :::
 
 ### step-06
@@ -410,12 +414,14 @@ echo "cle-prod-456" > .vault_prod
 chmod 600 .vault_dev .vault_prod
 
 # Chiffrer un secret AVEC l'étiquette dev / encrypt a secret WITH the dev label
+# --encrypt-vault-id dev : lève l'ambiguïté (le coffre "default" d'ansible.cfg coexiste)
+#                          disambiguates (ansible.cfg's "default" vault also exists)
 ansible-vault encrypt_string 'dev-token' --name 'token' \
-  --vault-id dev@.vault_dev > secret_dev.yml
+  --vault-id dev@.vault_dev --encrypt-vault-id dev > secret_dev.yml
 
 # Et un autre avec l'étiquette prod / and another with the prod label
 ansible-vault encrypt_string 'prod-token' --name 'token' \
-  --vault-id prod@.vault_prod > secret_prod.yml
+  --vault-id prod@.vault_prod --encrypt-vault-id prod > secret_prod.yml
 
 # Fournir LES DEUX coffres : Ansible choisit selon l'étiquette / supply BOTH vaults
 ansible localhost -c local -m ansible.builtin.debug -a "msg={{ token }}" \
@@ -424,11 +430,11 @@ ansible localhost -c local -m ansible.builtin.debug -a "msg={{ token }}" \
 ```
 
 :::lang fr
-**✅ Vérification :** la commande affiche `dev-token` — Ansible a reconnu l'étiquette `dev` du fichier et utilisé `.vault_dev` pour le déchiffrer, **parmi les deux** coffres fournis. Remplace `-e "@secret_dev.yml"` par `-e "@secret_prod.yml"` : cette fois `prod-token` s'affiche, déchiffré avec `.vault_prod`. Chaque coffre ne déchiffre que ce qui lui appartient — l'isolation dev/prod est garantie.
+**✅ Vérification :** la commande affiche `dev-token` — Ansible a reconnu l'étiquette `dev` du fichier et utilisé `.vault_dev` pour le déchiffrer, **parmi les deux** coffres fournis. Remplace `-e "@secret_dev.yml"` par `-e "@secret_prod.yml"` : cette fois `prod-token` s'affiche, déchiffré avec `.vault_prod`. Chaque coffre ne déchiffre que ce qui lui appartient — l'isolation dev/prod est garantie. ⚠️ Le `--encrypt-vault-id` est indispensable au **chiffrement** ici : comme `ansible.cfg` (étape 3) fournit déjà un coffre `default`, plusieurs coffres peuvent chiffrer et Ansible **refuse de deviner** (`ERROR! The vault-ids dev,default are available to encrypt. Specify the vault-id to encrypt with --encrypt-vault-id`). Au **déchiffrement**, aucun souci : Ansible essaie tous les coffres fournis jusqu'à trouver le bon.
 :::
 
 :::lang en
-**✅ Check:** the command prints `dev-token` — Ansible recognized the file's `dev` label and used `.vault_dev` to decrypt it, **among the two** supplied vaults. Replace `-e "@secret_dev.yml"` with `-e "@secret_prod.yml"`: this time `prod-token` shows, decrypted with `.vault_prod`. Each vault decrypts only what belongs to it — dev/prod isolation is guaranteed.
+**✅ Check:** the command prints `dev-token` — Ansible recognized the file's `dev` label and used `.vault_dev` to decrypt it, **among the two** supplied vaults. Replace `-e "@secret_dev.yml"` with `-e "@secret_prod.yml"`: this time `prod-token` shows, decrypted with `.vault_prod`. Each vault decrypts only what belongs to it — dev/prod isolation is guaranteed. ⚠️ `--encrypt-vault-id` is mandatory for **encryption** here: since `ansible.cfg` (step 3) already provides a `default` vault, several vaults can encrypt and Ansible **refuses to guess** (`ERROR! The vault-ids dev,default are available to encrypt. Specify the vault-id to encrypt with --encrypt-vault-id`). For **decryption**, no issue: Ansible tries all supplied vaults until it finds the right one.
 :::
 
 ### step-07
@@ -452,22 +458,25 @@ Do a full round-trip on a copy:
 ```bash
 cp secrets.yml secrets_copie.yml
 
-# Déchiffrer sur le disque (clé actuelle = la nouvelle depuis le rekey) / decrypt on disk
-ansible-vault decrypt secrets_copie.yml --vault-password-file .vault_pass_new
+# Le mot de passe vient d'ansible.cfg (coffre "default", synchronisé à l'étape 5).
+# On ne repasse PAS --vault-password-file : deux coffres "default" créeraient une ambiguïté au chiffrement.
+# Password comes from ansible.cfg ("default" vault, synced in step 5). Do NOT re-pass
+# --vault-password-file: two "default" vaults would clash on encryption.
+ansible-vault decrypt secrets_copie.yml
 
 cat secrets_copie.yml           # EN CLAIR maintenant / IN CLEAR now
 
-# Rechiffrer pour ne pas laisser traîner un secret en clair / re-encrypt to not leave a clear secret
-ansible-vault encrypt secrets_copie.yml --vault-password-file .vault_pass_new
+# Rechiffrer pour ne pas laisser traîner un secret en clair / re-encrypt
+ansible-vault encrypt secrets_copie.yml
 head -c 40 secrets_copie.yml; echo   # de nouveau chiffré / encrypted again
 ```
 
 :::lang fr
-**✅ Vérification :** après `decrypt`, `cat secrets_copie.yml` montre `db_password: "S3cr3t-DB-2026"` **en clair** — l'en-tête Vault a disparu. Après le `encrypt` de nettoyage, `head` remontre `$ANSIBLE_VAULT;1.1;AES256`. Tu maîtrises maintenant le cycle complet : chiffrer, lire, utiliser, tourner la clé, isoler par environnement, et (rarement) déchiffrer. Supprime la copie : `rm secrets_copie.yml`.
+**✅ Vérification :** après `decrypt`, `cat secrets_copie.yml` montre `db_password: "S3cr3t-DB-2026"` **en clair** — l'en-tête Vault a disparu. Après le `encrypt` de nettoyage, `head` remontre `$ANSIBLE_VAULT;1.1;AES256`. ⚠️ On ne repasse **pas** `--vault-password-file` ici : le coffre `default` d'`ansible.cfg` suffit. Le repasser créerait **deux** coffres `default` et ferait échouer le rechiffrement (`ERROR! ... default,default are available to encrypt`) — laissant ton secret **en clair** sur le disque. Règle générale : dès qu'`ansible.cfg` fixe un coffre `default`, ne fournis un mot de passe en ligne de commande que si tu lèves l'ambiguïté avec `--encrypt-vault-id`. Tu maîtrises maintenant le cycle complet : chiffrer, lire, utiliser, tourner la clé, isoler par environnement, et (rarement) déchiffrer. Supprime la copie : `rm secrets_copie.yml`.
 :::
 
 :::lang en
-**✅ Check:** after `decrypt`, `cat secrets_copie.yml` shows `db_password: "S3cr3t-DB-2026"` **in clear** — the Vault header is gone. After the cleanup `encrypt`, `head` shows `$ANSIBLE_VAULT;1.1;AES256` again. You now master the full cycle: encrypt, read, use, rotate the key, isolate per environment, and (rarely) decrypt. Delete the copy: `rm secrets_copie.yml`.
+**✅ Check:** after `decrypt`, `cat secrets_copie.yml` shows `db_password: "S3cr3t-DB-2026"` **in clear** — the Vault header is gone. After the cleanup `encrypt`, `head` shows `$ANSIBLE_VAULT;1.1;AES256` again. ⚠️ We do **not** re-pass `--vault-password-file` here: `ansible.cfg`'s `default` vault is enough. Re-passing it would create **two** `default` vaults and fail the re-encrypt (`ERROR! ... default,default are available to encrypt`) — leaving your secret **in clear** on disk. General rule: once `ansible.cfg` sets a `default` vault, only supply a command-line password if you disambiguate with `--encrypt-vault-id`. You now master the full cycle: encrypt, read, use, rotate the key, isolate per environment, and (rarely) decrypt. Delete the copy: `rm secrets_copie.yml`.
 :::
 
 ## pitfalls
@@ -486,6 +495,8 @@ head -c 40 secrets_copie.yml; echo   # de nouveau chiffré / encrypted again
 **6. Un seul mot de passe pour dev et prod.** Si la même clé chiffre tout, une fuite dev compromet la prod. Utilise des **vault-id** distincts (`dev@`, `prod@`) pour isoler les environnements.
 
 **7. Éditer un fichier chiffré avec un éditeur normal.** Ouvrir `secrets.yml` chiffré avec `nano` puis sauver **corrompt** le fichier (tu édites le blob). Utilise **toujours** `ansible-vault edit`, qui déchiffre/rechiffre proprement.
+
+**8. Collision avec le coffre `default` d'`ansible.cfg`.** Dès que `vault_password_file` figure dans `ansible.cfg`, un coffre `default` existe en permanence. Si tu ajoutes **en plus** un mot de passe en ligne de commande (`--vault-password-file` ou `--vault-id`), plusieurs coffres peuvent chiffrer et Ansible **refuse de deviner** : `The vault-ids X,default are available to encrypt`. Le chiffrement échoue (et peut laisser un fichier en clair). Solution : précise `--encrypt-vault-id <id>`, ou ne rajoute pas de second coffre quand celui d'`ansible.cfg` suffit.
 :::
 
 :::lang en
@@ -502,6 +513,8 @@ head -c 40 secrets_copie.yml; echo   # de nouveau chiffré / encrypted again
 **6. One password for dev and prod.** If the same key encrypts everything, a dev leak compromises prod. Use distinct **vault-ids** (`dev@`, `prod@`) to isolate environments.
 
 **7. Editing an encrypted file with a normal editor.** Opening an encrypted `secrets.yml` with `nano` then saving **corrupts** the file (you edit the blob). **Always** use `ansible-vault edit`, which decrypts/re-encrypts cleanly.
+
+**8. Collision with `ansible.cfg`'s `default` vault.** Once `vault_password_file` is in `ansible.cfg`, a `default` vault exists permanently. If you **also** add a command-line password (`--vault-password-file` or `--vault-id`), several vaults can encrypt and Ansible **refuses to guess**: `The vault-ids X,default are available to encrypt`. Encryption fails (and may leave a file in clear). Fix: specify `--encrypt-vault-id <id>`, or don't add a second vault when `ansible.cfg`'s is enough.
 :::
 
 ## success
