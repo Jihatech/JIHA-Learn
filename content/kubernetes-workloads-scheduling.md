@@ -272,11 +272,11 @@ kubectl describe pod web-probes | grep -A3 Events   # "Liveness probe failed" + 
 ```
 
 :::lang fr
-**✅ Vérification :** après suppression du fichier, la colonne `RESTARTS` du pod passe à `1` — la liveness a échoué, le conteneur a été **redémarré** (et nginx recrée son `index.html` au boot, donc il repasse `Ready`). `kubectl describe` montre l'événement `Liveness probe failed`. Tu viens de voir la boucle de réconciliation « réparer un conteneur malade » en action.
+**✅ Vérification :** après suppression du fichier, la colonne `RESTARTS` du pod passe à `1` — la liveness a échoué, le conteneur a été **redémarré** (et le conteneur redémarré repart **de l'image**, qui embarque déjà cet `index.html`, donc il repasse `Ready`). `kubectl describe` montre l'événement `Liveness probe failed`. Tu viens de voir la boucle de réconciliation « réparer un conteneur malade » en action.
 :::
 
 :::lang en
-**✅ Check:** after deleting the file, the pod's `RESTARTS` column goes to `1` — liveness failed, the container was **restarted** (and nginx recreates its `index.html` at boot, so it returns `Ready`). `kubectl describe` shows the `Liveness probe failed` event. You've just seen the "repair a sick container" reconciliation loop in action.
+**✅ Check:** after deleting the file, the pod's `RESTARTS` column goes to `1` — liveness failed, the container was **restarted** (and the restarted container starts fresh **from the image**, which already ships that `index.html`, so it returns `Ready`). `kubectl describe` shows the `Liveness probe failed` event. You've just seen the "repair a sick container" reconciliation loop in action.
 :::
 
 ### step-03
@@ -307,7 +307,7 @@ spec:
       args: ["--vm", "1", "--vm-bytes", "150M", "--vm-hang", "1"]
       resources:
         requests: { memory: "32Mi", cpu: "100m" }
-        limits:   { memory: "64Mi", cpu: "200m" }   # 64Mi < 150M demandés → dépassement / requested > limit → overrun
+        limits:   { memory: "64Mi", cpu: "200m" }   # alloc 150M à l'exécution > limit 64Mi → OOMKilled / 150M runtime alloc > 64Mi limit → OOMKilled
 ```
 
 ```bash
@@ -635,13 +635,13 @@ kubectl get pod db -o wide         # Running sur k3d-ckalab-agent-1 (toléré) /
 ```
 
 :::lang fr
-**✅ Vérification :** le pod `db` tourne bien sur `k3d-ckalab-agent-1` **malgré** le taint, parce qu'il le **tolère**. Preuve inverse : retire `nodeName` et la section `tolerations` d'une copie, applique-la → le scheduler l'envoie sur **un autre** nœud (jamais `agent-1`). *(Retire le taint à la fin : `kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule-` — le `-` final supprime le taint.)*
+**✅ Vérification :** le pod `db` tourne bien sur `k3d-ckalab-agent-1` **malgré** le taint, parce qu'il le **tolère**. Preuve inverse : retire `nodeName` et la section `tolerations` d'une copie, applique-la → le scheduler l'envoie sur **un autre** nœud (jamais `agent-1`). *(À isoler si tu veux : garde `nodeName` mais retire la toleration → le kubelet **rejette** l'admission sur le nœud tainté, car `nodeName` court-circuite le scheduler mais **pas** le contrôle du taint.)* *(Retire le taint à la fin : `kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule-` — le `-` final supprime le taint.)*
 
 **🤔 Combiner attirance + répulsion.** En prod, on **taint** le nœud DB (personne d'autre n'y va) **et** on met une **affinité** sur le pod DB (il y va vraiment). Taint seul = « pas les autres » ; affinité seule = « moi ici » ; les deux = nœud dédié.
 :::
 
 :::lang en
-**✅ Check:** the `db` pod does run on `k3d-ckalab-agent-1` **despite** the taint, because it **tolerates** it. Reverse proof: remove `nodeName` and the `tolerations` section from a copy, apply it → the scheduler sends it to **another** node (never `agent-1`). *(Remove the taint at the end: `kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule-` — the trailing `-` deletes the taint.)*
+**✅ Check:** the `db` pod does run on `k3d-ckalab-agent-1` **despite** the taint, because it **tolerates** it. Reverse proof: remove `nodeName` and the `tolerations` section from a copy, apply it → the scheduler sends it to **another** node (never `agent-1`). *(To isolate the point if you like: keep `nodeName` but drop the toleration → the kubelet **rejects** admission on the tainted node, because `nodeName` bypasses the scheduler but **not** the taint check.)* *(Remove the taint at the end: `kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule-` — the trailing `-` deletes the taint.)*
 
 **🤔 Combining attraction + repulsion.** In prod, you **taint** the DB node (nobody else goes there) **and** put an **affinity** on the DB pod (it actually goes there). Taint alone = "not the others"; affinity alone = "me here"; both = a dedicated node.
 :::
