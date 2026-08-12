@@ -205,17 +205,17 @@ systemd-analyze blame | head # les units les plus lentes au démarrage / slowest
 :::lang fr
 **Objectif.** **Écrire** ta propre **unit `.service`** et la démarrer.
 
-**🤔 Un service, c'est un fichier texte.** On crée un petit démon qui écrit l'heure toutes les 5 secondes. Crée l'unit :
+**🤔 Un service, c'est un fichier texte.** systemd cherche les units dans **deux** dossiers : **`/usr/lib/systemd/system/`** (les définitions livrées par les **paquets**) et **`/etc/systemd/system/`** (les units et **surcharges locales** de l'admin, **prioritaires**). On crée un petit démon qui écrit l'heure toutes les 5 secondes ; on le place dans **`/usr/lib/systemd/system/`** — l'emplacement d'une « définition » de paquet, ce qui nous permettra aussi de démontrer le `mask` à l'étape suivante. Crée l'unit :
 :::
 
 :::lang en
 **Goal.** **Write** your own **`.service` unit** and start it.
 
-**🤔 A service is a text file.** We create a small daemon that prints the time every 5 seconds. Create the unit:
+**🤔 A service is a text file.** systemd looks for units in **two** folders: **`/usr/lib/systemd/system/`** (definitions shipped by **packages**) and **`/etc/systemd/system/`** (the admin's units and **local overrides**, which take **precedence**). We create a small daemon that prints the time every 5 seconds; we place it in **`/usr/lib/systemd/system/`** — a package "definition" location, which will also let us demonstrate `mask` in the next step. Create the unit:
 :::
 
 ```bash
-sudo tee /etc/systemd/system/hello.service >/dev/null <<'EOF'
+sudo tee /usr/lib/systemd/system/hello.service >/dev/null <<'EOF'
 [Unit]
 Description=Service de démo hello
 After=network.target
@@ -246,13 +246,13 @@ systemctl status hello --no-pager # doit être "active (running)" / must be "act
 :::lang fr
 **Objectif.** Maîtriser le cycle **`systemctl`** : `enable`, `restart`, `disable`, **`mask`**.
 
-**🤔 « Maintenant » vs « au démarrage ».** `start`/`stop` agissent tout de suite ; `enable`/`disable` décident du **démarrage automatique**. Le `mask` va plus loin : il **interdit** l'unit.
+**🤔 « Maintenant » vs « au démarrage ».** `start`/`stop` agissent tout de suite ; `enable`/`disable` décident du **démarrage automatique**. Le `mask` va plus loin : il **interdit** l'unit en créant un lien **`/etc/systemd/system/hello.service → /dev/null`** qui **masque** la définition. *(C'est pourquoi on masque une unit livrée dans `/usr/lib` : le lien de masquage prend sa place dans `/etc`. Une unit qui vit **déjà** dans `/etc/systemd/system/` ne peut pas être masquée ainsi — on la supprimerait plutôt.)*
 :::
 
 :::lang en
 **Goal.** Master the **`systemctl`** lifecycle: `enable`, `restart`, `disable`, **`mask`**.
 
-**🤔 "Now" vs "at boot".** `start`/`stop` act immediately; `enable`/`disable` decide **automatic startup**. `mask` goes further: it **forbids** the unit.
+**🤔 "Now" vs "at boot".** `start`/`stop` act immediately; `enable`/`disable` decide **automatic startup**. `mask` goes further: it **forbids** the unit by creating a link **`/etc/systemd/system/hello.service → /dev/null`** that **shadows** the definition. *(That's why you mask a unit shipped in `/usr/lib`: the mask link takes its place in `/etc`. A unit that **already** lives in `/etc/systemd/system/` can't be masked this way — you'd delete it instead.)*
 :::
 
 ```bash
@@ -328,8 +328,10 @@ kill -SIGTERM $PID          # arrêt poli (= kill $PID par défaut) / polite sto
 
 sleep 600 & PID2=$!
 kill -SIGKILL $PID2         # arrêt brutal, non-ignorable / brutal, non-ignorable
-pgrep -a sleep              # cherche les processus "sleep" restants / find remaining "sleep" processes
-pkill sleep                 # les tue par nom / kill them by name
+
+sleep 600 &                 # un dernier, pour la démo pgrep/pkill / one more, for the pgrep/pkill demo
+pgrep -a sleep              # le trouve PAR NOM (pas par PID) / find it BY NAME (not PID)
+pkill sleep                 # le tue par nom / kill it by name
 ```
 
 :::lang fr
@@ -492,8 +494,8 @@ La suite de la track Linux → LPIC-1 :
 2. **Scripting shell (bash)** — variables, conditions, boucles, fonctions.
 3. **Projet d'entreprise** — provisionner et durcir un serveur Linux multi-utilisateur.
 
-**Ménage :** supprime le service et le timer de démo —
-`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo rm -f /etc/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log`.
+**Ménage :** supprime le service, le timer et la tâche `at` de démo —
+`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo systemctl unmask hello 2>/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk '{print $1}') 2>/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log`.
 :::
 
 :::lang en
@@ -503,8 +505,8 @@ The rest of the Linux → LPIC-1 track:
 2. **Shell scripting (bash)** — variables, conditionals, loops, functions.
 3. **Enterprise project** — provision and harden a multi-user Linux server.
 
-**Cleanup:** delete the demo service and timer —
-`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo rm -f /etc/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log`.
+**Cleanup:** delete the demo service, timer and `at` task —
+`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo systemctl unmask hello 2>/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk '{print $1}') 2>/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log`.
 :::
 
 ## cheatsheet
@@ -559,7 +561,9 @@ echo 'cmd' | at now + 5 min ; atq ; atrm N
 ## troubleshooting
 
 :::lang fr
-**`systemctl start` : « Unit hello.service not found ».** Le fichier n'est pas au bon endroit (`/etc/systemd/system/`) ou tu as oublié `daemon-reload`. Vérifie le chemin et recharge.
+**`systemctl start` : « Unit hello.service not found ».** Le fichier n'est pas dans un dossier scanné (`/usr/lib/systemd/system/` ou `/etc/systemd/system/`) ou tu as oublié `daemon-reload`. Vérifie le chemin et recharge.
+
+**`systemctl mask` : « file already exists ».** Tu essaies de masquer une unit dont la définition est **déjà** dans `/etc/systemd/system/` : le lien de masquage ne peut pas s'y créer. Le `mask` s'applique aux units de `/usr/lib/systemd/system/` (paquets). Pour une unit locale de `/etc`, supprime-la plutôt.
 
 **Le service passe en `failed` juste après `start`.** Regarde **pourquoi** : `systemctl status hello` et `journalctl -u hello`. Souvent un `ExecStart` incorrect (chemin, guillemets) ou un binaire manquant.
 
@@ -573,7 +577,9 @@ echo 'cmd' | at now + 5 min ; atq ; atrm N
 :::
 
 :::lang en
-**`systemctl start`: "Unit hello.service not found".** The file isn't in the right place (`/etc/systemd/system/`) or you forgot `daemon-reload`. Check the path and reload.
+**`systemctl start`: "Unit hello.service not found".** The file isn't in a scanned folder (`/usr/lib/systemd/system/` or `/etc/systemd/system/`) or you forgot `daemon-reload`. Check the path and reload.
+
+**`systemctl mask`: "file already exists".** You're trying to mask a unit whose definition is **already** in `/etc/systemd/system/`: the mask link can't be created there. `mask` applies to `/usr/lib/systemd/system/` (package) units. For a local `/etc` unit, delete it instead.
 
 **The service goes `failed` right after `start`.** Look at **why**: `systemctl status hello` and `journalctl -u hello`. Often a wrong `ExecStart` (path, quotes) or a missing binary.
 

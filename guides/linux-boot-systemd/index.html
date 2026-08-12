@@ -268,12 +268,12 @@ systemd-analyze blame | head # les units les plus lentes au démarrage / slowest
   <span class="step-num" data-lang="fr">Étape 02</span>
   <span class="step-num" data-lang="en">Step 02</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Écrire</strong> ta propre <strong>unit <code>.service</code></strong> et la démarrer.</p>
-<p><strong>🤔 Un service, c&#39;est un fichier texte.</strong> On crée un petit démon qui écrit l&#39;heure toutes les 5 secondes. Crée l&#39;unit :</p>
+<p><strong>🤔 Un service, c&#39;est un fichier texte.</strong> systemd cherche les units dans <strong>deux</strong> dossiers : <strong><code>/usr/lib/systemd/system/</code></strong> (les définitions livrées par les <strong>paquets</strong>) et <strong><code>/etc/systemd/system/</code></strong> (les units et <strong>surcharges locales</strong> de l&#39;admin, <strong>prioritaires</strong>). On crée un petit démon qui écrit l&#39;heure toutes les 5 secondes ; on le place dans <strong><code>/usr/lib/systemd/system/</code></strong> — l&#39;emplacement d&#39;une « définition » de paquet, ce qui nous permettra aussi de démontrer le <code>mask</code> à l&#39;étape suivante. Crée l&#39;unit :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> <strong>Write</strong> your own <strong><code>.service</code> unit</strong> and start it.</p>
-<p><strong>🤔 A service is a text file.</strong> We create a small daemon that prints the time every 5 seconds. Create the unit:</p>
+<p><strong>🤔 A service is a text file.</strong> systemd looks for units in <strong>two</strong> folders: <strong><code>/usr/lib/systemd/system/</code></strong> (definitions shipped by <strong>packages</strong>) and <strong><code>/etc/systemd/system/</code></strong> (the admin&#39;s units and <strong>local overrides</strong>, which take <strong>precedence</strong>). We create a small daemon that prints the time every 5 seconds; we place it in <strong><code>/usr/lib/systemd/system/</code></strong> — a package &quot;definition&quot; location, which will also let us demonstrate <code>mask</code> in the next step. Create the unit:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo tee /etc/systemd/system/hello.service &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo tee /usr/lib/systemd/system/hello.service &gt;/dev/null &lt;&lt;&#39;EOF&#39;
 [Unit]
 Description=Service de démo hello
 After=network.target
@@ -300,10 +300,10 @@ systemctl status hello --no-pager # doit être &quot;active (running)&quot; / mu
   <span class="step-num" data-lang="fr">Étape 03</span>
   <span class="step-num" data-lang="en">Step 03</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Maîtriser le cycle <strong><code>systemctl</code></strong> : <code>enable</code>, <code>restart</code>, <code>disable</code>, <strong><code>mask</code></strong>.</p>
-<p><strong>🤔 « Maintenant » vs « au démarrage ».</strong> <code>start</code>/<code>stop</code> agissent tout de suite ; <code>enable</code>/<code>disable</code> décident du <strong>démarrage automatique</strong>. Le <code>mask</code> va plus loin : il <strong>interdit</strong> l&#39;unit.</p>
+<p><strong>🤔 « Maintenant » vs « au démarrage ».</strong> <code>start</code>/<code>stop</code> agissent tout de suite ; <code>enable</code>/<code>disable</code> décident du <strong>démarrage automatique</strong>. Le <code>mask</code> va plus loin : il <strong>interdit</strong> l&#39;unit en créant un lien <strong><code>/etc/systemd/system/hello.service → /dev/null</code></strong> qui <strong>masque</strong> la définition. <em>(C&#39;est pourquoi on masque une unit livrée dans <code>/usr/lib</code> : le lien de masquage prend sa place dans <code>/etc</code>. Une unit qui vit <strong>déjà</strong> dans <code>/etc/systemd/system/</code> ne peut pas être masquée ainsi — on la supprimerait plutôt.)</em></p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Master the <strong><code>systemctl</code></strong> lifecycle: <code>enable</code>, <code>restart</code>, <code>disable</code>, <strong><code>mask</code></strong>.</p>
-<p><strong>🤔 &quot;Now&quot; vs &quot;at boot&quot;.</strong> <code>start</code>/<code>stop</code> act immediately; <code>enable</code>/<code>disable</code> decide <strong>automatic startup</strong>. <code>mask</code> goes further: it <strong>forbids</strong> the unit.</p>
+<p><strong>🤔 &quot;Now&quot; vs &quot;at boot&quot;.</strong> <code>start</code>/<code>stop</code> act immediately; <code>enable</code>/<code>disable</code> decide <strong>automatic startup</strong>. <code>mask</code> goes further: it <strong>forbids</strong> the unit by creating a link <strong><code>/etc/systemd/system/hello.service → /dev/null</code></strong> that <strong>shadows</strong> the definition. <em>(That&#39;s why you mask a unit shipped in <code>/usr/lib</code>: the mask link takes its place in <code>/etc</code>. A unit that <strong>already</strong> lives in <code>/etc/systemd/system/</code> can&#39;t be masked this way — you&#39;d delete it instead.)</em></p>
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo systemctl enable hello         # démarrage auto au boot (crée un lien dans .wants) / auto-start at boot
 systemctl is-enabled hello          # &quot;enabled&quot;
@@ -359,8 +359,10 @@ kill -SIGTERM $PID          # arrêt poli (= kill $PID par défaut) / polite sto
 
 sleep 600 &amp; PID2=$!
 kill -SIGKILL $PID2         # arrêt brutal, non-ignorable / brutal, non-ignorable
-pgrep -a sleep              # cherche les processus &quot;sleep&quot; restants / find remaining &quot;sleep&quot; processes
-pkill sleep                 # les tue par nom / kill them by name</code></pre>
+
+sleep 600 &amp;                 # un dernier, pour la démo pgrep/pkill / one more, for the pgrep/pkill demo
+pgrep -a sleep              # le trouve PAR NOM (pas par PID) / find it BY NAME (not PID)
+pkill sleep                 # le tue par nom / kill it by name</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ps -o pid,ni</code> montre le <strong>niceness</strong> du processus (0 par défaut) ; après <code>renice -n 10</code>, il passe à <strong>10</strong> (moins prioritaire). <code>kill -SIGTERM $PID</code> l&#39;arrête proprement (un <code>jobs</code> le montre <code>Terminated</code>) ; <code>kill -SIGKILL</code> tue l&#39;autre <strong>immédiatement</strong>, sans qu&#39;il puisse rien intercepter. <code>pgrep</code>/<code>pkill</code> agissent <strong>par nom</strong> au lieu du PID. Retiens : <strong>TERM</strong> (15, défaut, poli) d&#39;abord ; <strong>KILL</strong> (9, brutal) en dernier recours quand un process est bloqué.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> <code>ps -o pid,ni</code> shows the process&#39;s <strong>niceness</strong> (0 by default); after <code>renice -n 10</code>, it becomes <strong>10</strong> (lower priority). <code>kill -SIGTERM $PID</code> stops it cleanly (a <code>jobs</code> shows it <code>Terminated</code>); <code>kill -SIGKILL</code> kills the other <strong>immediately</strong>, with no chance to catch anything. <code>pgrep</code>/<code>pkill</code> act <strong>by name</strong> instead of PID. Remember: <strong>TERM</strong> (15, default, polite) first; <strong>KILL</strong> (9, brutal) as a last resort when a process is stuck.</p>
@@ -475,11 +477,11 @@ atq                                              # la file des tâches at / the 
   <h2 data-lang="en">What's next?</h2>
 <div data-lang="fr"><p>La suite de la track Linux → LPIC-1 :</p>
 <ol><li><strong>Réseau &amp; sécurité système</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, pare-feu, durcissement.</li><li><strong>Scripting shell (bash)</strong> — variables, conditions, boucles, fonctions.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner et durcir un serveur Linux multi-utilisateur.</li></ol>
-<p><strong>Ménage :</strong> supprime le service et le timer de démo — <code>sudo systemctl disable --now hello tick.timer 2&gt;/dev/null ; sudo rm -f /etc/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log</code>.</p>
+<p><strong>Ménage :</strong> supprime le service, le timer et la tâche <code>at</code> de démo — <code>sudo systemctl disable --now hello tick.timer 2&gt;/dev/null ; sudo systemctl unmask hello 2&gt;/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk &#39;{print $1}&#39;) 2&gt;/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log</code>.</p>
 </div>
 <div data-lang="en"><p>The rest of the Linux → LPIC-1 track:</p>
 <ol><li><strong>Networking &amp; system security</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, firewall, hardening.</li><li><strong>Shell scripting (bash)</strong> — variables, conditionals, loops, functions.</li><li><strong>Enterprise project</strong> — provision and harden a multi-user Linux server.</li></ol>
-<p><strong>Cleanup:</strong> delete the demo service and timer — <code>sudo systemctl disable --now hello tick.timer 2&gt;/dev/null ; sudo rm -f /etc/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log</code>.</p>
+<p><strong>Cleanup:</strong> delete the demo service, timer and <code>at</code> task — <code>sudo systemctl disable --now hello tick.timer 2&gt;/dev/null ; sudo systemctl unmask hello 2&gt;/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk &#39;{print $1}&#39;) 2&gt;/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log</code>.</p>
 </div>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
@@ -543,14 +545,16 @@ echo &#39;cmd&#39; | at now + 5 min ; atq ; atrm N</code></pre>
   <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
   <h2 data-lang="fr">Troubleshooting</h2>
   <h2 data-lang="en">Troubleshooting</h2>
-<div data-lang="fr"><p><strong><code>systemctl start</code> : « Unit hello.service not found ».</strong> Le fichier n&#39;est pas au bon endroit (<code>/etc/systemd/system/</code>) ou tu as oublié <code>daemon-reload</code>. Vérifie le chemin et recharge.</p>
+<div data-lang="fr"><p><strong><code>systemctl start</code> : « Unit hello.service not found ».</strong> Le fichier n&#39;est pas dans un dossier scanné (<code>/usr/lib/systemd/system/</code> ou <code>/etc/systemd/system/</code>) ou tu as oublié <code>daemon-reload</code>. Vérifie le chemin et recharge.</p>
+<p><strong><code>systemctl mask</code> : « file already exists ».</strong> Tu essaies de masquer une unit dont la définition est <strong>déjà</strong> dans <code>/etc/systemd/system/</code> : le lien de masquage ne peut pas s&#39;y créer. Le <code>mask</code> s&#39;applique aux units de <code>/usr/lib/systemd/system/</code> (paquets). Pour une unit locale de <code>/etc</code>, supprime-la plutôt.</p>
 <p><strong>Le service passe en <code>failed</code> juste après <code>start</code>.</strong> Regarde <strong>pourquoi</strong> : <code>systemctl status hello</code> et <code>journalctl -u hello</code>. Souvent un <code>ExecStart</code> incorrect (chemin, guillemets) ou un binaire manquant.</p>
 <p><strong>« Unit is masked ».</strong> Le service est <strong>masqué</strong> : <code>sudo systemctl unmask hello</code> avant de pouvoir le démarrer.</p>
 <p><strong>Le job cron ne se déclenche pas.</strong> Le service <code>cron</code> tourne-t-il (<code>systemctl status cron</code>) ? La syntaxe des 5 champs est-elle correcte (<code>crontab -l</code>) ? Le <code>PATH</code> de cron est minimal → utilise des <strong>chemins absolus</strong> dans la commande.</p>
 <p><strong><code>systemctl list-timers</code> ne montre pas mon timer.</strong> Tu ne l&#39;as pas activé : <code>sudo systemctl enable --now tick.timer</code> (et <code>daemon-reload</code> d&#39;abord). Le timer doit être <strong>actif</strong>, pas seulement présent.</p>
 <p><strong><code>at: command not found</code> ou la tâche ne part pas.</strong> Installe <code>at</code> (<code>sudo apt install at</code>) et vérifie que le service <code>atd</code> tourne (<code>systemctl status atd</code>).</p>
 </div>
-<div data-lang="en"><p><strong><code>systemctl start</code>: &quot;Unit hello.service not found&quot;.</strong> The file isn&#39;t in the right place (<code>/etc/systemd/system/</code>) or you forgot <code>daemon-reload</code>. Check the path and reload.</p>
+<div data-lang="en"><p><strong><code>systemctl start</code>: &quot;Unit hello.service not found&quot;.</strong> The file isn&#39;t in a scanned folder (<code>/usr/lib/systemd/system/</code> or <code>/etc/systemd/system/</code>) or you forgot <code>daemon-reload</code>. Check the path and reload.</p>
+<p><strong><code>systemctl mask</code>: &quot;file already exists&quot;.</strong> You&#39;re trying to mask a unit whose definition is <strong>already</strong> in <code>/etc/systemd/system/</code>: the mask link can&#39;t be created there. <code>mask</code> applies to <code>/usr/lib/systemd/system/</code> (package) units. For a local <code>/etc</code> unit, delete it instead.</p>
 <p><strong>The service goes <code>failed</code> right after <code>start</code>.</strong> Look at <strong>why</strong>: <code>systemctl status hello</code> and <code>journalctl -u hello</code>. Often a wrong <code>ExecStart</code> (path, quotes) or a missing binary.</p>
 <p><strong>&quot;Unit is masked&quot;.</strong> The service is <strong>masked</strong>: <code>sudo systemctl unmask hello</code> before you can start it.</p>
 <p><strong>The cron job doesn&#39;t fire.</strong> Is the <code>cron</code> service running (<code>systemctl status cron</code>)? Is the 5-field syntax correct (<code>crontab -l</code>)? cron&#39;s <code>PATH</code> is minimal → use <strong>absolute paths</strong> in the command.</p>
