@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — scripting shell (bash) — jiha.tech</title>
+  <title data-lang="en">Linux — shell scripting (bash) — jiha.tech</title>
+  <meta name="description" content="Le scripting bash au niveau LPIC-1 : l&#39;environnement du shell (variables, PATH, .bashrc, alias), le premier script (shebang, quoting), les arguments et codes de sortie, les tests et conditions (test, [[ ]], if, case), les boucles (for, while, read) et les fonctions — jusqu&#39;à un vrai script de health-check réutilisable." data-lang="fr">
+  <meta name="description" content="Bash scripting at LPIC-1 level: the shell environment (variables, PATH, .bashrc, aliases), the first script (shebang, quoting), arguments and exit codes, tests and conditionals (test, [[ ]], if, case), loops (for, while, read) and functions — up to a real reusable health-check script." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — scripting shell (bash)">
+  <meta property="og:description" content="Le scripting bash au niveau LPIC-1 : l&#39;environnement du shell (variables, PATH, .bashrc, alias), le premier script (shebang, quoting), les arguments et codes de sortie, les tests et conditions (test, [[ ]], if, case), les boucles (for, while, read) et les fonctions — jusqu&#39;à un vrai script de health-check réutilisable.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-scripting-bash/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-scripting-bash/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-scripting-bash">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-scripting-bash</div>
+    <div class="prompt" data-lang="en">~/guides/linux-scripting-bash</div>
+    <h1 data-lang="fr">Linux — scripting shell (bash)</h1>
+    <h1 data-lang="en">Linux — shell scripting (bash)</h1>
+    <p class="tagline" data-lang="fr">Variables, arguments, tests, conditions, boucles, fonctions.</p>
+    <p class="tagline" data-lang="en">Variables, arguments, tests, conditionals, loops, functions.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 185 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 185 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un admin qui <strong>répète</strong> une tâche à la main perd son temps ; un admin qui la <strong>script</strong> la rejoue en une seconde, sans erreur. Le shell <strong>bash</strong> est le langage de colle de l&#39;administration Linux — et l&#39;examen <strong>LPIC-1</strong> le teste sérieusement : <em>comment lire un argument ? tester une condition ? boucler sur une liste ? renvoyer un code de sortie qu&#39;un autre script pourra vérifier ? écrire une fonction réutilisable ?</em></p>
+<p>Ce guide couvre les domaines <strong>Environnement &amp; scripting shell</strong> : l&#39;<strong>environnement</strong> (variables, <code>PATH</code>, <code>.bashrc</code>, alias), le <strong>premier script</strong> (shebang, quoting), les <strong>arguments</strong> et <strong>codes de sortie</strong>, les <strong>tests</strong> et <strong>conditions</strong> (<code>test</code>, <code>[[ ]]</code>, <code>if</code>, <code>case</code>), les <strong>boucles</strong> (<code>for</code>, <code>while</code>, <code>read</code>) et les <strong>fonctions</strong>. On finit par un <strong>vrai script de health-check</strong> qui assemble tout et réutilise ce que tu as appris sur systemd.</p>
+<p>On travaille dans <strong>n&#39;importe quel shell bash</strong> (native, WSL2, VM Multipass) — pas d&#39;infra particulière. Chaque brique est immédiatement testable.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides précédents de la track et tu vises <strong>LPIC-1</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;es pas à l&#39;aise en ligne de commande → revois le guide « L&#39;art de la ligne de commande » et les fondamentaux.</li><li>Tu veux le projet fil-rouge → c&#39;est l&#39;étape <strong>finale</strong> de la track, juste après.</li></ul>
+</div>
+<div data-lang="en"><p>An admin who <strong>repeats</strong> a task by hand wastes time; an admin who <strong>scripts</strong> it replays it in a second, error-free. The <strong>bash</strong> shell is the glue language of Linux administration — and the <strong>LPIC-1</strong> exam tests it seriously: <em>how do you read an argument? test a condition? loop over a list? return an exit code another script can check? write a reusable function?</em></p>
+<p>This guide covers the <strong>Shell environment &amp; scripting</strong> domains: the <strong>environment</strong> (variables, <code>PATH</code>, <code>.bashrc</code>, aliases), the <strong>first script</strong> (shebang, quoting), <strong>arguments</strong> and <strong>exit codes</strong>, <strong>tests</strong> and <strong>conditionals</strong> (<code>test</code>, <code>[[ ]]</code>, <code>if</code>, <code>case</code>), <strong>loops</strong> (<code>for</code>, <code>while</code>, <code>read</code>) and <strong>functions</strong>. We finish with a <strong>real health-check script</strong> that assembles everything and reuses what you learned about systemd.</p>
+<p>We work in <strong>any bash shell</strong> (native, WSL2, Multipass VM) — no special infra. Every brick is immediately testable.</p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier track guides and you&#39;re aiming for <strong>LPIC-1</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable on the command line → review the &quot;Art of the command line&quot; guide and the fundamentals.</li><li>You want the capstone → that&#39;s the <strong>final</strong> step of the track, right after.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Manipuler l&#39;<strong>environnement</strong> : variables, <code>export</code>, <code>PATH</code>, <code>.bashrc</code>, alias.</li><li>Écrire un <strong>script</strong> exécutable (shebang, <code>chmod +x</code>) et maîtriser le <strong>quoting</strong>.</li><li>Lire des <strong>arguments</strong> (<code>$1</code>, <code>$@</code>, <code>$#</code>) et renvoyer/tester des <strong>codes de sortie</strong> (<code>$?</code>, <code>exit</code>).</li><li>Écrire des <strong>tests</strong> (<code>test</code>, <code>[ ]</code>, <code>[[ ]]</code>) et des <strong>conditions</strong> (<code>if</code>/<code>elif</code>/<code>else</code>, <code>case</code>).</li><li>Écrire des <strong>boucles</strong> (<code>for</code>, <code>while</code>, <code>until</code>) et lire des lignes avec <code>read</code>.</li><li>Définir des <strong>fonctions</strong> et assembler un <strong>script complet</strong> utile.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Manipulate the <strong>environment</strong>: variables, <code>export</code>, <code>PATH</code>, <code>.bashrc</code>, aliases.</li><li>Write an executable <strong>script</strong> (shebang, <code>chmod +x</code>) and master <strong>quoting</strong>.</li><li>Read <strong>arguments</strong> (<code>$1</code>, <code>$@</code>, <code>$#</code>) and return/test <strong>exit codes</strong> (<code>$?</code>, <code>exit</code>).</li><li>Write <strong>tests</strong> (<code>test</code>, <code>[ ]</code>, <code>[[ ]]</code>) and <strong>conditionals</strong> (<code>if</code>/<code>elif</code>/<code>else</code>, <code>case</code>).</li><li>Write <strong>loops</strong> (<code>for</code>, <code>while</code>, <code>until</code>) and read lines with <code>read</code>.</li><li>Define <strong>functions</strong> and assemble a useful <strong>complete script</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides précédents de la track Linux acquis (notamment <strong>boot &amp; systemd</strong> pour le script final).</li><li>Un shell <strong>bash</strong> (native, WSL2, ou VM Multipass). Vérifie : <code>bash --version</code>.</li><li>Un éditeur en ligne de commande (<code>nano</code>, <code>vim</code>).</li></ul>
+<p>Crée un dossier de travail :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Linux track guides under your belt (especially <strong>boot &amp; systemd</strong> for the final script).</li><li>A <strong>bash</strong> shell (native, WSL2, or Multipass VM). Check: <code>bash --version</code>.</li><li>A command-line editor (<code>nano</code>, <code>vim</code>).</li></ul>
+<p>Create a working directory:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/scripts &amp;&amp; cd ~/scripts</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-reseau-securite/">
+    <span class="num">07</span>
+    <span class="title-line" data-lang="fr">Linux — réseau &amp; sécurité système</span>
+    <span class="title-line" data-lang="en">Linux — networking &amp; system security</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L&#39;environnement du shell.</strong> Chaque shell a des <strong>variables</strong> : locales (visibles dans ce shell) ou <strong>d&#39;environnement</strong> (héritées par les processus enfants, via <strong><code>export</code></strong>). La plus célèbre, <strong><code>PATH</code></strong>, liste les dossiers où chercher les commandes. Ton shell interactif charge sa config au démarrage : <strong><code>~/.bashrc</code></strong> (shell interactif non-login) et <strong><code>~/.profile</code></strong>/<code>~/.bash_profile</code> (shell de login) — c&#39;est là qu&#39;on met ses <strong>alias</strong> et exports permanents.</p>
+<p><strong>Un script, c&#39;est un fichier de commandes.</strong> Il commence par un <strong>shebang</strong> — <code>#!/usr/bin/env bash</code> — qui dit <strong>quel interpréteur</strong> l&#39;exécute. On le rend <strong>exécutable</strong> (<code>chmod +x</code>) puis on le lance (<code>./script.sh</code>).</p>
+<p><strong>Le quoting</strong>, source n°1 de bugs :</p>
+<ul><li><strong>Guillemets doubles <code>&quot;…&quot;</code></strong> : les variables sont <strong>remplacées</strong> (<code>&quot;$var&quot;</code>), mais la chaîne reste un seul mot. <strong>Le réflexe par défaut.</strong></li><li><strong>Guillemets simples <code>&#39;…&#39;</code></strong> : <strong>rien</strong> n&#39;est interprété (littéral brut).</li><li>Sans guillemets : le shell <strong>découpe</strong> sur les espaces et <strong>développe</strong> les jokers (<code>*</code>) — souvent la cause de bugs sur les chemins à espaces.</li></ul>
+<p><strong>Arguments &amp; codes de sortie.</strong> Un script reçoit ses arguments dans <strong><code>$1</code>, <code>$2</code>…</strong>, <strong><code>$@</code></strong> (tous), <strong><code>$#</code></strong> (le nombre). Toute commande renvoie un <strong>code de sortie</strong> : <strong><code>0</code> = succès</strong>, non-zéro = échec, lu dans <strong><code>$?</code></strong>. Ton script en renvoie un avec <strong><code>exit N</code></strong>. C&#39;est <strong>le</strong> mécanisme qui permet de <strong>chaîner</strong> : <code>cmd1 &amp;&amp; cmd2</code> (si succès), <code>cmd1 || cmd2</code> (si échec).</p>
+<p><strong>Tests &amp; conditions.</strong> On évalue une condition avec <strong><code>test</code></strong> / <strong><code>[ … ]</code></strong> (POSIX) ou <strong><code>[[ … ]]</code></strong> (bash, plus sûr) : <code>-f</code> (fichier existe), <code>-d</code> (dossier), <code>-z</code> (chaîne vide), <code>-eq</code>/<code>-lt</code>/<code>-gt</code> (nombres), <code>=</code>/<code>!=</code> (chaînes). Puis <strong><code>if</code>/<code>elif</code>/<code>else</code></strong> branche, ou <strong><code>case</code></strong> compare une valeur à des motifs. L&#39;arithmétique se fait dans <strong><code>$(( … ))</code></strong>.</p>
+<p><strong>Boucles.</strong> <strong><code>for</code></strong> itère sur une liste (<code>for f in *.txt</code>), <strong><code>while</code></strong> tant qu&#39;une condition tient (souvent <code>while read -r ligne</code> pour lire un fichier ligne par ligne), <strong><code>until</code></strong> jusqu&#39;à ce qu&#39;elle tienne.</p>
+<p><strong>Fonctions.</strong> Un bloc réutilisable et nommé : <code>nom() { … }</code>. Elle reçoit ses arguments comme un script (<code>$1</code>…), et renvoie un <strong>code</strong> avec <code>return</code>. On y met des variables <strong><code>local</code></strong> pour ne pas polluer le reste.</p>
+</div>
+<div data-lang="en"><p><strong>The shell environment.</strong> Each shell has <strong>variables</strong>: local (visible in this shell) or <strong>environment</strong> ones (inherited by child processes, via <strong><code>export</code></strong>). The most famous, <strong><code>PATH</code></strong>, lists the folders to search for commands. Your interactive shell loads its config at startup: <strong><code>~/.bashrc</code></strong> (interactive non-login shell) and <strong><code>~/.profile</code></strong>/<code>~/.bash_profile</code> (login shell) — that&#39;s where you put your <strong>aliases</strong> and permanent exports.</p>
+<p><strong>A script is a file of commands.</strong> It starts with a <strong>shebang</strong> — <code>#!/usr/bin/env bash</code> — that says <strong>which interpreter</strong> runs it. You make it <strong>executable</strong> (<code>chmod +x</code>) then run it (<code>./script.sh</code>).</p>
+<p><strong>Quoting</strong>, bug source #1:</p>
+<ul><li><strong>Double quotes <code>&quot;…&quot;</code></strong>: variables are <strong>substituted</strong> (<code>&quot;$var&quot;</code>), but the string stays one word. <strong>The default reflex.</strong></li><li><strong>Single quotes <code>&#39;…&#39;</code></strong>: <strong>nothing</strong> is interpreted (raw literal).</li><li>No quotes: the shell <strong>splits</strong> on spaces and <strong>expands</strong> globs (<code>*</code>) — often the cause of bugs on paths with spaces.</li></ul>
+<p><strong>Arguments &amp; exit codes.</strong> A script gets its arguments in <strong><code>$1</code>, <code>$2</code>…</strong>, <strong><code>$@</code></strong> (all), <strong><code>$#</code></strong> (the count). Every command returns an <strong>exit code</strong>: <strong><code>0</code> = success</strong>, non-zero = failure, read in <strong><code>$?</code></strong>. Your script returns one with <strong><code>exit N</code></strong>. That&#39;s <strong>the</strong> mechanism to <strong>chain</strong>: <code>cmd1 &amp;&amp; cmd2</code> (on success), <code>cmd1 || cmd2</code> (on failure).</p>
+<p><strong>Tests &amp; conditionals.</strong> You evaluate a condition with <strong><code>test</code></strong> / <strong><code>[ … ]</code></strong> (POSIX) or <strong><code>[[ … ]]</code></strong> (bash, safer): <code>-f</code> (file exists), <code>-d</code> (directory), <code>-z</code> (empty string), <code>-eq</code>/<code>-lt</code>/<code>-gt</code> (numbers), <code>=</code>/<code>!=</code> (strings). Then <strong><code>if</code>/<code>elif</code>/<code>else</code></strong> branches, or <strong><code>case</code></strong> matches a value against patterns. Arithmetic happens in <strong><code>$(( … ))</code></strong>.</p>
+<p><strong>Loops.</strong> <strong><code>for</code></strong> iterates over a list (<code>for f in *.txt</code>), <strong><code>while</code></strong> as long as a condition holds (often <code>while read -r line</code> to read a file line by line), <strong><code>until</code></strong> until it holds.</p>
+<p><strong>Functions.</strong> A named, reusable block: <code>name() { … }</code>. It gets its arguments like a script (<code>$1</code>…), and returns a <strong>code</strong> with <code>return</code>. Use <strong><code>local</code></strong> variables inside so you don&#39;t pollute the rest.</p>
+</div>
+
+<figure class="schema" id="figure-linux-bash-script">
+  <p>[schema "linux-bash-script" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> shebang → variables/quoting → arguments ($1, $#) → tests ([[ ]]) &amp; conditions (if/case) → boucles (for/while) → fonctions → exit code.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> shebang → variables/quoting → arguments ($1, $#) → tests ([[ ]]) &amp; conditionals (if/case) → loops (for/while) → functions → exit code.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : environnement → premier script &amp; quoting → arguments &amp; codes de sortie → tests &amp; conditions → boucles → fonctions &amp; script complet.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: environment → first script &amp; quoting → arguments &amp; exit codes → tests &amp; conditionals → loops → functions &amp; complete script.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Manipuler l&#39;<strong>environnement</strong> : variables, <code>export</code>, <code>PATH</code>, alias.</p>
+<p><strong>🤔 Locale vs exportée.</strong> Une variable <strong>exportée</strong> est héritée par les processus enfants ; une locale, non. Observe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manipulate the <strong>environment</strong>: variables, <code>export</code>, <code>PATH</code>, aliases.</p>
+<p><strong>🤔 Local vs exported.</strong> An <strong>exported</strong> variable is inherited by child processes; a local one isn&#39;t. Observe:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>MAVAR=&quot;bonjour&quot;                 # variable locale au shell / shell-local variable
+echo &quot;$MAVAR&quot;                   # bonjour
+bash -c &#39;echo &quot;enfant voit: $MAVAR&quot;&#39;   # VIDE : non exportée / EMPTY: not exported
+export MAVAR
+bash -c &#39;echo &quot;enfant voit: $MAVAR&quot;&#39;   # bonjour : héritée / inherited
+
+echo &quot;$PATH&quot;                    # les dossiers où le shell cherche les commandes / where the shell finds commands
+alias ll=&#39;ls -lah&#39;              # un alias (raccourci) / an alias (shortcut)
+type ll                         # montre à quoi ll est lié / shows what ll maps to</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avant <code>export</code>, le sous-shell <code>bash -c</code> affiche une valeur <strong>vide</strong> pour <code>$MAVAR</code> (la variable locale n&#39;est <strong>pas</strong> transmise) ; <strong>après</strong> <code>export</code>, l&#39;enfant voit <code>bonjour</code>. C&#39;est <strong>la</strong> distinction locale/environnement. <code>echo &quot;$PATH&quot;</code> liste les dossiers de recherche des commandes (séparés par <code>:</code>). L&#39;<code>alias ll</code> crée un raccourci. <strong>À savoir pour l&#39;examen :</strong> ces réglages sont <strong>temporaires</strong> ; pour les rendre permanents, on les met dans <strong><code>~/.bashrc</code></strong> (alias, exports).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> before <code>export</code>, the <code>bash -c</code> subshell prints an <strong>empty</strong> value for <code>$MAVAR</code> (the local variable is <strong>not</strong> passed on); <strong>after</strong> <code>export</code>, the child sees <code>bonjour</code>. That&#39;s <strong>the</strong> local/environment distinction. <code>echo &quot;$PATH&quot;</code> lists the command-search folders (colon-separated). The <code>alias ll</code> creates a shortcut. <strong>For the exam:</strong> these settings are <strong>temporary</strong>; to make them permanent, put them in <strong><code>~/.bashrc</code></strong> (aliases, exports).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire ton <strong>premier script</strong> et comprendre le <strong>quoting</strong>.</p>
+<p><strong>🤔 Trois façons de citer.</strong> Crée <code>bonjour.sh</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write your <strong>first script</strong> and understand <strong>quoting</strong>.</p>
+<p><strong>🤔 Three ways to quote.</strong> Create <code>bonjour.sh</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; bonjour.sh &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+nom=&quot;le monde&quot;
+echo &quot;double: bonjour $nom&quot;     # $nom est REMPLACÉ / $nom is SUBSTITUTED
+echo &#39;simple: bonjour $nom&#39;     # littéral, $nom N&#39;est PAS remplacé / literal, NOT substituted
+echo &quot;date du jour: $(date +%F)&quot;   # substitution de commande / command substitution
+EOF
+
+chmod +x bonjour.sh             # rend le script exécutable / make it executable
+./bonjour.sh</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>./bonjour.sh</code> affiche <code>double: bonjour le monde</code> (les <strong>guillemets doubles</strong> ont <strong>remplacé</strong> <code>$nom</code>), puis <code>simple: bonjour $nom</code> <strong>littéralement</strong> (les <strong>guillemets simples</strong> n&#39;interprètent <strong>rien</strong>), puis la date du jour (la <strong>substitution de commande</strong> <code>$(date …)</code> a été exécutée). Le <strong>shebang</strong> <code>#!/usr/bin/env bash</code> dit au système d&#39;utiliser bash, et <code>chmod +x</code> a rendu le fichier <strong>exécutable</strong>. Retiens la règle d&#39;or : <strong>guillemets doubles par défaut</strong> (variables remplacées, mais un seul mot), simples pour du littéral brut.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>./bonjour.sh</code> prints <code>double: bonjour le monde</code> (the <strong>double quotes</strong> <strong>substituted</strong> <code>$nom</code>), then <code>simple: bonjour $nom</code> <strong>literally</strong> (the <strong>single quotes</strong> interpret <strong>nothing</strong>), then today&#39;s date (the <strong>command substitution</strong> <code>$(date …)</code> ran). The <strong>shebang</strong> <code>#!/usr/bin/env bash</code> tells the system to use bash, and <code>chmod +x</code> made the file <strong>executable</strong>. Remember the golden rule: <strong>double quotes by default</strong> (variables substituted, but one word), single for raw literal.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire des <strong>arguments</strong> et gérer les <strong>codes de sortie</strong>.</p>
+<p><strong>🤔 Un script qui prend des entrées.</strong> Crée <code>salut.sh</code> qui salue son argument et vérifie qu&#39;il en reçoit un :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read <strong>arguments</strong> and handle <strong>exit codes</strong>.</p>
+<p><strong>🤔 A script that takes inputs.</strong> Create <code>salut.sh</code> that greets its argument and checks it got one:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; salut.sh &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+echo &quot;nombre d&#39;arguments: $#&quot;
+if [[ $# -lt 1 ]]; then
+  echo &quot;usage: $0 &lt;nom&gt;&quot; &gt;&amp;2      # message d&#39;erreur sur stderr / error message to stderr
+  exit 1                          # code de sortie NON-ZÉRO = échec / NON-ZERO exit = failure
+fi
+echo &quot;Salut, $1 ! (tous: $@)&quot;
+exit 0                            # succès explicite / explicit success
+EOF
+chmod +x salut.sh
+
+./salut.sh Ada        ; echo &quot;code retour = $?&quot;    # succès / success
+./salut.sh            ; echo &quot;code retour = $?&quot;    # échec (aucun argument) / failure (no argument)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>./salut.sh Ada</code> affiche <code>Salut, Ada !</code> et <code>code retour = 0</code> ; <code>./salut.sh</code> <strong>sans</strong> argument affiche l&#39;usage (sur <strong>stderr</strong>) et <code>code retour = 1</code>. Tu vois le contrat : <strong><code>$1</code></strong> (premier arg), <strong><code>$#</code></strong> (leur nombre), <strong><code>$@</code></strong> (tous), <strong><code>$0</code></strong> (le nom du script), et <strong><code>exit</code></strong> qui fixe le code lu ensuite dans <strong><code>$?</code></strong>. Ce code (<strong>0 = OK</strong>, non-zéro = erreur) est ce qui permet à un autre programme (ou <code>&amp;&amp;</code>/<code>||</code>) de <strong>réagir</strong> au résultat.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>./salut.sh Ada</code> prints <code>Salut, Ada !</code> and <code>code retour = 0</code>; <code>./salut.sh</code> <strong>without</strong> an argument prints usage (to <strong>stderr</strong>) and <code>code retour = 1</code>. You see the contract: <strong><code>$1</code></strong> (first arg), <strong><code>$#</code></strong> (their count), <strong><code>$@</code></strong> (all), <strong><code>$0</code></strong> (the script name), and <strong><code>exit</code></strong> which sets the code then read in <strong><code>$?</code></strong>. That code (<strong>0 = OK</strong>, non-zero = error) is what lets another program (or <code>&amp;&amp;</code>/<code>||</code>) <strong>react</strong> to the result.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire des <strong>tests</strong> et des <strong>conditions</strong> (<code>[[ ]]</code>, <code>if</code>, <code>case</code>).</p>
+<p><strong>🤔 Évaluer, puis brancher.</strong> Crée <code>verif.sh</code> qui teste un fichier et classe un nombre :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write <strong>tests</strong> and <strong>conditionals</strong> (<code>[[ ]]</code>, <code>if</code>, <code>case</code>).</p>
+<p><strong>🤔 Evaluate, then branch.</strong> Create <code>verif.sh</code> that tests a file and classifies a number:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; verif.sh &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+fichier=&quot;${1:-/etc/hostname}&quot;     # valeur par défaut si $1 absent / default if $1 missing
+
+if [[ -f &quot;$fichier&quot; ]]; then      # -f : le fichier existe / -f: the file exists
+  echo &quot;$fichier existe ($(wc -l &lt; &quot;$fichier&quot;) lignes)&quot;
+elif [[ -d &quot;$fichier&quot; ]]; then
+  echo &quot;$fichier est un dossier&quot;
+else
+  echo &quot;$fichier introuvable&quot; &gt;&amp;2
+fi
+
+n=$(( RANDOM % 3 ))               # arithmétique : 0, 1 ou 2 / arithmetic: 0, 1 or 2
+case &quot;$n&quot; in
+  0) echo &quot;zéro&quot; ;;
+  1) echo &quot;un&quot; ;;
+  *) echo &quot;autre: $n&quot; ;;          # * = motif par défaut / default pattern
+esac
+EOF
+chmod +x verif.sh ; ./verif.sh</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>./verif.sh</code> teste <code>/etc/hostname</code> (via <code>${1:-défaut}</code>), voit qu&#39;<strong>il existe</strong> (branche <code>if</code>) et affiche son nombre de lignes ; puis le <code>case</code> classe un nombre aléatoire (<code>$(( RANDOM % 3 ))</code>) en <code>zéro</code>/<code>un</code>/<code>autre</code>. Tu maîtrises : <strong><code>[[ -f ]]</code>/<code>[[ -d ]]</code></strong> (tests de fichiers), <strong><code>if</code>/<code>elif</code>/<code>else</code></strong> (branchement binaire/multiple), <strong><code>case</code></strong> (comparaison à des <strong>motifs</strong>), l&#39;arithmétique <strong><code>$(( ))</code></strong>, et la valeur par défaut <strong><code>${var:-défaut}</code></strong>. <em>(<code>[[ ]]</code> est la version bash, plus sûre que <code>[ ]</code> avec les variables vides ou les espaces.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>./verif.sh</code> tests <code>/etc/hostname</code> (via <code>${1:-default}</code>), sees it <strong>exists</strong> (the <code>if</code> branch) and prints its line count; then the <code>case</code> classifies a random number (<code>$(( RANDOM % 3 ))</code>) as <code>zéro</code>/<code>un</code>/<code>autre</code>. You&#39;ve got: <strong><code>[[ -f ]]</code>/<code>[[ -d ]]</code></strong> (file tests), <strong><code>if</code>/<code>elif</code>/<code>else</code></strong> (binary/multiple branching), <strong><code>case</code></strong> (matching against <strong>patterns</strong>), arithmetic <strong><code>$(( ))</code></strong>, and the default value <strong><code>${var:-default}</code></strong>. <em>(<code>[[ ]]</code> is the bash version, safer than <code>[ ]</code> with empty variables or spaces.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire des <strong>boucles</strong> : <code>for</code>, <code>while</code>, et lire des lignes avec <code>read</code>.</p>
+<p><strong>🤔 Répéter sans copier-coller.</strong> Crée <code>boucles.sh</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write <strong>loops</strong>: <code>for</code>, <code>while</code>, and read lines with <code>read</code>.</p>
+<p><strong>🤔 Repeat without copy-paste.</strong> Create <code>boucles.sh</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; boucles.sh &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+# for : sur une liste / over a list
+for i in 1 2 3; do
+  echo &quot;for -&gt; $i&quot;
+done
+
+# while : tant que la condition tient / while the condition holds
+n=0
+while [[ $n -lt 3 ]]; do
+  echo &quot;while -&gt; $n&quot;
+  n=$(( n + 1 ))
+done
+
+# while read : lire un flux ligne par ligne / read a stream line by line
+printf &#39;alice\nbob\ncarol\n&#39; | while read -r ligne; do
+  echo &quot;utilisateur: $ligne&quot;
+done
+EOF
+chmod +x boucles.sh ; ./boucles.sh</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>./boucles.sh</code> affiche trois <code>for -&gt; …</code> (itération sur la <strong>liste</strong> <code>1 2 3</code>), trois <code>while -&gt; …</code> (tant que <code>n &lt; 3</code>, avec incrément <code>$(( n + 1 ))</code>), puis un <code>utilisateur: …</code> par ligne reçue (le motif <strong><code>while read -r</code></strong> lit un flux <strong>ligne par ligne</strong> — l&#39;outil pour traiter un fichier ou une sortie de commande). Tu tiens les trois formes de boucle. <em>(Le <strong><code>-r</code></strong> de <code>read</code> empêche l&#39;interprétation des <code>\</code> — toujours l&#39;utiliser.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>./boucles.sh</code> prints three <code>for -&gt; …</code> (iterating over the <strong>list</strong> <code>1 2 3</code>), three <code>while -&gt; …</code> (as long as <code>n &lt; 3</code>, incrementing with <code>$(( n + 1 ))</code>), then one <code>utilisateur: …</code> per received line (the <strong><code>while read -r</code></strong> pattern reads a stream <strong>line by line</strong> — the tool to process a file or a command&#39;s output). You hold the three loop forms. <em>(The <strong><code>-r</code></strong> in <code>read</code> prevents <code>\</code> interpretation — always use it.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Définir une <strong>fonction</strong> et assembler un <strong>script complet</strong> utile : un <strong>health-check</strong> de serveur.</p>
+<p><strong>🤔 Tout ensemble.</strong> Ce script réunit tout : shebang, arguments, <code>[[ ]]</code>, <code>if</code>, <code>for</code>, une <strong>fonction</strong>, et un <strong>code de sortie</strong> exploitable. Il vérifie l&#39;usage disque et l&#39;état de services (ce que tu as appris au guide systemd). Crée <code>healthcheck.sh</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Define a <strong>function</strong> and assemble a useful <strong>complete script</strong>: a server <strong>health-check</strong>.</p>
+<p><strong>🤔 All together.</strong> This script brings it all: shebang, arguments, <code>[[ ]]</code>, <code>if</code>, <code>for</code>, a <strong>function</strong>, and a usable <strong>exit code</strong>. It checks disk usage and service states (what you learned in the systemd guide). Create <code>healthcheck.sh</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; healthcheck.sh &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+set -euo pipefail                 # arrêt sur erreur/variable non définie / stop on error/unset var
+
+seuil=&quot;${1:-80}&quot;                  # seuil d&#39;usage disque en %, défaut 80 / disk-usage threshold %, default 80
+services=(cron systemd-journald)  # services fiables (toujours actifs) / reliably-active services
+probleme=0
+
+# fonction : vérifie qu&#39;un service est actif / function: check a service is active
+verifier_service() {
+  local svc=&quot;$1&quot;
+  if systemctl is-active --quiet &quot;$svc&quot;; then
+    echo &quot;  [OK]   service $svc actif&quot;
+  else
+    echo &quot;  [FAIL] service $svc INACTIF&quot; &gt;&amp;2
+    return 1
+  fi
+}
+
+echo &quot;== Health-check (seuil disque ${seuil}%) ==&quot;
+
+# 1) usage du disque racine / root disk usage
+usage=$(df --output=pcent / | tail -1 | tr -dc &#39;0-9&#39;)   # ex. 42
+if [[ $usage -ge $seuil ]]; then
+  echo &quot;  [FAIL] disque / à ${usage}% (&gt;= ${seuil}%)&quot; &gt;&amp;2
+  probleme=1
+else
+  echo &quot;  [OK]   disque / à ${usage}%&quot;
+fi
+
+# 2) chaque service / each service
+for svc in &quot;${services[@]}&quot;; do
+  verifier_service &quot;$svc&quot; || probleme=1
+done
+
+# 3) verdict via code de sortie / verdict via exit code
+if [[ $probleme -eq 0 ]]; then
+  echo &quot;== Tout est sain ==&quot;; exit 0
+else
+  echo &quot;== Problèmes détectés ==&quot;; exit 1
+fi
+EOF
+chmod +x healthcheck.sh
+
+./healthcheck.sh ; echo &quot;verdict = $?&quot;      # code 0 si sain / 0 if healthy
+./healthcheck.sh 5 ; echo &quot;verdict = $?&quot;    # seuil bas -&gt; probablement FAIL disque / low threshold -&gt; likely disk FAIL</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>./healthcheck.sh</code> affiche un rapport <code>[OK]</code>/<code>[FAIL]</code> pour le disque <code>/</code> et pour chaque service (<code>cron</code>, <code>systemd-journald</code>), puis <code>Tout est sain</code> avec <strong><code>verdict = 0</code></strong> ; <code>./healthcheck.sh 5</code> (seuil à 5 %) déclenche le <code>[FAIL]</code> disque et renvoie <strong><code>verdict = 1</code></strong>. Tu as un <strong>script complet et réutilisable</strong> qui assemble tout le guide : une <strong>fonction</strong> <code>verifier_service</code> (avec variable <code>local</code> et <code>return</code>), un <strong>tableau</strong> <code>services=(…)</code>, une <strong>boucle <code>for</code></strong>, des <strong>tests <code>[[ ]]</code></strong>, l&#39;usage d&#39;<strong>arguments</strong> avec valeur par défaut, et surtout un <strong>code de sortie</strong> exploitable — un cron ou un pipeline peut lancer ce script et <strong>réagir</strong> à son <code>0</code>/<code>1</code>. Le <code>set -euo pipefail</code> en tête est la <strong>bonne pratique</strong> des scripts robustes (arrêt sur erreur, variable non définie, ou échec dans un pipe).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>./healthcheck.sh</code> prints an <code>[OK]</code>/<code>[FAIL]</code> report for disk <code>/</code> and each service (<code>cron</code>, <code>systemd-journald</code>), then <code>Tout est sain</code> with <strong><code>verdict = 0</code></strong>; <code>./healthcheck.sh 5</code> (threshold 5%) triggers the disk <code>[FAIL]</code> and returns <strong><code>verdict = 1</code></strong>. You have a <strong>complete, reusable script</strong> that assembles the whole guide: a <strong>function</strong> <code>verifier_service</code> (with a <code>local</code> variable and <code>return</code>), an <strong>array</strong> <code>services=(…)</code>, a <strong><code>for</code> loop</strong>, <strong><code>[[ ]]</code> tests</strong>, <strong>argument</strong> use with a default value, and above all a usable <strong>exit code</strong> — a cron job or a pipeline can run this script and <strong>react</strong> to its <code>0</code>/<code>1</code>. The <code>set -euo pipefail</code> at the top is the <strong>best practice</strong> for robust scripts (stop on error, unset variable, or a failure in a pipe).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Variables non protégées par des guillemets.</strong> <code>$var</code> sans <code>&quot;…&quot;</code> est <strong>découpé</strong> sur les espaces et <strong>développe</strong> les jokers. Un chemin <code>mon dossier</code> casse tout. Réflexe : <strong>toujours <code>&quot;$var&quot;</code></strong>.</p>
+<p><strong>2. Confondre guillemets simples et doubles.</strong> <code>&#39;$var&#39;</code> ne remplace <strong>rien</strong> (littéral) ; <code>&quot;$var&quot;</code> remplace. Utiliser des simples là où on attend une substitution = valeur non interprétée.</p>
+<p><strong>3. Espaces autour du <code>=</code> en affectation.</strong> <code>var = 5</code> est faux (bash y voit une commande <code>var</code>). C&#39;est <strong><code>var=5</code></strong>, <strong>sans</strong> espaces.</p>
+<p><strong>4. Oublier le shebang ou <code>chmod +x</code>.</strong> Sans shebang, le script peut être exécuté par le mauvais interpréteur ; sans <code>+x</code>, <code>./script.sh</code> renvoie <code>Permission denied</code> (contourne avec <code>bash script.sh</code>).</p>
+<p><strong>5. <code>[ ]</code> avec une variable vide.</strong> <code>[ $x = &quot;y&quot; ]</code> plante si <code>$x</code> est vide (« unary operator expected »). <code>[[ ]]</code> (bash) est robuste ; sinon <strong>quote</strong> : <code>[ &quot;$x&quot; = &quot;y&quot; ]</code>.</p>
+<p><strong>6. <code>read</code> sans <code>-r</code>.</strong> Sans <code>-r</code>, <code>read</code> <strong>mange</strong> les antislashs. Utilise <strong>toujours <code>read -r</code></strong>.</p>
+<p><strong>7. Ignorer le code de sortie.</strong> Un script qui renvoie toujours <code>0</code> est inutilisable dans une chaîne. Renvoie <strong><code>exit 1</code></strong> en cas de problème pour qu&#39;un <code>&amp;&amp;</code>/cron/CI puisse réagir.</p>
+</div>
+<div data-lang="en"><p><strong>1. Variables not protected by quotes.</strong> <code>$var</code> without <code>&quot;…&quot;</code> is <strong>split</strong> on spaces and <strong>expands</strong> globs. A path <code>my folder</code> breaks everything. Reflex: <strong>always <code>&quot;$var&quot;</code></strong>.</p>
+<p><strong>2. Confusing single and double quotes.</strong> <code>&#39;$var&#39;</code> substitutes <strong>nothing</strong> (literal); <code>&quot;$var&quot;</code> substitutes. Using single quotes where you expect substitution = uninterpreted value.</p>
+<p><strong>3. Spaces around <code>=</code> in assignment.</strong> <code>var = 5</code> is wrong (bash sees a <code>var</code> command). It&#39;s <strong><code>var=5</code></strong>, with <strong>no</strong> spaces.</p>
+<p><strong>4. Forgetting the shebang or <code>chmod +x</code>.</strong> Without a shebang, the script may run under the wrong interpreter; without <code>+x</code>, <code>./script.sh</code> returns <code>Permission denied</code> (work around with <code>bash script.sh</code>).</p>
+<p><strong>5. <code>[ ]</code> with an empty variable.</strong> <code>[ $x = &quot;y&quot; ]</code> breaks if <code>$x</code> is empty (&quot;unary operator expected&quot;). <code>[[ ]]</code> (bash) is robust; otherwise <strong>quote</strong>: <code>[ &quot;$x&quot; = &quot;y&quot; ]</code>.</p>
+<p><strong>6. <code>read</code> without <code>-r</code>.</strong> Without <code>-r</code>, <code>read</code> <strong>eats</strong> backslashes. <strong>Always use <code>read -r</code></strong>.</p>
+<p><strong>7. Ignoring the exit code.</strong> A script that always returns <code>0</code> is useless in a chain. Return <strong><code>exit 1</code></strong> on a problem so a <code>&amp;&amp;</code>/cron/CI can react.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu distingues variable <strong>locale</strong> et <strong>exportée</strong>, et tu sais où les rendre permanentes.</li><li>Tu écris un script (<strong>shebang</strong> + <code>chmod +x</code>) et tu maîtrises le <strong>quoting</strong>.</li><li>Tu lis <strong><code>$1</code>/<code>$@</code>/<code>$#</code></strong> et tu renvoies/testes un <strong>code de sortie</strong> (<code>exit</code>/<code>$?</code>).</li><li>Tu écris des <strong>tests <code>[[ ]]</code></strong> et des conditions <strong><code>if</code>/<code>case</code></strong>.</li><li>Tu écris des boucles <strong><code>for</code></strong>, <strong><code>while</code></strong>, et <strong><code>while read -r</code></strong>.</li><li>Tu définis une <strong>fonction</strong> et tu assembles un <strong>script complet</strong> avec un verdict.</li></ul>
+<p>Six cases cochées = tu tiens <strong>l&#39;environnement &amp; le scripting shell</strong> du LPIC-1.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You distinguish a <strong>local</strong> variable from an <strong>exported</strong> one, and know where to make them permanent.</li><li>You write a script (<strong>shebang</strong> + <code>chmod +x</code>) and master <strong>quoting</strong>.</li><li>You read <strong><code>$1</code>/<code>$@</code>/<code>$#</code></strong> and return/test an <strong>exit code</strong> (<code>exit</code>/<code>$?</code>).</li><li>You write <strong><code>[[ ]]</code> tests</strong> and <strong><code>if</code>/<code>case</code></strong> conditionals.</li><li>You write <strong><code>for</code></strong>, <strong><code>while</code></strong>, and <strong><code>while read -r</code></strong> loops.</li><li>You define a <strong>function</strong> and assemble a <strong>complete script</strong> with a verdict.</li></ul>
+<p>Six boxes ticked = you hold LPIC-1 <strong>shell environment &amp; scripting</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>couverture de contenu</strong> de la track Linux → LPIC-1. Il reste le <strong>projet d&#39;entreprise</strong> :</p>
+<ul><li><strong>Projet d&#39;entreprise</strong> — provisionner et <strong>durcir un serveur Linux multi-utilisateur</strong> de A à Z : utilisateurs/groupes/sudo, disque LVM monté, service systemd, tâche planifiée, réseau et SSH durci, pare-feu, <strong>script d&#39;automatisation</strong> — documenté en runbook. Le livrable Linux pour ton CV, qui réunit <strong>tous</strong> les guides de la track.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>content coverage</strong> of the Linux → LPIC-1 track. The <strong>enterprise project</strong> remains:</p>
+<ul><li><strong>Enterprise project</strong> — provision and <strong>harden a multi-user Linux server</strong> end to end: users/groups/sudo, an LVM-mounted disk, a systemd service, a scheduled task, networking and hardened SSH, a firewall, an <strong>automation script</strong> — documented as a runbook. The Linux deliverable for your CV, bringing together <strong>all</strong> the track&#39;s guides.</li></ul>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">09</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire scripting bash.</p>
+</div>
+<div data-lang="en"><p>Bash scripting cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>#!/usr/bin/env bash                # shebang
+set -euo pipefail                  # robuste : stop erreur/var non définie/pipe / robust
+
+# Variables &amp; quoting
+var=&quot;valeur&quot; ; export VAR         # locale / exportée
+echo &quot;$var&quot;                       # doubles: remplace / substitute   &#39;...&#39; : littéral / literal
+d=$(date +%F)                     # substitution de commande / command substitution
+n=$(( 2 + 3 ))                    # arithmétique / arithmetic
+
+# Arguments &amp; code de sortie / exit code
+$1 $2 ... ; $@ (tous) ; $# (nombre) ; $0 (nom) ; $? (dernier code) ; exit N
+
+# Tests &amp; conditions
+[[ -f f ]] [[ -d d ]] [[ -z &quot;$s&quot; ]] [[ $a -eq $b ]] [[ &quot;$s&quot; = &quot;x&quot; ]]
+if ... ; then ... ; elif ... ; then ... ; else ... ; fi
+case &quot;$x&quot; in  motif) ... ;;  *) ... ;;  esac
+
+# Boucles / loops
+for i in liste; do ... ; done
+while [[ cond ]]; do ... ; done
+while read -r ligne; do ... ; done &lt; fichier
+
+# Fonction / function
+nom() { local x=&quot;$1&quot; ; ... ; return 0 ; }</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://tldp.org/LDP/Bash-Beginners-Guide/html/">Bash Guide for Beginners</a> et <a href="https://tldp.org/LDP/abs/html/">Advanced Bash-Scripting Guide</a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/bash.1.html"><code>man bash</code></a> (sections <em>Parameter Expansion</em>, <em>Conditional Expressions</em>).</li><li><a href="https://www.shellcheck.net/">ShellCheck</a> — l&#39;analyseur qui trouve tes bugs de quoting.</li><li>Objectifs <strong>LPIC-1 105.1 (environnement) et 105.2 (scripts simples)</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://tldp.org/LDP/Bash-Beginners-Guide/html/">Bash Guide for Beginners</a> and <a href="https://tldp.org/LDP/abs/html/">Advanced Bash-Scripting Guide</a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/bash.1.html"><code>man bash</code></a> (<em>Parameter Expansion</em>, <em>Conditional Expressions</em> sections).</li><li><a href="https://www.shellcheck.net/">ShellCheck</a> — the analyzer that finds your quoting bugs.</li><li><strong>LPIC-1 105.1 (environment) and 105.2 (simple scripts)</strong> objectives.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>Permission denied</code> en lançant <code>./script.sh</code>.</strong> Il manque le <code>+x</code> : <code>chmod +x script.sh</code>. (Ou lance-le via <code>bash script.sh</code>.)</p>
+<p><strong><code>command not found</code> alors que le script existe.</strong> Il n&#39;est pas dans le <code>PATH</code> : lance-le avec un chemin (<code>./script.sh</code>) ou ajoute son dossier au <code>PATH</code>.</p>
+<p><strong><code>syntax error near unexpected token</code>.</strong> Souvent un <code>then</code>/<code>do</code>/<code>fi</code>/<code>done</code> mal placé, ou des espaces manquants (<code>if[[</code> au lieu de <code>if [[</code>). Passe le script à <strong>ShellCheck</strong>.</p>
+<p><strong><code>unary operator expected</code> avec <code>[ ]</code>.</strong> Une variable vide non quotée : utilise <code>[[ ]]</code> ou quote (<code>[ &quot;$x&quot; = &quot;y&quot; ]</code>).</p>
+<p><strong><code>var: command not found</code> sur une affectation.</strong> Tu as mis des espaces : <code>var = 5</code> → écris <code>var=5</code> (sans espaces).</p>
+<p><strong>Le script « marche » mais renvoie toujours 0.</strong> Tu ne fais pas <code>exit 1</code> en cas d&#39;échec. Ajoute des <code>exit</code>/<code>return</code> non-zéro pour que le code reflète le résultat.</p>
+</div>
+<div data-lang="en"><p><strong><code>Permission denied</code> when running <code>./script.sh</code>.</strong> The <code>+x</code> is missing: <code>chmod +x script.sh</code>. (Or run it via <code>bash script.sh</code>.)</p>
+<p><strong><code>command not found</code> although the script exists.</strong> It&#39;s not in <code>PATH</code>: run it with a path (<code>./script.sh</code>) or add its folder to <code>PATH</code>.</p>
+<p><strong><code>syntax error near unexpected token</code>.</strong> Often a misplaced <code>then</code>/<code>do</code>/<code>fi</code>/<code>done</code>, or missing spaces (<code>if[[</code> instead of <code>if [[</code>). Run the script through <strong>ShellCheck</strong>.</p>
+<p><strong><code>unary operator expected</code> with <code>[ ]</code>.</strong> An unquoted empty variable: use <code>[[ ]]</code> or quote (<code>[ &quot;$x&quot; = &quot;y&quot; ]</code>).</p>
+<p><strong><code>var: command not found</code> on an assignment.</strong> You put spaces: <code>var = 5</code> → write <code>var=5</code> (no spaces).</p>
+<p><strong>The script &quot;works&quot; but always returns 0.</strong> You don&#39;t <code>exit 1</code> on failure. Add non-zero <code>exit</code>/<code>return</code> so the code reflects the result.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
