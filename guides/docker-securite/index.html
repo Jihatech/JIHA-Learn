@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker — sécurité — jiha.tech</title>
+  <title data-lang="en">Docker — security — jiha.tech</title>
+  <meta name="description" content="La sécurité Docker au niveau DCA : faire tourner un conteneur en non-root, retirer les capabilities inutiles, un rootfs en lecture seule, les limites de ressources (mémoire, CPU, pids) contre le déni de service, la gestion des secrets (et pourquoi pas les ENV), et l&#39;analyse de vulnérabilités + le content trust." data-lang="fr">
+  <meta name="description" content="Docker security at DCA level: running a container as non-root, dropping unneeded capabilities, a read-only rootfs, resource limits (memory, CPU, pids) against denial of service, secret handling (and why not ENV), and vulnerability scanning + content trust." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker — sécurité">
+  <meta property="og:description" content="La sécurité Docker au niveau DCA : faire tourner un conteneur en non-root, retirer les capabilities inutiles, un rootfs en lecture seule, les limites de ressources (mémoire, CPU, pids) contre le déni de service, la gestion des secrets (et pourquoi pas les ENV), et l&#39;analyse de vulnérabilités + le content trust.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-securite/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-securite/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-securite">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-securite</div>
+    <div class="prompt" data-lang="en">~/guides/docker-securite</div>
+    <h1 data-lang="fr">Docker — sécurité</h1>
+    <h1 data-lang="en">Docker — security</h1>
+    <p class="tagline" data-lang="fr">Non-root, capabilities, read-only, limites, secrets, scan.</p>
+    <p class="tagline" data-lang="en">Non-root, capabilities, read-only, limits, secrets, scan.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 175 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 175 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un conteneur mal sécurisé est une <strong>porte ouverte</strong> sur ton hôte : par défaut, il tourne en <strong>root</strong>, avec des privilèges qu&#39;il n&#39;utilise pas, sans limite de ressources. L&#39;examen <strong>DCA</strong> consacre <strong>15 %</strong> à la sécurité, et pose les vraies questions : <em>pourquoi ne jamais tourner en root ? quelles capabilities retirer ? comment empêcher un conteneur d&#39;écrire n&#39;importe où ? de saturer la machine ? comment gérer un secret sans le laisser fuir ? comment savoir si mon image a des failles ?</em></p>
+<p>Ce guide couvre le domaine <strong>sécurité</strong> : le <strong>non-root</strong> (<code>USER</code>/<code>--user</code>), les <strong>capabilities</strong> (<code>--cap-drop</code>), le <strong>rootfs en lecture seule</strong> (<code>--read-only</code>), les <strong>limites de ressources</strong> (mémoire, CPU, pids), la <strong>gestion des secrets</strong> (et pourquoi <strong>pas</strong> les <code>ENV</code>), et l&#39;<strong>analyse de vulnérabilités</strong> + le <strong>content trust</strong>.</p>
+<p>On travaille en <strong>local avec Docker</strong>, avec <code>alpine</code>. Le principe directeur, du début à la fin : le <strong>moindre privilège</strong> — ne donner à un conteneur <strong>que</strong> ce dont il a besoin, et rien de plus.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides Docker précédents et tu vises le <strong>DCA</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas construire une image → reviens au guide images.</li><li>Tu veux l&#39;orchestration → c&#39;est le guide Swarm (les <strong>secrets Swarm</strong> y sont pratiqués).</li></ul>
+</div>
+<div data-lang="en"><p>A poorly secured container is an <strong>open door</strong> onto your host: by default, it runs as <strong>root</strong>, with privileges it never uses, with no resource limit. The <strong>DCA</strong> exam devotes <strong>15%</strong> to security, asking the real questions: <em>why never run as root? which capabilities to drop? how do you stop a container from writing anywhere? from saturating the machine? how do you handle a secret without leaking it? how do you know if your image has vulnerabilities?</em></p>
+<p>This guide covers the <strong>security</strong> domain: <strong>non-root</strong> (<code>USER</code>/<code>--user</code>), <strong>capabilities</strong> (<code>--cap-drop</code>), the <strong>read-only rootfs</strong> (<code>--read-only</code>), <strong>resource limits</strong> (memory, CPU, pids), <strong>secret handling</strong> (and why <strong>not</strong> <code>ENV</code>), and <strong>vulnerability scanning</strong> + <strong>content trust</strong>.</p>
+<p>We work <strong>locally with Docker</strong>, with <code>alpine</code>. The guiding principle, start to finish: <strong>least privilege</strong> — give a container <strong>only</strong> what it needs, and nothing more.</p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier Docker guides and you&#39;re aiming for the <strong>DCA</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t build an image → go back to the images guide.</li><li>You want orchestration → that&#39;s the Swarm guide (<strong>Swarm secrets</strong> are practiced there).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Faire tourner un conteneur en <strong>non-root</strong> (<code>USER</code> dans l&#39;image, <code>--user</code> au run).</li><li><strong>Retirer les capabilities</strong> inutiles (<code>--cap-drop ALL</code> + <code>--cap-add</code> ciblé).</li><li>Imposer un <strong>rootfs en lecture seule</strong> (<code>--read-only</code> + <code>--tmpfs</code>).</li><li>Poser des <strong>limites de ressources</strong> (<code>--memory</code>, <code>--cpus</code>, <code>--pids-limit</code>).</li><li>Comprendre pourquoi un <strong>secret</strong> ne va <strong>pas</strong> dans un <code>ENV</code>, et les alternatives.</li><li><strong>Scanner</strong> une image (<code>docker scout</code>/Trivy) et situer le <strong>content trust</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Run a container as <strong>non-root</strong> (<code>USER</code> in the image, <code>--user</code> at run).</li><li><strong>Drop unneeded capabilities</strong> (<code>--cap-drop ALL</code> + targeted <code>--cap-add</code>).</li><li>Enforce a <strong>read-only rootfs</strong> (<code>--read-only</code> + <code>--tmpfs</code>).</li><li>Set <strong>resource limits</strong> (<code>--memory</code>, <code>--cpus</code>, <code>--pids-limit</code>).</li><li>Understand why a <strong>secret</strong> does <strong>not</strong> go in an <code>ENV</code>, and the alternatives.</li><li><strong>Scan</strong> an image (<code>docker scout</code>/Trivy) and place <strong>content trust</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides Docker précédents acquis.</li><li><strong>Docker</strong> installé et lancé.</li><li>Un dossier de travail vierge :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Docker guides under your belt.</li><li><strong>Docker</strong> installed and running.</li><li>A blank working directory:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir docker-securite &amp;&amp; cd docker-securite</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-stockage/">
+    <span class="num">15</span>
+    <span class="title-line" data-lang="fr">Docker — stockage &amp; volumes</span>
+    <span class="title-line" data-lang="en">Docker — storage &amp; volumes</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Le <strong>moindre privilège</strong> décline plusieurs couches de défense.</p>
+<p><strong>Non-root.</strong> Par défaut, le process d&#39;un conteneur tourne en <strong>root</strong> (<code>uid 0</code>) — et ce root, s&#39;il s&#39;échappe (faille du noyau, montage mal fait), est <strong>root sur l&#39;hôte</strong>. La parade : faire tourner l&#39;application en <strong>utilisateur normal</strong>, via <strong><code>USER</code></strong> dans le Dockerfile ou <strong><code>--user</code></strong> au run. Un service web n&#39;a <strong>aucune</strong> raison d&#39;être root.</p>
+<p><strong>Les capabilities.</strong> Root n&#39;est pas monolithique : le noyau Linux le découpe en <strong>capabilities</strong> (CAP_CHOWN, CAP_NET_BIND_SERVICE, CAP_SYS_ADMIN…). Docker n&#39;en accorde déjà <strong>qu&#39;un sous-ensemble</strong> par défaut. La bonne pratique : <strong>tout retirer</strong> (<code>--cap-drop ALL</code>) puis <strong>rajouter uniquement</strong> ce qu&#39;il faut (<code>--cap-add</code>). Un conteneur sans capability inutile a une <strong>surface d&#39;attaque</strong> minuscule.</p>
+<p><strong>Le rootfs en lecture seule.</strong> Avec <strong><code>--read-only</code></strong>, le système de fichiers du conteneur devient <strong>immuable</strong> : une intrusion ne peut ni déposer un binaire, ni modifier une config. Pour les rares dossiers qui doivent écrire (caches, <code>/tmp</code>), on ajoute un <strong><code>--tmpfs</code></strong> ciblé. Immuabilité = un pilier de la sécurité des conteneurs.</p>
+<p><strong>Les limites de ressources.</strong> Sans limite, un conteneur peut consommer <strong>toute</strong> la RAM/le CPU de l&#39;hôte (déni de service, volontaire ou par bug). On borne : <strong><code>--memory</code></strong> (RAM max, tue le conteneur au dépassement = <code>OOMKilled</code>), <strong><code>--cpus</code></strong> (part de CPU), <strong><code>--pids-limit</code></strong> (nombre de processus, contre les <em>fork bombs</em>).</p>
+<p><strong>Les secrets.</strong> <strong>Ne jamais</strong> mettre un mot de passe/clé dans une <strong>variable d&#39;environnement</strong> ni dans l&#39;image : les <code>ENV</code> sont <strong>visibles</strong> (<code>docker inspect</code>, <code>/proc</code>, les logs). Les vraies solutions : les <strong>secrets Docker</strong> (chiffrés, montés en fichier — Swarm/Compose), les <strong>secrets de build</strong> (<code>RUN --mount=type=secret</code>, non persistés en couche), ou un gestionnaire externe (Vault).</p>
+<p><strong>L&#39;analyse &amp; la confiance.</strong> Une image tirée du net peut contenir des <strong>failles connues</strong> (CVE) : on la <strong>scanne</strong> (<strong><code>docker scout</code></strong>, <strong>Trivy</strong>). Et pour garantir qu&#39;une image est <strong>authentique</strong> (non altérée), le <strong>Docker Content Trust</strong> (<code>DOCKER_CONTENT_TRUST=1</code>) n&#39;autorise que les images <strong>signées</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Least privilege</strong> unfolds into several defense layers.</p>
+<p><strong>Non-root.</strong> By default, a container&#39;s process runs as <strong>root</strong> (<code>uid 0</code>) — and that root, if it escapes (kernel flaw, bad mount), is <strong>root on the host</strong>. The countermeasure: run the application as a <strong>normal user</strong>, via <strong><code>USER</code></strong> in the Dockerfile or <strong><code>--user</code></strong> at run. A web service has <strong>no</strong> reason to be root.</p>
+<p><strong>Capabilities.</strong> Root isn&#39;t monolithic: the Linux kernel splits it into <strong>capabilities</strong> (CAP_CHOWN, CAP_NET_BIND_SERVICE, CAP_SYS_ADMIN…). Docker already grants <strong>only a subset</strong> by default. Best practice: <strong>drop everything</strong> (<code>--cap-drop ALL</code>) then <strong>add back only</strong> what&#39;s needed (<code>--cap-add</code>). A container without unneeded capabilities has a tiny <strong>attack surface</strong>.</p>
+<p><strong>The read-only rootfs.</strong> With <strong><code>--read-only</code></strong>, the container&#39;s filesystem becomes <strong>immutable</strong>: an intrusion can neither drop a binary nor modify a config. For the rare folders that must write (caches, <code>/tmp</code>), you add a targeted <strong><code>--tmpfs</code></strong>. Immutability = a pillar of container security.</p>
+<p><strong>Resource limits.</strong> Without a limit, a container can consume <strong>all</strong> the host&#39;s RAM/CPU (denial of service, deliberate or by bug). You bound it: <strong><code>--memory</code></strong> (max RAM, kills the container on overrun = <code>OOMKilled</code>), <strong><code>--cpus</code></strong> (CPU share), <strong><code>--pids-limit</code></strong> (process count, against <em>fork bombs</em>).</p>
+<p><strong>Secrets.</strong> <strong>Never</strong> put a password/key in an <strong>environment variable</strong> nor in the image: <code>ENV</code>s are <strong>visible</strong> (<code>docker inspect</code>, <code>/proc</code>, logs). The real solutions: <strong>Docker secrets</strong> (encrypted, mounted as a file — Swarm/Compose), <strong>build secrets</strong> (<code>RUN --mount=type=secret</code>, not persisted in a layer), or an external manager (Vault).</p>
+<p><strong>Scanning &amp; trust.</strong> An image pulled from the net may contain <strong>known vulnerabilities</strong> (CVEs): you <strong>scan</strong> it (<strong><code>docker scout</code></strong>, <strong>Trivy</strong>). And to guarantee an image is <strong>authentic</strong> (untampered), <strong>Docker Content Trust</strong> (<code>DOCKER_CONTENT_TRUST=1</code>) allows only <strong>signed</strong> images.</p>
+</div>
+
+<figure class="schema" id="figure-docker-security">
+  <p>[schema "docker-security" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Défense en couches : non-root → capabilities minimales → rootfs read-only → limites de ressources → secrets hors ENV → image scannée &amp; signée.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Layered defense: non-root → minimal capabilities → read-only rootfs → resource limits → secrets out of ENV → scanned &amp; signed image.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : non-root → capabilities → read-only → limites → secrets → scan &amp; content trust.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: non-root → capabilities → read-only → limits → secrets → scan &amp; content trust.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire tourner un conteneur en <strong>non-root</strong>.</p>
+<p><strong>🤔 Root par défaut = danger.</strong> Constate le défaut, puis corrige de deux façons (<code>--user</code>, puis <code>USER</code> dans l&#39;image) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run a container as <strong>non-root</strong>.</p>
+<p><strong>🤔 Root by default = danger.</strong> Observe the default, then fix it two ways (<code>--user</code>, then <code>USER</code> in the image):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm alpine id                     # uid=0(root) — le DÉFAUT / the DEFAULT
+docker run --rm --user 1000:1000 alpine id    # uid=1000 — imposé au run / forced at run
+
+# figé dans l&#39;image / baked into the image
+cat &gt; Dockerfile &lt;&lt;&#39;EOF&#39;
+FROM alpine:3.20
+RUN adduser -D -u 1000 app
+USER app
+ENTRYPOINT [&quot;id&quot;]
+EOF
+docker build -t nonroot . &amp;&amp; docker run --rm nonroot   # uid=1000(app)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker run alpine id</code> révèle <strong><code>uid=0(root)</code></strong> — le conteneur tourne en <strong>root</strong> par défaut, ce que <strong>personne</strong> ne veut pour une application. <code>--user 1000:1000</code> l&#39;abaisse au run, et l&#39;image <code>nonroot</code> (avec <strong><code>USER app</code></strong>) tourne en <code>uid=1000</code> <strong>de façon permanente</strong>. Un attaquant qui compromet l&#39;app n&#39;a plus les droits root, ni dans le conteneur, ni (s&#39;il s&#39;échappe) sur l&#39;hôte. <strong>Un service ne doit jamais tourner en root</strong> — c&#39;est la première ligne de défense.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker run alpine id</code> reveals <strong><code>uid=0(root)</code></strong> — the container runs as <strong>root</strong> by default, which <strong>nobody</strong> wants for an application. <code>--user 1000:1000</code> lowers it at run, and the <code>nonroot</code> image (with <strong><code>USER app</code></strong>) runs as <code>uid=1000</code> <strong>permanently</strong>. An attacker who compromises the app no longer has root rights, neither in the container, nor (if they escape) on the host. <strong>A service must never run as root</strong> — it&#39;s the first line of defense.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Retirer les capabilities</strong> inutiles.</p>
+<p><strong>🤔 Root morcelé.</strong> Une opération privilégiée (changer le propriétaire d&#39;un fichier = CAP_CHOWN) marche par défaut ; retire toutes les capabilities et elle <strong>échoue</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Drop unneeded capabilities</strong>.</p>
+<p><strong>🤔 Root, split up.</strong> A privileged operation (changing a file&#39;s owner = CAP_CHOWN) works by default; drop all capabilities and it <strong>fails</strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm alpine chown 65534 /etc/hostname &amp;&amp; echo &quot;chown OK (CAP_CHOWN présent par défaut)&quot;
+docker run --rm --cap-drop ALL alpine chown 65534 /etc/hostname \
+  || echo &quot;chown REFUSÉ (toutes capabilities retirées) / DENIED (all caps dropped)&quot;
+# rendre juste CAP_CHOWN / add back only CAP_CHOWN
+docker run --rm --cap-drop ALL --cap-add CHOWN alpine chown 65534 /etc/hostname &amp;&amp; echo &quot;chown OK (CHOWN rajouté)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le premier <code>chown</code> <strong>réussit</strong> (Docker accorde <strong>CAP_CHOWN</strong> par défaut). Avec <strong><code>--cap-drop ALL</code></strong>, le même <code>chown</code> <strong>échoue</strong> (<code>Operation not permitted</code>) — la capability a été retirée. En rajoutant <strong>uniquement</strong> <code>--cap-add CHOWN</code>, il remarche. C&#39;est le <strong>moindre privilège</strong> appliqué aux capabilities : on part de <strong>zéro</strong> (<code>--cap-drop ALL</code>) et on n&#39;accorde <strong>que</strong> le strict nécessaire. Un conteneur web, par exemple, n&#39;a besoin de quasiment <strong>aucune</strong> capability.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first <code>chown</code> <strong>succeeds</strong> (Docker grants <strong>CAP_CHOWN</strong> by default). With <strong><code>--cap-drop ALL</code></strong>, the same <code>chown</code> <strong>fails</strong> (<code>Operation not permitted</code>) — the capability was removed. Adding back <strong>only</strong> <code>--cap-add CHOWN</code>, it works again. That&#39;s <strong>least privilege</strong> applied to capabilities: start from <strong>zero</strong> (<code>--cap-drop ALL</code>) and grant <strong>only</strong> the strict minimum. A web container, for instance, needs almost <strong>no</strong> capabilities.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Imposer un <strong>rootfs en lecture seule</strong>, avec un <code>tmpfs</code> pour les rares écritures.</p>
+<p><strong>🤔 Un conteneur immuable.</strong> En <code>--read-only</code>, rien ne peut écrire dans le système de fichiers — sauf les <code>tmpfs</code> que tu autorises :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enforce a <strong>read-only rootfs</strong>, with a <code>tmpfs</code> for the rare writes.</p>
+<p><strong>🤔 An immutable container.</strong> In <code>--read-only</code>, nothing can write to the filesystem — except the <code>tmpfs</code>es you allow:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm --read-only alpine sh -c &quot;touch /tmp/x&quot; \
+  || echo &quot;écriture REFUSÉE (rootfs en lecture seule) / write DENIED (read-only rootfs)&quot;
+# on autorise UNIQUEMENT /tmp en écriture (en mémoire) / allow ONLY /tmp to write (in memory)
+docker run --rm --read-only --tmpfs /tmp alpine sh -c &quot;touch /tmp/x &amp;&amp; echo &#39;écriture OK dans /tmp&#39;&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sous <strong><code>--read-only</code></strong>, <code>touch /tmp/x</code> <strong>échoue</strong> (<code>Read-only file system</code>) — le conteneur ne peut <strong>rien</strong> écrire, donc un intrus ne peut ni déposer d&#39;outil, ni altérer de fichier. En ajoutant <strong><code>--tmpfs /tmp</code></strong>, seul <code>/tmp</code> (en RAM) redevient inscriptible, juste ce qu&#39;il faut à l&#39;appli. C&#39;est le motif de l&#39;<strong>immuabilité</strong> : un rootfs figé + des zones d&#39;écriture <strong>explicitement</strong> délimitées. Combiné au non-root et aux capabilities minimales, ça réduit drastiquement ce qu&#39;un attaquant peut faire.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> under <strong><code>--read-only</code></strong>, <code>touch /tmp/x</code> <strong>fails</strong> (<code>Read-only file system</code>) — the container can write <strong>nothing</strong>, so an intruder can neither drop a tool nor tamper with a file. Adding <strong><code>--tmpfs /tmp</code></strong>, only <code>/tmp</code> (in RAM) becomes writable again, just what the app needs. That&#39;s the <strong>immutability</strong> pattern: a frozen rootfs + <strong>explicitly</strong> delimited write zones. Combined with non-root and minimal capabilities, it drastically shrinks what an attacker can do.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser des <strong>limites de ressources</strong> contre le déni de service.</p>
+<p><strong>🤔 Borner RAM, CPU, processus.</strong> Un conteneur non borné peut asphyxier l&#39;hôte. Fixe les limites et vérifie-les, puis démontre <code>--pids-limit</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set <strong>resource limits</strong> against denial of service.</p>
+<p><strong>🤔 Bound RAM, CPU, processes.</strong> An unbounded container can choke the host. Set the limits and verify them, then demonstrate <code>--pids-limit</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name borne --memory=64m --cpus=0.5 --pids-limit=64 alpine sleep 300
+docker inspect borne --format &#39;mem={{.HostConfig.Memory}} cpus={{.HostConfig.NanoCpus}} pids={{.HostConfig.PidsLimit}}&#39;
+docker stats --no-stream borne          # colonne MEM USAGE / LIMIT -&gt; .../ 64MiB
+
+# --pids-limit en action : bloque la prolifération de processus (fork bomb) / blocks process proliferation
+docker run --rm --pids-limit=5 alpine sh -c \
+  &#39;for i in $(seq 20); do /bin/sleep 30 &amp; done; wait&#39; 2&gt;&amp;1 | grep -m1 -i &quot;can&#39;t fork\|resource&quot; \
+  &amp;&amp; echo &quot;-&gt; pids-limit a bloqué des forks / pids-limit blocked forks&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker inspect</code> confirme les limites posées (<code>mem=67108864</code> = 64 Mio, <code>cpus=500000000</code> = 0,5 CPU, <code>pids=64</code>), et <code>docker stats</code> affiche la <strong>LIMIT</strong> de mémoire à <code>64MiB</code>. La démo <code>--pids-limit=5</code> tente de lancer 20 <code>sleep</code> en parallèle mais <strong>bute</strong> sur la limite de 5 processus → des messages <code>can&#39;t fork</code> / <code>Resource temporarily unavailable</code>. C&#39;est la protection <strong>anti-DoS</strong> : quoi qu&#39;il arrive dans le conteneur (bug, attaque), il ne peut pas consommer plus que sa <strong>part</strong> de RAM, CPU et processus. <em>(Nettoyage : <code>docker rm -f borne</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker inspect</code> confirms the limits set (<code>mem=67108864</code> = 64 MiB, <code>cpus=500000000</code> = 0.5 CPU, <code>pids=64</code>), and <code>docker stats</code> shows the memory <strong>LIMIT</strong> at <code>64MiB</code>. The <code>--pids-limit=5</code> demo tries to launch 20 parallel <code>sleep</code>s but <strong>hits</strong> the 5-process limit → <code>can&#39;t fork</code> / <code>Resource temporarily unavailable</code> messages. That&#39;s the <strong>anti-DoS</strong> protection: whatever happens in the container (bug, attack), it can&#39;t consume more than its <strong>share</strong> of RAM, CPU and processes. <em>(Cleanup: <code>docker rm -f borne</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Voir un <strong>secret fuir</strong> par une <code>ENV</code>, et connaître les alternatives.</p>
+<p><strong>🤔 La démonstration qui fait peur.</strong> Passe un « mot de passe » en variable d&#39;environnement, puis retrouve-le en clair :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Watch a <strong>secret leak</strong> through an <code>ENV</code>, and know the alternatives.</p>
+<p><strong>🤔 The scary demonstration.</strong> Pass a &quot;password&quot; as an environment variable, then find it in cleartext:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name fuite -e DB_PASSWORD=s3cr3t-en-clair alpine sleep 300
+docker inspect fuite --format &#39;{{.Config.Env}}&#39;      # le secret est VISIBLE en clair / the secret is VISIBLE
+docker exec fuite printenv DB_PASSWORD               # ...et lisible depuis /proc, les logs... / and from /proc, logs
+docker rm -f fuite</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker inspect fuite</code> affiche <strong><code>[DB_PASSWORD=s3cr3t-en-clair ...]</code></strong> — le « secret » est stocké <strong>en clair</strong> dans la config du conteneur, lisible par quiconque peut faire <code>docker inspect</code>, et aussi via <code>/proc/&lt;pid&gt;/environ</code> ou des logs indiscrets. <strong>Leçon : jamais de secret dans un <code>ENV</code></strong> (ni dans l&#39;image). Les vraies solutions : les <strong>secrets Docker</strong> (chiffrés au repos, montés en <strong>fichier</strong> dans le conteneur — voir le guide Swarm), les <strong>secrets de build</strong> (<code>RUN --mount=type=secret=...</code>, jamais écrits dans une couche), ou un gestionnaire externe (<strong>Vault</strong>). Bonus durcissement : <strong><code>--security-opt=no-new-privileges</code></strong> empêche l&#39;escalade de privilèges (via un binaire <em>setuid</em>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker inspect fuite</code> shows <strong><code>[DB_PASSWORD=s3cr3t-en-clair ...]</code></strong> — the &quot;secret&quot; is stored <strong>in cleartext</strong> in the container&#39;s config, readable by anyone who can <code>docker inspect</code>, and also via <code>/proc/&lt;pid&gt;/environ</code> or careless logs. <strong>Lesson: never a secret in an <code>ENV</code></strong> (nor in the image). The real solutions: <strong>Docker secrets</strong> (encrypted at rest, mounted as a <strong>file</strong> in the container — see the Swarm guide), <strong>build secrets</strong> (<code>RUN --mount=type=secret=...</code>, never written to a layer), or an external manager (<strong>Vault</strong>). Hardening bonus: <strong><code>--security-opt=no-new-privileges</code></strong> prevents privilege escalation (via a <em>setuid</em> binary).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Scanner</strong> une image pour ses failles, et situer le <strong>content trust</strong>.</p>
+<p><strong>🤔 Ce que tu tires du net a un passé.</strong> Une image publique peut embarquer des CVE. Scanne-la (les scanners ont besoin du réseau) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Scan</strong> an image for vulnerabilities, and place <strong>content trust</strong>.</p>
+<p><strong>🤔 What you pull from the net has a past.</strong> A public image may carry CVEs. Scan it (scanners need the network):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Option A : docker scout (intégré au CLI Docker récent) / built into recent Docker CLI
+docker scout quickview nginx:1.27-alpine        # résumé des vulnérabilités par sévérité / vuln summary by severity
+# docker scout cves nginx:1.27-alpine           # le détail des CVE / the CVE details
+
+# Option B : Trivy (via conteneur, aucune install) / via a container, no install
+docker run --rm aquasec/trivy image --severity HIGH,CRITICAL nginx:1.27-alpine
+
+# Content trust : n&#39;autoriser que les images SIGNÉES / only allow SIGNED images
+# export DOCKER_CONTENT_TRUST=1   (puis docker pull/run échoue sur une image non signée)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker scout quickview</code> (ou Trivy) affiche un <strong>tableau des vulnérabilités</strong> par sévérité (<code>CRITICAL</code>/<code>HIGH</code>/…) — tu vois <strong>combien</strong> de failles connues traînent dans l&#39;image et lesquelles. C&#39;est le réflexe <strong>avant de mettre en prod</strong> : une image « qui marche » peut être criblée de CVE. Enfin, <strong><code>DOCKER_CONTENT_TRUST=1</code></strong> impose de ne tirer/lancer que des images <strong>signées</strong> (authenticité + intégrité) — les images officielles de Docker Hub le sont. Scanner (les failles) et signer (l&#39;authenticité) sont les deux volets de la <strong>confiance dans les images</strong>. <em>(Selon ta version/ton compte, <code>docker scout</code> peut demander une connexion ; Trivy fonctionne sans.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker scout quickview</code> (or Trivy) shows a <strong>vulnerability table</strong> by severity (<code>CRITICAL</code>/<code>HIGH</code>/…) — you see <strong>how many</strong> known flaws linger in the image and which. It&#39;s the reflex <strong>before going to prod</strong>: an image &quot;that works&quot; can be riddled with CVEs. Finally, <strong><code>DOCKER_CONTENT_TRUST=1</code></strong> enforces pulling/running only <strong>signed</strong> images (authenticity + integrity) — Docker Hub&#39;s official images are. Scanning (the flaws) and signing (the authenticity) are the two sides of <strong>image trust</strong>. <em>(Depending on your version/account, <code>docker scout</code> may ask you to sign in; Trivy works without.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Laisser le conteneur en root.</strong> Le défaut est <code>uid 0</code>. Un service compromis en root = risque d&#39;évasion vers l&#39;hôte. Toujours <strong><code>USER</code></strong> (image) ou <strong><code>--user</code></strong> (run).</p>
+<p><strong>2. Garder toutes les capabilities.</strong> Même le sous-ensemble par défaut est souvent trop large. Réflexe : <strong><code>--cap-drop ALL</code></strong> puis <code>--cap-add</code> ciblé.</p>
+<p><strong>3. Un secret dans <code>ENV</code> ou dans l&#39;image.</strong> Visible via <code>docker inspect</code>, <code>/proc</code>, <code>docker history</code>. Utilise les <strong>secrets</strong> (fichier chiffré) ou les secrets de build.</p>
+<p><strong>4. Pas de limites de ressources.</strong> Un conteneur peut asphyxier l&#39;hôte (RAM/CPU/pids). Pose <strong><code>--memory</code></strong>, <strong><code>--cpus</code></strong>, <strong><code>--pids-limit</code></strong> — surtout en multi-tenant.</p>
+<p><strong>5. <code>--privileged</code> par facilité.</strong> <code>--privileged</code> <strong>désactive</strong> presque toute l&#39;isolation (toutes capabilities + accès aux devices). À <strong>éviter</strong> ; si un besoin précis existe, accorde <strong>la</strong> capability, pas tout.</p>
+<p><strong>6. Ignorer les CVE de l&#39;image de base.</strong> Une base obsolète (<code>:latest</code> figé il y a 2 ans) traîne des failles. <strong>Scanne</strong> régulièrement et <strong>mets à jour</strong> la base.</p>
+<p><strong>7. Croire que <code>--read-only</code> casse tout.</strong> La plupart des apps n&#39;écrivent que dans quelques dossiers : ajoute des <strong><code>--tmpfs</code></strong> ciblés (ou des volumes) pour ceux-là, et garde le reste immuable.</p>
+</div>
+<div data-lang="en"><p><strong>1. Leaving the container as root.</strong> The default is <code>uid 0</code>. A service compromised as root = escape risk to the host. Always <strong><code>USER</code></strong> (image) or <strong><code>--user</code></strong> (run).</p>
+<p><strong>2. Keeping all capabilities.</strong> Even the default subset is often too broad. Reflex: <strong><code>--cap-drop ALL</code></strong> then targeted <code>--cap-add</code>.</p>
+<p><strong>3. A secret in <code>ENV</code> or in the image.</strong> Visible via <code>docker inspect</code>, <code>/proc</code>, <code>docker history</code>. Use <strong>secrets</strong> (encrypted file) or build secrets.</p>
+<p><strong>4. No resource limits.</strong> A container can choke the host (RAM/CPU/pids). Set <strong><code>--memory</code></strong>, <strong><code>--cpus</code></strong>, <strong><code>--pids-limit</code></strong> — especially in multi-tenant.</p>
+<p><strong>5. <code>--privileged</code> for convenience.</strong> <code>--privileged</code> <strong>disables</strong> almost all isolation (all capabilities + device access). <strong>Avoid</strong> it; if a precise need exists, grant <strong>the</strong> capability, not everything.</p>
+<p><strong>6. Ignoring the base image&#39;s CVEs.</strong> A stale base (<code>:latest</code> frozen 2 years ago) carries flaws. <strong>Scan</strong> regularly and <strong>update</strong> the base.</p>
+<p><strong>7. Believing <code>--read-only</code> breaks everything.</strong> Most apps only write to a few folders: add targeted <strong><code>--tmpfs</code></strong> (or volumes) for those, and keep the rest immutable.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu fais tourner un conteneur en <strong>non-root</strong> (<code>USER</code>/<code>--user</code>).</li><li>Tu <strong>retires les capabilities</strong> et n&#39;ajoutes que le nécessaire.</li><li>Tu imposes un <strong>rootfs read-only</strong> + <code>tmpfs</code> ciblé.</li><li>Tu poses <strong><code>--memory</code>/<code>--cpus</code>/<code>--pids-limit</code></strong> et tu les vérifies.</li><li>Tu expliques <strong>pourquoi pas de secret en <code>ENV</code></strong> et les alternatives.</li><li>Tu <strong>scannes</strong> une image et tu situes le <strong>content trust</strong>.</li></ul>
+<p>Six cases cochées = tu tiens <strong>la sécurité</strong> du DCA.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You run a container as <strong>non-root</strong> (<code>USER</code>/<code>--user</code>).</li><li>You <strong>drop capabilities</strong> and add back only what&#39;s needed.</li><li>You enforce a <strong>read-only rootfs</strong> + targeted <code>tmpfs</code>.</li><li>You set <strong><code>--memory</code>/<code>--cpus</code>/<code>--pids-limit</code></strong> and verify them.</li><li>You explain <strong>why no secret in <code>ENV</code></strong> and the alternatives.</li><li>You <strong>scan</strong> an image and place <strong>content trust</strong>.</li></ul>
+<p>Six boxes ticked = you hold DCA <strong>security</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Docker → DCA :</p>
+<ol><li><strong>Orchestration Swarm</strong> — services, stacks, <strong>secrets Swarm</strong> (en action), réseau overlay.</li><li><strong>Projet d&#39;entreprise</strong> — image multi-stage → registre → stack Swarm sécurisée.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Docker → DCA track:</p>
+<ol><li><strong>Swarm orchestration</strong> — services, stacks, <strong>Swarm secrets</strong> (in action), overlay network.</li><li><strong>Enterprise project</strong> — multi-stage image → registry → secured Swarm stack.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../cicd-github-actions/">
+    <span class="num">17</span>
+    <span class="title-line" data-lang="fr">CI/CD avec GitHub Actions</span>
+    <span class="title-line" data-lang="en">CI/CD with GitHub Actions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire sécurité Docker.</p>
+</div>
+<div data-lang="en"><p>Docker security cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Non-root
+docker run --user 1000:1000 img          # ou USER app dans le Dockerfile / or USER app in Dockerfile
+
+# Capabilities (moindre privilège / least privilege)
+docker run --cap-drop ALL --cap-add NET_BIND_SERVICE img
+
+# Rootfs immuable / immutable rootfs
+docker run --read-only --tmpfs /tmp img
+
+# Limites / limits (anti-DoS)
+docker run --memory=256m --cpus=0.5 --pids-limit=100 img
+
+# Durcissement / hardening
+docker run --security-opt=no-new-privileges img
+# NE PAS utiliser / do NOT use : --privileged
+
+# Secrets : PAS en ENV / NOT in ENV
+#   -&gt; secrets Docker (fichier), RUN --mount=type=secret (build), Vault
+
+# Scan &amp; confiance / trust
+docker scout quickview IMG        # ou / or : docker run --rm aquasec/trivy image IMG
+export DOCKER_CONTENT_TRUST=1     # n&#39;autorise que les images signées / only signed images</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com/engine/security/">Sécurité Docker</a> — vue d&#39;ensemble.</li><li><a href="https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities">Capabilities &amp; <code>--cap-drop</code></a> et <a href="https://docs.docker.com/reference/cli/docker/container/run/#read-only"><code>--read-only</code></a>.</li><li><a href="https://docs.docker.com/scout/"><code>docker scout</code></a> et <a href="https://docs.docker.com/engine/security/trust/">Docker Content Trust</a>.</li><li>Domaine <strong>DCA « Security »</strong> (~15 %).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com/engine/security/">Docker security</a> — overview.</li><li><a href="https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities">Capabilities &amp; <code>--cap-drop</code></a> and <a href="https://docs.docker.com/reference/cli/docker/container/run/#read-only"><code>--read-only</code></a>.</li><li><a href="https://docs.docker.com/scout/"><code>docker scout</code></a> and <a href="https://docs.docker.com/engine/security/trust/">Docker Content Trust</a>.</li><li><strong>DCA &quot;Security&quot;</strong> domain (~15%).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Mon appli non-root ne peut pas écrire dans un dossier.</strong> Le dossier appartient à root : au build, <code>chown</code> le dossier vers l&#39;utilisateur applicatif (<code>RUN chown -R app /data</code>), ou monte un volume avec les bons droits.</p>
+<p><strong><code>--cap-drop ALL</code> casse mon conteneur.</strong> Une capability lui manque. Identifie laquelle (souvent <code>NET_BIND_SERVICE</code> pour un port &lt; 1024, <code>CHOWN</code>, <code>SETUID</code>/<code>SETGID</code>) et rajoute <strong>uniquement</strong> celle-là avec <code>--cap-add</code>.</p>
+<p><strong><code>--read-only</code> : « Read-only file system ».</strong> L&#39;appli écrit quelque part (logs, <code>/tmp</code>, <code>/run</code>). Ajoute un <strong><code>--tmpfs</code></strong> (ou un volume) sur ce chemin précis, garde le reste read-only.</p>
+<p><strong><code>--pids-limit</code> / <code>--memory</code> : le conteneur est tué (<code>OOMKilled</code>).</strong> Il dépasse la limite. Augmente-la si c&#39;est légitime, ou corrige la fuite ; regarde <code>docker stats</code> et <code>docker inspect --format &#39;{{.State.OOMKilled}}&#39;</code>.</p>
+<p><strong><code>docker scout</code> demande de me connecter.</strong> Certaines fonctions requièrent un compte Docker. Utilise <strong>Trivy</strong> (<code>docker run --rm aquasec/trivy image IMG</code>) qui fonctionne sans compte.</p>
+<p><strong><code>--privileged</code> était plus simple.</strong> Oui, mais il ouvre tout. Trouve la <strong>capability précise</strong> ou le <strong>device</strong> requis et n&#39;accorde que lui (<code>--cap-add</code>, <code>--device</code>).</p>
+</div>
+<div data-lang="en"><p><strong>My non-root app can&#39;t write to a folder.</strong> The folder belongs to root: at build, <code>chown</code> the folder to the app user (<code>RUN chown -R app /data</code>), or mount a volume with the right permissions.</p>
+<p><strong><code>--cap-drop ALL</code> breaks my container.</strong> It&#39;s missing a capability. Identify which (often <code>NET_BIND_SERVICE</code> for a port &lt; 1024, <code>CHOWN</code>, <code>SETUID</code>/<code>SETGID</code>) and add back <strong>only</strong> that one with <code>--cap-add</code>.</p>
+<p><strong><code>--read-only</code>: &quot;Read-only file system&quot;.</strong> The app writes somewhere (logs, <code>/tmp</code>, <code>/run</code>). Add a <strong><code>--tmpfs</code></strong> (or a volume) on that specific path, keep the rest read-only.</p>
+<p><strong><code>--pids-limit</code> / <code>--memory</code>: the container is killed (<code>OOMKilled</code>).</strong> It exceeds the limit. Raise it if legitimate, or fix the leak; check <code>docker stats</code> and <code>docker inspect --format &#39;{{.State.OOMKilled}}&#39;</code>.</p>
+<p><strong><code>docker scout</code> asks me to sign in.</strong> Some features require a Docker account. Use <strong>Trivy</strong> (<code>docker run --rm aquasec/trivy image IMG</code>), which works without an account.</p>
+<p><strong><code>--privileged</code> was simpler.</strong> Yes, but it opens everything. Find the <strong>precise capability</strong> or <strong>device</strong> required and grant only that (<code>--cap-add</code>, <code>--device</code>).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
