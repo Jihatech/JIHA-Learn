@@ -308,6 +308,7 @@ docker run --rm --mount type=bind,source="$(pwd)/inexistant2",target=/x alpine l
 ```bash
 docker run -d --name producteur -v shared:/out alpine \
   sh -c "while true; do date > /out/heure.txt; sleep 2; done"
+sleep 1                                                    # laisse le producteur écrire une 1re fois / let the producer write once
 docker run --rm -v shared:/in alpine cat /in/heure.txt     # lit ce que l'autre écrit / reads what the other writes
 sleep 3
 docker run --rm -v shared:/in alpine cat /in/heure.txt     # valeur mise à jour / updated value
@@ -349,11 +350,11 @@ docker run --rm -v appdata-restore:/data alpine cat /data/note.txt   # -> "donn�
 ```
 
 :::lang fr
-**✅ Vérification :** la sauvegarde produit `appdata.tar.gz` sur l'hôte (l'archive du contenu du volume `appdata`, monté en lecture dans un conteneur `alpine` jetable + le dossier hôte monté en `/backup`). La restauration extrait cette archive dans un **nouveau** volume `appdata-restore`, et le `cat` final y retrouve **`donnée persistante`** — la donnée a voyagé **volume → archive → nouveau volume**. C'est **le** motif de sauvegarde des volumes Docker (il n'existe pas de `docker volume backup` natif). `docker volume prune` supprime enfin les volumes **inutilisés**. *(Nettoyage : `docker volume rm appdata appdata-restore shared ; docker rm -f producteur 2>/dev/null ; rm -f appdata.tar.gz`.)*
+**✅ Vérification :** la sauvegarde produit `appdata.tar.gz` sur l'hôte (l'archive du contenu du volume `appdata`, monté en lecture dans un conteneur `alpine` jetable + le dossier hôte monté en `/backup`). La restauration extrait cette archive dans un **nouveau** volume `appdata-restore`, et le `cat` final y retrouve **`donnée persistante`** — la donnée a voyagé **volume → archive → nouveau volume**. C'est **le** motif de sauvegarde des volumes Docker (il n'existe pas de `docker volume backup` natif). `docker volume prune` supprime enfin les volumes **inutilisés**. *(Nettoyage — le conteneur AVANT son volume : `docker rm -f producteur 2>/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz`.)*
 :::
 
 :::lang en
-**✅ Check:** the backup produces `appdata.tar.gz` on the host (the archive of the `appdata` volume's content, mounted read into a throwaway `alpine` container + the host folder mounted at `/backup`). The restore extracts that archive into a **new** `appdata-restore` volume, and the final `cat` finds **`donnée persistante`** there — the data traveled **volume → archive → new volume**. That's **the** Docker volume backup pattern (there's no native `docker volume backup`). `docker volume prune` finally removes **unused** volumes. *(Cleanup: `docker volume rm appdata appdata-restore shared ; docker rm -f producteur 2>/dev/null ; rm -f appdata.tar.gz`.)*
+**✅ Check:** the backup produces `appdata.tar.gz` on the host (the archive of the `appdata` volume's content, mounted read into a throwaway `alpine` container + the host folder mounted at `/backup`). The restore extracts that archive into a **new** `appdata-restore` volume, and the final `cat` finds **`donnée persistante`** there — the data traveled **volume → archive → new volume**. That's **the** Docker volume backup pattern (there's no native `docker volume backup`). `docker volume prune` finally removes **unused** volumes. *(Cleanup — the container BEFORE its volume: `docker rm -f producteur 2>/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz`.)*
 :::
 
 ## pitfalls
