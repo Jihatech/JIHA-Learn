@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Kubernetes — workloads avancés &amp; scheduling — jiha.tech</title>
+  <title data-lang="en">Kubernetes — advanced workloads &amp; scheduling — jiha.tech</title>
+  <meta name="description" content="Passe du deployment de base au niveau CKA/CKAD : probes liveness/readiness, requests &amp; limits, init containers et sidecars, Jobs et CronJobs, DaemonSet, et tout le scheduling (nodeSelector, affinité, taints &amp; tolerations) — sur un cluster k3d multi-nœuds, en local." data-lang="fr">
+  <meta name="description" content="Go from the basic deployment to CKA/CKAD level: liveness/readiness probes, requests &amp; limits, init containers and sidecars, Jobs and CronJobs, DaemonSet, and all the scheduling (nodeSelector, affinity, taints &amp; tolerations) — on a local multi-node k3d cluster." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kubernetes — workloads avancés &amp; scheduling">
+  <meta property="og:description" content="Passe du deployment de base au niveau CKA/CKAD : probes liveness/readiness, requests &amp; limits, init containers et sidecars, Jobs et CronJobs, DaemonSet, et tout le scheduling (nodeSelector, affinité, taints &amp; tolerations) — sur un cluster k3d multi-nœuds, en local.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/kubernetes-workloads-scheduling/">
+  <link rel="canonical" href="https://jiha.tech/guides/kubernetes-workloads-scheduling/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="kubernetes-workloads-scheduling">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/kubernetes-workloads-scheduling</div>
+    <div class="prompt" data-lang="en">~/guides/kubernetes-workloads-scheduling</div>
+    <h1 data-lang="fr">Kubernetes — workloads avancés &amp; scheduling</h1>
+    <h1 data-lang="en">Kubernetes — advanced workloads &amp; scheduling</h1>
+    <p class="tagline" data-lang="fr">Probes, resources, Jobs, DaemonSet, affinité, taints.</p>
+    <p class="tagline" data-lang="en">Probes, resources, Jobs, DaemonSet, affinity, taints.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 200 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 200 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Au niveau fondamentaux, tu créais un <code>Deployment</code> et tu le laissais tourner. Ça marche pour une démo — pas pour la prod, ni pour l&#39;examen <strong>CKA/CKAD</strong>. En vrai, tu dois répondre à des questions précises : <em>comment Kubernetes sait-il qu&#39;un conteneur est vraiment prêt ? qu&#39;il est mort et doit redémarrer ? combien de CPU/RAM lui accorder ? où le placer dans le cluster ? comment lancer une tâche ponctuelle plutôt qu&#39;un service permanent ?</em></p>
+<p>Ce guide couvre exactement ces questions — le cœur du domaine <strong>Workloads &amp; Scheduling</strong>. Tu vas apprendre les <strong>probes</strong> (liveness/readiness), les <strong>requests &amp; limits</strong> (et la QoS), les <strong>init containers</strong> et <strong>sidecars</strong>, les contrôleurs qui ne sont <strong>pas</strong> des Deployments (<strong>Job</strong>, <strong>CronJob</strong>, <strong>DaemonSet</strong>), puis tout le <strong>scheduling</strong> : <code>nodeSelector</code>, <strong>affinité de nœud</strong>, et <strong>taints &amp; tolerations</strong>.</p>
+<p>On travaille sur un cluster <strong>k3d multi-nœuds</strong>, en local — indispensable pour que le scheduling ait un sens (placer un pod « ici plutôt que là » suppose plusieurs nœuds). Zéro cloud, zéro carte bancaire.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as le guide <strong>Kubernetes fondamentaux</strong> (pods, deployments, services, ConfigMap/Secret, rolling update) et tu vises la certification.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas encore ce qu&#39;est un <code>Deployment</code> ou un <code>Service</code> → reviens aux fondamentaux.</li><li>Tu cherches l&#39;exposition HTTP (Ingress) ou le stockage persistant → ce sont les guides suivants de la track.</li></ul>
+</div>
+<div data-lang="en"><p>At the fundamentals level, you created a <code>Deployment</code> and let it run. That works for a demo — not for production, nor for the <strong>CKA/CKAD</strong> exam. In reality, you must answer precise questions: <em>how does Kubernetes know a container is truly ready? that it&#39;s dead and must restart? how much CPU/RAM to grant it? where to place it in the cluster? how to run a one-off task rather than a permanent service?</em></p>
+<p>This guide covers exactly those questions — the heart of the <strong>Workloads &amp; Scheduling</strong> domain. You&#39;ll learn <strong>probes</strong> (liveness/readiness), <strong>requests &amp; limits</strong> (and QoS), <strong>init containers</strong> and <strong>sidecars</strong>, the controllers that are <strong>not</strong> Deployments (<strong>Job</strong>, <strong>CronJob</strong>, <strong>DaemonSet</strong>), then all of <strong>scheduling</strong>: <code>nodeSelector</code>, <strong>node affinity</strong>, and <strong>taints &amp; tolerations</strong>.</p>
+<p>We work on a <strong>multi-node k3d cluster</strong>, locally — essential for scheduling to mean anything (placing a pod &quot;here rather than there&quot; implies several nodes). No cloud, no credit card.</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>Kubernetes fundamentals</strong> guide (pods, deployments, services, ConfigMap/Secret, rolling update) and you&#39;re aiming for the cert.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t yet know what a <code>Deployment</code> or a <code>Service</code> is → go back to the fundamentals.</li><li>You&#39;re after HTTP exposure (Ingress) or persistent storage → those are the next guides in the track.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Créer un cluster <strong>multi-nœuds</strong> et travailler dans un <strong>namespace</strong> dédié.</li><li>Écrire des <strong>probes</strong> <code>liveness</code>, <code>readiness</code> (et <code>startup</code>), et voir Kubernetes réagir.</li><li>Déclarer des <strong>requests &amp; limits</strong> et comprendre les classes de <strong>QoS</strong> (dont l&#39;<code>OOMKilled</code>).</li><li>Utiliser un <strong>init container</strong> et un <strong>sidecar</strong> dans un même pod.</li><li>Lancer des tâches avec <strong>Job</strong> et <strong>CronJob</strong> (et leur <code>restartPolicy</code>).</li><li>Déployer un <strong>DaemonSet</strong> (un pod par nœud).</li><li>Placer des pods avec <strong><code>nodeSelector</code></strong>, l&#39;<strong>affinité de nœud</strong>, et gérer les <strong>taints &amp; tolerations</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Create a <strong>multi-node</strong> cluster and work in a dedicated <strong>namespace</strong>.</li><li>Write <code>liveness</code>, <code>readiness</code> (and <code>startup</code>) <strong>probes</strong>, and watch Kubernetes react.</li><li>Declare <strong>requests &amp; limits</strong> and understand <strong>QoS</strong> classes (including <code>OOMKilled</code>).</li><li>Use an <strong>init container</strong> and a <strong>sidecar</strong> in the same pod.</li><li>Run tasks with <strong>Job</strong> and <strong>CronJob</strong> (and their <code>restartPolicy</code>).</li><li>Deploy a <strong>DaemonSet</strong> (one pod per node).</li><li>Place pods with <strong><code>nodeSelector</code></strong>, <strong>node affinity</strong>, and manage <strong>taints &amp; tolerations</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Kubernetes fondamentaux</strong> acquis (prérequis dur).</li><li><strong>Docker</strong> lancé, <strong>k3d</strong> et <strong>kubectl</strong> installés (cf. fondamentaux).</li><li>De quoi faire tourner <strong>trois nœuds</strong> k3d (chacun est un conteneur léger ; ~3-4 Go de RAM libre confortables).</li></ul>
+<p>On crée un cluster <strong>dédié à la track CKA</strong>, à 3 nœuds (1 serveur + 2 agents), pour que le scheduling ait plusieurs nœuds sur lesquels décider :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Kubernetes fundamentals</strong> guide under your belt (hard prerequisite).</li><li><strong>Docker</strong> running, <strong>k3d</strong> and <strong>kubectl</strong> installed (see fundamentals).</li><li>Enough to run <strong>three</strong> k3d nodes (each is a light container; ~3-4 GB free RAM is comfortable).</li></ul>
+<p>We create a <strong>CKA-track-dedicated</strong> cluster with 3 nodes (1 server + 2 agents), so scheduling has several nodes to decide between:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>k3d cluster create ckalab --agents 2 --k3s-arg &quot;--disable=traefik@server:0&quot;
+kubectl get nodes</code></pre>
+<div data-lang="fr"><p><code>kubectl get nodes</code> doit lister <strong>trois</strong> nœuds <code>Ready</code> : <code>k3d-ckalab-server-0</code>, <code>k3d-ckalab-agent-0</code>, <code>k3d-ckalab-agent-1</code>. <em>(Sur k3s, le nœud serveur est <strong>schedulable</strong> — pas de taint control-plane — donc trois nœuds accueillent des pods.)</em></p>
+</div>
+<div data-lang="en"><p><code>kubectl get nodes</code> must list <strong>three</strong> <code>Ready</code> nodes: <code>k3d-ckalab-server-0</code>, <code>k3d-ckalab-agent-0</code>, <code>k3d-ckalab-agent-1</code>. <em>(On k3s, the server node is <strong>schedulable</strong> — no control-plane taint — so all three nodes take pods.)</em></p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-fondamentaux/">
+    <span class="num">13</span>
+    <span class="title-line" data-lang="fr">Kubernetes — orchestrer des conteneurs</span>
+    <span class="title-line" data-lang="en">Kubernetes — orchestrate containers</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Un <code>Deployment</code> répond à « fais tourner N répliques d&#39;un service web, en permanence ». Mais Kubernetes a bien plus d&#39;outils, et l&#39;examen les teste tous.</p>
+<p><strong>Santé des conteneurs — les probes.</strong> Kubernetes ne se contente pas de « le process tourne ». Trois sondes :</p>
+<ul><li><strong><code>livenessProbe</code></strong> : « est-il <strong>vivant</strong> ? » Si elle échoue, le kubelet <strong>redémarre</strong> le conteneur.</li><li><strong><code>readinessProbe</code></strong> : « est-il <strong>prêt à recevoir du trafic</strong> ? » Si elle échoue, le pod est <strong>retiré des Services</strong> (mais pas redémarré).</li><li><strong><code>startupProbe</code></strong> : « a-t-il <strong>fini de démarrer</strong> ? » Elle protège les applis lentes à booter avant que la liveness ne s&#39;active.</li></ul>
+<p><strong>Ressources — requests &amp; limits.</strong> Une <strong>request</strong> est ce que le pod <strong>réserve</strong> (le scheduler s&#39;en sert pour choisir un nœud). Une <strong>limit</strong> est le <strong>plafond</strong> (dépasser la limit CPU → <em>throttling</em> ; dépasser la limit mémoire → <strong><code>OOMKilled</code></strong>). Le couple request/limit détermine la <strong>QoS</strong> : <code>Guaranteed</code> (request = limit), <code>Burstable</code> (request &lt; limit), <code>BestEffort</code> (aucune) — l&#39;ordre dans lequel Kubernetes tue les pods sous pression.</p>
+<p><strong>Plusieurs conteneurs dans un pod.</strong> Un <strong>init container</strong> s&#39;exécute <strong>avant</strong> les conteneurs applicatifs, jusqu&#39;au bout, en séquence (préparer un fichier, attendre une dépendance). Un <strong>sidecar</strong> tourne <strong>à côté</strong> du conteneur principal, en parallèle (collecter des logs, servir un proxy). Ils partagent le réseau et les volumes du pod.</p>
+<p><strong>Au-delà du Deployment.</strong> Un <strong>Job</strong> exécute une tâche <strong>jusqu&#39;à réussite</strong> puis s&#39;arrête (batch, migration). Un <strong>CronJob</strong> lance un Job <strong>sur un planning</strong> cron. Un <strong>DaemonSet</strong> garantit <strong>un pod par nœud</strong> (agents de logs, de monitoring).</p>
+<p><strong>Le scheduling — où atterrit un pod ?</strong> Par défaut, le scheduler choisit. Tu peux l&#39;orienter :</p>
+<ul><li><strong><code>nodeSelector</code></strong> : « uniquement les nœuds portant ce <strong>label</strong> ». Simple, strict.</li><li><strong>affinité de nœud</strong> : plus expressive (<code>required</code> = obligatoire, <code>preferred</code> = souhaité).</li><li><strong>taints &amp; tolerations</strong> : l&#39;inverse. Un <strong>taint</strong> sur un nœud <strong>repousse</strong> les pods ; seuls ceux qui portent la <strong>toleration</strong> correspondante peuvent y atterrir. C&#39;est ainsi qu&#39;on réserve des nœuds (GPU, base de données…).</li></ul>
+</div>
+<div data-lang="en"><p>A <code>Deployment</code> answers &quot;run N replicas of a web service, permanently&quot;. But Kubernetes has many more tools, and the exam tests them all.</p>
+<p><strong>Container health — probes.</strong> Kubernetes doesn&#39;t settle for &quot;the process is running&quot;. Three probes:</p>
+<ul><li><strong><code>livenessProbe</code></strong>: &quot;is it <strong>alive</strong>?&quot; If it fails, the kubelet <strong>restarts</strong> the container.</li><li><strong><code>readinessProbe</code></strong>: &quot;is it <strong>ready to receive traffic</strong>?&quot; If it fails, the pod is <strong>removed from Services</strong> (but not restarted).</li><li><strong><code>startupProbe</code></strong>: &quot;has it <strong>finished starting</strong>?&quot; It protects slow-booting apps before liveness kicks in.</li></ul>
+<p><strong>Resources — requests &amp; limits.</strong> A <strong>request</strong> is what the pod <strong>reserves</strong> (the scheduler uses it to pick a node). A <strong>limit</strong> is the <strong>ceiling</strong> (exceeding the CPU limit → <em>throttling</em>; exceeding the memory limit → <strong><code>OOMKilled</code></strong>). The request/limit pair determines the <strong>QoS</strong>: <code>Guaranteed</code> (request = limit), <code>Burstable</code> (request &lt; limit), <code>BestEffort</code> (none) — the order in which Kubernetes kills pods under pressure.</p>
+<p><strong>Multiple containers in a pod.</strong> An <strong>init container</strong> runs <strong>before</strong> the app containers, to completion, in sequence (prepare a file, wait for a dependency). A <strong>sidecar</strong> runs <strong>alongside</strong> the main container, in parallel (collect logs, serve a proxy). They share the pod&#39;s network and volumes.</p>
+<p><strong>Beyond the Deployment.</strong> A <strong>Job</strong> runs a task <strong>until success</strong> then stops (batch, migration). A <strong>CronJob</strong> launches a Job <strong>on a cron schedule</strong>. A <strong>DaemonSet</strong> guarantees <strong>one pod per node</strong> (log/monitoring agents).</p>
+<p><strong>Scheduling — where does a pod land?</strong> By default, the scheduler chooses. You can steer it:</p>
+<ul><li><strong><code>nodeSelector</code></strong>: &quot;only nodes carrying this <strong>label</strong>&quot;. Simple, strict.</li><li><strong>node affinity</strong>: more expressive (<code>required</code> = mandatory, <code>preferred</code> = desired).</li><li><strong>taints &amp; tolerations</strong>: the reverse. A <strong>taint</strong> on a node <strong>repels</strong> pods; only those carrying the matching <strong>toleration</strong> can land there. That&#39;s how you reserve nodes (GPU, database…).</li></ul>
+</div>
+
+<figure class="schema" id="figure-kubernetes-scheduling">
+  <p>[schema "kubernetes-scheduling" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> nodeSelector/affinité attirent un pod vers des nœuds labellisés ; un taint repousse les pods sauf ceux qui tolèrent.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> nodeSelector/affinity attract a pod toward labeled nodes; a taint repels pods except those that tolerate it.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : namespace → probes → resources → init &amp; sidecar → Job/CronJob → DaemonSet → nodeSelector &amp; affinité → taints &amp; tolerations.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: namespace → probes → resources → init &amp; sidecar → Job/CronJob → DaemonSet → nodeSelector &amp; affinity → taints &amp; tolerations.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Se donner un <strong>namespace</strong> de travail et le rendre courant.</p>
+<p><strong>🤔 Pourquoi un namespace ?</strong> Il isole tes objets des pods système et facilite le nettoyage (supprimer le namespace supprime tout). Le rendre <strong>courant</strong> t&#39;évite de taper <code>-n cka</code> à chaque commande — un réflexe qui fait gagner un temps précieux à l&#39;examen.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Give yourself a working <strong>namespace</strong> and make it current.</p>
+<p><strong>🤔 Why a namespace?</strong> It isolates your objects from system pods and eases cleanup (deleting the namespace deletes everything). Making it <strong>current</strong> saves you from typing <code>-n cka</code> on every command — a reflex that saves precious time in the exam.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl create namespace cka
+kubectl config set-context --current --namespace=cka
+kubectl config view --minify | grep namespace:      # namespace: cka</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl config view --minify | grep namespace</code> affiche <code>namespace: cka</code>. Désormais, <code>kubectl get pods</code> cible <code>cka</code> sans <code>-n</code>. <em>(Pour revenir au namespace par défaut : <code>kubectl config set-context --current --namespace=default</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl config view --minify | grep namespace</code> shows <code>namespace: cka</code>. From now on, <code>kubectl get pods</code> targets <code>cka</code> without <code>-n</code>. <em>(To go back to the default namespace: <code>kubectl config set-context --current --namespace=default</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter une <strong>liveness</strong> et une <strong>readiness</strong> probe, et observer Kubernetes réagir.</p>
+<p><strong>🤔 La différence qui tombe à l&#39;examen.</strong> <em>Liveness échoue → redémarrage du conteneur. Readiness échoue → retrait du Service (pas de redémarrage).</em> On va provoquer les deux. Crée <code>probes.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Add a <strong>liveness</strong> and a <strong>readiness</strong> probe, and watch Kubernetes react.</p>
+<p><strong>🤔 The exam-critical difference.</strong> <em>Liveness fails → container restart. Readiness fails → removed from the Service (no restart).</em> We&#39;ll trigger both. Create <code>probes.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># probes.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-probes
+  labels: { app: web-probes }
+spec:
+  containers:
+    - name: web
+      image: nginx:1.27-alpine
+      ports: [{ containerPort: 80 }]
+      readinessProbe:                 # prêt quand / ready when : GET / renvoie 200
+        httpGet: { path: /, port: 80 }
+        initialDelaySeconds: 2
+        periodSeconds: 5
+      livenessProbe:                  # vivant tant que / alive while : le fichier témoin existe
+        exec:
+          command: [&quot;cat&quot;, &quot;/usr/share/nginx/html/index.html&quot;]
+        initialDelaySeconds: 5
+        periodSeconds: 5</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f probes.yaml
+kubectl get pod web-probes -w        # attends READY 1/1, puis Ctrl+C / wait for READY 1/1, then Ctrl+C</code></pre>
+<div data-lang="fr"><p>Provoque un échec de <strong>liveness</strong> en supprimant le fichier que la probe vérifie :</p>
+</div>
+<div data-lang="en"><p>Trigger a <strong>liveness</strong> failure by deleting the file the probe checks:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl exec web-probes -- rm /usr/share/nginx/html/index.html
+kubectl get pod web-probes -w        # RESTARTS passe à 1 (liveness a échoué → redémarrage) / RESTARTS goes to 1
+kubectl describe pod web-probes | grep -A3 Events   # &quot;Liveness probe failed&quot; + &quot;Killing&quot;/&quot;Started&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après suppression du fichier, la colonne <code>RESTARTS</code> du pod passe à <code>1</code> — la liveness a échoué, le conteneur a été <strong>redémarré</strong> (et nginx recrée son <code>index.html</code> au boot, donc il repasse <code>Ready</code>). <code>kubectl describe</code> montre l&#39;événement <code>Liveness probe failed</code>. Tu viens de voir la boucle de réconciliation « réparer un conteneur malade » en action.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after deleting the file, the pod&#39;s <code>RESTARTS</code> column goes to <code>1</code> — liveness failed, the container was <strong>restarted</strong> (and nginx recreates its <code>index.html</code> at boot, so it returns <code>Ready</code>). <code>kubectl describe</code> shows the <code>Liveness probe failed</code> event. You&#39;ve just seen the &quot;repair a sick container&quot; reconciliation loop in action.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déclarer des <strong>requests &amp; limits</strong>, et voir un dépassement mémoire finir en <strong><code>OOMKilled</code></strong>.</p>
+<p><strong>🤔 Request vs limit.</strong> La <strong>request</strong> aide le <strong>scheduler</strong> (réservation) ; la <strong>limit</strong> est un <strong>plafond</strong> appliqué à l&#39;exécution. On va donner une limite mémoire volontairement basse à un conteneur qui va la dépasser. Crée <code>oom.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Declare <strong>requests &amp; limits</strong>, and watch a memory overrun end in <strong><code>OOMKilled</code></strong>.</p>
+<p><strong>🤔 Request vs limit.</strong> The <strong>request</strong> helps the <strong>scheduler</strong> (reservation); the <strong>limit</strong> is a <strong>ceiling</strong> enforced at runtime. We&#39;ll give a deliberately low memory limit to a container that will exceed it. Create <code>oom.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># oom.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hog
+spec:
+  containers:
+    - name: hog
+      image: polinux/stress
+      command: [&quot;stress&quot;]
+      args: [&quot;--vm&quot;, &quot;1&quot;, &quot;--vm-bytes&quot;, &quot;150M&quot;, &quot;--vm-hang&quot;, &quot;1&quot;]
+      resources:
+        requests: { memory: &quot;32Mi&quot;, cpu: &quot;100m&quot; }
+        limits:   { memory: &quot;64Mi&quot;, cpu: &quot;200m&quot; }   # 64Mi &lt; 150M demandés → dépassement / requested &gt; limit → overrun</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f oom.yaml
+kubectl get pod hog -w        # STATUS oscille CrashLoopBackOff, RESTARTS grimpe / STATUS shows CrashLoopBackOff, RESTARTS climbs
+kubectl describe pod hog | grep -iE &#39;reason|oom&#39;    # Last State: Terminated, Reason: OOMKilled</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le pod <code>hog</code> ne se stabilise pas : <code>kubectl describe</code> montre <code>Last State: Terminated</code> avec <code>Reason: OOMKilled</code> — la <strong>limit</strong> mémoire (64Mi) a été dépassée par les 150M que <code>stress</code> tente d&#39;allouer, donc le noyau a tué le conteneur, et Kubernetes le relance en boucle (<code>CrashLoopBackOff</code>). Monte la limit à <code>256Mi</code> (<code>kubectl apply</code> de nouveau après édition) → le pod se stabilise. <strong>La limit mémoire est un contrat dur, pas une suggestion.</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>hog</code> pod never stabilizes: <code>kubectl describe</code> shows <code>Last State: Terminated</code> with <code>Reason: OOMKilled</code> — the memory <strong>limit</strong> (64Mi) was exceeded by the 150M <code>stress</code> tries to allocate, so the kernel killed the container, and Kubernetes relaunches it in a loop (<code>CrashLoopBackOff</code>). Raise the limit to <code>256Mi</code> (re-<code>kubectl apply</code> after editing) → the pod stabilizes. <strong>The memory limit is a hard contract, not a suggestion.</strong></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Utiliser un <strong>init container</strong> (préparation) et un <strong>sidecar</strong> (parallèle) dans un même pod.</p>
+<p><strong>🤔 Init vs sidecar.</strong> L&#39;<strong>init</strong> tourne <strong>d&#39;abord, jusqu&#39;au bout</strong>, puis laisse la place. Le <strong>sidecar</strong> tourne <strong>en même temps</strong> que le conteneur principal, pour toute la vie du pod. Ils partagent un <strong>volume</strong> <code>emptyDir</code>. Crée <code>multi.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Use an <strong>init container</strong> (preparation) and a <strong>sidecar</strong> (parallel) in the same pod.</p>
+<p><strong>🤔 Init vs sidecar.</strong> The <strong>init</strong> runs <strong>first, to completion</strong>, then steps aside. The <strong>sidecar</strong> runs <strong>at the same time</strong> as the main container, for the pod&#39;s whole life. They share an <code>emptyDir</code> <strong>volume</strong>. Create <code>multi.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># multi.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi
+spec:
+  volumes:
+    - name: shared
+      emptyDir: {}
+  initContainers:
+    - name: seed                         # prépare le contenu AVANT le web / seeds content BEFORE the web
+      image: busybox:1.36
+      command: [&quot;sh&quot;, &quot;-c&quot;, &quot;echo &#39;Généré par init at boot&#39; &gt; /data/index.html&quot;]
+      volumeMounts: [{ name: shared, mountPath: /data }]
+  containers:
+    - name: web                          # principal / main
+      image: nginx:1.27-alpine
+      volumeMounts: [{ name: shared, mountPath: /usr/share/nginx/html }]
+    - name: watcher                      # sidecar : tourne en parallèle / runs in parallel
+      image: busybox:1.36
+      command: [&quot;sh&quot;, &quot;-c&quot;, &quot;while true; do wc -c /data/index.html; sleep 30; done&quot;]
+      volumeMounts: [{ name: shared, mountPath: /data }]</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f multi.yaml
+kubectl get pod multi                         # READY 2/2 (web + watcher ; l&#39;init a déjà fini) / READY 2/2
+kubectl exec multi -c web -- cat /usr/share/nginx/html/index.html   # &quot;Généré par init at boot&quot;
+kubectl logs multi -c watcher                 # la taille du fichier, imprimée par le sidecar / file size, printed by the sidecar</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le pod affiche <code>READY 2/2</code> — deux conteneurs applicatifs (<code>web</code> + <code>watcher</code>) ; l&#39;<strong>init <code>seed</code></strong> n&#39;apparaît <strong>pas</strong> dans le compte car il s&#39;est terminé (voir <code>kubectl get pod multi -o jsonpath=&#39;{.status.initContainerStatuses[0].state}&#39;</code>). Le <code>web</code> sert le fichier <strong>écrit par l&#39;init</strong>, et le <strong>sidecar</strong> <code>watcher</code> logue sa taille en parallèle. Tu as les deux patterns multi-conteneurs du programme CKAD.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the pod shows <code>READY 2/2</code> — two app containers (<code>web</code> + <code>watcher</code>); the <strong>init <code>seed</code></strong> does <strong>not</strong> appear in the count because it completed (see <code>kubectl get pod multi -o jsonpath=&#39;{.status.initContainerStatuses[0].state}&#39;</code>). The <code>web</code> serves the file <strong>written by the init</strong>, and the <strong>sidecar</strong> <code>watcher</code> logs its size in parallel. You have both multi-container patterns from the CKAD program.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer une tâche ponctuelle avec un <strong>Job</strong>, puis la planifier avec un <strong>CronJob</strong>.</p>
+<p><strong>🤔 <code>restartPolicy</code> obligatoire.</strong> Un Job n&#39;est pas un service : son pod doit avoir <code>restartPolicy: Never</code> (ou <code>OnFailure</code>), jamais <code>Always</code>. Crée <code>job.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run a one-off task with a <strong>Job</strong>, then schedule it with a <strong>CronJob</strong>.</p>
+<p><strong>🤔 Mandatory <code>restartPolicy</code>.</strong> A Job isn&#39;t a service: its pod must have <code>restartPolicy: Never</code> (or <code>OnFailure</code>), never <code>Always</code>. Create <code>job.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi
+spec:
+  backoffLimit: 2              # nb de reprises avant abandon / retries before giving up
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pi
+          image: perl:5.34
+          command: [&quot;perl&quot;, &quot;-Mbignum=bpi&quot;, &quot;-wle&quot;, &quot;print bpi(200)&quot;]</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f job.yaml
+kubectl wait --for=condition=complete job/pi --timeout=120s
+kubectl logs job/pi | head -c 60      # les premières décimales de pi / the first digits of pi</code></pre>
+<div data-lang="fr"><p>Ajoute un <strong>CronJob</strong> qui imprime l&#39;heure chaque minute — <code>cron.yaml</code> :</p>
+</div>
+<div data-lang="en"><p>Add a <strong>CronJob</strong> that prints the time every minute — <code>cron.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># cron.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: heartbeat
+spec:
+  schedule: &quot;*/1 * * * *&quot;          # chaque minute / every minute
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: date
+              image: busybox:1.36
+              command: [&quot;sh&quot;, &quot;-c&quot;, &quot;date; echo tick&quot;]</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f cron.yaml
+# attends ~90 s, puis / wait ~90 s, then:
+kubectl get jobs                 # un Job &quot;heartbeat-2806...&quot; créé par le CronJob / a Job created by the CronJob
+kubectl get cronjob heartbeat    # colonne LAST SCHEDULE renseignée / LAST SCHEDULE column populated</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl wait ... job/pi</code> retourne <code>job.batch/pi condition met</code>, et <code>kubectl logs job/pi</code> imprime les décimales de π — le Job s&#39;est exécuté <strong>une fois jusqu&#39;à réussite</strong> puis s&#39;est arrêté (<code>COMPLETIONS 1/1</code>). Après ~1 min, <code>kubectl get jobs</code> montre un Job <code>heartbeat-…</code> créé automatiquement par le <strong>CronJob</strong> (colonne <code>LAST SCHEDULE</code> renseignée). <em>(Supprime le CronJob quand tu as vu passer une exécution : <code>kubectl delete cronjob heartbeat</code>, sinon il tourne chaque minute.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl wait ... job/pi</code> returns <code>job.batch/pi condition met</code>, and <code>kubectl logs job/pi</code> prints π&#39;s digits — the Job ran <strong>once to success</strong> then stopped (<code>COMPLETIONS 1/1</code>). After ~1 min, <code>kubectl get jobs</code> shows a <code>heartbeat-…</code> Job automatically created by the <strong>CronJob</strong> (<code>LAST SCHEDULE</code> column populated). <em>(Delete the CronJob once you&#39;ve seen a run: <code>kubectl delete cronjob heartbeat</code>, otherwise it runs every minute.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer un <strong>DaemonSet</strong> : exactement <strong>un pod par nœud</strong> — le motif des agents.</p>
+<p><strong>🤔 Pourquoi un DaemonSet ?</strong> Un <code>Deployment</code> place N répliques n&#39;importe où. Un <strong>DaemonSet</strong> garantit <strong>un</strong> pod sur <strong>chaque</strong> nœud, et <strong>suit</strong> les nœuds (un nouveau nœud → un nouveau pod). C&#39;est ainsi que tournent les collecteurs de logs/métriques. Crée <code>daemon.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy a <strong>DaemonSet</strong>: exactly <strong>one pod per node</strong> — the agent pattern.</p>
+<p><strong>🤔 Why a DaemonSet?</strong> A <code>Deployment</code> places N replicas anywhere. A <strong>DaemonSet</strong> guarantees <strong>one</strong> pod on <strong>each</strong> node, and <strong>tracks</strong> nodes (a new node → a new pod). That&#39;s how log/metric collectors run. Create <code>daemon.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># daemon.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-agent
+spec:
+  selector:
+    matchLabels: { app: node-agent }
+  template:
+    metadata:
+      labels: { app: node-agent }
+    spec:
+      containers:
+        - name: agent
+          image: busybox:1.36
+          command: [&quot;sh&quot;, &quot;-c&quot;, &quot;while true; do sleep 3600; done&quot;]
+          resources:
+            requests: { cpu: &quot;10m&quot;, memory: &quot;16Mi&quot; }</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f daemon.yaml
+kubectl get daemonset node-agent      # DESIRED 3  CURRENT 3  READY 3 (un par nœud) / one per node
+kubectl get pods -l app=node-agent -o wide    # un pod sur chacun des 3 nœuds / one pod on each of the 3 nodes</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get daemonset</code> affiche <code>DESIRED 3 / READY 3</code> — Kubernetes a placé <strong>un</strong> pod <code>node-agent</code> sur <strong>chacun</strong> des trois nœuds (colonne <code>NODE</code> de <code>get pods -o wide</code> : trois nœuds distincts). Tu n&#39;as jamais dit « trois » : le DaemonSet <strong>déduit</strong> le compte du nombre de nœuds. C&#39;est la différence de fond avec un Deployment.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get daemonset</code> shows <code>DESIRED 3 / READY 3</code> — Kubernetes placed <strong>one</strong> <code>node-agent</code> pod on <strong>each</strong> of the three nodes (the <code>NODE</code> column of <code>get pods -o wide</code>: three distinct nodes). You never said &quot;three&quot;: the DaemonSet <strong>derives</strong> the count from the number of nodes. That&#39;s the fundamental difference from a Deployment.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Forcer le placement d&#39;un pod avec un <strong><code>nodeSelector</code></strong>, puis avec une <strong>affinité de nœud</strong>.</p>
+<p><strong>🤔 Labelliser d&#39;abord.</strong> Le placement s&#39;appuie sur des <strong>labels de nœud</strong>. On étiquette un agent, puis on demande à un pod de n&#39;aller <strong>que</strong> là. Labellise :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Force a pod&#39;s placement with a <strong><code>nodeSelector</code></strong>, then with <strong>node affinity</strong>.</p>
+<p><strong>🤔 Label first.</strong> Placement relies on <strong>node labels</strong>. We label an agent, then ask a pod to go <strong>only</strong> there. Label it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl label node k3d-ckalab-agent-0 tier=frontend
+kubectl get nodes -l tier=frontend        # confirme le nœud labellisé / confirms the labeled node</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># pinned.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pinned
+spec:
+  nodeSelector:
+    tier: frontend               # n&#39;atterrit QUE sur un nœud tier=frontend / lands ONLY on a tier=frontend node
+  containers:
+    - name: web
+      image: nginx:1.27-alpine</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f pinned.yaml
+kubectl get pod pinned -o wide            # NODE = k3d-ckalab-agent-0 / scheduled on the labeled node</code></pre>
+<div data-lang="fr"><p>L&#39;<strong>affinité</strong> exprime la même idée, en plus riche (opérateurs, <code>preferred</code>). Voici l&#39;équivalent <code>required</code> — <code>affinity.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Affinity</strong> expresses the same idea, more richly (operators, <code>preferred</code>). Here&#39;s the <code>required</code> equivalent — <code>affinity.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># affinity.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affine
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: tier
+                operator: In
+                values: [&quot;frontend&quot;]
+  containers:
+    - name: web
+      image: nginx:1.27-alpine</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f affinity.yaml
+kubectl get pod affine -o wide            # NODE = k3d-ckalab-agent-0 également / also the labeled node</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>pinned</code> <strong>et</strong> <code>affine</code> atterrissent sur <code>k3d-ckalab-agent-0</code> (le seul nœud <code>tier=frontend</code>). Preuve du caractère <strong>strict</strong> : supprime le label (<code>kubectl label node k3d-ckalab-agent-0 tier-</code>), supprime et ré-applique <code>pinned</code> → il reste <strong><code>Pending</code></strong> (<code>kubectl describe pod pinned</code> : <code>didn&#39;t match Pod&#39;s node affinity/selector</code>), car <strong>aucun</strong> nœud ne satisfait la contrainte. Remets le label pour débloquer. <em>(Note : <code>required...</code> est bloquant ; <code>preferredDuringScheduling...</code> serait seulement une préférence.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>pinned</code> <strong>and</strong> <code>affine</code> both land on <code>k3d-ckalab-agent-0</code> (the only <code>tier=frontend</code> node). Proof it&#39;s <strong>strict</strong>: remove the label (<code>kubectl label node k3d-ckalab-agent-0 tier-</code>), delete and re-apply <code>pinned</code> → it stays <strong><code>Pending</code></strong> (<code>kubectl describe pod pinned</code>: <code>didn&#39;t match Pod&#39;s node affinity/selector</code>), because <strong>no</strong> node satisfies the constraint. Put the label back to unblock. <em>(Note: <code>required...</code> is blocking; <code>preferredDuringScheduling...</code> would be only a preference.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Réserver un nœud avec un <strong>taint</strong>, et n&#39;y autoriser que les pods qui le <strong>tolèrent</strong>.</p>
+<p><strong>🤔 L&#39;inverse du nodeSelector.</strong> Un <code>nodeSelector</code> <strong>attire</strong> un pod. Un <strong>taint</strong> <strong>repousse</strong> tous les pods, sauf ceux qui portent la <strong>toleration</strong> correspondante. C&#39;est le mécanisme pour dédier un nœud (base de données, GPU). Taint un agent :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Reserve a node with a <strong>taint</strong>, and allow only pods that <strong>tolerate</strong> it.</p>
+<p><strong>🤔 The reverse of nodeSelector.</strong> A <code>nodeSelector</code> <strong>attracts</strong> a pod. A <strong>taint</strong> <strong>repels</strong> all pods, except those carrying the matching <strong>toleration</strong>. It&#39;s the mechanism to dedicate a node (database, GPU). Taint an agent:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule</code></pre>
+<div data-lang="fr"><p>Un pod <strong>sans</strong> toleration ne pourra plus être planifié sur <code>agent-1</code>. Un pod <strong>avec</strong> la toleration le pourra (mais n&#39;y est pas forcé — la toleration <strong>autorise</strong>, elle n&#39;<strong>attire</strong> pas). Crée <code>tolerant.yaml</code> :</p>
+</div>
+<div data-lang="en"><p>A pod <strong>without</strong> a toleration can no longer be scheduled on <code>agent-1</code>. A pod <strong>with</strong> the toleration can (but isn&#39;t forced there — a toleration <strong>allows</strong>, it doesn&#39;t <strong>attract</strong>). Create <code>tolerant.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># tolerant.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db
+spec:
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: db
+      effect: NoSchedule
+  nodeName: k3d-ckalab-agent-1     # on le force ici pour la démo / pin it here for the demo
+  containers:
+    - name: db
+      image: nginx:1.27-alpine</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f tolerant.yaml
+kubectl get pod db -o wide         # Running sur k3d-ckalab-agent-1 (toléré) / Running on the tainted node</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le pod <code>db</code> tourne bien sur <code>k3d-ckalab-agent-1</code> <strong>malgré</strong> le taint, parce qu&#39;il le <strong>tolère</strong>. Preuve inverse : retire <code>nodeName</code> et la section <code>tolerations</code> d&#39;une copie, applique-la → le scheduler l&#39;envoie sur <strong>un autre</strong> nœud (jamais <code>agent-1</code>). <em>(Retire le taint à la fin : <code>kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule-</code> — le <code>-</code> final supprime le taint.)</em></p>
+<p><strong>🤔 Combiner attirance + répulsion.</strong> En prod, on <strong>taint</strong> le nœud DB (personne d&#39;autre n&#39;y va) <strong>et</strong> on met une <strong>affinité</strong> sur le pod DB (il y va vraiment). Taint seul = « pas les autres » ; affinité seule = « moi ici » ; les deux = nœud dédié.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>db</code> pod does run on <code>k3d-ckalab-agent-1</code> <strong>despite</strong> the taint, because it <strong>tolerates</strong> it. Reverse proof: remove <code>nodeName</code> and the <code>tolerations</code> section from a copy, apply it → the scheduler sends it to <strong>another</strong> node (never <code>agent-1</code>). <em>(Remove the taint at the end: <code>kubectl taint node k3d-ckalab-agent-1 dedicated=db:NoSchedule-</code> — the trailing <code>-</code> deletes the taint.)</em></p>
+<p><strong>🤔 Combining attraction + repulsion.</strong> In prod, you <strong>taint</strong> the DB node (nobody else goes there) <strong>and</strong> put an <strong>affinity</strong> on the DB pod (it actually goes there). Taint alone = &quot;not the others&quot;; affinity alone = &quot;me here&quot;; both = a dedicated node.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Confondre liveness et readiness.</strong> Mettre une liveness trop agressive (ou pointant vers une dépendance externe) provoque des <strong>redémarrages en boucle</strong>. Règle : liveness = « suis-je cassé ? » (local, tolérant) ; readiness = « puis-je servir ? » (peut dépendre d&#39;une dépendance).</p>
+<p><strong>2. Pas de <code>initialDelaySeconds</code> / <code>startupProbe</code> sur une appli lente.</strong> La liveness tue le conteneur <strong>avant</strong> qu&#39;il ait fini de démarrer → CrashLoop. Utilise une <code>startupProbe</code> ou un <code>initialDelaySeconds</code> généreux.</p>
+<p><strong>3. Oublier les requests.</strong> Sans request, le scheduler ne « réserve » rien et le pod est <code>BestEffort</code> — le <strong>premier tué</strong> sous pression mémoire. En prod, mets toujours au moins des requests.</p>
+<p><strong>4. <code>restartPolicy: Always</code> sur un Job.</strong> Interdit : un Job exige <code>Never</code> ou <code>OnFailure</code>. L&#39;API refuse <code>Always</code>.</p>
+<p><strong>5. Croire qu&#39;une toleration attire.</strong> Une toleration <strong>autorise</strong> un pod sur un nœud tainté ; elle ne l&#39;y <strong>envoie</strong> pas. Pour l&#39;y placer, ajoute une <strong>affinité</strong> (ou <code>nodeName</code> en démo).</p>
+<p><strong>6. <code>nodeSelector</code>/affinité <code>required</code> trop stricts → <code>Pending</code>.</strong> Si aucun nœud ne matche, le pod reste <code>Pending</code> sans erreur bruyante. Le réflexe : <code>kubectl describe pod</code> et lire la section <code>Events</code>.</p>
+<p><strong>7. Labelliser/tainter le mauvais nom de nœud.</strong> Les nœuds k3d s&#39;appellent <code>k3d-&lt;cluster&gt;-server-0</code>, <code>-agent-0</code>… Vérifie avec <code>kubectl get nodes</code> avant de labelliser.</p>
+</div>
+<div data-lang="en"><p><strong>1. Confusing liveness and readiness.</strong> A too-aggressive liveness (or one pointing at an external dependency) causes <strong>restart loops</strong>. Rule: liveness = &quot;am I broken?&quot; (local, forgiving); readiness = &quot;can I serve?&quot; (may depend on a dependency).</p>
+<p><strong>2. No <code>initialDelaySeconds</code> / <code>startupProbe</code> on a slow app.</strong> Liveness kills the container <strong>before</strong> it finishes starting → CrashLoop. Use a <code>startupProbe</code> or a generous <code>initialDelaySeconds</code>.</p>
+<p><strong>3. Forgetting requests.</strong> Without a request, the scheduler &quot;reserves&quot; nothing and the pod is <code>BestEffort</code> — the <strong>first killed</strong> under memory pressure. In prod, always set at least requests.</p>
+<p><strong>4. <code>restartPolicy: Always</code> on a Job.</strong> Forbidden: a Job requires <code>Never</code> or <code>OnFailure</code>. The API rejects <code>Always</code>.</p>
+<p><strong>5. Believing a toleration attracts.</strong> A toleration <strong>allows</strong> a pod on a tainted node; it doesn&#39;t <strong>send</strong> it there. To place it there, add an <strong>affinity</strong> (or <code>nodeName</code> in a demo).</p>
+<p><strong>6. Too-strict <code>nodeSelector</code>/<code>required</code> affinity → <code>Pending</code>.</strong> If no node matches, the pod stays <code>Pending</code> with no loud error. The reflex: <code>kubectl describe pod</code> and read the <code>Events</code> section.</p>
+<p><strong>7. Labeling/tainting the wrong node name.</strong> k3d nodes are named <code>k3d-&lt;cluster&gt;-server-0</code>, <code>-agent-0</code>… Check with <code>kubectl get nodes</code> before labeling.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques la réaction de Kubernetes à un échec de <strong>liveness</strong> vs <strong>readiness</strong>.</li><li>Tu déclares <strong>requests &amp; limits</strong> et tu identifies un <code>OOMKilled</code> dans <code>describe</code>.</li><li>Tu combines <strong>init container</strong> + <strong>sidecar</strong> avec un volume partagé.</li><li>Tu lances un <strong>Job</strong> (jusqu&#39;à réussite) et un <strong>CronJob</strong> (planifié).</li><li>Tu déploies un <strong>DaemonSet</strong> et tu vois un pod par nœud.</li><li>Tu places un pod avec <strong><code>nodeSelector</code></strong>/<strong>affinité</strong>, et tu diagnostiques un <code>Pending</code>.</li><li>Tu <strong>taint</strong> un nœud et tu fais atterrir un pod grâce à sa <strong>toleration</strong>.</li></ul>
+<p>Sept cases cochées = tu maîtrises le domaine <strong>Workloads &amp; Scheduling</strong> du CKA/CKAD.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You explain Kubernetes&#39; reaction to a <strong>liveness</strong> vs <strong>readiness</strong> failure.</li><li>You declare <strong>requests &amp; limits</strong> and spot an <code>OOMKilled</code> in <code>describe</code>.</li><li>You combine an <strong>init container</strong> + a <strong>sidecar</strong> with a shared volume.</li><li>You run a <strong>Job</strong> (to success) and a <strong>CronJob</strong> (scheduled).</li><li>You deploy a <strong>DaemonSet</strong> and see one pod per node.</li><li>You place a pod with <strong><code>nodeSelector</code></strong>/<strong>affinity</strong>, and diagnose a <code>Pending</code>.</li><li>You <strong>taint</strong> a node and land a pod there via its <strong>toleration</strong>.</li></ul>
+<p>Seven boxes ticked = you&#39;ve got the CKA/CKAD <strong>Workloads &amp; Scheduling</strong> domain.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Kubernetes → CKA/CKAD :</p>
+<ol><li><strong>Services, networking &amp; ingress</strong> — exposer les workloads : types de Services, Ingress, <code>NetworkPolicy</code>, DNS interne.</li><li><strong>Stockage</strong> — <code>PersistentVolume</code>/<code>PersistentVolumeClaim</code>, <code>StorageClass</code>, StatefulSet.</li><li><strong>Cluster ops, sécurité &amp; RBAC</strong> — kubeconfig/contextes, RBAC, sauvegarde etcd, mises à jour, troubleshooting.</li><li><strong>Projet d&#39;entreprise</strong> — déployer une appli multi-tier (ingress + config + stockage + probes + autoscaling) : le livrable de CV.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Kubernetes → CKA/CKAD track:</p>
+<ol><li><strong>Services, networking &amp; ingress</strong> — expose workloads: Service types, Ingress, <code>NetworkPolicy</code>, internal DNS.</li><li><strong>Storage</strong> — <code>PersistentVolume</code>/<code>PersistentVolumeClaim</code>, <code>StorageClass</code>, StatefulSet.</li><li><strong>Cluster ops, security &amp; RBAC</strong> — kubeconfig/contexts, RBAC, etcd backup, upgrades, troubleshooting.</li><li><strong>Enterprise project</strong> — deploy a multi-tier app (ingress + config + storage + probes + autoscaling): the CV deliverable.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">15</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire workloads &amp; scheduling.</p>
+</div>
+<div data-lang="en"><p>Workloads &amp; scheduling cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Namespace courant / current namespace
+kubectl config set-context --current --namespace=cka
+
+# Probes (dans un container spec) / (in a container spec)
+#   livenessProbe  -&gt; échec = redémarrage / fail = restart
+#   readinessProbe -&gt; échec = retiré du Service / fail = removed from Service
+#   startupProbe   -&gt; protège le démarrage lent / guards slow startup
+
+# Resources
+#   requests -&gt; le scheduler réserve / scheduler reserves
+#   limits   -&gt; plafond ; mémoire dépassée = OOMKilled / ceiling; memory over = OOMKilled
+
+# Contrôleurs / controllers
+kubectl create job pi --image=perl:5.34 -- perl -Mbignum=bpi -wle &#39;print bpi(50)&#39;
+kubectl create cronjob hb --image=busybox:1.36 --schedule=&quot;*/1 * * * *&quot; -- date
+kubectl apply -f daemonset.yaml         # 1 pod / nœud / 1 pod per node
+
+# Scheduling
+kubectl label node &lt;node&gt; tier=frontend           # attirer via nodeSelector/affinité / attract
+kubectl label node &lt;node&gt; tier-                    # retirer le label / remove label
+kubectl taint node &lt;node&gt; dedicated=db:NoSchedule  # repousser / repel
+kubectl taint node &lt;node&gt; dedicated=db:NoSchedule- # retirer le taint / remove taint
+
+# Diagnostic
+kubectl describe pod &lt;p&gt; | sed -n &#39;/Events/,$p&#39;    # pourquoi Pending/CrashLoop ? / why?
+kubectl get pods -o wide                           # sur quel nœud ? / which node?</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Probes (liveness/readiness/startup)</a>.</li><li><a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/">Requests &amp; limits</a> et <a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/">QoS</a>.</li><li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/job/">Jobs</a>, <a href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/">CronJobs</a>, <a href="https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/">DaemonSet</a>.</li><li><a href="https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/">Assigner des pods aux nœuds</a> et <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/">taints &amp; tolerations</a>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Probes (liveness/readiness/startup)</a>.</li><li><a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/">Requests &amp; limits</a> and <a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/">QoS</a>.</li><li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/job/">Jobs</a>, <a href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/">CronJobs</a>, <a href="https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/">DaemonSet</a>.</li><li><a href="https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/">Assigning pods to nodes</a> and <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/">taints &amp; tolerations</a>.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le pod redémarre en boucle (<code>CrashLoopBackOff</code>) après ajout d&#39;une liveness.</strong> La probe est trop stricte ou démarre trop tôt. Augmente <code>initialDelaySeconds</code>, ajoute une <code>startupProbe</code>, ou vérifie la commande/URL sondée.</p>
+<p><strong><code>OOMKilled</code> alors que l&#39;appli semble légère.</strong> La <code>limit</code> mémoire est trop basse pour les pics. Regarde la conso réelle (<code>kubectl top pod</code>, metrics-server est présent sur k3s) et ajuste la limit.</p>
+<p><strong>Un Job reste <code>Running</code> sans finir.</strong> Sa commande ne se termine jamais (un <code>sleep infinity</code>, un serveur). Un Job attend un process qui <strong>rend la main</strong> ; corrige la commande.</p>
+<p><strong><code>kubectl top</code> renvoie une erreur.</strong> metrics-server met ~1 min à collecter après la création du cluster. Réessaie, ou <code>kubectl -n kube-system get deploy metrics-server</code>.</p>
+<p><strong>Le pod reste <code>Pending</code>.</strong> <code>kubectl describe pod</code> → section <code>Events</code>. Causes fréquentes : <code>nodeSelector</code>/affinité qui ne matche aucun nœud, tous les nœuds taintés, ou ressources insuffisantes (<code>Insufficient cpu/memory</code>).</p>
+<p><strong>Le DaemonSet ne met pas de pod sur le nœud serveur.</strong> Vérifie qu&#39;aucun taint ne le repousse (<code>kubectl describe node k3d-ckalab-server-0 | grep Taints</code>). Sur k3s vanilla, le serveur est schedulable ; si tu l&#39;as tainté à l&#39;étape 8, le DaemonSet aura besoin d&#39;une toleration.</p>
+</div>
+<div data-lang="en"><p><strong>The pod restart-loops (<code>CrashLoopBackOff</code>) after adding a liveness.</strong> The probe is too strict or starts too early. Increase <code>initialDelaySeconds</code>, add a <code>startupProbe</code>, or check the probed command/URL.</p>
+<p><strong><code>OOMKilled</code> although the app seems light.</strong> The memory <code>limit</code> is too low for spikes. Look at real usage (<code>kubectl top pod</code>, metrics-server is present on k3s) and adjust the limit.</p>
+<p><strong>A Job stays <code>Running</code> without finishing.</strong> Its command never terminates (a <code>sleep infinity</code>, a server). A Job expects a process that <strong>returns</strong>; fix the command.</p>
+<p><strong><code>kubectl top</code> errors.</strong> metrics-server takes ~1 min to collect after cluster creation. Retry, or <code>kubectl -n kube-system get deploy metrics-server</code>.</p>
+<p><strong>The pod stays <code>Pending</code>.</strong> <code>kubectl describe pod</code> → <code>Events</code> section. Common causes: <code>nodeSelector</code>/affinity matching no node, all nodes tainted, or insufficient resources (<code>Insufficient cpu/memory</code>).</p>
+<p><strong>The DaemonSet puts no pod on the server node.</strong> Check no taint repels it (<code>kubectl describe node k3d-ckalab-server-0 | grep Taints</code>). On vanilla k3s the server is schedulable; if you tainted it in step 8, the DaemonSet will need a toleration.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
