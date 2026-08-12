@@ -459,16 +459,16 @@ kubectl describe pod broken | sed -n '/Events/,$p'   # "Failed to pull image ...
 
 # La boîte à outils complète / the full toolkit :
 kubectl get events --sort-by=.lastTimestamp     # les événements récents du namespace / recent namespace events
-kubectl logs broken                             # (ici vide : le conteneur n'a jamais démarré) / (empty: never started)
+kubectl logs broken                             # erreur "container is waiting to start" (pas de logs : jamais démarré) / "container is waiting to start" error (no logs: never ran)
 kubectl get componentstatuses 2>/dev/null || kubectl get --raw='/readyz?verbose' | head
 ```
 
 :::lang fr
-**✅ Vérification :** `kubectl get pod broken` montre **`ImagePullBackOff`**, et `describe … Events` explique la cause exacte : `Failed to pull image … not found`. Tu as diagnostiqué **sans deviner** : le symptôme (`get`) t'a orienté, les **events** (`describe`) ont donné la cause. Mémorise la chaîne — pod cassé : `describe` d'abord (events), puis `logs` (si le conteneur a démarré). Pour la santé du cluster : `kubectl get nodes`, `kubectl -n kube-system get pods`, et `kubectl get --raw='/readyz?verbose'`. *(Nettoyage : `kubectl delete pod broken`.)*
+**✅ Vérification :** `kubectl get pod broken` montre **`ImagePullBackOff`**, et `describe … Events` explique la cause exacte : `Failed to pull image … not found`. Tu as diagnostiqué **sans deviner** : le symptôme (`get`) t'a orienté, les **events** (`describe`) ont donné la cause. Mémorise la chaîne — pod cassé : `describe` d'abord (events), puis `logs` **si le conteneur a démarré** (ici `logs` renvoie une erreur « container is waiting to start », car l'image n'a jamais pu être tirée). Pour la santé du cluster : `kubectl get nodes`, `kubectl -n kube-system get pods`, et `kubectl get --raw='/readyz?verbose'`. *(Nettoyage : `kubectl delete pod broken`.)*
 :::
 
 :::lang en
-**✅ Check:** `kubectl get pod broken` shows **`ImagePullBackOff`**, and `describe … Events` explains the exact cause: `Failed to pull image … not found`. You diagnosed **without guessing**: the symptom (`get`) pointed you, the **events** (`describe`) gave the cause. Memorize the chain — broken pod: `describe` first (events), then `logs` (if the container started). For cluster health: `kubectl get nodes`, `kubectl -n kube-system get pods`, and `kubectl get --raw='/readyz?verbose'`. *(Cleanup: `kubectl delete pod broken`.)*
+**✅ Check:** `kubectl get pod broken` shows **`ImagePullBackOff`**, and `describe … Events` explains the exact cause: `Failed to pull image … not found`. You diagnosed **without guessing**: the symptom (`get`) pointed you, the **events** (`describe`) gave the cause. Memorize the chain — broken pod: `describe` first (events), then `logs` **if the container started** (here `logs` returns a "container is waiting to start" error, since the image could never be pulled). For cluster health: `kubectl get nodes`, `kubectl -n kube-system get pods`, and `kubectl get --raw='/readyz?verbose'`. *(Cleanup: `kubectl delete pod broken`.)*
 :::
 
 ## pitfalls
