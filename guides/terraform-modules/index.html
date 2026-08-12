@@ -333,7 +333,7 @@ provider &quot;docker&quot; {}
 module &quot;blog&quot; {
   source        = &quot;./modules/webservice&quot;
   name          = &quot;blog&quot;
-  external_port = 8081
+  external_port = 8090
 }
 
 output &quot;blog_name&quot; {
@@ -342,10 +342,10 @@ output &quot;blog_name&quot; {
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init      # télécharge le provider ET indexe le module local / fetches the provider AND indexes the local module
 terraform apply -auto-approve
 terraform output blog_name</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init</code> affiche <code>Initializing modules...</code> puis <code>- blog in modules/webservice</code>. Après <code>apply</code>, un conteneur <code>blog</code> tourne sur le port 8081, et <code>terraform output blog_name</code> renvoie <code>blog</code>. Regarde le state : <code>terraform state list</code> montre <code>module.blog.docker_container.this</code> — l&#39;adresse est <strong>préfixée par le module</strong>.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init</code> affiche <code>Initializing modules...</code> puis <code>- blog in modules/webservice</code>. Après <code>apply</code>, un conteneur <code>blog</code> tourne sur le port 8090, et <code>terraform output blog_name</code> renvoie <code>blog</code>. Regarde le state : <code>terraform state list</code> montre <code>module.blog.docker_container.this</code> — l&#39;adresse est <strong>préfixée par le module</strong>.</p>
 <p><strong>🤔 <code>init</code> après chaque changement de module.</strong> Si tu ajoutes/modifies un bloc <code>module</code>, relance <code>terraform init</code> : Terraform doit ré-indexer les modules avant <code>plan</code>. Il te le rappelle avec <code>Module not installed</code>.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init</code> prints <code>Initializing modules...</code> then <code>- blog in modules/webservice</code>. After <code>apply</code>, a <code>blog</code> container runs on port 8081, and <code>terraform output blog_name</code> returns <code>blog</code>. Look at state: <code>terraform state list</code> shows <code>module.blog.docker_container.this</code> — the address is <strong>prefixed by the module</strong>.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init</code> prints <code>Initializing modules...</code> then <code>- blog in modules/webservice</code>. After <code>apply</code>, a <code>blog</code> container runs on port 8090, and <code>terraform output blog_name</code> returns <code>blog</code>. Look at state: <code>terraform state list</code> shows <code>module.blog.docker_container.this</code> — the address is <strong>prefixed by the module</strong>.</p>
 <p><strong>🤔 <code>init</code> after every module change.</strong> If you add/modify a <code>module</code> block, re-run <code>terraform init</code>: Terraform must re-index modules before <code>plan</code>. It reminds you with <code>Module not installed</code>.</p>
 </div>
 
@@ -435,23 +435,33 @@ module &quot;vpc&quot; {
   <span class="step-num" data-lang="en">Step 05</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Isoler <strong>dev</strong> et <strong>prod</strong> avec les <strong>workspaces</strong>, sans dupliquer le code.</p>
 <p><strong>🤔 Le problème.</strong> Tu veux le même code pour deux environnements, mais <strong>deux states séparés</strong> (appliquer prod ne doit pas toucher dev). Sans workspace, tu copierais le dossier. Les <strong>workspaces</strong> te donnent plusieurs states pour <strong>un</strong> code.</p>
-<p>D&#39;abord, rends le code sensible à l&#39;environnement via <code>terraform.workspace</code> :</p>
+<p><strong>D&#39;abord, fais le ménage.</strong> Le step-03 a laissé tourner <code>blog</code>/<code>shop</code>/<code>admin</code> (ports 8081-8083) dans le workspace <code>default</code>. Ils garderaient ces ports occupés et entreraient en collision avec les environnements qu&#39;on s&#39;apprête à créer. Détruis-les :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Isolate <strong>dev</strong> and <strong>prod</strong> with <strong>workspaces</strong>, without duplicating code.</p>
 <p><strong>🤔 The problem.</strong> You want the same code for two environments, but <strong>two separate states</strong> (applying prod must not touch dev). Without workspaces, you&#39;d copy the folder. <strong>Workspaces</strong> give you multiple states for <strong>one</strong> codebase.</p>
-<p>First, make the code environment-aware via <code>terraform.workspace</code>:</p>
+<p><strong>First, clean up.</strong> Step-03 left <code>blog</code>/<code>shop</code>/<code>admin</code> (ports 8081-8083) running in the <code>default</code> workspace. They&#39;d keep those ports busy and collide with the environments we&#39;re about to create. Destroy them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace show          # default
+terraform destroy -auto-approve   # libère les ports du workspace default / frees the default workspace&#39;s ports</code></pre>
+<div data-lang="fr"><p>Ensuite, rends le code sensible à l&#39;environnement via <code>terraform.workspace</code>. On ajoute aussi un <strong>décalage de port par workspace</strong> pour que dev et prod puissent tourner <strong>en même temps</strong> (deux conteneurs ne peuvent pas publier le même port hôte) :</p>
+</div>
+<div data-lang="en"><p>Then make the code environment-aware via <code>terraform.workspace</code>. We also add a <strong>per-workspace port offset</strong> so dev and prod can run <strong>at the same time</strong> (two containers can&#39;t publish the same host port):</p>
 </div>
 <pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>locals {
   # En prod : les 3 services. Ailleurs : seulement le blog.
   # In prod: all 3 services. Elsewhere: only the blog.
   active_services = terraform.workspace == &quot;prod&quot; ? var.services : { blog = 8081 }
+
+  # Décale les ports selon le workspace pour éviter les collisions d&#39;hôte.
+  # Offset ports by workspace to avoid host-port collisions.
+  port_offset = lookup({ dev = 100, prod = 200 }, terraform.workspace, 0)
 }
 
 module &quot;web&quot; {
   source        = &quot;./modules/webservice&quot;
   for_each      = local.active_services   # &lt;- remplace var.services par local.active_services
   name          = &quot;${each.key}-${terraform.workspace}&quot;
-  external_port = each.value
+  external_port = each.value + local.port_offset
 }</code></pre>
 <div data-lang="fr"><p>Puis crée et bascule entre workspaces :</p>
 </div>
@@ -459,16 +469,18 @@ module &quot;web&quot; {
 </div>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace list                 # * default
 terraform workspace new dev              # crée et bascule sur dev / create and switch to dev
-terraform apply -auto-approve            # 1 conteneur : blog-dev
+terraform apply -auto-approve            # 1 conteneur : blog-dev sur 8181 (8081+100)
 terraform state list
 
 terraform workspace new prod             # crée et bascule sur prod / create and switch to prod
-terraform apply -auto-approve            # 3 conteneurs : blog-prod, shop-prod, admin-prod
-terraform workspace list                 #   default / dev / * prod</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform workspace list</code> montre <code>default</code>, <code>dev</code>, <code>prod</code> avec <code>*</code> sur le courant. En <code>dev</code>, un seul conteneur <code>blog-dev</code> ; en <code>prod</code>, trois conteneurs <code>-prod</code>. Les deux environnements <strong>coexistent</strong> sans conflit. Avec un backend local, les states vivent dans <code>terraform.tfstate.d/&lt;workspace&gt;/</code> — jette un œil.</p>
+terraform apply -auto-approve            # 3 conteneurs : blog-prod/shop-prod/admin-prod sur 8281-8283
+terraform workspace list                 #   default / dev / * prod
+
+docker ps --format &#39;{{.Names}}&#39;          # blog-dev ET blog-prod/shop-prod/admin-prod tournent ensemble</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform workspace list</code> montre <code>default</code>, <code>dev</code>, <code>prod</code> avec <code>*</code> sur le courant. En <code>dev</code>, un seul conteneur <code>blog-dev</code> (port 8181) ; en <code>prod</code>, trois conteneurs <code>-prod</code> (ports 8281-8283). Le <code>docker ps</code> final prouve la <strong>coexistence</strong> : <code>blog-dev</code> <strong>et</strong> les trois conteneurs <code>-prod</code> tournent en même temps, sans collision, grâce au décalage de port. Avec un backend local, les states vivent dans <code>terraform.tfstate.d/&lt;workspace&gt;/</code> — jette un œil.</p>
 <p><strong>⚠️ Limite des workspaces.</strong> Ils partagent <strong>le même backend et le même code</strong>. Pour des différences <strong>fortes</strong> entre environnements (comptes cloud distincts, régions, permissions), l&#39;industrie préfère souvent des <strong>dossiers séparés</strong> (<code>envs/dev</code>, <code>envs/prod</code>) réutilisant les mêmes <strong>modules</strong>. Les workspaces brillent pour des variantes <strong>légères</strong>. Sache citer cette nuance — elle tombe à l&#39;examen.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform workspace list</code> shows <code>default</code>, <code>dev</code>, <code>prod</code> with <code>*</code> on the current one. In <code>dev</code>, a single <code>blog-dev</code> container; in <code>prod</code>, three <code>-prod</code> containers. Both environments <strong>coexist</strong> without conflict. With a local backend, states live in <code>terraform.tfstate.d/&lt;workspace&gt;/</code> — take a look.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform workspace list</code> shows <code>default</code>, <code>dev</code>, <code>prod</code> with <code>*</code> on the current one. In <code>dev</code>, a single <code>blog-dev</code> container (port 8181); in <code>prod</code>, three <code>-prod</code> containers (ports 8281-8283). The final <code>docker ps</code> proves <strong>coexistence</strong>: <code>blog-dev</code> <strong>and</strong> the three <code>-prod</code> containers run at the same time, no collision, thanks to the port offset. With a local backend, states live in <code>terraform.tfstate.d/&lt;workspace&gt;/</code> — take a look.</p>
 <p><strong>⚠️ Workspace limitation.</strong> They share <strong>the same backend and the same code</strong>. For <strong>strong</strong> differences between environments (distinct cloud accounts, regions, permissions), the industry often prefers <strong>separate folders</strong> (<code>envs/dev</code>, <code>envs/prod</code>) reusing the same <strong>modules</strong>. Workspaces shine for <strong>light</strong> variants. Know how to state this nuance — it comes up on the exam.</p>
 </div>
 
@@ -479,13 +491,13 @@ terraform workspace list                 #   default / dev / * prod</code></pre>
   <span class="step-num" data-lang="en">Step 06</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Faire lire le state d&#39;une configuration par une <strong>autre</strong> avec <strong><code>terraform_remote_state</code></strong>.</p>
 <p><strong>🤔 Le scénario d&#39;équipe.</strong> L&#39;équipe « plateforme » gère un réseau ; l&#39;équipe « appli » y branche ses conteneurs. Deux configurations, deux states — mais l&#39;appli doit connaître <strong>l&#39;ID du réseau</strong> créé par la plateforme. Elle le <strong>lit</strong> via <code>terraform_remote_state</code>, elle ne le recrée pas.</p>
-<p>Reviens sur <code>default</code> et fabrique la config « plateforme » dans un sous-dossier :</p>
+<p>Place-toi sur <code>prod</code> (les trois services y tournent, on va tous les brancher) et fabrique la config « plateforme » dans un sous-dossier :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Have one configuration read another&#39;s state with <strong><code>terraform_remote_state</code></strong>.</p>
 <p><strong>🤔 The team scenario.</strong> The &quot;platform&quot; team manages a network; the &quot;app&quot; team plugs its containers into it. Two configurations, two states — but the app must know the <strong>network ID</strong> created by the platform. It <strong>reads</strong> it via <code>terraform_remote_state</code>, it doesn&#39;t recreate it.</p>
-<p>Switch back to <code>default</code> and build the &quot;platform&quot; config in a subfolder:</p>
+<p>Switch to <code>prod</code> (its three services are running, we&#39;ll wire them all in) and build the &quot;platform&quot; config in a subfolder:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace select default
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace select prod
 mkdir -p ../tf-network &amp;&amp; cd ../tf-network</code></pre>
 <pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ../tf-network/main.tf  (config &quot;plateforme&quot; / &quot;platform&quot; config)
 terraform {
@@ -534,12 +546,13 @@ output &quot;network_name&quot; {
 <div data-lang="en"><p>And in the <code>module &quot;web&quot;</code> call (root), pass the <strong>remotely read</strong> value:</p>
 </div>
 <pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>  network = data.terraform_remote_state.network.outputs.network_name</code></pre>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init      # enregistre la nouvelle data source &amp; la variable / registers the new data source &amp; variable
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Éditer un module LOCAL ou ajouter une data source ne nécessite PAS d&#39;init.
+# Editing a LOCAL module or adding a data source does NOT require init.
 terraform apply -auto-approve
 docker network inspect app-shared-net --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker network inspect</code> liste tes conteneurs <code>blog</code>/<code>shop</code>/<code>admin</code> <strong>attachés</strong> au réseau <code>app-shared-net</code> que <strong>l&#39;autre</strong> configuration a créé. Tu n&#39;as jamais recréé le réseau ; tu as lu son output via <code>data.terraform_remote_state.network.outputs.network_name</code>. <strong>C&#39;est le contrat entre équipes</strong> : la plateforme <strong>expose</strong> des outputs, l&#39;appli les <strong>consomme</strong>. Règle d&#39;or : n&#39;expose en output que ce que d&#39;autres doivent lire.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker network inspect</code> liste tes conteneurs <code>blog-prod</code>/<code>shop-prod</code>/<code>admin-prod</code> <strong>attachés</strong> au réseau <code>app-shared-net</code> que <strong>l&#39;autre</strong> configuration a créé. <em>(Ajouter un <code>networks_advanced</code> force la recréation de chaque conteneur — Terraform le fait à l&#39;identique, même port, sans collision.)</em> Tu n&#39;as jamais recréé le réseau ; tu as lu son output via <code>data.terraform_remote_state.network.outputs.network_name</code>. <strong>C&#39;est le contrat entre équipes</strong> : la plateforme <strong>expose</strong> des outputs, l&#39;appli les <strong>consomme</strong>. Règle d&#39;or : n&#39;expose en output que ce que d&#39;autres doivent lire.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker network inspect</code> lists your <code>blog</code>/<code>shop</code>/<code>admin</code> containers <strong>attached</strong> to the <code>app-shared-net</code> network that the <strong>other</strong> configuration created. You never recreated the network; you read its output via <code>data.terraform_remote_state.network.outputs.network_name</code>. <strong>This is the contract between teams</strong>: the platform <strong>exposes</strong> outputs, the app <strong>consumes</strong> them. Golden rule: only expose as outputs what others must read.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker network inspect</code> lists your <code>blog-prod</code>/<code>shop-prod</code>/<code>admin-prod</code> containers <strong>attached</strong> to the <code>app-shared-net</code> network that the <strong>other</strong> configuration created. <em>(Adding a <code>networks_advanced</code> block forces each container to be recreated — Terraform does it identically, same port, no collision.)</em> You never recreated the network; you read its output via <code>data.terraform_remote_state.network.outputs.network_name</code>. <strong>This is the contract between teams</strong>: the platform <strong>exposes</strong> outputs, the app <strong>consumes</strong> them. Golden rule: only expose as outputs what others must read.</p>
 </div>
 
 </div>
@@ -597,7 +610,7 @@ terraform apply     # l&#39;exécution tourne à distance, visible dans l&#39;UI
 cd ../tf-modules
 terraform workspace select prod &amp;&amp; terraform destroy -auto-approve
 terraform workspace select dev  &amp;&amp; terraform destroy -auto-approve
-terraform workspace select default &amp;&amp; terraform destroy -auto-approve
+terraform workspace select default &amp;&amp; terraform destroy -auto-approve   # déjà vide depuis le step-05 / already empty since step-05
 
 # Puis le réseau / then the network
 cd ../tf-network &amp;&amp; terraform destroy -auto-approve</code></pre>
