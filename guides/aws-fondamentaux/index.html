@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — les fondamentaux, en 100% local — jiha.tech</title>
+  <title data-lang="en">AWS — the fundamentals, 100% local — jiha.tech</title>
+  <meta name="description" content="Démarre AWS sans compte, sans carte bancaire, sans facture : LocalStack émule AWS dans Docker sur ta machine. Installe aws-cli et awslocal, comprends régions et zones de disponibilité, crée ton premier bucket S3 et ton premier utilisateur IAM, et maîtrise les 4 façons de parler à AWS (console, CLI, API, IaC). La base du track Solutions Architect Associate (SAA-C03)." data-lang="fr">
+  <meta name="description" content="Start AWS with no account, no credit card, no bill: LocalStack emulates AWS in Docker on your machine. Install aws-cli and awslocal, understand regions and availability zones, create your first S3 bucket and first IAM user, and master the 4 ways to talk to AWS (console, CLI, API, IaC). The base of the Solutions Architect Associate (SAA-C03) track." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — les fondamentaux, en 100% local">
+  <meta property="og:description" content="Démarre AWS sans compte, sans carte bancaire, sans facture : LocalStack émule AWS dans Docker sur ta machine. Installe aws-cli et awslocal, comprends régions et zones de disponibilité, crée ton premier bucket S3 et ton premier utilisateur IAM, et maîtrise les 4 façons de parler à AWS (console, CLI, API, IaC). La base du track Solutions Architect Associate (SAA-C03).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/aws-fondamentaux</div>
+    <h1 data-lang="fr">AWS — les fondamentaux, en 100% local</h1>
+    <h1 data-lang="en">AWS — the fundamentals, 100% local</h1>
+    <p class="tagline" data-lang="fr">LocalStack, aws-cli, régions, S3, IAM : le cloud sans compte.</p>
+    <p class="tagline" data-lang="en">LocalStack, aws-cli, regions, S3, IAM: the cloud with no account.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 180 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 180 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Apprendre AWS, d&#39;habitude, ça commence par : crée un compte, mets une carte bancaire, et prie pour ne pas oublier d&#39;éteindre une ressource qui te facturera 200 € en fin de mois. Pas ici. Dans ce track, tu apprends AWS <strong>entièrement sur ta machine</strong>, grâce à <strong>LocalStack</strong> — un émulateur qui fait tourner les services AWS (S3, IAM, EC2, Lambda, DynamoDB…) dans un conteneur Docker. <strong>Aucun compte, aucune carte, aucune facture, aucun risque.</strong> Les mêmes commandes <code>aws</code>, la même API, les mêmes concepts qu&#39;en vrai — mais en local.</p>
+<p>Ce guide pose les fondations : tu lances LocalStack, tu installes l&#39;outil en ligne de commande d&#39;AWS (<code>aws-cli</code>) et son raccourci local (<code>awslocal</code>), tu comprends la géographie d&#39;AWS (<strong>régions</strong> et <strong>zones de disponibilité</strong>), et tu crées tes deux premiers objets : un <strong>bucket S3</strong> (du stockage) et un <strong>utilisateur IAM</strong> (une identité). Tu repars avec le modèle mental des <strong>4 façons de parler à AWS</strong> — console, CLI, API, infrastructure-as-code.</p>
+<p>C&#39;est la première marche du track <strong>AWS Solutions Architect Associate (SAA-C03)</strong>, la certification cloud la plus demandée. Tout le track reste local-first ; un guide final t&#39;expliquera comment <strong>passer en réel</strong> proprement, avec les garde-fous de coût, quand tu seras prêt·e.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu connais Docker (tu sais lancer un conteneur) et tu veux apprendre le cloud AWS sans risque financier.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as jamais lancé de conteneur → fais d&#39;abord <em>Docker fondamentaux</em>, c&#39;est le prérequis dur (LocalStack tourne dans Docker).</li><li>Tu veux <strong>déjà</strong> cliquer dans la vraie console AWS avec ton compte → tu peux, mais ce track t&#39;apprend d&#39;abord les concepts sans facture ; le guide « passer en réel » viendra ensuite.</li></ul>
+</div>
+<div data-lang="en"><p>Learning AWS usually starts with: create an account, put in a credit card, and pray you don&#39;t forget to shut down a resource that bills you €200 at month&#39;s end. Not here. In this track you learn AWS <strong>entirely on your machine</strong>, thanks to <strong>LocalStack</strong> — an emulator that runs AWS services (S3, IAM, EC2, Lambda, DynamoDB…) inside a Docker container. <strong>No account, no card, no bill, no risk.</strong> The same <code>aws</code> commands, the same API, the same concepts as the real thing — but local.</p>
+<p>This guide lays the foundations: you launch LocalStack, install AWS&#39;s command-line tool (<code>aws-cli</code>) and its local shortcut (<code>awslocal</code>), understand AWS geography (<strong>regions</strong> and <strong>availability zones</strong>), and create your first two objects: an <strong>S3 bucket</strong> (storage) and an <strong>IAM user</strong> (an identity). You leave with the mental model of the <strong>4 ways to talk to AWS</strong> — console, CLI, API, infrastructure-as-code.</p>
+<p>It&#39;s the first step of the <strong>AWS Solutions Architect Associate (SAA-C03)</strong> track, the most in-demand cloud certification. The whole track stays local-first; a final guide will show you how to <strong>go real</strong> cleanly, with cost guardrails, when you&#39;re ready.</p>
+<p><strong>Who it&#39;s for:</strong> you know Docker (you can launch a container) and you want to learn AWS cloud without financial risk.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;ve never launched a container → do <em>Docker fundamentals</em> first, it&#39;s the hard prerequisite (LocalStack runs in Docker).</li><li>You want to <strong>already</strong> click in the real AWS console with your account → you can, but this track teaches the concepts bill-free first; the &quot;go real&quot; guide comes later.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Lancer <strong>LocalStack</strong> (version communautaire, sans jeton) dans Docker et vérifier sa santé.</li><li>Installer et configurer <strong><code>aws-cli</code></strong> + <strong><code>awslocal</code></strong> pour parler à LocalStack.</li><li>Expliquer <strong>régions</strong> et <strong>zones de disponibilité</strong> (AZ), et les lister.</li><li>Créer, remplir et lister un <strong>bucket S3</strong>.</li><li>Créer un <strong>utilisateur IAM</strong> et vérifier ton identité avec <strong>STS</strong>.</li><li>Nommer les <strong>4 façons de parler à AWS</strong> (console, CLI, API/SDK, IaC) et savoir quand utiliser laquelle.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Launch <strong>LocalStack</strong> (community edition, tokenless) in Docker and check its health.</li><li>Install and configure <strong><code>aws-cli</code></strong> + <strong><code>awslocal</code></strong> to talk to LocalStack.</li><li>Explain <strong>regions</strong> and <strong>availability zones</strong> (AZs), and list them.</li><li>Create, fill and list an <strong>S3 bucket</strong>.</li><li>Create an <strong>IAM user</strong> and check your identity with <strong>STS</strong>.</li><li>Name the <strong>4 ways to talk to AWS</strong> (console, CLI, API/SDK, IaC) and know when to use each.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Docker</strong> installé et fonctionnel (<code>docker run hello-world</code>). LocalStack tourne dedans.</li><li><strong>Python 3</strong> + <code>pip</code> (pour installer <code>aws-cli</code> et <code>awslocal</code>).</li><li>~4 Go de RAM libres et ~2 Go de disque (l&#39;image LocalStack pèse ~1 Go).</li><li>Aucun compte AWS, aucune carte bancaire. C&#39;est tout l&#39;intérêt.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Docker</strong> installed and working (<code>docker run hello-world</code>). LocalStack runs inside it.</li><li><strong>Python 3</strong> + <code>pip</code> (to install <code>aws-cli</code> and <code>awslocal</code>).</li><li>~4 GB free RAM and ~2 GB disk (the LocalStack image is ~1 GB).</li><li>No AWS account, no credit card. That&#39;s the whole point.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le cloud vs l&#39;on-premise.</strong> « On-premise », c&#39;est tes propres serveurs, chez toi ou en datacenter : tu achètes, tu installes, tu maintiens. Le <strong>cloud</strong> (AWS), c&#39;est louer à la demande la puissance d&#39;Amazon : tu crées un serveur en 30 secondes par une commande, tu paies à l&#39;usage, tu le détruis quand tu veux. Tu ne gères plus le matériel, seulement ta configuration.</p>
+<p><strong>Régions et zones de disponibilité (AZ).</strong> AWS est découpé géographiquement. Une <strong>région</strong> est une zone du monde (<code>us-east-1</code> en Virginie, <code>eu-west-3</code> à Paris). Chaque région contient plusieurs <strong>zones de disponibilité</strong> (AZ) — des datacenters isolés mais proches (<code>us-east-1a</code>, <code>us-east-1b</code>…). Répartir une application sur <strong>plusieurs AZ</strong> la rend résistante à la panne d&#39;un datacenter : c&#39;est un pilier de l&#39;examen SAA (haute disponibilité).</p>
+<p><strong>LocalStack.</strong> Un émulateur qui reproduit les <strong>API</strong> d&#39;AWS localement, dans un conteneur Docker écoutant sur le port <strong>4566</strong>. Tu lui envoies exactement les mêmes requêtes qu&#39;à AWS ; il répond pareil. Idéal pour apprendre et tester sans compte ni coût. ⚠️ Il <strong>émule</strong> : il ne fait pas <em>tourner</em> de vraies machines EC2, mais il gère leur cycle de vie API (créer, décrire, taguer, supprimer) — parfait pour apprendre l&#39;architecture et les commandes.</p>
+<p><strong><code>aws-cli</code> et <code>awslocal</code>.</strong> <code>aws</code> est l&#39;outil officiel en ligne de commande d&#39;AWS. Par défaut il parle au vrai AWS ; on lui dit de parler à LocalStack en ajoutant <code>--endpoint-url=http://localhost:4566</code>. Comme c&#39;est fastidieux, <strong><code>awslocal</code></strong> est un raccourci qui ajoute cette option automatiquement. <code>awslocal s3 ls</code> = <code>aws --endpoint-url=http://localhost:4566 s3 ls</code>.</p>
+<p><strong>IAM et STS.</strong> <strong>IAM</strong> (Identity and Access Management) gère <strong>qui</strong> peut faire <strong>quoi</strong> : utilisateurs, groupes, rôles, permissions. <strong>STS</strong> (Security Token Service) répond à « qui suis-je, là, maintenant ? » via <code>get-caller-identity</code>. Ce sont les fondations de la sécurité AWS (tout un guide y est dédié ensuite).</p>
+<p><strong>Les 4 façons de parler à AWS.</strong> (1) La <strong>console</strong> web (cliquer) : pratique pour explorer. (2) La <strong>CLI</strong> (<code>aws</code>/<code>awslocal</code>) : scriptable, reproductible. (3) L&#39;<strong>API/SDK</strong> : depuis ton code (Python boto3, etc.). (4) L&#39;<strong>IaC</strong> (Terraform, CloudFormation) : décrire l&#39;infra en fichiers versionnés. En pro, on vit surtout en CLI et IaC.</p>
+</div>
+<div data-lang="en"><p><strong>Cloud vs on-premise.</strong> &quot;On-premise&quot; is your own servers, at home or in a datacenter: you buy, install, maintain. The <strong>cloud</strong> (AWS) is renting Amazon&#39;s power on demand: you create a server in 30 seconds with a command, pay per use, destroy it whenever. You no longer manage hardware, only your configuration.</p>
+<p><strong>Regions and availability zones (AZ).</strong> AWS is split geographically. A <strong>region</strong> is a world area (<code>us-east-1</code> in Virginia, <code>eu-west-3</code> in Paris). Each region contains several <strong>availability zones</strong> (AZs) — isolated but nearby datacenters (<code>us-east-1a</code>, <code>us-east-1b</code>…). Spreading an application across <strong>several AZs</strong> makes it resilient to a datacenter failure: a pillar of the SAA exam (high availability).</p>
+<p><strong>LocalStack.</strong> An emulator reproducing AWS&#39;s <strong>APIs</strong> locally, in a Docker container listening on port <strong>4566</strong>. You send it exactly the same requests as to AWS; it answers the same. Ideal to learn and test with no account or cost. ⚠️ It <strong>emulates</strong>: it doesn&#39;t <em>run</em> real EC2 machines, but it manages their API lifecycle (create, describe, tag, delete) — perfect to learn architecture and commands.</p>
+<p><strong><code>aws-cli</code> and <code>awslocal</code>.</strong> <code>aws</code> is AWS&#39;s official command-line tool. By default it talks to real AWS; we tell it to talk to LocalStack by adding <code>--endpoint-url=http://localhost:4566</code>. Since that&#39;s tedious, <strong><code>awslocal</code></strong> is a shortcut that adds that option automatically. <code>awslocal s3 ls</code> = <code>aws --endpoint-url=http://localhost:4566 s3 ls</code>.</p>
+<p><strong>IAM and STS.</strong> <strong>IAM</strong> (Identity and Access Management) manages <strong>who</strong> can do <strong>what</strong>: users, groups, roles, permissions. <strong>STS</strong> (Security Token Service) answers &quot;who am I, right now?&quot; via <code>get-caller-identity</code>. These are the foundations of AWS security (a whole guide is dedicated to them next).</p>
+<p><strong>The 4 ways to talk to AWS.</strong> (1) The web <strong>console</strong> (clicking): handy to explore. (2) The <strong>CLI</strong> (<code>aws</code>/<code>awslocal</code>): scriptable, reproducible. (3) The <strong>API/SDK</strong>: from your code (Python boto3, etc.). (4) <strong>IaC</strong> (Terraform, CloudFormation): describe infra in versioned files. In the field, you mostly live in CLI and IaC.</p>
+</div>
+
+<figure class="schema" id="figure-aws-localstack-setup">
+  <p>[schema "aws-localstack-setup" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le montage local-first : ta machine → aws-cli/awslocal → LocalStack (conteneur Docker sur le port 4566) qui émule les services AWS. Les mêmes commandes qu&#39;en réel, sans compte ni facture.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The local-first setup: your machine → aws-cli/awslocal → LocalStack (Docker container on port 4566) emulating AWS services. The same commands as the real thing, no account or bill.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer <strong>LocalStack</strong> dans Docker et vérifier qu&#39;il répond.</p>
+<p><strong>🤔 Pourquoi une version épinglée ?</strong> Le tag <code>latest</code> de LocalStack exige désormais un <strong>jeton de licence</strong> (édition Pro) et refuse de démarrer sans (erreur « License activation failed »). On épingle une version <strong>communautaire</strong> (<code>3.8.1</code>) qui démarre <strong>sans jeton, sans compte</strong> — fidèle à notre promesse local-first. Le port <strong>4566</strong> est le point d&#39;entrée unique de tous les services AWS émulés.</p>
+<p>Lance le conteneur :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch <strong>LocalStack</strong> in Docker and check it responds.</p>
+<p><strong>🤔 Why a pinned version?</strong> LocalStack&#39;s <code>latest</code> tag now requires a <strong>license token</strong> (Pro edition) and refuses to start without one (&quot;License activation failed&quot; error). We pin a <strong>community</strong> version (<code>3.8.1</code>) that starts <strong>tokenless, account-free</strong> — true to our local-first promise. Port <strong>4566</strong> is the single entry point for all emulated AWS services.</p>
+<p>Launch the container:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name localstack -p 4566:4566 localstack/localstack:3.8.1
+
+# Attendre qu&#39;il soit prêt (statut &quot;healthy&quot;) / wait until &quot;healthy&quot;
+docker ps --filter name=localstack --format &quot;{{.Names}} {{.Status}}&quot;
+
+# Vérifier la santé des services / check service health
+curl -s http://localhost:4566/_localstack/health | head -c 300</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker ps</code> montre <code>localstack</code> en <code>Up ... (healthy)</code> au bout de ~15-30 s. La requête <code>health</code> renvoie un JSON listant des services avec leur état, par exemple <code>&quot;s3&quot;: &quot;available&quot;</code> (l&#39;état passe à <code>&quot;running&quot;</code> une fois le service utilisé), <code>&quot;iam&quot;: &quot;available&quot;</code>. Si tu vois ce JSON, LocalStack est prêt à recevoir tes commandes AWS. (Si le conteneur <code>Exited (55)</code> avec « License activation failed », c&#39;est que tu as utilisé <code>:latest</code> au lieu de <code>:3.8.1</code> — supprime-le et relance avec la version épinglée.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker ps</code> shows <code>localstack</code> as <code>Up ... (healthy)</code> after ~15-30 s. The <code>health</code> request returns a JSON listing services with their state, e.g. <code>&quot;s3&quot;: &quot;available&quot;</code> (the state flips to <code>&quot;running&quot;</code> once you&#39;ve used the service), <code>&quot;iam&quot;: &quot;available&quot;</code>. If you see this JSON, LocalStack is ready for your AWS commands. (If the container <code>Exited (55)</code> with &quot;License activation failed&quot;, you used <code>:latest</code> instead of <code>:3.8.1</code> — remove it and relaunch with the pinned version.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer <strong><code>aws-cli</code></strong> et <strong><code>awslocal</code></strong>, et les configurer pour parler à LocalStack.</p>
+<p><strong>🤔 Des identifiants « bidon » ?</strong> LocalStack ne vérifie pas les identifiants — il accepte n&#39;importe quelle clé. On met donc <code>test</code>/<code>test</code>, une convention universelle pour LocalStack. En réel, ce seraient de vraies clés IAM (le guide sécurité y reviendra). La <strong>région</strong> par défaut sera <code>us-east-1</code>, la région historique d&#39;AWS.</p>
+<p>Installe et configure :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install <strong><code>aws-cli</code></strong> and <strong><code>awslocal</code></strong>, and configure them to talk to LocalStack.</p>
+<p><strong>🤔 &quot;Dummy&quot; credentials?</strong> LocalStack doesn&#39;t verify credentials — it accepts any key. So we use <code>test</code>/<code>test</code>, a universal LocalStack convention. In real life these would be real IAM keys (the security guide covers that). The default <strong>region</strong> will be <code>us-east-1</code>, AWS&#39;s historic region.</p>
+<p>Install and configure:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># aws-cli (l&#39;outil officiel) + awslocal (le raccourci LocalStack) / official tool + LocalStack shortcut
+pip install awscli awscli-local
+
+# Configurer des identifiants bidon + la région / configure dummy creds + region
+aws configure set aws_access_key_id test
+aws configure set aws_secret_access_key test
+aws configure set region us-east-1
+
+# Vérifier : awslocal ajoute --endpoint-url=http://localhost:4566 automatiquement
+awslocal sts get-caller-identity</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>awslocal sts get-caller-identity</code> renvoie un JSON avec un <code>Account</code> (souvent <code>000000000000</code> en LocalStack), un <code>UserId</code> et un <code>Arn</code>. Ça prouve que la chaîne complète marche : <code>awslocal</code> → LocalStack → réponse. Si tu obtiens « Could not connect to the endpoint URL », LocalStack n&#39;est pas prêt (reviens à l&#39;étape 1). Astuce : <code>awslocal</code> est juste <code>aws --endpoint-url=http://localhost:4566</code> — si <code>awslocal</code> manque, tu peux toujours taper la commande longue.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>awslocal sts get-caller-identity</code> returns a JSON with an <code>Account</code> (often <code>000000000000</code> in LocalStack), a <code>UserId</code> and an <code>Arn</code>. It proves the full chain works: <code>awslocal</code> → LocalStack → response. If you get &quot;Could not connect to the endpoint URL&quot;, LocalStack isn&#39;t ready (go back to step 1). Tip: <code>awslocal</code> is just <code>aws --endpoint-url=http://localhost:4566</code> — if <code>awslocal</code> is missing, you can always type the long command.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre <strong>régions</strong> et <strong>zones de disponibilité</strong>, et les lister.</p>
+<p><strong>🤔 Pourquoi c&#39;est central au SAA.</strong> L&#39;examen Solutions Architect tourne autour de la <strong>résilience</strong> : répartir sur plusieurs AZ pour survivre à la panne d&#39;un datacenter. Comprendre que <code>us-east-1</code> (la région) contient <code>us-east-1a</code>, <code>us-east-1b</code>… (les AZ) est le premier réflexe d&#39;architecte.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>regions</strong> and <strong>availability zones</strong>, and list them.</p>
+<p><strong>🤔 Why it&#39;s central to SAA.</strong> The Solutions Architect exam revolves around <strong>resilience</strong>: spreading across several AZs to survive a datacenter failure. Understanding that <code>us-east-1</code> (the region) contains <code>us-east-1a</code>, <code>us-east-1b</code>… (the AZs) is an architect&#39;s first reflex.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Lister les zones de disponibilité de la région courante / list AZs of the current region
+awslocal ec2 describe-availability-zones --query &#39;AvailabilityZones[].ZoneName&#39; --output text
+
+# La région vient de ta config ; on peut la surcharger par commande / region from config; override per command
+awslocal ec2 describe-availability-zones --region us-east-1 --output table</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la première commande liste plusieurs AZ de <code>us-east-1</code> : <code>us-east-1a us-east-1b us-east-1c ...</code>. Ce sont les datacenters isolés de la région. Retiens la hiérarchie : <strong>AWS</strong> → <strong>régions</strong> (géographie) → <strong>AZ</strong> (datacenters d&#39;une région) → tes ressources. Une architecture « multi-AZ » place des copies dans <strong>au moins deux</strong> AZ. (LocalStack simule la topologie de <code>us-east-1</code> ; en réel chaque région a ses propres AZ, souvent 3.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first command lists several AZs of <code>us-east-1</code>: <code>us-east-1a us-east-1b us-east-1c ...</code>. These are the region&#39;s isolated datacenters. Remember the hierarchy: <strong>AWS</strong> → <strong>regions</strong> (geography) → <strong>AZs</strong> (a region&#39;s datacenters) → your resources. A &quot;multi-AZ&quot; architecture places copies in <strong>at least two</strong> AZs. (LocalStack simulates <code>us-east-1</code>&#39;s topology; in reality each region has its own AZs, often 3.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton <strong>premier bucket S3</strong>, y déposer un fichier, le lister — le « hello world » d&#39;AWS.</p>
+<p><strong>🤔 C&#39;est quoi S3 ?</strong> Le stockage d&#39;objets d&#39;AWS : tu ranges des <strong>fichiers</strong> (« objets ») dans des <strong>buckets</strong> (des conteneurs au nom <strong>unique mondialement</strong>). C&#39;est le service le plus utilisé d&#39;AWS — sauvegardes, sites statiques, data lakes. Un guide entier lui est consacré ensuite ; ici on fait le tour du propriétaire.</p>
+<p>Crée et remplis un bucket :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your <strong>first S3 bucket</strong>, drop a file in it, list it — AWS&#39;s &quot;hello world&quot;.</p>
+<p><strong>🤔 What is S3?</strong> AWS&#39;s object storage: you store <strong>files</strong> (&quot;objects&quot;) in <strong>buckets</strong> (containers with a <strong>globally unique</strong> name). It&#39;s AWS&#39;s most-used service — backups, static sites, data lakes. A whole guide is dedicated to it next; here we take the tour.</p>
+<p>Create and fill a bucket:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un bucket (mb = make bucket) / create a bucket
+awslocal s3 mb s3://mon-premier-bucket
+
+# Y copier un fichier / copy a file into it
+echo &quot;Bonjour AWS depuis ma machine&quot; &gt; bonjour.txt
+awslocal s3 cp bonjour.txt s3://mon-premier-bucket/bonjour.txt
+
+# Lister le contenu / list the content
+awslocal s3 ls s3://mon-premier-bucket/
+
+# Lister tous les buckets / list all buckets
+awslocal s3 ls</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 mb</code> répond <code>make_bucket: mon-premier-bucket</code>. <code>s3 cp</code> affiche une ligne <code>upload: ... to s3://...</code>. <code>s3 ls s3://mon-premier-bucket/</code> liste <code>bonjour.txt</code> avec sa taille et sa date. Tu viens de stocker un objet dans le cloud (émulé) — la même commande créerait un vrai bucket en réel. ⚠️ En réel, un nom de bucket est <strong>unique dans le monde entier</strong> : <code>mon-premier-bucket</code> serait sûrement déjà pris (on préfixe souvent avec un identifiant unique).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 mb</code> answers <code>make_bucket: mon-premier-bucket</code>. <code>s3 cp</code> prints an <code>upload: ... to s3://...</code> line. <code>s3 ls s3://mon-premier-bucket/</code> lists <code>bonjour.txt</code> with its size and date. You just stored an object in the (emulated) cloud — the same command would create a real bucket for real. ⚠️ In reality, a bucket name is <strong>globally unique</strong>: <code>mon-premier-bucket</code> would surely be taken (people often prefix with a unique identifier).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton <strong>premier utilisateur IAM</strong> et comprendre les identités AWS.</p>
+<p><strong>🤔 Root vs IAM.</strong> Quand tu ouvres un compte AWS, tu obtiens l&#39;utilisateur <strong>root</strong> — tout-puissant, à <strong>ne quasiment jamais</strong> utiliser. La bonne pratique : créer des <strong>utilisateurs IAM</strong> avec juste les permissions nécessaires. Ici tu crées un utilisateur <code>dev</code> et tu lui attaches une permission gérée par AWS (lecture seule sur S3).</p>
+<p>Crée l&#39;utilisateur et attache une politique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your <strong>first IAM user</strong> and understand AWS identities.</p>
+<p><strong>🤔 Root vs IAM.</strong> When you open an AWS account, you get the <strong>root</strong> user — all-powerful, to be used <strong>almost never</strong>. Best practice: create <strong>IAM users</strong> with just the needed permissions. Here you create a <code>dev</code> user and attach an AWS-managed permission (read-only on S3).</p>
+<p>Create the user and attach a policy:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un utilisateur IAM / create an IAM user
+awslocal iam create-user --user-name dev
+
+# Lui donner un accès en LECTURE SEULE à S3 (politique gérée par AWS) / grant S3 read-only (AWS-managed policy)
+awslocal iam attach-user-policy --user-name dev \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# Vérifier ce qui lui est attaché / check what&#39;s attached
+awslocal iam list-attached-user-policies --user-name dev</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>create-user</code> renvoie un JSON avec le <code>UserName</code> (<code>dev</code>) et un <code>Arn</code> de la forme <code>arn:aws:iam::000000000000:user/dev</code>. <code>list-attached-user-policies</code> montre <code>AmazonS3ReadOnlyAccess</code>. Cet <strong>ARN</strong> (Amazon Resource Name) est l&#39;identifiant unique de chaque ressource AWS — tu en verras partout. Tu viens de créer une identité et de lui donner une permission précise : c&#39;est le cœur de la sécurité AWS, approfondi au guide suivant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>create-user</code> returns a JSON with the <code>UserName</code> (<code>dev</code>) and an <code>Arn</code> like <code>arn:aws:iam::000000000000:user/dev</code>. <code>list-attached-user-policies</code> shows <code>AmazonS3ReadOnlyAccess</code>. This <strong>ARN</strong> (Amazon Resource Name) is the unique identifier of every AWS resource — you&#39;ll see them everywhere. You just created an identity and gave it a precise permission: the heart of AWS security, deepened in the next guide.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Explorer une ressource par la <strong>CLI</strong> avec des <strong>requêtes</strong> (<code>--query</code>) et différents <strong>formats de sortie</strong> — la boîte à outils du quotidien.</p>
+<p><strong>🤔 Pourquoi <code>--query</code> et <code>--output</code>.</strong> Les réponses AWS sont de gros JSON. <code>--query</code> (langage <strong>JMESPath</strong>) extrait juste ce qui t&#39;intéresse ; <code>--output</code> choisit le format (<code>json</code>, <code>table</code>, <code>text</code>). Maîtriser ça, c&#39;est diviser par dix le temps passé à lire des sorties.</p>
+<p>Joue avec les formats :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Explore a resource via the <strong>CLI</strong> with <strong>queries</strong> (<code>--query</code>) and different <strong>output formats</strong> — the daily toolbox.</p>
+<p><strong>🤔 Why <code>--query</code> and <code>--output</code>.</strong> AWS responses are big JSON. <code>--query</code> (the <strong>JMESPath</strong> language) extracts just what you want; <code>--output</code> chooses the format (<code>json</code>, <code>table</code>, <code>text</code>). Mastering this cuts the time spent reading outputs tenfold.</p>
+<p>Play with the formats:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Tout le JSON (verbeux) / all the JSON (verbose)
+awslocal iam list-users
+
+# Juste les noms d&#39;utilisateurs, en texte / just the usernames, as text
+awslocal iam list-users --query &#39;Users[].UserName&#39; --output text
+
+# Un tableau lisible / a readable table
+awslocal iam list-users --query &#39;Users[].[UserName,Arn]&#39; --output table
+
+# Filtrer : l&#39;utilisateur dont le nom est &quot;dev&quot; / filter: the user named &quot;dev&quot;
+awslocal iam list-users --query &quot;Users[?UserName==&#39;dev&#39;].Arn&quot; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la commande <code>--query &#39;Users[].UserName&#39;</code> renvoie <code>dev</code> (ta liste d&#39;utilisateurs). Le <code>--output table</code> dessine un tableau ASCII avec nom et ARN. La requête filtrée <code>Users[?UserName==&#39;dev&#39;]</code> ne renvoie que l&#39;ARN de <code>dev</code>. Ces trois options (<code>--query</code>, <code>--output</code>, filtres JMESPath) reviennent dans <strong>chaque</strong> commande AWS — c&#39;est un investissement qui paie sur tout le track.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>--query &#39;Users[].UserName&#39;</code> command returns <code>dev</code> (your user list). <code>--output table</code> draws an ASCII table with name and ARN. The filtered query <code>Users[?UserName==&#39;dev&#39;]</code> returns only <code>dev</code>&#39;s ARN. These three options (<code>--query</code>, <code>--output</code>, JMESPath filters) come back in <strong>every</strong> AWS command — an investment that pays off across the whole track.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer le modèle mental des <strong>4 façons de parler à AWS</strong>, et ranger ton atelier.</p>
+<p><strong>🤔 Pourquoi ça compte.</strong> Un architecte choisit le bon outil : la <strong>console</strong> pour explorer/déboguer, la <strong>CLI</strong> pour les actions ponctuelles et les scripts, l&#39;<strong>API/SDK</strong> depuis une application, l&#39;<strong>IaC</strong> pour tout ce qui doit être reproductible et versionné (la prod). Ce track te fait vivre surtout <strong>CLI</strong> (ce guide) et <strong>IaC</strong> (Terraform, plus loin) — les deux compétences pro.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the mental model of the <strong>4 ways to talk to AWS</strong>, and tidy your workshop.</p>
+<p><strong>🤔 Why it matters.</strong> An architect picks the right tool: the <strong>console</strong> to explore/debug, the <strong>CLI</strong> for one-off actions and scripts, the <strong>API/SDK</strong> from an application, <strong>IaC</strong> for everything that must be reproducible and versioned (production). This track has you live mostly in <strong>CLI</strong> (this guide) and <strong>IaC</strong> (Terraform, later) — the two pro skills.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 2) CLI — ce que tu viens de faire / what you just did
+awslocal s3 ls
+
+# 3) API/SDK — le même appel depuis Python (aperçu) / the same call from Python (preview)
+#    python3 -c &quot;import boto3; print(boto3.client(&#39;s3&#39;, endpoint_url=&#39;http://localhost:4566&#39;).list_buckets())&quot;
+
+# Ranger : vider puis supprimer le bucket, détacher puis supprimer l&#39;utilisateur
+# Tidy: empty then delete the bucket, detach then delete the user
+awslocal s3 rb s3://mon-premier-bucket --force
+awslocal iam detach-user-policy --user-name dev --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+awslocal iam delete-user --user-name dev
+
+# Optionnel : arrêter LocalStack (l&#39;état est éphémère par défaut) / optional: stop LocalStack (state is ephemeral by default)
+# docker stop localstack &amp;&amp; docker rm localstack</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>s3 rb --force</code> vide et supprime le bucket (plus rien dans <code>awslocal s3 ls</code>). <code>delete-user</code> retire <code>dev</code> (après avoir <strong>détaché</strong> sa politique — on ne peut pas supprimer un utilisateur qui a des politiques attachées). Tu as bouclé un cycle complet : créer → utiliser → nettoyer. ⚠️ Réflexe <strong>crucial</strong> en réel : <strong>toujours nettoyer</strong> ce que tu crées (une ressource oubliée = une facture). En LocalStack, l&#39;état est éphémère (perdu à l&#39;arrêt du conteneur) — mais prends l&#39;habitude tout de suite.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>s3 rb --force</code> empties and deletes the bucket (nothing left in <code>awslocal s3 ls</code>). <code>delete-user</code> removes <code>dev</code> (after <strong>detaching</strong> its policy — you can&#39;t delete a user with attached policies). You closed a full cycle: create → use → clean up. ⚠️ <strong>Crucial</strong> real-world reflex: <strong>always clean up</strong> what you create (a forgotten resource = a bill). In LocalStack, state is ephemeral (lost when the container stops) — but build the habit right now.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Utiliser <code>:latest</code> de LocalStack.</strong> Le tag <code>latest</code> exige un jeton de licence et sort en <code>Exited (55)</code>. Épingle une version communautaire (<code>localstack/localstack:3.8.1</code>) qui démarre sans compte.</p>
+<p><strong>2. Oublier <code>awslocal</code> et taper <code>aws</code>.</strong> <code>aws</code> tout court parle au <strong>vrai</strong> AWS (et échouera faute d&#39;identifiants, ou pire, agira sur un vrai compte). Pour LocalStack, c&#39;est <strong><code>awslocal</code></strong> (ou <code>aws --endpoint-url=http://localhost:4566</code>).</p>
+<p><strong>3. Croire que LocalStack fait tourner de vraies machines.</strong> Il <strong>émule les API</strong>. Un <code>run-instances</code> EC2 « crée » une instance côté API (tu peux la décrire, la taguer, la supprimer) mais aucun OS ne démarre réellement. C&#39;est parfait pour apprendre l&#39;architecture et les commandes, pas pour héberger un vrai service.</p>
+<p><strong>4. Supprimer un utilisateur IAM sans détacher ses politiques.</strong> <code>delete-user</code> échoue si des politiques (ou clés, groupes) sont attachées. Détache d&#39;abord, supprime ensuite. Même logique en réel.</p>
+<p><strong>5. Nom de bucket S3 non unique (en réel).</strong> En réel, <code>mon-premier-bucket</code> est probablement pris — les noms sont <strong>mondiaux</strong>. Préfixe avec quelque chose d&#39;unique. En LocalStack, pas de collision, mais prends déjà l&#39;habitude.</p>
+<p><strong>6. Confondre région et AZ.</strong> La <strong>région</strong> est géographique (<code>eu-west-3</code> = Paris) ; l&#39;<strong>AZ</strong> est un datacenter dans cette région (<code>eu-west-3a</code>). Le SAA teste sans cesse le multi-AZ : ne les confonds pas.</p>
+<p><strong>7. Oublier de nettoyer.</strong> En LocalStack c&#39;est gratuit, mais en réel une ressource oubliée facture. Prends le réflexe <code>create → use → destroy</code> dès maintenant.</p>
+</div>
+<div data-lang="en"><p><strong>1. Using LocalStack&#39;s <code>:latest</code>.</strong> The <code>latest</code> tag requires a license token and exits with <code>Exited (55)</code>. Pin a community version (<code>localstack/localstack:3.8.1</code>) that starts account-free.</p>
+<p><strong>2. Forgetting <code>awslocal</code> and typing <code>aws</code>.</strong> Plain <code>aws</code> talks to <strong>real</strong> AWS (and will fail for lack of credentials, or worse, act on a real account). For LocalStack it&#39;s <strong><code>awslocal</code></strong> (or <code>aws --endpoint-url=http://localhost:4566</code>).</p>
+<p><strong>3. Thinking LocalStack runs real machines.</strong> It <strong>emulates the APIs</strong>. An EC2 <code>run-instances</code> &quot;creates&quot; an instance API-side (you can describe, tag, delete it) but no OS actually boots. Perfect to learn architecture and commands, not to host a real service.</p>
+<p><strong>4. Deleting an IAM user without detaching its policies.</strong> <code>delete-user</code> fails if policies (or keys, groups) are attached. Detach first, delete after. Same logic in real life.</p>
+<p><strong>5. Non-unique S3 bucket name (in reality).</strong> In reality, <code>mon-premier-bucket</code> is probably taken — names are <strong>global</strong>. Prefix with something unique. In LocalStack, no collision, but build the habit already.</p>
+<p><strong>6. Confusing region and AZ.</strong> The <strong>region</strong> is geographic (<code>eu-west-3</code> = Paris); the <strong>AZ</strong> is a datacenter within it (<code>eu-west-3a</code>). SAA tests multi-AZ constantly: don&#39;t confuse them.</p>
+<p><strong>7. Forgetting to clean up.</strong> In LocalStack it&#39;s free, but in reality a forgotten resource bills. Build the <code>create → use → destroy</code> reflex now.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>LocalStack tourne (<code>healthy</code>) et <code>health</code> liste <code>s3</code>/<code>iam</code> disponibles.</li><li><code>awslocal sts get-caller-identity</code> renvoie ton identité.</li><li>Tu expliques région vs AZ et tu listes les AZ de <code>us-east-1</code>.</li><li>Tu crées un bucket S3, y déposes un fichier, le listes.</li><li>Tu crées un utilisateur IAM et lui attaches une politique gérée.</li><li>Tu extrais une valeur précise avec <code>--query</code> (JMESPath).</li><li>Tu nommes les 4 façons de parler à AWS et tu nettoies tes ressources.</li></ul>
+<p>Sept cases = ton labo AWS local tourne, tu tiens les bases. La suite : la sécurité IAM en profondeur.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>LocalStack runs (<code>healthy</code>) and <code>health</code> lists <code>s3</code>/<code>iam</code> available.</li><li><code>awslocal sts get-caller-identity</code> returns your identity.</li><li>You explain region vs AZ and list <code>us-east-1</code>&#39;s AZs.</li><li>You create an S3 bucket, drop a file, list it.</li><li>You create an IAM user and attach a managed policy.</li><li>You extract a precise value with <code>--query</code> (JMESPath).</li><li>You name the 4 ways to talk to AWS and clean up your resources.</li></ul>
+<p>Seven boxes = your local AWS lab runs, you hold the basics. Next up: IAM security in depth.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track AWS → SAA-C03 :</p>
+<ol><li><strong>AWS — IAM &amp; sécurité</strong> : utilisateurs, groupes, <strong>rôles</strong>, politiques JSON (moindre privilège), évaluation des permissions, et le modèle de responsabilité partagée. Le socle de sécurité de l&#39;examen.</li><li>Plus loin : S3 en profondeur, réseau VPC, compute (EC2/Lambda), découplage (SQS/SNS/DynamoDB), le <strong>projet d&#39;entreprise</strong> serverless, et enfin <strong>passer en réel</strong> proprement.</li></ol>
+</div>
+<div data-lang="en"><p>The AWS → SAA-C03 track continues:</p>
+<ol><li><strong>AWS — IAM &amp; security</strong>: users, groups, <strong>roles</strong>, JSON policies (least privilege), permission evaluation, and the shared responsibility model. The exam&#39;s security foundation.</li><li>Further along: S3 in depth, VPC networking, compute (EC2/Lambda), decoupling (SQS/SNS/DynamoDB), the serverless <strong>enterprise project</strong>, and finally <strong>going real</strong> cleanly.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-iam-securite/">
+    <span class="num">45</span>
+    <span class="title-line" data-lang="fr">AWS — IAM &amp; sécurité</span>
+    <span class="title-line" data-lang="en">AWS — IAM &amp; security</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire AWS local.</p>
+</div>
+<div data-lang="en"><p>AWS local cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># LocalStack
+docker run -d --name localstack -p 4566:4566 localstack/localstack:3.8.1
+curl -s http://localhost:4566/_localstack/health        # santé des services / service health
+docker stop localstack &amp;&amp; docker rm localstack          # arrêter (état éphémère) / stop (ephemeral state)
+
+# Config aws-cli (identifiants bidon pour LocalStack) / dummy creds for LocalStack
+aws configure set aws_access_key_id test
+aws configure set aws_secret_access_key test
+aws configure set region us-east-1
+
+# awslocal = aws --endpoint-url=http://localhost:4566
+awslocal sts get-caller-identity                        # qui suis-je / who am I
+awslocal ec2 describe-availability-zones --output table # les AZ / the AZs
+
+# S3
+awslocal s3 mb s3://bucket ; awslocal s3 cp f s3://bucket/ ; awslocal s3 ls s3://bucket/
+awslocal s3 rb s3://bucket --force                      # vider + supprimer / empty + delete
+
+# IAM
+awslocal iam create-user --user-name dev
+awslocal iam attach-user-policy --user-name dev --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# Sortie / Output
+--query &#39;Users[].UserName&#39;   --output text|table|json   # JMESPath + format</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.localstack.cloud/">Documentation LocalStack</a> — services couverts, configuration.</li><li><a href="https://docs.aws.amazon.com/cli/latest/reference/">AWS CLI — référence des commandes</a> — toutes les commandes <code>aws</code>.</li><li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html">Régions et zones de disponibilité AWS</a> — la géographie officielle.</li><li><a href="https://jmespath.org/tutorial.html">JMESPath (le langage de <code>--query</code>)</a> — extraire et filtrer les sorties.</li><li><a href="https://aws.amazon.com/certification/certified-solutions-architect-associate/">Certification AWS Solutions Architect Associate (SAA-C03)</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.localstack.cloud/">LocalStack documentation</a> — covered services, configuration.</li><li><a href="https://docs.aws.amazon.com/cli/latest/reference/">AWS CLI — command reference</a> — all <code>aws</code> commands.</li><li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html">AWS regions and availability zones</a> — the official geography.</li><li><a href="https://jmespath.org/tutorial.html">JMESPath (the <code>--query</code> language)</a> — extract and filter outputs.</li><li><a href="https://aws.amazon.com/certification/certified-solutions-architect-associate/">AWS Solutions Architect Associate (SAA-C03) certification</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>Could not connect to the endpoint URL: &quot;http://localhost:4566/&quot;</code>.</strong> LocalStack n&#39;est pas démarré ou pas encore prêt. Vérifie <code>docker ps</code> et attends le statut <code>healthy</code> ; teste <code>curl http://localhost:4566/_localstack/health</code>.</p>
+<p><strong>Le conteneur <code>Exited (55)</code> — « License activation failed ».</strong> Tu utilises <code>:latest</code> (qui exige un jeton Pro). Supprime-le (<code>docker rm -f localstack</code>) et relance avec <code>localstack/localstack:3.8.1</code>.</p>
+<p><strong><code>awslocal: command not found</code>.</strong> <code>awscli-local</code> n&#39;est pas installé (<code>pip install awscli-local</code>), ou pas dans le <code>PATH</code>. Contourne avec <code>aws --endpoint-url=http://localhost:4566 ...</code>.</p>
+<p><strong><code>Unable to locate credentials</code>.</strong> Tu n&#39;as pas configuré les identifiants bidon. Lance les trois <code>aws configure set ...</code> de l&#39;étape 2 (LocalStack accepte n&#39;importe quelle valeur, mais l&#39;outil <code>aws</code> en exige une).</p>
+<p><strong><code>delete-user</code> échoue avec <code>DeleteConflict</code>.</strong> L&#39;utilisateur a des politiques (ou clés/groupes) attachés. Détache-les d&#39;abord (<code>detach-user-policy</code>), puis supprime.</p>
+<p><strong>Un port 4566 déjà utilisé.</strong> Un autre conteneur/process occupe le port. Arrête-le, ou mappe un autre port (<code>-p 4567:4566</code>) et adapte l&#39;endpoint.</p>
+</div>
+<div data-lang="en"><p><strong><code>Could not connect to the endpoint URL: &quot;http://localhost:4566/&quot;</code>.</strong> LocalStack isn&#39;t started or not ready yet. Check <code>docker ps</code> and wait for <code>healthy</code>; test <code>curl http://localhost:4566/_localstack/health</code>.</p>
+<p><strong>The container <code>Exited (55)</code> — &quot;License activation failed&quot;.</strong> You&#39;re using <code>:latest</code> (which requires a Pro token). Remove it (<code>docker rm -f localstack</code>) and relaunch with <code>localstack/localstack:3.8.1</code>.</p>
+<p><strong><code>awslocal: command not found</code>.</strong> <code>awscli-local</code> isn&#39;t installed (<code>pip install awscli-local</code>), or not on the <code>PATH</code>. Work around with <code>aws --endpoint-url=http://localhost:4566 ...</code>.</p>
+<p><strong><code>Unable to locate credentials</code>.</strong> You didn&#39;t configure the dummy credentials. Run the three <code>aws configure set ...</code> from step 2 (LocalStack accepts any value, but the <code>aws</code> tool requires one).</p>
+<p><strong><code>delete-user</code> fails with <code>DeleteConflict</code>.</strong> The user has attached policies (or keys/groups). Detach them first (<code>detach-user-policy</code>), then delete.</p>
+<p><strong>Port 4566 already in use.</strong> Another container/process holds the port. Stop it, or map another port (<code>-p 4567:4566</code>) and adjust the endpoint.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
