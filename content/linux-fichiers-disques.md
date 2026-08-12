@@ -256,7 +256,7 @@ lsblk "$LOOP"                                       # montre LOOP -> LOOPp1 / sh
 sudo mkfs.ext4 "${LOOP}p1"               # formate la partition en ext4 / format the partition as ext4
 sudo mkdir -p /mnt/data
 sudo mount "${LOOP}p1" /mnt/data          # monte la partition sur /mnt/data / mount it
-df -h /mnt/data                           # confirme : monté, ~470 Mo dispo / mounted, ~470 MB free
+df -h /mnt/data                           # confirme : monté, ~426 Mo dispo (métadonnées + réserve 5%) / mounted, ~426 MB free
 echo "test" | sudo tee /mnt/data/hello.txt   # écrire ici écrit sur le disque virtuel / writing here writes to disk
 ```
 
@@ -369,7 +369,7 @@ fallocate -l 256M ~/pv1.img && fallocate -l 256M ~/pv2.img
 P1=$(sudo losetup --show -f ~/pv1.img) ; P2=$(sudo losetup --show -f ~/pv2.img)
 
 sudo pvcreate "$P1" "$P2"                 # marque les 2 comme Physical Volumes / mark both as PVs
-sudo vgcreate vg_lab "$P1" "$P2"          # pool de ~512 Mo / a ~512 MB pool
+sudo vgcreate vg_lab "$P1" "$P2"          # pool de ~504 Mo (2x256 - métadonnées) / ~504 MB pool
 sudo lvcreate -L 200M -n lv_data vg_lab   # taille un volume de 200 Mo / carve a 200 MB volume
 
 sudo mkfs.ext4 /dev/vg_lab/lv_data

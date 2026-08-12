@@ -299,7 +299,7 @@ lsblk &quot;$LOOP&quot;                                       # montre LOOP -&gt
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo mkfs.ext4 &quot;${LOOP}p1&quot;               # formate la partition en ext4 / format the partition as ext4
 sudo mkdir -p /mnt/data
 sudo mount &quot;${LOOP}p1&quot; /mnt/data          # monte la partition sur /mnt/data / mount it
-df -h /mnt/data                           # confirme : monté, ~470 Mo dispo / mounted, ~470 MB free
+df -h /mnt/data                           # confirme : monté, ~426 Mo dispo (métadonnées + réserve 5%) / mounted, ~426 MB free
 echo &quot;test&quot; | sudo tee /mnt/data/hello.txt   # écrire ici écrit sur le disque virtuel / writing here writes to disk</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>df -h /mnt/data</code> montre la partition <strong>montée</strong> (source <code>${LOOP}p1</code>, quelques centaines de Mo disponibles). Le fichier <code>hello.txt</code> écrit dans <code>/mnt/data</code> est <strong>stocké sur le disque virtuel</strong> : démonte (<code>sudo umount /mnt/data</code>) puis remonte, il est toujours là. Tu as bouclé la chaîne <strong>partition → formatage → montage → données</strong>.</p>
 </div>
@@ -378,7 +378,7 @@ cat sym.txt                           # CASSÉ : la cible a disparu / BROKEN: th
 P1=$(sudo losetup --show -f ~/pv1.img) ; P2=$(sudo losetup --show -f ~/pv2.img)
 
 sudo pvcreate &quot;$P1&quot; &quot;$P2&quot;                 # marque les 2 comme Physical Volumes / mark both as PVs
-sudo vgcreate vg_lab &quot;$P1&quot; &quot;$P2&quot;          # pool de ~512 Mo / a ~512 MB pool
+sudo vgcreate vg_lab &quot;$P1&quot; &quot;$P2&quot;          # pool de ~504 Mo (2x256 - métadonnées) / ~504 MB pool
 sudo lvcreate -L 200M -n lv_data vg_lab   # taille un volume de 200 Mo / carve a 200 MB volume
 
 sudo mkfs.ext4 /dev/vg_lab/lv_data
