@@ -438,7 +438,9 @@ curl -s localhost:8080/cache/demo               # -> hello-k8s (relu depuis Redi
 :::lang fr
 **Objectif.** Ajouter un **HPA** et le voir **autoscaler** l'app sous charge.
 
-**🤔 Pourquoi ça marche ici.** Le HPA a besoin de **metrics-server** (présent sur k3s) et de **requests CPU** sur les pods (on a mis `25m`). On cible 50 % → dès que la charge dépasse ~12m CPU par pod, il ajoute des répliques. Crée `k8s/hpa.yaml` :
+**🤔 Pourquoi ça marche ici.** Le HPA a besoin de **metrics-server** (présent sur k3s) et de **requests CPU** sur les pods (on a mis `25m`). On cible 50 % → dès que la charge dépasse ~12m CPU par pod, il ajoute des répliques. Il faut une charge **soutenue et parallèle** pour dépasser franchement ce seuil (une seule boucle séquentielle est trop juste) — d'où les 8 boucles ci-dessous.
+
+**🤔 `replicas` et HPA.** Notre `app.yaml` fixe `replicas: 2`, ce qui a servi aux étapes 3-4 (avant le HPA). En prod, sur un Deployment **piloté par un HPA**, on **retire** le champ `replicas` du manifeste (sinon un `apply` peut brièvement se disputer le compte avec l'autoscaler). Ici on le garde car `minReplicas: 2` = même valeur au repos, donc pas de conflit tant que la charge est nulle. Crée `k8s/hpa.yaml` :
 :::
 
 :::lang en
@@ -473,20 +475,21 @@ spec:
 kubectl apply -f k8s/hpa.yaml
 kubectl get hpa app                     # attends que TARGETS affiche un % (pas <unknown>) / wait for a % in TARGETS
 
-# Génère de la charge depuis un pod (laisse tourner) / generate load from a pod (leave it running)
-kubectl run load --image=busybox:1.36 --restart=Never -- \
-  /bin/sh -c "while true; do wget -q -O- http://app/; done"
+# Génère de la charge PARALLÈLE (8 boucles simultanées) pour dépasser franchement le seuil
+# generate PARALLEL load (8 concurrent loops) to clearly exceed the threshold — leave it running
+kubectl run load --image=busybox:1.36 --restart=Never -- /bin/sh -c \
+  "for i in 1 2 3 4 5 6 7 8; do (while true; do wget -q -O- http://app/ >/dev/null; done) & done; wait"
 
 # Observe la montée en répliques (~1-3 min) / watch replicas climb (~1-3 min)
 kubectl get hpa app -w
 ```
 
 :::lang fr
-**✅ Vérification :** au début, `kubectl get hpa app` montre `REPLICAS 2`. Après ~1-3 min de charge (le temps que metrics-server mesure et que le HPA réconcilie), la colonne `TARGETS` dépasse `50%` et `REPLICAS` **grimpe** (3, 4… jusqu'à 6 max) — `kubectl get pods -l app=podinfo` confirme les nouveaux pods. **Arrête la charge** (`kubectl delete pod load`) : après quelques minutes (fenêtre de stabilisation anti-oscillation), le HPA **redescend** à 2. Tu as une appli qui **s'adapte à la demande**, automatiquement. C'est un argument d'entretien en or.
+**✅ Vérification :** au début, `kubectl get hpa app` montre `REPLICAS 2`. Après ~1-3 min de charge parallèle (le temps que metrics-server mesure et que le HPA réconcilie), la colonne `TARGETS` dépasse `50%` et `REPLICAS` **grimpe** (3, 4… et jusqu'à 6 si la charge est assez soutenue) — `kubectl get pods -l app=podinfo` confirme les nouveaux pods. **Arrête la charge** (`kubectl delete pod load`) : après quelques minutes (fenêtre de stabilisation anti-oscillation), le HPA **redescend** à 2. Tu as une appli qui **s'adapte à la demande**, automatiquement. C'est un argument d'entretien en or.
 :::
 
 :::lang en
-**✅ Check:** at first, `kubectl get hpa app` shows `REPLICAS 2`. After ~1-3 min of load (time for metrics-server to measure and the HPA to reconcile), the `TARGETS` column exceeds `50%` and `REPLICAS` **climbs** (3, 4… up to 6 max) — `kubectl get pods -l app=podinfo` confirms the new pods. **Stop the load** (`kubectl delete pod load`): after a few minutes (anti-flapping stabilization window), the HPA **scales back** to 2. You have an app that **adapts to demand**, automatically. That's a golden interview argument.
+**✅ Check:** at first, `kubectl get hpa app` shows `REPLICAS 2`. After ~1-3 min of parallel load (time for metrics-server to measure and the HPA to reconcile), the `TARGETS` column exceeds `50%` and `REPLICAS` **climbs** (3, 4… and up to 6 if the load is sustained enough) — `kubectl get pods -l app=podinfo` confirms the new pods. **Stop the load** (`kubectl delete pod load`): after a few minutes (anti-flapping stabilization window), the HPA **scales back** to 2. You have an app that **adapts to demand**, automatically. That's a golden interview argument.
 :::
 
 ### step-06

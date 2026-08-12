@@ -451,7 +451,8 @@ curl -s localhost:8080/cache/demo               # -&gt; hello-k8s (relu depuis R
   <span class="step-num" data-lang="fr">Étape 05</span>
   <span class="step-num" data-lang="en">Step 05</span>
   <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter un <strong>HPA</strong> et le voir <strong>autoscaler</strong> l&#39;app sous charge.</p>
-<p><strong>🤔 Pourquoi ça marche ici.</strong> Le HPA a besoin de <strong>metrics-server</strong> (présent sur k3s) et de <strong>requests CPU</strong> sur les pods (on a mis <code>25m</code>). On cible 50 % → dès que la charge dépasse ~12m CPU par pod, il ajoute des répliques. Crée <code>k8s/hpa.yaml</code> :</p>
+<p><strong>🤔 Pourquoi ça marche ici.</strong> Le HPA a besoin de <strong>metrics-server</strong> (présent sur k3s) et de <strong>requests CPU</strong> sur les pods (on a mis <code>25m</code>). On cible 50 % → dès que la charge dépasse ~12m CPU par pod, il ajoute des répliques. Il faut une charge <strong>soutenue et parallèle</strong> pour dépasser franchement ce seuil (une seule boucle séquentielle est trop juste) — d&#39;où les 8 boucles ci-dessous.</p>
+<p><strong>🤔 <code>replicas</code> et HPA.</strong> Notre <code>app.yaml</code> fixe <code>replicas: 2</code>, ce qui a servi aux étapes 3-4 (avant le HPA). En prod, sur un Deployment <strong>piloté par un HPA</strong>, on <strong>retire</strong> le champ <code>replicas</code> du manifeste (sinon un <code>apply</code> peut brièvement se disputer le compte avec l&#39;autoscaler). Ici on le garde car <code>minReplicas: 2</code> = même valeur au repos, donc pas de conflit tant que la charge est nulle. Crée <code>k8s/hpa.yaml</code> :</p>
 </div>
 <div data-lang="en"><p><strong>Goal.</strong> Add an <strong>HPA</strong> and watch it <strong>autoscale</strong> the app under load.</p>
 <p><strong>🤔 Why it works here.</strong> The HPA needs <strong>metrics-server</strong> (present on k3s) and <strong>CPU requests</strong> on the pods (we set <code>25m</code>). We target 50% → as soon as load exceeds ~12m CPU per pod, it adds replicas. Create <code>k8s/hpa.yaml</code>:</p>
@@ -478,15 +479,16 @@ spec:
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f k8s/hpa.yaml
 kubectl get hpa app                     # attends que TARGETS affiche un % (pas &lt;unknown&gt;) / wait for a % in TARGETS
 
-# Génère de la charge depuis un pod (laisse tourner) / generate load from a pod (leave it running)
-kubectl run load --image=busybox:1.36 --restart=Never -- \
-  /bin/sh -c &quot;while true; do wget -q -O- http://app/; done&quot;
+# Génère de la charge PARALLÈLE (8 boucles simultanées) pour dépasser franchement le seuil
+# generate PARALLEL load (8 concurrent loops) to clearly exceed the threshold — leave it running
+kubectl run load --image=busybox:1.36 --restart=Never -- /bin/sh -c \
+  &quot;for i in 1 2 3 4 5 6 7 8; do (while true; do wget -q -O- http://app/ &gt;/dev/null; done) &amp; done; wait&quot;
 
 # Observe la montée en répliques (~1-3 min) / watch replicas climb (~1-3 min)
 kubectl get hpa app -w</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> au début, <code>kubectl get hpa app</code> montre <code>REPLICAS 2</code>. Après ~1-3 min de charge (le temps que metrics-server mesure et que le HPA réconcilie), la colonne <code>TARGETS</code> dépasse <code>50%</code> et <code>REPLICAS</code> <strong>grimpe</strong> (3, 4… jusqu&#39;à 6 max) — <code>kubectl get pods -l app=podinfo</code> confirme les nouveaux pods. <strong>Arrête la charge</strong> (<code>kubectl delete pod load</code>) : après quelques minutes (fenêtre de stabilisation anti-oscillation), le HPA <strong>redescend</strong> à 2. Tu as une appli qui <strong>s&#39;adapte à la demande</strong>, automatiquement. C&#39;est un argument d&#39;entretien en or.</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au début, <code>kubectl get hpa app</code> montre <code>REPLICAS 2</code>. Après ~1-3 min de charge parallèle (le temps que metrics-server mesure et que le HPA réconcilie), la colonne <code>TARGETS</code> dépasse <code>50%</code> et <code>REPLICAS</code> <strong>grimpe</strong> (3, 4… et jusqu&#39;à 6 si la charge est assez soutenue) — <code>kubectl get pods -l app=podinfo</code> confirme les nouveaux pods. <strong>Arrête la charge</strong> (<code>kubectl delete pod load</code>) : après quelques minutes (fenêtre de stabilisation anti-oscillation), le HPA <strong>redescend</strong> à 2. Tu as une appli qui <strong>s&#39;adapte à la demande</strong>, automatiquement. C&#39;est un argument d&#39;entretien en or.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> at first, <code>kubectl get hpa app</code> shows <code>REPLICAS 2</code>. After ~1-3 min of load (time for metrics-server to measure and the HPA to reconcile), the <code>TARGETS</code> column exceeds <code>50%</code> and <code>REPLICAS</code> <strong>climbs</strong> (3, 4… up to 6 max) — <code>kubectl get pods -l app=podinfo</code> confirms the new pods. <strong>Stop the load</strong> (<code>kubectl delete pod load</code>): after a few minutes (anti-flapping stabilization window), the HPA <strong>scales back</strong> to 2. You have an app that <strong>adapts to demand</strong>, automatically. That&#39;s a golden interview argument.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> at first, <code>kubectl get hpa app</code> shows <code>REPLICAS 2</code>. After ~1-3 min of parallel load (time for metrics-server to measure and the HPA to reconcile), the <code>TARGETS</code> column exceeds <code>50%</code> and <code>REPLICAS</code> <strong>climbs</strong> (3, 4… and up to 6 if the load is sustained enough) — <code>kubectl get pods -l app=podinfo</code> confirms the new pods. <strong>Stop the load</strong> (<code>kubectl delete pod load</code>): after a few minutes (anti-flapping stabilization window), the HPA <strong>scales back</strong> to 2. You have an app that <strong>adapts to demand</strong>, automatically. That&#39;s a golden interview argument.</p>
 </div>
 
 </div>
