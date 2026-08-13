@@ -378,11 +378,11 @@ resource "aws_lambda_function" "processeur" {
 ```
 
 :::lang fr
-**✅ Vérification :** ne lance pas encore `apply` — la fonction référence `aws_sns_topic.notifs`, qu'on créera à l'étape 5 (Terraform résout les dépendances, mais la ressource doit exister dans le code). Pour l'instant, vérifie la **cohérence** : `terraform validate` doit répondre `Success! The configuration is valid.` (il vérifie la syntaxe et les références). On assemblera et déploiera tout à l'étape 6. La politique du rôle n'autorise que `dynamodb:PutItem` sur **notre** table et `sns:Publish` sur **notre** sujet — moindre privilège.
+**✅ Vérification :** ne lance **ni `apply` ni `validate`** maintenant — `lambda.tf` référence `aws_sns_topic.notifs`, qu'on ne déclare qu'à l'**étape 5**. Tant que ce sujet n'existe pas dans le code, `terraform validate` **échouerait** avec « Reference to undeclared resource: aws_sns_topic.notifs ». C'est **attendu** : on **écrit** les fichiers d'abord, et on validera/déploiera une fois **tout** en place (étapes 5-6). Note quand même la politique du rôle : elle n'autorise que `dynamodb:PutItem` sur **notre** table et `sns:Publish` sur **notre** sujet — moindre privilège.
 :::
 
 :::lang en
-**✅ Check:** don't run `apply` yet — the function references `aws_sns_topic.notifs`, which we'll create in step 5 (Terraform resolves dependencies, but the resource must exist in the code). For now, check **consistency**: `terraform validate` should answer `Success! The configuration is valid.` (it checks syntax and references). We'll assemble and deploy everything in step 6. The role's policy allows only `dynamodb:PutItem` on **our** table and `sns:Publish` on **our** topic — least privilege.
+**✅ Check:** don't run **`apply` or `validate`** yet — `lambda.tf` references `aws_sns_topic.notifs`, which we only declare in **step 5**. While that topic doesn't exist in the code, `terraform validate` **would fail** with "Reference to undeclared resource: aws_sns_topic.notifs". That's **expected**: we **write** the files first, and validate/deploy once **everything** is in place (steps 5-6). Still, note the role's policy: it allows only `dynamodb:PutItem` on **our** table and `sns:Publish` on **our** topic — least privilege.
 :::
 
 ### step-04
@@ -426,11 +426,11 @@ resource "aws_s3_bucket_notification" "sur_depot" {
 ```
 
 :::lang fr
-**✅ Vérification :** toujours pas d'`apply` (on attend SNS/SQS de l'étape 5), mais `terraform validate` reste `Success`. Observe le `depends_on` : sans lui, Terraform pourrait créer la notification **avant** la permission, et AWS refuserait (« Unable to validate the following destination configurations »). L'ordre permission → notification est un piège classique que `depends_on` règle explicitement.
+**✅ Vérification :** toujours **pas d'`apply` ni de `validate`** (on attend le sujet SNS de l'étape 5 ; `validate` échouerait encore sur la référence non déclarée). Observe le `depends_on` : sans lui, Terraform pourrait créer la notification **avant** la permission, et AWS refuserait (« Unable to validate the following destination configurations »). L'ordre permission → notification est un piège classique que `depends_on` règle explicitement.
 :::
 
 :::lang en
-**✅ Check:** still no `apply` (we're waiting for SNS/SQS from step 5), but `terraform validate` stays `Success`. Notice the `depends_on`: without it, Terraform might create the notification **before** the permission, and AWS would refuse ("Unable to validate the following destination configurations"). The permission → notification order is a classic trap that `depends_on` solves explicitly.
+**✅ Check:** still **no `apply` or `validate`** (we're waiting for the SNS topic from step 5; `validate` would still fail on the undeclared reference). Notice the `depends_on`: without it, Terraform might create the notification **before** the permission, and AWS would refuse ("Unable to validate the following destination configurations"). The permission → notification order is a classic trap that `depends_on` solves explicitly.
 :::
 
 ### step-05
