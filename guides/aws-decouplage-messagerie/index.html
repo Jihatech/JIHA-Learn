@@ -252,16 +252,19 @@ echo &quot;file = $QURL&quot;
 awslocal sqs send-message --queue-url &quot;$QURL&quot; --message-body &quot;commande #42&quot; \
   --query &#39;MessageId&#39; --output text
 
-# Consommateur : recevoir (le message devient invisible) / consumer: receive
-awslocal sqs receive-message --queue-url &quot;$QURL&quot; \
-  --query &#39;Messages[0].[Body,ReceiptHandle]&#39; --output text
+# Aperçu SANS consommer : --visibility-timeout 0 le laisse visible / peek without consuming
+awslocal sqs receive-message --queue-url &quot;$QURL&quot; --visibility-timeout 0 \
+  --query &#39;Messages[0].Body&#39; --output text
 
-# Supprimer une fois traité (avec le ReceiptHandle renvoyé) / delete once processed
-RH=$(awslocal sqs receive-message --queue-url &quot;$QURL&quot; --query &#39;Messages[0].ReceiptHandle&#39; --output text)
-[ &quot;$RH&quot; != &quot;None&quot; ] &amp;&amp; awslocal sqs delete-message --queue-url &quot;$QURL&quot; --receipt-handle &quot;$RH&quot; &amp;&amp; echo &quot;message supprimé&quot;</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>send-message</code> renvoie un <code>MessageId</code>. Le premier <code>receive-message</code> affiche <code>commande #42</code> et un long <code>ReceiptHandle</code>. Après <code>delete-message</code>, la file est vide. ⚠️ Subtilité importante : entre le <code>receive</code> et le <code>delete</code>, le message est <strong>invisible</strong> (visibility timeout, 30 s par défaut) — c&#39;est ce qui empêche deux consommateurs de le traiter en même temps. Si tu relances <code>receive</code> trop vite, tu ne le vois plus (il est « en cours de traitement »). Le producteur et le consommateur ne se connaissent pas : c&#39;est ça, le découplage.</p>
+# Le recevoir pour de bon et capturer son ReceiptHandle / receive it and capture its ReceiptHandle
+RH=$(awslocal sqs receive-message --queue-url &quot;$QURL&quot; \
+  --query &#39;Messages[0].ReceiptHandle&#39; --output text)
+
+# Supprimer une fois traité / delete once processed
+awslocal sqs delete-message --queue-url &quot;$QURL&quot; --receipt-handle &quot;$RH&quot; &amp;&amp; echo &quot;message supprimé&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>send-message</code> renvoie un <code>MessageId</code>. L&#39;aperçu (<code>--visibility-timeout 0</code>) affiche <code>commande #42</code> <strong>sans</strong> consommer le message ; la réception suivante capture un long <code>ReceiptHandle</code> ; <code>delete-message</code> affiche <code>message supprimé</code> et la file est vide. ⚠️ Subtilité <strong>clé</strong> (et piège classique) : un <code>receive-message</code> <strong>normal</strong> rend le message <strong>invisible</strong> un moment (visibility timeout, 30 s par défaut). Si tu enchaînes deux <code>receive</code> d&#39;affilée, le second ne voit <strong>plus rien</strong> (le message est « en cours de traitement »). C&#39;est pour ça qu&#39;on utilise <code>--visibility-timeout 0</code> pour le simple aperçu, puis une vraie réception pour capturer le <code>ReceiptHandle</code> du <strong>même</strong> message avant de le supprimer. Le producteur et le consommateur ne se connaissent pas : c&#39;est ça, le découplage.</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>send-message</code> returns a <code>MessageId</code>. The first <code>receive-message</code> shows <code>commande #42</code> and a long <code>ReceiptHandle</code>. After <code>delete-message</code>, the queue is empty. ⚠️ Important subtlety: between <code>receive</code> and <code>delete</code>, the message is <strong>invisible</strong> (visibility timeout, 30 s by default) — that&#39;s what prevents two consumers from processing it at once. If you rerun <code>receive</code> too fast, you no longer see it (it&#39;s &quot;being processed&quot;). The producer and consumer don&#39;t know each other: that&#39;s decoupling.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>send-message</code> returns a <code>MessageId</code>. The peek (<code>--visibility-timeout 0</code>) shows <code>commande #42</code> <strong>without</strong> consuming the message; the next receive captures a long <code>ReceiptHandle</code>; <code>delete-message</code> prints <code>message supprimé</code> and the queue is empty. ⚠️ <strong>Key</strong> subtlety (and classic trap): a <strong>normal</strong> <code>receive-message</code> makes the message <strong>invisible</strong> for a while (visibility timeout, 30 s by default). If you chain two <code>receive</code>s in a row, the second sees <strong>nothing</strong> (the message is &quot;being processed&quot;). That&#39;s why we use <code>--visibility-timeout 0</code> for the mere peek, then a real receive to capture the <strong>same</strong> message&#39;s <code>ReceiptHandle</code> before deleting it. The producer and consumer don&#39;t know each other: that&#39;s decoupling.</p>
 </div>
 
 </div>
@@ -293,9 +296,9 @@ awslocal sqs create-queue --queue-name transactions.fifo \
 # Vérifier la RedrivePolicy posée / verify the RedrivePolicy
 awslocal sqs get-queue-attributes --queue-url &quot;$QURL&quot; \
   --attribute-names RedrivePolicy --query &#39;Attributes.RedrivePolicy&#39; --output text</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>get-queue-attributes ... RedrivePolicy</code> te réaffiche la politique JSON avec <code>deadLetterTargetArn</code> (l&#39;ARN de la DLQ) et <code>maxReceiveCount: 3</code>. La file <code>transactions.fifo</code> est créée (son nom <strong>finit par <code>.fifo</code></strong>, obligatoire pour une file FIFO). Retiens : <strong>standard</strong> = débit énorme, pas d&#39;ordre garanti, doublons possibles ; <strong>FIFO</strong> = ordre + exactement une fois, débit plus limité. La DLQ, elle, transforme « boucle infinie sur un message cassé » en « échec isolé et inspectable ».</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>get-queue-attributes ... RedrivePolicy</code> te réaffiche la politique JSON avec <code>deadLetterTargetArn</code> (l&#39;ARN de la DLQ) et <code>maxReceiveCount</code> à <code>&quot;3&quot;</code> (affiché entre guillemets : la RedrivePolicy est du JSON encodé <strong>dans</strong> du JSON). La file <code>transactions.fifo</code> est créée (son nom <strong>finit par <code>.fifo</code></strong>, obligatoire pour une file FIFO). Retiens : <strong>standard</strong> = débit énorme, pas d&#39;ordre garanti, doublons possibles ; <strong>FIFO</strong> = ordre + exactement une fois, débit plus limité. La DLQ, elle, transforme « boucle infinie sur un message cassé » en « échec isolé et inspectable ».</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> <code>get-queue-attributes ... RedrivePolicy</code> shows you back the JSON policy with <code>deadLetterTargetArn</code> (the DLQ&#39;s ARN) and <code>maxReceiveCount: 3</code>. The <code>transactions.fifo</code> queue is created (its name <strong>ends in <code>.fifo</code></strong>, mandatory for a FIFO queue). Remember: <strong>standard</strong> = huge throughput, no guaranteed order, possible duplicates; <strong>FIFO</strong> = order + exactly once, lower throughput. The DLQ turns &quot;infinite loop on a broken message&quot; into &quot;isolated, inspectable failure&quot;.</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>get-queue-attributes ... RedrivePolicy</code> shows you back the JSON policy with <code>deadLetterTargetArn</code> (the DLQ&#39;s ARN) and <code>maxReceiveCount</code> at <code>&quot;3&quot;</code> (shown quoted: the RedrivePolicy is JSON encoded <strong>inside</strong> JSON). The <code>transactions.fifo</code> queue is created (its name <strong>ends in <code>.fifo</code></strong>, mandatory for a FIFO queue). Remember: <strong>standard</strong> = huge throughput, no guaranteed order, possible duplicates; <strong>FIFO</strong> = order + exactly once, lower throughput. The DLQ turns &quot;infinite loop on a broken message&quot; into &quot;isolated, inspectable failure&quot;.</p>
 </div>
 
 </div>
@@ -355,8 +358,8 @@ awslocal sns publish --topic-arn &quot;$TARN&quot; --message &quot;commande #99 
 sleep 2
 
 # Chaque file a reçu sa copie / each queue got its copy
-echo &quot;facturation :&quot; ; awslocal sqs receive-message --queue-url &quot;$FACT_URL&quot; --query &#39;Messages[0].Body&#39; --output text | head -c 60 ; echo
-echo &quot;expedition  :&quot; ; awslocal sqs receive-message --queue-url &quot;$EXPE_URL&quot; --query &#39;Messages[0].Body&#39; --output text | head -c 60 ; echo</code></pre>
+echo &quot;facturation :&quot; ; awslocal sqs receive-message --queue-url &quot;$FACT_URL&quot; --query &#39;Messages[0].Body&#39; --output text | grep -o &#39;&quot;Message&quot;: *&quot;[^&quot;]*&quot;&#39;
+echo &quot;expedition  :&quot; ; awslocal sqs receive-message --queue-url &quot;$EXPE_URL&quot; --query &#39;Messages[0].Body&#39; --output text | grep -o &#39;&quot;Message&quot;: *&quot;[^&quot;]*&quot;&#39;</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> les deux <code>subscribe</code> renvoient chacun un ARN d&#39;abonnement. Après <strong>un seul</strong> <code>publish</code>, <strong>chaque</strong> file (<code>facturation</code> <strong>et</strong> <code>expedition</code>) a reçu une copie du message — tu le vois avec les deux <code>receive-message</code>. Le corps est un JSON d&#39;enveloppe SNS contenant ton message (<code>&quot;Message&quot;:&quot;commande #99 payee&quot;</code>). Un événement, deux consommateurs indépendants : si <code>expedition</code> tombe, <code>facturation</code> continue. C&#39;est l&#39;assemblage exact que tu réutiliseras dans le projet.</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> the two <code>subscribe</code> calls each return a subscription ARN. After a <strong>single</strong> <code>publish</code>, <strong>each</strong> queue (<code>facturation</code> <strong>and</strong> <code>expedition</code>) received a copy of the message — you see it with the two <code>receive-message</code>. The body is an SNS envelope JSON containing your message (<code>&quot;Message&quot;:&quot;commande #99 payee&quot;</code>). One event, two independent consumers: if <code>expedition</code> goes down, <code>facturation</code> keeps going. It&#39;s the exact assembly you&#39;ll reuse in the project.</p>
@@ -510,7 +513,16 @@ echo &quot;labo rangé / lab tidied&quot;</code></pre>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-projet-entreprise/">
+    <span class="num">50</span>
+    <span class="title-line" data-lang="fr">AWS — projet d&#39;entreprise : pipeline serverless</span>
+    <span class="title-line" data-lang="en">AWS — enterprise project: serverless pipeline</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">

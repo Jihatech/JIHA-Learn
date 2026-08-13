@@ -177,21 +177,24 @@ echo "file = $QURL"
 awslocal sqs send-message --queue-url "$QURL" --message-body "commande #42" \
   --query 'MessageId' --output text
 
-# Consommateur : recevoir (le message devient invisible) / consumer: receive
-awslocal sqs receive-message --queue-url "$QURL" \
-  --query 'Messages[0].[Body,ReceiptHandle]' --output text
+# Aperçu SANS consommer : --visibility-timeout 0 le laisse visible / peek without consuming
+awslocal sqs receive-message --queue-url "$QURL" --visibility-timeout 0 \
+  --query 'Messages[0].Body' --output text
 
-# Supprimer une fois traité (avec le ReceiptHandle renvoyé) / delete once processed
-RH=$(awslocal sqs receive-message --queue-url "$QURL" --query 'Messages[0].ReceiptHandle' --output text)
-[ "$RH" != "None" ] && awslocal sqs delete-message --queue-url "$QURL" --receipt-handle "$RH" && echo "message supprimé"
+# Le recevoir pour de bon et capturer son ReceiptHandle / receive it and capture its ReceiptHandle
+RH=$(awslocal sqs receive-message --queue-url "$QURL" \
+  --query 'Messages[0].ReceiptHandle' --output text)
+
+# Supprimer une fois traité / delete once processed
+awslocal sqs delete-message --queue-url "$QURL" --receipt-handle "$RH" && echo "message supprimé"
 ```
 
 :::lang fr
-**✅ Vérification :** `send-message` renvoie un `MessageId`. Le premier `receive-message` affiche `commande #42` et un long `ReceiptHandle`. Après `delete-message`, la file est vide. ⚠️ Subtilité importante : entre le `receive` et le `delete`, le message est **invisible** (visibility timeout, 30 s par défaut) — c'est ce qui empêche deux consommateurs de le traiter en même temps. Si tu relances `receive` trop vite, tu ne le vois plus (il est « en cours de traitement »). Le producteur et le consommateur ne se connaissent pas : c'est ça, le découplage.
+**✅ Vérification :** `send-message` renvoie un `MessageId`. L'aperçu (`--visibility-timeout 0`) affiche `commande #42` **sans** consommer le message ; la réception suivante capture un long `ReceiptHandle` ; `delete-message` affiche `message supprimé` et la file est vide. ⚠️ Subtilité **clé** (et piège classique) : un `receive-message` **normal** rend le message **invisible** un moment (visibility timeout, 30 s par défaut). Si tu enchaînes deux `receive` d'affilée, le second ne voit **plus rien** (le message est « en cours de traitement »). C'est pour ça qu'on utilise `--visibility-timeout 0` pour le simple aperçu, puis une vraie réception pour capturer le `ReceiptHandle` du **même** message avant de le supprimer. Le producteur et le consommateur ne se connaissent pas : c'est ça, le découplage.
 :::
 
 :::lang en
-**✅ Check:** `send-message` returns a `MessageId`. The first `receive-message` shows `commande #42` and a long `ReceiptHandle`. After `delete-message`, the queue is empty. ⚠️ Important subtlety: between `receive` and `delete`, the message is **invisible** (visibility timeout, 30 s by default) — that's what prevents two consumers from processing it at once. If you rerun `receive` too fast, you no longer see it (it's "being processed"). The producer and consumer don't know each other: that's decoupling.
+**✅ Check:** `send-message` returns a `MessageId`. The peek (`--visibility-timeout 0`) shows `commande #42` **without** consuming the message; the next receive captures a long `ReceiptHandle`; `delete-message` prints `message supprimé` and the queue is empty. ⚠️ **Key** subtlety (and classic trap): a **normal** `receive-message` makes the message **invisible** for a while (visibility timeout, 30 s by default). If you chain two `receive`s in a row, the second sees **nothing** (the message is "being processed"). That's why we use `--visibility-timeout 0` for the mere peek, then a real receive to capture the **same** message's `ReceiptHandle` before deleting it. The producer and consumer don't know each other: that's decoupling.
 :::
 
 ### step-02
@@ -232,11 +235,11 @@ awslocal sqs get-queue-attributes --queue-url "$QURL" \
 ```
 
 :::lang fr
-**✅ Vérification :** `get-queue-attributes ... RedrivePolicy` te réaffiche la politique JSON avec `deadLetterTargetArn` (l'ARN de la DLQ) et `maxReceiveCount: 3`. La file `transactions.fifo` est créée (son nom **finit par `.fifo`**, obligatoire pour une file FIFO). Retiens : **standard** = débit énorme, pas d'ordre garanti, doublons possibles ; **FIFO** = ordre + exactement une fois, débit plus limité. La DLQ, elle, transforme « boucle infinie sur un message cassé » en « échec isolé et inspectable ».
+**✅ Vérification :** `get-queue-attributes ... RedrivePolicy` te réaffiche la politique JSON avec `deadLetterTargetArn` (l'ARN de la DLQ) et `maxReceiveCount` à `"3"` (affiché entre guillemets : la RedrivePolicy est du JSON encodé **dans** du JSON). La file `transactions.fifo` est créée (son nom **finit par `.fifo`**, obligatoire pour une file FIFO). Retiens : **standard** = débit énorme, pas d'ordre garanti, doublons possibles ; **FIFO** = ordre + exactement une fois, débit plus limité. La DLQ, elle, transforme « boucle infinie sur un message cassé » en « échec isolé et inspectable ».
 :::
 
 :::lang en
-**✅ Check:** `get-queue-attributes ... RedrivePolicy` shows you back the JSON policy with `deadLetterTargetArn` (the DLQ's ARN) and `maxReceiveCount: 3`. The `transactions.fifo` queue is created (its name **ends in `.fifo`**, mandatory for a FIFO queue). Remember: **standard** = huge throughput, no guaranteed order, possible duplicates; **FIFO** = order + exactly once, lower throughput. The DLQ turns "infinite loop on a broken message" into "isolated, inspectable failure".
+**✅ Check:** `get-queue-attributes ... RedrivePolicy` shows you back the JSON policy with `deadLetterTargetArn` (the DLQ's ARN) and `maxReceiveCount` at `"3"` (shown quoted: the RedrivePolicy is JSON encoded **inside** JSON). The `transactions.fifo` queue is created (its name **ends in `.fifo`**, mandatory for a FIFO queue). Remember: **standard** = huge throughput, no guaranteed order, possible duplicates; **FIFO** = order + exactly once, lower throughput. The DLQ turns "infinite loop on a broken message" into "isolated, inspectable failure".
 :::
 
 ### step-03
@@ -313,8 +316,8 @@ awslocal sns publish --topic-arn "$TARN" --message "commande #99 payee" >/dev/nu
 sleep 2
 
 # Chaque file a reçu sa copie / each queue got its copy
-echo "facturation :" ; awslocal sqs receive-message --queue-url "$FACT_URL" --query 'Messages[0].Body' --output text | head -c 60 ; echo
-echo "expedition  :" ; awslocal sqs receive-message --queue-url "$EXPE_URL" --query 'Messages[0].Body' --output text | head -c 60 ; echo
+echo "facturation :" ; awslocal sqs receive-message --queue-url "$FACT_URL" --query 'Messages[0].Body' --output text | grep -o '"Message": *"[^"]*"'
+echo "expedition  :" ; awslocal sqs receive-message --queue-url "$EXPE_URL" --query 'Messages[0].Body' --output text | grep -o '"Message": *"[^"]*"'
 ```
 
 :::lang fr
