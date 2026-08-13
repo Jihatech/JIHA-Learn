@@ -517,7 +517,7 @@ terraform apply -auto-approve
 # Déposer un fichier -> déclenche la Lambda / drop a file -> triggers the Lambda
 echo "rapport annuel 2026" > rapport.pdf
 awslocal s3 cp rapport.pdf s3://uploads-pipeline/rapport.pdf
-sleep 5   # laisser la Lambda s'exécuter / let the Lambda run
+sleep 8   # laisser la Lambda s'exécuter (démarrage à froid) / let the Lambda run (cold start)
 
 # Effet 1 : une entrée dans DynamoDB / effect 1: a DynamoDB entry
 echo "--- DynamoDB ---"
