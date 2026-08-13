@@ -181,9 +181,21 @@
   <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
   <h2 data-lang="fr">Prérequis honnêtes</h2>
   <h2 data-lang="en">Honest prerequisites</h2>
-<div data-lang="fr"><ul><li>Les guides AWS précédents du track (jusqu&#39;au <strong>réseau VPC</strong>).</li><li><strong>LocalStack</strong> et <strong><code>awslocal</code></strong>. Pour la partie Lambda, on (re)lancera LocalStack <strong>avec le socket Docker monté</strong> (étape 4) — commande donnée sur place.</li><li><strong>aws-cli v2</strong> recommandé (les fonctions Lambda utilisent <code>--cli-binary-format</code>, une option de la v2). Vérifie : <code>aws --version</code> → <code>aws-cli/2.x</code>.</li><li><code>zip</code> installé (pour empaqueter la fonction Lambda).</li></ul>
+<div data-lang="fr"><ul><li>Les guides AWS précédents du track (jusqu&#39;au <strong>réseau VPC</strong>).</li><li><strong>LocalStack</strong> et <strong><code>awslocal</code></strong> configurés. ⚠️ Ce guide fait du <strong>Lambda</strong>, qui exige que LocalStack puisse <strong>accéder à Docker</strong> pour exécuter les fonctions. <strong>Lance donc LocalStack avec le socket Docker monté dès le départ</strong> (même si tu l&#39;avais lancé sans socket dans les guides précédents), avec <code>-v /var/run/docker.sock:/var/run/docker.sock</code> :</li></ul>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f localstack 2&gt;/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+sleep 15   # attendre &quot;healthy&quot; / wait for &quot;healthy&quot;</code></pre>
+<p>EC2 (étapes 1-3) fonctionne aussi avec cette config — comme ça on ne <strong>redémarre pas</strong> LocalStack en cours de route (un redémarrage effacerait l&#39;instance EC2 créée aux étapes 1-3). - <strong>aws-cli v2</strong> recommandé (les fonctions Lambda utilisent <code>--cli-binary-format</code>, une option de la v2). Vérifie : <code>aws --version</code> → <code>aws-cli/2.x</code>. - <code>zip</code> installé (pour empaqueter la fonction Lambda).</p>
 </div>
-<div data-lang="en"><ul><li>The previous AWS track guides (through <strong>VPC networking</strong>).</li><li><strong>LocalStack</strong> and <strong><code>awslocal</code></strong>. For the Lambda part, we&#39;ll (re)launch LocalStack <strong>with the Docker socket mounted</strong> (step 4) — command given there.</li><li><strong>aws-cli v2</strong> recommended (Lambda functions use <code>--cli-binary-format</code>, a v2 option). Check: <code>aws --version</code> → <code>aws-cli/2.x</code>.</li><li><code>zip</code> installed (to package the Lambda function).</li></ul>
+<div data-lang="en"><ul><li>The previous AWS track guides (through <strong>VPC networking</strong>).</li><li><strong>LocalStack</strong> and <strong><code>awslocal</code></strong> configured. ⚠️ This guide does <strong>Lambda</strong>, which requires LocalStack to <strong>access Docker</strong> to run functions. <strong>So launch LocalStack with the Docker socket mounted from the start</strong> (even if you launched it without the socket in previous guides), with <code>-v /var/run/docker.sock:/var/run/docker.sock</code>:</li></ul>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f localstack 2&gt;/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+sleep 15   # attendre &quot;healthy&quot; / wait for &quot;healthy&quot;</code></pre>
+<p>EC2 (steps 1-3) works with this config too — that way we don&#39;t <strong>restart</strong> LocalStack mid-way (a restart would wipe the EC2 instance created in steps 1-3). - <strong>aws-cli v2</strong> recommended (Lambda functions use <code>--cli-binary-format</code>, a v2 option). Check: <code>aws --version</code> → <code>aws-cli/2.x</code>. - <code>zip</code> installed (to package the Lambda function).</p>
 </div>
 
 <h3 data-lang="fr">Guides prérequis</h3>
@@ -328,23 +340,15 @@ awslocal ec2 describe-volumes --query &#39;Volumes[0].[VolumeId,Size,State]&#39;
 <div class="step" id="step-04">
   <span class="step-num" data-lang="fr">Étape 04</span>
   <span class="step-num" data-lang="en">Step 04</span>
-  <div data-lang="fr"><p><strong>Objectif.</strong> (Re)lancer LocalStack <strong>avec le socket Docker</strong> et créer ta <strong>première fonction Lambda</strong>.</p>
-<p><strong>🤔 Pourquoi le socket.</strong> Pour <strong>exécuter</strong> une fonction, LocalStack lance un petit conteneur (le runtime Python/Node). Il lui faut donc accéder à ton <strong>démon Docker</strong> — on le lui donne en montant <code>/var/run/docker.sock</code>. Sans ça, la fonction se crée mais reste en état <code>Failed</code> (« Docker not available »). C&#39;est la config LocalStack <strong>recommandée</strong>.</p>
-<p>Relance LocalStack avec le socket, crée le rôle et la fonction :</p>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ta <strong>première fonction Lambda</strong> — LocalStack tourne déjà avec le socket Docker (cf. prérequis), donc la fonction sera <strong>exécutable</strong>.</p>
+<p><strong>🤔 Pourquoi le socket.</strong> Pour <strong>exécuter</strong> une fonction, LocalStack lance un petit conteneur (le runtime Python/Node). Il lui faut donc accéder à ton <strong>démon Docker</strong> — c&#39;est pour ça qu&#39;on a monté <code>/var/run/docker.sock</code> au démarrage (prérequis). Sans ce montage, la fonction se crée mais reste en état <code>Failed</code> (« Docker not available »). C&#39;est la config LocalStack <strong>recommandée</strong>.</p>
+<p>Crée le rôle d&#39;exécution et la fonction :</p>
 </div>
-<div data-lang="en"><p><strong>Goal.</strong> (Re)launch LocalStack <strong>with the Docker socket</strong> and create your <strong>first Lambda function</strong>.</p>
-<p><strong>🤔 Why the socket.</strong> To <strong>run</strong> a function, LocalStack spawns a small container (the Python/Node runtime). It therefore needs access to your <strong>Docker daemon</strong> — we give it by mounting <code>/var/run/docker.sock</code>. Without it, the function creates but stays <code>Failed</code> (&quot;Docker not available&quot;). It&#39;s the <strong>recommended</strong> LocalStack config.</p>
-<p>Relaunch LocalStack with the socket, create the role and the function:</p>
+<div data-lang="en"><p><strong>Goal.</strong> Create your <strong>first Lambda function</strong> — LocalStack already runs with the Docker socket (see prerequisites), so the function will be <strong>executable</strong>.</p>
+<p><strong>🤔 Why the socket.</strong> To <strong>run</strong> a function, LocalStack spawns a small container (the Python/Node runtime). It therefore needs access to your <strong>Docker daemon</strong> — that&#39;s why we mounted <code>/var/run/docker.sock</code> at startup (prerequisites). Without that mount, the function creates but stays <code>Failed</code> (&quot;Docker not available&quot;). It&#39;s the <strong>recommended</strong> LocalStack config.</p>
+<p>Create the execution role and the function:</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Relancer LocalStack AVEC le socket Docker (pour exécuter Lambda) / relaunch WITH the Docker socket
-docker rm -f localstack 2&gt;/dev/null
-docker run -d --name localstack -p 4566:4566 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  localstack/localstack:3.8.1
-# attendre &quot;healthy&quot; / wait for &quot;healthy&quot;
-sleep 15
-
-# Rôle d&#39;exécution de la fonction / the function&#39;s execution role
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Rôle d&#39;exécution de la fonction / the function&#39;s execution role
 cat &gt; trust.json &lt;&lt;&#39;EOF&#39;
 { &quot;Version&quot;: &quot;2012-10-17&quot;, &quot;Statement&quot;: [ { &quot;Effect&quot;: &quot;Allow&quot;,
   &quot;Principal&quot;: { &quot;Service&quot;: &quot;lambda.amazonaws.com&quot; }, &quot;Action&quot;: &quot;sts:AssumeRole&quot; } ] }
@@ -525,7 +529,16 @@ echo &quot;labo rangé / lab tidied&quot;</code></pre>
 
 <h3 data-lang="fr">Suite logique du parcours</h3>
 <h3 data-lang="en">Logical next steps in the path</h3>
-<ul class="guides-list"></ul>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-decouplage-messagerie/">
+    <span class="num">49</span>
+    <span class="title-line" data-lang="fr">AWS — découplage &amp; données : SQS, SNS, DynamoDB</span>
+    <span class="title-line" data-lang="en">AWS — decoupling &amp; data: SQS, SNS, DynamoDB</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
 </section>
 
 <section id="cheatsheet">

@@ -95,14 +95,34 @@ By the end of this guide, you can:
 
 :::lang fr
 - Les guides AWS précédents du track (jusqu'au **réseau VPC**).
-- **LocalStack** et **`awslocal`**. Pour la partie Lambda, on (re)lancera LocalStack **avec le socket Docker monté** (étape 4) — commande donnée sur place.
+- **LocalStack** et **`awslocal`** configurés. ⚠️ Ce guide fait du **Lambda**, qui exige que LocalStack puisse **accéder à Docker** pour exécuter les fonctions. **Lance donc LocalStack avec le socket Docker monté dès le départ** (même si tu l'avais lancé sans socket dans les guides précédents), avec `-v /var/run/docker.sock:/var/run/docker.sock` :
+
+```bash
+docker rm -f localstack 2>/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+sleep 15   # attendre "healthy" / wait for "healthy"
+```
+
+  EC2 (étapes 1-3) fonctionne aussi avec cette config — comme ça on ne **redémarre pas** LocalStack en cours de route (un redémarrage effacerait l'instance EC2 créée aux étapes 1-3).
 - **aws-cli v2** recommandé (les fonctions Lambda utilisent `--cli-binary-format`, une option de la v2). Vérifie : `aws --version` → `aws-cli/2.x`.
 - `zip` installé (pour empaqueter la fonction Lambda).
 :::
 
 :::lang en
 - The previous AWS track guides (through **VPC networking**).
-- **LocalStack** and **`awslocal`**. For the Lambda part, we'll (re)launch LocalStack **with the Docker socket mounted** (step 4) — command given there.
+- **LocalStack** and **`awslocal`** configured. ⚠️ This guide does **Lambda**, which requires LocalStack to **access Docker** to run functions. **So launch LocalStack with the Docker socket mounted from the start** (even if you launched it without the socket in previous guides), with `-v /var/run/docker.sock:/var/run/docker.sock`:
+
+```bash
+docker rm -f localstack 2>/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+sleep 15   # attendre "healthy" / wait for "healthy"
+```
+
+  EC2 (steps 1-3) works with this config too — that way we don't **restart** LocalStack mid-way (a restart would wipe the EC2 instance created in steps 1-3).
 - **aws-cli v2** recommended (Lambda functions use `--cli-binary-format`, a v2 option). Check: `aws --version` → `aws-cli/2.x`.
 - `zip` installed (to package the Lambda function).
 :::
@@ -284,30 +304,22 @@ awslocal ec2 describe-volumes --query 'Volumes[0].[VolumeId,Size,State]' --outpu
 ### step-04
 
 :::lang fr
-**Objectif.** (Re)lancer LocalStack **avec le socket Docker** et créer ta **première fonction Lambda**.
+**Objectif.** Créer ta **première fonction Lambda** — LocalStack tourne déjà avec le socket Docker (cf. prérequis), donc la fonction sera **exécutable**.
 
-**🤔 Pourquoi le socket.** Pour **exécuter** une fonction, LocalStack lance un petit conteneur (le runtime Python/Node). Il lui faut donc accéder à ton **démon Docker** — on le lui donne en montant `/var/run/docker.sock`. Sans ça, la fonction se crée mais reste en état `Failed` (« Docker not available »). C'est la config LocalStack **recommandée**.
+**🤔 Pourquoi le socket.** Pour **exécuter** une fonction, LocalStack lance un petit conteneur (le runtime Python/Node). Il lui faut donc accéder à ton **démon Docker** — c'est pour ça qu'on a monté `/var/run/docker.sock` au démarrage (prérequis). Sans ce montage, la fonction se crée mais reste en état `Failed` (« Docker not available »). C'est la config LocalStack **recommandée**.
 
-Relance LocalStack avec le socket, crée le rôle et la fonction :
+Crée le rôle d'exécution et la fonction :
 :::
 
 :::lang en
-**Goal.** (Re)launch LocalStack **with the Docker socket** and create your **first Lambda function**.
+**Goal.** Create your **first Lambda function** — LocalStack already runs with the Docker socket (see prerequisites), so the function will be **executable**.
 
-**🤔 Why the socket.** To **run** a function, LocalStack spawns a small container (the Python/Node runtime). It therefore needs access to your **Docker daemon** — we give it by mounting `/var/run/docker.sock`. Without it, the function creates but stays `Failed` ("Docker not available"). It's the **recommended** LocalStack config.
+**🤔 Why the socket.** To **run** a function, LocalStack spawns a small container (the Python/Node runtime). It therefore needs access to your **Docker daemon** — that's why we mounted `/var/run/docker.sock` at startup (prerequisites). Without that mount, the function creates but stays `Failed` ("Docker not available"). It's the **recommended** LocalStack config.
 
-Relaunch LocalStack with the socket, create the role and the function:
+Create the execution role and the function:
 :::
 
 ```bash
-# Relancer LocalStack AVEC le socket Docker (pour exécuter Lambda) / relaunch WITH the Docker socket
-docker rm -f localstack 2>/dev/null
-docker run -d --name localstack -p 4566:4566 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  localstack/localstack:3.8.1
-# attendre "healthy" / wait for "healthy"
-sleep 15
-
 # Rôle d'exécution de la fonction / the function's execution role
 cat > trust.json <<'EOF'
 { "Version": "2012-10-17", "Statement": [ { "Effect": "Allow",
