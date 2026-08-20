@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">GCP — les fondamentaux, en local — jiha.tech</title>
+  <title data-lang="en">GCP — the fundamentals, locally — jiha.tech</title>
+  <meta name="description" content="Démarre Google Cloud sans compte ni facture grâce aux émulateurs locaux : installe le SDK gcloud, comprends la hiérarchie des ressources (organisation, projets), les régions et zones, et manipule tes premiers services en local — un bucket Cloud Storage (via fake-gcs-server) et un sujet Pub/Sub (émulateur officiel). La base du track Associate Cloud Engineer (ACE)." data-lang="fr">
+  <meta name="description" content="Start Google Cloud with no account or bill thanks to local emulators: install the gcloud SDK, understand the resource hierarchy (organization, projects), regions and zones, and handle your first services locally — a Cloud Storage bucket (via fake-gcs-server) and a Pub/Sub topic (official emulator). The base of the Associate Cloud Engineer (ACE) track." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="GCP — les fondamentaux, en local">
+  <meta property="og:description" content="Démarre Google Cloud sans compte ni facture grâce aux émulateurs locaux : installe le SDK gcloud, comprends la hiérarchie des ressources (organisation, projets), les régions et zones, et manipule tes premiers services en local — un bucket Cloud Storage (via fake-gcs-server) et un sujet Pub/Sub (émulateur officiel). La base du track Associate Cloud Engineer (ACE).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/gcp-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/gcp-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="gcp-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/gcp-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/gcp-fondamentaux</div>
+    <h1 data-lang="fr">GCP — les fondamentaux, en local</h1>
+    <h1 data-lang="en">GCP — the fundamentals, locally</h1>
+    <p class="tagline" data-lang="fr">gcloud, émulateurs, projets, régions, Cloud Storage, Pub/Sub.</p>
+    <p class="tagline" data-lang="en">gcloud, emulators, projects, regions, Cloud Storage, Pub/Sub.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 190 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-20</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 190 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-20</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Après AWS, voici <strong>Google Cloud Platform (GCP)</strong> — l&#39;autre grand fournisseur, réputé pour ses données, son réseau mondial et Kubernetes (qu&#39;il a inventé). Comme pour AWS, on veut apprendre <strong>sans compte, sans carte, sans facture</strong>. La différence : GCP n&#39;a <strong>pas</strong> d&#39;émulateur unique aussi complet que LocalStack. Mais Google fournit des <strong>émulateurs officiels</strong> pour ses services de données (Pub/Sub, Firestore/Datastore), et la communauté un émulateur de <strong>Cloud Storage</strong> (fake-gcs-server). On assemble ces briques pour un <strong>vrai labo local</strong>.</p>
+<p>Ce guide pose les fondations : tu installes le <strong>SDK <code>gcloud</code></strong> (l&#39;outil en ligne de commande de GCP), tu montes le <strong>labo local</strong> (les émulateurs + fake-gcs dans Docker), tu comprends le <strong>modèle GCP</strong> (organisation → projets, régions &amp; zones), et tu crées tes deux premiers objets — un <strong>bucket Cloud Storage</strong> et un <strong>sujet Pub/Sub</strong> — pour de vrai, en local. Tu repars avec le modèle mental des <strong>façons d&#39;interagir</strong> avec GCP (console, <code>gcloud</code>, API/SDK, IaC).</p>
+<p>C&#39;est la première marche du track <strong>Associate Cloud Engineer (ACE)</strong>, la certification GCP d&#39;entrée pour les ingénieurs cloud. Tout ce qui est <strong>émulable</strong> (stockage, messagerie, NoSQL) se fait en local ; les services qui <strong>exigent un vrai compte</strong> (machines Compute Engine, réseau VPC, IAM appliqué, GKE) sont vus en concept + <code>gcloud</code> + Terraform, et un guide final t&#39;explique comment <strong>passer en réel</strong> proprement avec les garde-fous de coût.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu connais Docker, tu as peut-être fait le track AWS, et tu veux découvrir GCP sans risque financier.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as jamais lancé de conteneur → fais d&#39;abord <em>Docker fondamentaux</em> (fake-gcs tourne dans Docker).</li><li>Tu veux <strong>tout de suite</strong> cliquer dans la vraie console GCP → possible, mais ce track t&#39;apprend d&#39;abord les concepts sans facture ; le guide « passer en réel » viendra ensuite.</li></ul>
+</div>
+<div data-lang="en"><p>After AWS, here&#39;s <strong>Google Cloud Platform (GCP)</strong> — the other big provider, known for data, its global network, and Kubernetes (which it invented). As with AWS, we want to learn <strong>with no account, no card, no bill</strong>. The difference: GCP has <strong>no</strong> single emulator as complete as LocalStack. But Google provides <strong>official emulators</strong> for its data services (Pub/Sub, Firestore/Datastore), and the community a <strong>Cloud Storage</strong> emulator (fake-gcs-server). We assemble these blocks into a <strong>real local lab</strong>.</p>
+<p>This guide lays the foundations: you install the <strong><code>gcloud</code> SDK</strong> (GCP&#39;s command-line tool), set up the <strong>local lab</strong> (the emulators + fake-gcs in Docker), understand the <strong>GCP model</strong> (organization → projects, regions &amp; zones), and create your first two objects — a <strong>Cloud Storage bucket</strong> and a <strong>Pub/Sub topic</strong> — for real, locally. You leave with the mental model of the <strong>ways to interact</strong> with GCP (console, <code>gcloud</code>, API/SDK, IaC).</p>
+<p>It&#39;s the first step of the <strong>Associate Cloud Engineer (ACE)</strong> track, GCP&#39;s entry certification for cloud engineers. Everything <strong>emulatable</strong> (storage, messaging, NoSQL) runs locally; the services that <strong>require a real account</strong> (Compute Engine machines, VPC networking, enforced IAM, GKE) are seen conceptually + <code>gcloud</code> + Terraform, and a final guide shows how to <strong>go real</strong> cleanly with cost guardrails.</p>
+<p><strong>Who it&#39;s for:</strong> you know Docker, maybe did the AWS track, and want to discover GCP without financial risk.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;ve never launched a container → do <em>Docker fundamentals</em> first (fake-gcs runs in Docker).</li><li>You want to <strong>immediately</strong> click in the real GCP console → possible, but this track teaches the concepts bill-free first; the &quot;go real&quot; guide comes later.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Installer et configurer le <strong>SDK <code>gcloud</code></strong>.</li><li>Monter un <strong>labo local</strong> : émulateurs Pub/Sub &amp; Datastore + Cloud Storage (fake-gcs) dans Docker.</li><li>Expliquer le <strong>modèle GCP</strong> : organisation → dossiers → <strong>projets</strong> → ressources.</li><li>Distinguer <strong>régions</strong> et <strong>zones</strong>, et savoir où vivent les ressources.</li><li>Créer et manipuler un <strong>bucket Cloud Storage</strong> avec <code>gcloud storage</code> (en local).</li><li>Créer un <strong>sujet Pub/Sub</strong> et faire circuler un message (émulateur).</li><li>Nommer les <strong>façons d&#39;interagir</strong> avec GCP (console, <code>gcloud</code>, API/SDK, IaC).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Install and configure the <strong><code>gcloud</code> SDK</strong>.</li><li>Set up a <strong>local lab</strong>: Pub/Sub &amp; Datastore emulators + Cloud Storage (fake-gcs) in Docker.</li><li>Explain the <strong>GCP model</strong>: organization → folders → <strong>projects</strong> → resources.</li><li>Tell <strong>regions</strong> from <strong>zones</strong>, and know where resources live.</li><li>Create and handle a <strong>Cloud Storage bucket</strong> with <code>gcloud storage</code> (locally).</li><li>Create a <strong>Pub/Sub topic</strong> and move a message through it (emulator).</li><li>Name the <strong>ways to interact</strong> with GCP (console, <code>gcloud</code>, API/SDK, IaC).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Docker</strong> installé et fonctionnel (fake-gcs-server tourne dedans).</li><li><strong>Python 3</strong> + <code>pip</code> (pour le client Pub/Sub) et <strong>Java</strong> (les émulateurs Google sont en Java — souvent déjà là, sinon <code>apt install default-jre</code>).</li><li>~2 Go de disque (SDK gcloud + composants émulateurs).</li><li>Aucun compte Google Cloud, aucune carte bancaire. C&#39;est tout l&#39;intérêt.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Docker</strong> installed and working (fake-gcs-server runs inside it).</li><li><strong>Python 3</strong> + <code>pip</code> (for the Pub/Sub client) and <strong>Java</strong> (Google&#39;s emulators are Java-based — often already there, otherwise <code>apt install default-jre</code>).</li><li>~2 GB disk (gcloud SDK + emulator components).</li><li>No Google Cloud account, no credit card. That&#39;s the whole point.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le modèle GCP.</strong> Tout est organisé en <strong>hiérarchie</strong> : une <strong>organisation</strong> (ton entreprise) contient des <strong>dossiers</strong> (départements, équipes), qui contiennent des <strong>projets</strong>, qui contiennent les <strong>ressources</strong> (machines, buckets…). Le <strong>projet</strong> est l&#39;unité centrale : facturation, quotas, IAM et APIs y sont attachés. Chaque projet a un <strong>ID unique mondialement</strong>. En labo, on travaille avec un projet fictif (<code>demo-projet</code>).</p>
+<p><strong>Régions et zones.</strong> Comme AWS, GCP est découpé géographiquement. Une <strong>région</strong> est une zone du monde (<code>europe-west1</code> en Belgique, <code>europe-west9</code> à Paris). Chaque région contient des <strong>zones</strong> (<code>europe-west9-a</code>, <code>-b</code>, <code>-c</code>) — des datacenters isolés. Certaines ressources sont <strong>zonales</strong> (une VM vit dans une zone), d&#39;autres <strong>régionales</strong> (répliquées sur plusieurs zones), d&#39;autres <strong>multirégionales</strong> (un bucket peut l&#39;être). Répartir sur plusieurs zones = haute disponibilité, un pilier de l&#39;ACE.</p>
+<p><strong>Le SDK <code>gcloud</code>.</strong> L&#39;outil en ligne de commande de GCP. <code>gcloud</code> gère l&#39;identité, les projets, la config et la plupart des services. Deux compagnons : <strong><code>gcloud storage</code></strong> (Cloud Storage, ex-<code>gsutil</code>) et <strong><code>bq</code></strong> (BigQuery). En réel, <code>gcloud auth login</code> t&#39;authentifie ; en labo, on n&#39;a <strong>pas</strong> besoin d&#39;auth (les émulateurs acceptent tout).</p>
+<p><strong>Émulateurs locaux.</strong> Google fournit des <strong>émulateurs officiels</strong> pour <strong>Pub/Sub</strong>, <strong>Firestore</strong>, <strong>Datastore</strong>, <strong>Bigtable</strong>, <strong>Spanner</strong> — ils tournent sur ta machine (via <code>gcloud beta emulators ...</code>), sans compte. Pour <strong>Cloud Storage</strong>, on utilise <strong>fake-gcs-server</strong> (communautaire, dans Docker). On configure les clients/outils pour taper ces émulateurs plutôt que le vrai GCP, via des <strong>variables d&#39;environnement</strong> (<code>PUBSUB_EMULATOR_HOST</code>, endpoint de storage…).</p>
+<p><strong>Cloud Storage (GCS).</strong> Le stockage d&#39;objets de GCP (équivalent de S3) : des <strong>buckets</strong> (nom unique mondial) contenant des <strong>objets</strong>. On le pilote avec <strong><code>gcloud storage</code></strong>. C&#39;est le service de stockage phare — un guide entier lui est consacré ensuite.</p>
+<p><strong>Pub/Sub.</strong> Le service de <strong>messagerie</strong> de GCP : un <strong>sujet</strong> (topic) reçoit des messages, des <strong>abonnements</strong> (subscriptions) les distribuent aux consommateurs. C&#39;est la brique de découplage et d&#39;événementiel (comme SNS+SQS chez AWS réunis). Émulable en local — parfait pour apprendre.</p>
+</div>
+<div data-lang="en"><p><strong>The GCP model.</strong> Everything is organized in a <strong>hierarchy</strong>: an <strong>organization</strong> (your company) contains <strong>folders</strong> (departments, teams), which contain <strong>projects</strong>, which contain the <strong>resources</strong> (machines, buckets…). The <strong>project</strong> is the central unit: billing, quotas, IAM and APIs attach to it. Each project has a <strong>globally unique ID</strong>. In the lab, we use a fictional project (<code>demo-projet</code>).</p>
+<p><strong>Regions and zones.</strong> Like AWS, GCP is split geographically. A <strong>region</strong> is a world area (<code>europe-west1</code> in Belgium, <code>europe-west9</code> in Paris). Each region contains <strong>zones</strong> (<code>europe-west9-a</code>, <code>-b</code>, <code>-c</code>) — isolated datacenters. Some resources are <strong>zonal</strong> (a VM lives in a zone), others <strong>regional</strong> (replicated across zones), others <strong>multi-regional</strong> (a bucket can be). Spreading across zones = high availability, an ACE pillar.</p>
+<p><strong>The <code>gcloud</code> SDK.</strong> GCP&#39;s command-line tool. <code>gcloud</code> handles identity, projects, config and most services. Two companions: <strong><code>gcloud storage</code></strong> (Cloud Storage, formerly <code>gsutil</code>) and <strong><code>bq</code></strong> (BigQuery). In real life, <code>gcloud auth login</code> authenticates you; in the lab, we <strong>don&#39;t</strong> need auth (the emulators accept anything).</p>
+<p><strong>Local emulators.</strong> Google provides <strong>official emulators</strong> for <strong>Pub/Sub</strong>, <strong>Firestore</strong>, <strong>Datastore</strong>, <strong>Bigtable</strong>, <strong>Spanner</strong> — they run on your machine (via <code>gcloud beta emulators ...</code>), no account. For <strong>Cloud Storage</strong>, we use <strong>fake-gcs-server</strong> (community, in Docker). We configure the clients/tools to hit these emulators instead of real GCP, via <strong>environment variables</strong> (<code>PUBSUB_EMULATOR_HOST</code>, the storage endpoint…).</p>
+<p><strong>Cloud Storage (GCS).</strong> GCP&#39;s object storage (S3&#39;s equivalent): <strong>buckets</strong> (globally unique name) holding <strong>objects</strong>. You drive it with <strong><code>gcloud storage</code></strong>. It&#39;s the flagship storage service — a whole guide is dedicated to it next.</p>
+<p><strong>Pub/Sub.</strong> GCP&#39;s <strong>messaging</strong> service: a <strong>topic</strong> receives messages, <strong>subscriptions</strong> distribute them to consumers. It&#39;s the decoupling and event-driven block (like AWS&#39;s SNS+SQS combined). Emulatable locally — perfect to learn.</p>
+</div>
+
+<figure class="schema" id="figure-gcp-local-lab">
+  <p>[schema "gcp-local-lab" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le labo GCP local : ta machine → gcloud &amp; clients → émulateurs (Pub/Sub, Datastore via gcloud emulators) + Cloud Storage (fake-gcs-server dans Docker). Les mêmes commandes/API qu&#39;en réel, sans compte ni facture.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The local GCP lab: your machine → gcloud &amp; clients → emulators (Pub/Sub, Datastore via gcloud emulators) + Cloud Storage (fake-gcs-server in Docker). The same commands/APIs as the real thing, no account or bill.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer le <strong>SDK <code>gcloud</code></strong> et les composants d&#39;émulateurs.</p>
+<p><strong>🤔 Pourquoi le SDK complet.</strong> <code>gcloud</code> est l&#39;outil central ; les <strong>émulateurs</strong> (Pub/Sub, Datastore) sont des <strong>composants</strong> à ajouter. On installe le SDK puis ces composants, une fois.</p>
+<p>Installe le SDK (Linux ; sur macOS/Windows, voir la doc officielle) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install the <strong><code>gcloud</code> SDK</strong> and the emulator components.</p>
+<p><strong>🤔 Why the full SDK.</strong> <code>gcloud</code> is the central tool; the <strong>emulators</strong> (Pub/Sub, Datastore) are <strong>components</strong> to add. We install the SDK then those components, once.</p>
+<p>Install the SDK (Linux; on macOS/Windows, see the official docs):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Télécharger et extraire le SDK / download and extract the SDK
+curl -sSO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
+tar -xzf google-cloud-cli-linux-x86_64.tar.gz
+./google-cloud-sdk/install.sh --quiet --path-update true
+export PATH=&quot;$PWD/google-cloud-sdk/bin:$PATH&quot;   # ou relance ton shell / or restart your shell
+
+# Vérifier / verify
+gcloud --version | head -1
+
+# Installer les composants d&#39;émulateurs / install the emulator components
+gcloud components install pubsub-emulator cloud-datastore-emulator beta --quiet</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud --version</code> affiche <code>Google Cloud SDK 5xx.x.x</code>. La commande <code>gcloud components list</code> montre <code>pubsub-emulator</code>, <code>cloud-datastore-emulator</code> et <code>beta</code> comme <strong>Installed</strong>. Tu as l&#39;outil et les émulateurs — pas encore d&#39;authentification, et c&#39;est normal : en labo local, on n&#39;en a pas besoin. ⚠️ Les émulateurs sont en <strong>Java</strong> : si <code>gcloud beta emulators</code> se plaint, installe un JRE (<code>apt install default-jre</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud --version</code> shows <code>Google Cloud SDK 5xx.x.x</code>. <code>gcloud components list</code> shows <code>pubsub-emulator</code>, <code>cloud-datastore-emulator</code> and <code>beta</code> as <strong>Installed</strong>. You have the tool and the emulators — no authentication yet, and that&#39;s fine: in the local lab, we don&#39;t need it. ⚠️ The emulators are <strong>Java</strong>-based: if <code>gcloud beta emulators</code> complains, install a JRE (<code>apt install default-jre</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Monter le labo local</strong> : lancer les émulateurs et Cloud Storage (fake-gcs), et poser les variables d&#39;environnement.</p>
+<p><strong>🤔 Le montage.</strong> Trois briques : l&#39;émulateur <strong>Pub/Sub</strong> (port 8085), l&#39;émulateur <strong>Datastore</strong> (port 8081), et <strong>fake-gcs-server</strong> pour Cloud Storage (port 4443, dans Docker). On dit ensuite aux clients/outils de taper <strong>ces</strong> endpoints via des variables — sinon ils viseraient le vrai GCP.</p>
+<p>Lance les trois briques :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Set up the local lab</strong>: launch the emulators and Cloud Storage (fake-gcs), and set the environment variables.</p>
+<p><strong>🤔 The setup.</strong> Three blocks: the <strong>Pub/Sub</strong> emulator (port 8085), the <strong>Datastore</strong> emulator (port 8081), and <strong>fake-gcs-server</strong> for Cloud Storage (port 4443, in Docker). We then tell clients/tools to hit <strong>these</strong> endpoints via variables — otherwise they&#39;d target real GCP.</p>
+<p>Launch the three blocks:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Émulateur Pub/Sub (en arrière-plan) / Pub/Sub emulator (background)
+gcloud beta emulators pubsub start --host-port=localhost:8085 --project=demo-projet &amp;
+
+# 2) Émulateur Datastore (pour le guide stockage) / Datastore emulator
+gcloud beta emulators datastore start --host-port=localhost:8081 --project=demo-projet --no-store-on-disk &amp;
+
+# 3) Cloud Storage local via fake-gcs-server (Docker) / Cloud Storage via fake-gcs-server
+docker run -d --name fakegcs -p 4443:4443 fsouza/fake-gcs-server \
+  -scheme http -port 4443 -public-host localhost:4443
+
+# 4) Variables : dire aux outils de viser les émulateurs / point tools at the emulators
+export CLOUDSDK_AUTH_DISABLE_CREDENTIALS=True                          # pas d&#39;auth en labo
+export PUBSUB_EMULATOR_HOST=localhost:8085
+export DATASTORE_EMULATOR_HOST=localhost:8081
+export CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE=http://localhost:4443/  # gcloud storage -&gt; fake-gcs
+# (le projet, lui, se fige avec &quot;gcloud config set project&quot; à l&#39;étape 3 / the project is set in step 3)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker ps</code> montre <code>fakegcs</code> en cours. Les deux émulateurs <code>gcloud</code> affichent chacun <code>Server started</code> / <code>is now running</code> dans leur sortie. Une requête directe confirme que Cloud Storage local répond : <code>curl -s http://localhost:4443/storage/v1/b?project=demo-projet</code> renvoie un JSON (<code>&quot;kind&quot;: &quot;storage#buckets&quot;</code>). ⚠️ <strong>Garde ce shell ouvert</strong> (les variables et les processus en arrière-plan y vivent). Astuce : mets ces exports dans un fichier <code>lab.env</code> et fais <code>source lab.env</code> à chaque session. Note : les émulateurs se pilotent via les <strong>clients/<code>gcloud storage</code></strong>, pas via <code>gcloud pubsub</code> (qui, lui, vise toujours le vrai GCP).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker ps</code> shows <code>fakegcs</code> running. Both <code>gcloud</code> emulators print <code>Server started</code> / <code>is now running</code> in their output. A direct request confirms local Cloud Storage answers: <code>curl -s http://localhost:4443/storage/v1/b?project=demo-projet</code> returns JSON (<code>&quot;kind&quot;: &quot;storage#buckets&quot;</code>). ⚠️ <strong>Keep this shell open</strong> (the variables and background processes live in it). Tip: put these exports in a <code>lab.env</code> file and <code>source lab.env</code> each session. Note: the emulators are driven via the <strong>client libraries/<code>gcloud storage</code></strong>, not via <code>gcloud pubsub</code> (which always targets real GCP).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>modèle GCP</strong> et configurer ton <strong>projet</strong> de travail.</p>
+<p><strong>🤔 Le projet, unité centrale.</strong> Sur GCP, <strong>tout</strong> vit dans un <strong>projet</strong> : facturation, quotas, IAM, APIs. On configure <code>gcloud</code> pour cibler notre projet de labo <code>demo-projet</code>. En réel, tu créerais un projet avec un ID unique mondial ; ici il est fictif (les émulateurs s&#39;en contentent).</p>
+<p>Configure et inspecte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>GCP model</strong> and set your working <strong>project</strong>.</p>
+<p><strong>🤔 The project, central unit.</strong> On GCP, <strong>everything</strong> lives in a <strong>project</strong>: billing, quotas, IAM, APIs. We configure <code>gcloud</code> to target our lab project <code>demo-projet</code>. In real life, you&#39;d create a project with a globally unique ID; here it&#39;s fictional (the emulators are fine with it).</p>
+<p>Configure and inspect:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cibler le projet (déjà fait via la variable, on le fige dans la config) / set the project
+gcloud config set project demo-projet
+
+# Voir la config active / see the active config
+gcloud config list
+
+# La hiérarchie (en réel : organisation &gt; dossiers &gt; projets &gt; ressources)
+# The hierarchy (real: organization &gt; folders &gt; projects &gt; resources)
+gcloud config get-value project</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud config list</code> montre <code>project = demo-projet</code> sous <code>[core]</code>. <code>gcloud config get-value project</code> renvoie <code>demo-projet</code>. Tu as fixé le <strong>contexte</strong> de toutes tes futures commandes. Retiens la hiérarchie : <strong>organisation → dossiers → projets → ressources</strong>. Le <strong>projet</strong> est ce que tu manipules au quotidien (et ce qui, en réel, reçoit la facture). Chaque ressource que tu crées appartient à <strong>ce</strong> projet. ⚠️ En réel, l&#39;ID de projet est <strong>unique mondialement</strong> et <strong>immuable</strong> — on le choisit avec soin (souvent <code>entreprise-app-env</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud config list</code> shows <code>project = demo-projet</code> under <code>[core]</code>. <code>gcloud config get-value project</code> returns <code>demo-projet</code>. You&#39;ve fixed the <strong>context</strong> for all your future commands. Remember the hierarchy: <strong>organization → folders → projects → resources</strong>. The <strong>project</strong> is what you handle daily (and what, in real life, gets the bill). Every resource you create belongs to <strong>this</strong> project. ⚠️ In real life, the project ID is <strong>globally unique</strong> and <strong>immutable</strong> — chosen carefully (often <code>company-app-env</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton <strong>premier bucket Cloud Storage</strong> et y déposer un objet — avec <code>gcloud storage</code>, en local.</p>
+<p><strong>🤔 Le « hello world » de GCP.</strong> Cloud Storage (GCS) est le stockage d&#39;objets : des <strong>fichiers</strong> dans des <strong>buckets</strong>. On le pilote avec <code>gcloud storage</code> (l&#39;outil moderne, ex-<code>gsutil</code>). Grâce à la variable <code>CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE</code>, ces commandes tapent <strong>fake-gcs-server</strong> en local — mais la syntaxe est <strong>exactement</strong> celle du vrai GCP.</p>
+<p>Crée et remplis un bucket :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your <strong>first Cloud Storage bucket</strong> and drop an object in it — with <code>gcloud storage</code>, locally.</p>
+<p><strong>🤔 GCP&#39;s &quot;hello world&quot;.</strong> Cloud Storage (GCS) is object storage: <strong>files</strong> in <strong>buckets</strong>. You drive it with <code>gcloud storage</code> (the modern tool, formerly <code>gsutil</code>). Thanks to the <code>CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE</code> variable, these commands hit <strong>fake-gcs-server</strong> locally — but the syntax is <strong>exactly</strong> that of real GCP.</p>
+<p>Create and fill a bucket:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un bucket (gs:// = le schéma Cloud Storage) / create a bucket
+gcloud storage buckets create gs://mon-premier-bucket
+
+# Déposer un objet / drop an object
+echo &quot;Bonjour GCP depuis ma machine&quot; &gt; bonjour.txt
+gcloud storage cp bonjour.txt gs://mon-premier-bucket/bonjour.txt
+
+# Lister le contenu / list the content
+gcloud storage ls gs://mon-premier-bucket/
+
+# Relire l&#39;objet / read the object back
+gcloud storage cat gs://mon-premier-bucket/bonjour.txt</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>buckets create</code> affiche <code>Creating gs://mon-premier-bucket/...</code>. <code>cp</code> téléverse le fichier. <code>ls gs://mon-premier-bucket/</code> liste <code>gs://mon-premier-bucket/bonjour.txt</code>. <code>cat</code> renvoie <code>Bonjour GCP depuis ma machine</code>. Tu viens de stocker un objet dans le cloud (émulé) avec la <strong>vraie</strong> commande <code>gcloud storage</code> — la même créerait un vrai bucket en production. ⚠️ En réel, un nom de bucket est <strong>unique mondialement</strong> : <code>mon-premier-bucket</code> serait pris (on préfixe avec un identifiant unique).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>buckets create</code> shows <code>Creating gs://mon-premier-bucket/...</code>. <code>cp</code> uploads the file. <code>ls gs://mon-premier-bucket/</code> lists <code>gs://mon-premier-bucket/bonjour.txt</code>. <code>cat</code> returns <code>Bonjour GCP depuis ma machine</code>. You just stored an object in the (emulated) cloud with the <strong>real</strong> <code>gcloud storage</code> command — the same would create a real bucket in production. ⚠️ In real life, a bucket name is <strong>globally unique</strong>: <code>mon-premier-bucket</code> would be taken (prefix with a unique identifier).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton <strong>premier sujet Pub/Sub</strong> et faire circuler un message — via l&#39;émulateur.</p>
+<p><strong>🤔 Le découplage par messages.</strong> Pub/Sub, c&#39;est un <strong>sujet</strong> où un producteur <strong>publie</strong>, et des <strong>abonnements</strong> qui distribuent aux consommateurs. C&#39;est LA brique d&#39;événementiel de GCP. L&#39;émulateur se pilote via les <strong>bibliothèques clientes</strong> (ici Python) — car <code>gcloud pubsub</code> vise toujours le vrai GCP, pas l&#39;émulateur. La variable <code>PUBSUB_EMULATOR_HOST</code> fait que le client tape l&#39;émulateur local.</p>
+<p>Installe le client et fais un cycle complet :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your <strong>first Pub/Sub topic</strong> and move a message through it — via the emulator.</p>
+<p><strong>🤔 Message decoupling.</strong> Pub/Sub is a <strong>topic</strong> where a producer <strong>publishes</strong>, and <strong>subscriptions</strong> distribute to consumers. It&#39;s GCP&#39;s event-driven block. The emulator is driven via <strong>client libraries</strong> (here Python) — because <code>gcloud pubsub</code> always targets real GCP, not the emulator. The <code>PUBSUB_EMULATOR_HOST</code> variable makes the client hit the local emulator.</p>
+<p>Install the client and run a full cycle:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install google-cloud-pubsub
+# PUBSUB_EMULATOR_HOST est déjà exporté (étape 2) / already exported in step 2</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># premier_pubsub.py
+from google.cloud import pubsub_v1
+projet = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient()
+sub = pubsub_v1.SubscriberClient()
+
+sujet = pub.topic_path(projet, &quot;commandes&quot;)
+abonnement = sub.subscription_path(projet, &quot;traiteur&quot;)
+
+pub.create_topic(request={&quot;name&quot;: sujet})
+sub.create_subscription(request={&quot;name&quot;: abonnement, &quot;topic&quot;: sujet})
+print(&quot;sujet et abonnement créés&quot;)
+
+pub.publish(sujet, b&quot;commande #42&quot;).result()
+print(&quot;message publié&quot;)
+
+reponse = sub.pull(request={&quot;subscription&quot;: abonnement, &quot;max_messages&quot;: 10})
+for msg in reponse.received_messages:
+    print(&quot;reçu :&quot;, msg.message.data.decode())
+    sub.acknowledge(request={&quot;subscription&quot;: abonnement, &quot;ack_ids&quot;: [msg.ack_id]})</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 premier_pubsub.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>sujet et abonnement créés</code>, <code>message publié</code>, puis <code>reçu : commande #42</code>. Tu viens de faire circuler un message de bout en bout dans Pub/Sub, <strong>en local</strong> : un producteur publie sur un <strong>sujet</strong>, un <strong>abonnement</strong> délivre au consommateur, qui <strong>acquitte</strong> (ack) le message une fois traité. C&#39;est le socle de toute architecture événementielle GCP — approfondi au guide <em>messagerie</em>. ⚠️ En réel, tu utiliserais la même bibliothèque <strong>sans</strong> <code>PUBSUB_EMULATOR_HOST</code> (elle viserait alors le vrai Pub/Sub), et <code>gcloud pubsub topics create</code> pour la CLI.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>sujet et abonnement créés</code>, <code>message publié</code>, then <code>reçu : commande #42</code>. You just moved a message end-to-end through Pub/Sub, <strong>locally</strong>: a producer publishes to a <strong>topic</strong>, a <strong>subscription</strong> delivers to the consumer, which <strong>acknowledges</strong> (ack) the message once processed. It&#39;s the foundation of any GCP event-driven architecture — deepened in the <em>messaging</em> guide. ⚠️ In real life, you&#39;d use the same library <strong>without</strong> <code>PUBSUB_EMULATOR_HOST</code> (it would then target real Pub/Sub), and <code>gcloud pubsub topics create</code> for the CLI.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer les <strong>façons d&#39;interagir</strong> avec GCP et les <strong>essentiels <code>gcloud</code></strong>.</p>
+<p><strong>🤔 Choisir le bon outil.</strong> Comme AWS, GCP se pilote de quatre façons : la <strong>console</strong> web (explorer), la <strong>CLI <code>gcloud</code></strong> (scripter, reproduire), l&#39;<strong>API/SDK</strong> (depuis ton code — ce qu&#39;on a fait pour Pub/Sub), et l&#39;<strong>IaC</strong> (Terraform provider <code>google</code>, pour du reproductible versionné). En pro, on vit surtout en <strong><code>gcloud</code></strong> et <strong>Terraform</strong>.</p>
+<p>Explore les essentiels <code>gcloud</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>ways to interact</strong> with GCP and the <strong><code>gcloud</code> essentials</strong>.</p>
+<p><strong>🤔 Pick the right tool.</strong> Like AWS, GCP is driven four ways: the web <strong>console</strong> (explore), the <strong><code>gcloud</code> CLI</strong> (script, reproduce), the <strong>API/SDK</strong> (from your code — what we did for Pub/Sub), and <strong>IaC</strong> (Terraform <code>google</code> provider, for versioned reproducibility). In the field, you mostly live in <strong><code>gcloud</code></strong> and <strong>Terraform</strong>.</p>
+<p>Explore the <code>gcloud</code> essentials:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Config &amp; contexte / config &amp; context
+gcloud config list                       # projet, compte, région actifs / active project, account, region
+gcloud config configurations list        # profils de config (comme les profils AWS) / config profiles
+
+# Aide &amp; découverte / help &amp; discovery
+gcloud storage --help | head -n 15       # les sous-commandes de storage / storage subcommands
+gcloud storage ls                        # tous tes buckets locaux / all your local buckets
+
+# Formats de sortie (utile partout) / output formats (useful everywhere)
+gcloud storage buckets list --format=&quot;value(name)&quot;   # juste les noms / just the names
+gcloud storage buckets list --format=json | head     # JSON complet / full JSON</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud config list</code> affiche ton projet et le fait que l&#39;auth est désactivée (labo). <code>gcloud storage ls</code> liste <code>gs://mon-premier-bucket/</code>. <code>--format=&quot;value(name)&quot;</code> extrait juste le nom du bucket — l&#39;équivalent GCP des <code>--query</code>/<code>--output</code> d&#39;AWS. Retiens les <strong>4 façons</strong> : console (explorer), <code>gcloud</code> (CLI), API/SDK (code), Terraform (IaC). Ce track te fait vivre surtout <strong><code>gcloud</code></strong> (ce guide) et <strong>Terraform</strong> (guide IAM/IaC) — les deux compétences pro de l&#39;ACE.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud config list</code> shows your project and that auth is disabled (lab). <code>gcloud storage ls</code> lists <code>gs://mon-premier-bucket/</code>. <code>--format=&quot;value(name)&quot;</code> extracts just the bucket name — GCP&#39;s equivalent of AWS&#39;s <code>--query</code>/<code>--output</code>. Remember the <strong>4 ways</strong>: console (explore), <code>gcloud</code> (CLI), API/SDK (code), Terraform (IaC). This track has you live mostly in <strong><code>gcloud</code></strong> (this guide) and <strong>Terraform</strong> (IAM/IaC guide) — the ACE&#39;s two pro skills.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ranger ton labo — arrêter les émulateurs et nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène de labo.</strong> En local, rien ne facture, mais prends dès maintenant le réflexe <strong>créer → utiliser → nettoyer</strong> (crucial en réel). On supprime le bucket, on arrête fake-gcs, et on stoppe les émulateurs.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tidy your lab — stop the emulators and clean up.</p>
+<p><strong>🤔 Lab hygiene.</strong> Locally, nothing bills, but build the <strong>create → use → clean up</strong> reflex now (crucial in real life). We delete the bucket, stop fake-gcs, and stop the emulators.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Supprimer les objets, puis le bucket / delete the objects, then the bucket
+gcloud storage rm gs://mon-premier-bucket/**          # les objets / the objects
+gcloud storage buckets delete gs://mon-premier-bucket # le bucket / the bucket
+# En réel, &quot;gcloud storage rm --recursive gs://mon-premier-bucket&quot; fait les deux d&#39;un coup.
+# On real GCP, &quot;gcloud storage rm --recursive gs://mon-premier-bucket&quot; does both at once.
+
+# Arrêter Cloud Storage local / stop local Cloud Storage
+docker stop fakegcs &amp;&amp; docker rm fakegcs
+
+# Arrêter les émulateurs gcloud (ils tournent en arrière-plan de ce shell) / stop the emulators
+#   -&gt; Ctrl+C sur leurs processus, ou :
+kill %1 %2 2&gt;/dev/null            # les jobs lancés à l&#39;étape 2 / the background jobs from step 2
+jobs                              # vérifier qu&#39;ils sont arrêtés / check they&#39;re stopped</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>rm gs://.../<strong></code> puis <code>buckets delete</code>, le bucket a disparu (<code>gcloud storage ls</code> ne le liste plus). <code>docker ps</code> ne montre plus <code>fakegcs</code>. <code>jobs</code> ne liste plus les émulateurs. Ton labo est rangé. ⚠️ </strong>Note émulateur :<strong> contre fake-gcs, ces commandes de suppression peuvent afficher un avertissement </strong>inoffensif<strong> (<code>&#39;NoneType&#39; object has no attribute &#39;items&#39;</code> ou un <code>404</code> sur « managed folders ») </strong>même quand la suppression réussit<strong> — c&#39;est une limite de l&#39;émulateur, pas un vrai problème (vérifie avec <code>gcloud storage ls</code> que le bucket est bien parti). Réflexe </strong>crucial<strong> transféré au réel : </strong>toujours nettoyer** ce que tu crées (une ressource oubliée = une facture).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>rm gs://.../<strong></code> then <code>buckets delete</code>, the bucket is gone (<code>gcloud storage ls</code> no longer lists it). <code>docker ps</code> no longer shows <code>fakegcs</code>. <code>jobs</code> no longer lists the emulators. Your lab is tidy. ⚠️ </strong>Emulator note:<strong> against fake-gcs, these delete commands may print a </strong>harmless<strong> warning (<code>&#39;NoneType&#39; object has no attribute &#39;items&#39;</code> or a <code>404</code> on &quot;managed folders&quot;) </strong>even when the deletion succeeds<strong> — an emulator limitation, not a real problem (confirm with <code>gcloud storage ls</code> that the bucket is gone). </strong>Crucial<strong> reflex to carry to real life: </strong>always clean up** what you create (a forgotten resource = a bill).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Piloter Pub/Sub avec <code>gcloud pubsub</code> en labo.</strong> <code>gcloud pubsub</code> vise <strong>toujours le vrai GCP</strong>, pas l&#39;émulateur (il n&#39;y a pas de variable d&#39;override pour lui). Pour l&#39;émulateur, on passe par les <strong>bibliothèques clientes</strong> (avec <code>PUBSUB_EMULATOR_HOST</code>). <code>gcloud storage</code>, en revanche, sait viser fake-gcs via l&#39;override d&#39;endpoint.</p>
+<p><strong>2. Oublier les variables d&#39;environnement.</strong> <code>PUBSUB_EMULATOR_HOST</code>, <code>DATASTORE_EMULATOR_HOST</code>, l&#39;override de storage : sans elles, tes outils tapent le <strong>vrai</strong> GCP (et échouent faute d&#39;auth). Mets-les dans un <code>lab.env</code> et <code>source</code>-le à chaque session.</p>
+<p><strong>3. Fermer le shell des émulateurs.</strong> Les émulateurs <code>gcloud</code> tournent en <strong>avant-plan/arrière-plan</strong> du shell. Ferme-le et ils s&#39;arrêtent. Garde-le ouvert, ou lance-les dans <code>tmux</code>/<code>screen</code>.</p>
+<p><strong>4. Confondre région et zone.</strong> La <strong>région</strong> est géographique (<code>europe-west9</code> = Paris) ; la <strong>zone</strong> est un datacenter dedans (<code>europe-west9-a</code>). Une VM est <strong>zonale</strong>, un bucket peut être <strong>multirégional</strong>. L&#39;ACE teste ça.</p>
+<p><strong>5. Croire que le projet est optionnel.</strong> Sur GCP, <strong>toute</strong> ressource appartient à un <strong>projet</strong>. Sans projet configuré, la plupart des commandes échouent. <code>gcloud config set project ...</code> d&#39;abord.</p>
+<p><strong>6. Nom de bucket non unique (en réel).</strong> Comme S3, les noms GCS sont <strong>mondiaux</strong>. <code>mon-premier-bucket</code> est pris. Préfixe en réel. En local (fake-gcs), pas de collision — mais prends l&#39;habitude.</p>
+<p><strong>7. Attendre que fake-gcs émule TOUT Cloud Storage.</strong> Il couvre l&#39;essentiel (buckets, objets, listing) mais pas toutes les fonctions avancées (certaines options de cycle de vie, IAM sur bucket…). Pour apprendre les commandes de base, il est parfait ; pour le pointu, c&#39;est le vrai GCP.</p>
+</div>
+<div data-lang="en"><p><strong>1. Driving Pub/Sub with <code>gcloud pubsub</code> in the lab.</strong> <code>gcloud pubsub</code> <strong>always targets real GCP</strong>, not the emulator (there&#39;s no override variable for it). For the emulator, go through the <strong>client libraries</strong> (with <code>PUBSUB_EMULATOR_HOST</code>). <code>gcloud storage</code>, however, can target fake-gcs via the endpoint override.</p>
+<p><strong>2. Forgetting the environment variables.</strong> <code>PUBSUB_EMULATOR_HOST</code>, <code>DATASTORE_EMULATOR_HOST</code>, the storage override: without them, your tools hit <strong>real</strong> GCP (and fail for lack of auth). Put them in a <code>lab.env</code> and <code>source</code> it each session.</p>
+<p><strong>3. Closing the emulators&#39; shell.</strong> The <code>gcloud</code> emulators run in the shell&#39;s <strong>foreground/background</strong>. Close it and they stop. Keep it open, or run them in <code>tmux</code>/<code>screen</code>.</p>
+<p><strong>4. Confusing region and zone.</strong> The <strong>region</strong> is geographic (<code>europe-west9</code> = Paris); the <strong>zone</strong> is a datacenter within it (<code>europe-west9-a</code>). A VM is <strong>zonal</strong>, a bucket can be <strong>multi-regional</strong>. The ACE tests this.</p>
+<p><strong>5. Thinking the project is optional.</strong> On GCP, <strong>every</strong> resource belongs to a <strong>project</strong>. Without a configured project, most commands fail. <code>gcloud config set project ...</code> first.</p>
+<p><strong>6. Non-unique bucket name (in real life).</strong> Like S3, GCS names are <strong>global</strong>. <code>mon-premier-bucket</code> is taken. Prefix in real life. Locally (fake-gcs), no collision — but build the habit.</p>
+<p><strong>7. Expecting fake-gcs to emulate ALL of Cloud Storage.</strong> It covers the essentials (buckets, objects, listing) but not every advanced feature (some lifecycle options, bucket IAM…). To learn the basic commands, it&#39;s perfect; for the advanced, it&#39;s real GCP.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li><code>gcloud --version</code> répond et les composants émulateurs sont installés.</li><li>Les trois briques du labo tournent (Pub/Sub, Datastore, fake-gcs) et les variables sont posées.</li><li>Tu expliques organisation → projets → ressources, et région vs zone.</li><li>Tu crées un bucket, y déposes un objet, le relis avec <code>gcloud storage</code>.</li><li>Tu fais circuler un message Pub/Sub (publish → pull → ack) via l&#39;émulateur.</li><li>Tu nommes les 4 façons d&#39;interagir et tu utilises <code>--format</code>.</li><li>Tu nettoies ton labo (bucket, conteneur, émulateurs).</li></ul>
+<p>Sept cases = ton labo GCP local tourne, tu tiens les bases. La suite : le stockage (Cloud Storage + Firestore/Datastore).</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li><code>gcloud --version</code> answers and the emulator components are installed.</li><li>The three lab blocks run (Pub/Sub, Datastore, fake-gcs) and the variables are set.</li><li>You explain organization → projects → resources, and region vs zone.</li><li>You create a bucket, drop an object, read it back with <code>gcloud storage</code>.</li><li>You move a Pub/Sub message (publish → pull → ack) via the emulator.</li><li>You name the 4 ways to interact and use <code>--format</code>.</li><li>You clean up your lab (bucket, container, emulators).</li></ul>
+<p>Seven boxes = your local GCP lab runs, you hold the basics. Next up: storage (Cloud Storage + Firestore/Datastore).</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track GCP → ACE :</p>
+<ol><li><strong>GCP — stockage</strong> : Cloud Storage en profondeur (classes, versioning, cycle de vie) et <strong>Firestore/Datastore</strong> (base NoSQL) via l&#39;émulateur — le stockage sous toutes ses formes.</li><li>Plus loin : Pub/Sub en profondeur, IAM &amp; Terraform, le <strong>projet d&#39;entreprise</strong> événementiel, puis <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The GCP → ACE track continues:</p>
+<ol><li><strong>GCP — storage</strong>: Cloud Storage in depth (classes, versioning, lifecycle) and <strong>Firestore/Datastore</strong> (NoSQL database) via the emulator — storage in all its forms.</li><li>Further along: Pub/Sub in depth, IAM &amp; Terraform, the event-driven <strong>enterprise project</strong>, then <strong>going real</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire GCP local.</p>
+</div>
+<div data-lang="en"><p>GCP local cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Labo local (variables) / local lab (variables)
+export CLOUDSDK_CORE_PROJECT=demo-projet
+export CLOUDSDK_AUTH_DISABLE_CREDENTIALS=True
+export PUBSUB_EMULATOR_HOST=localhost:8085
+export DATASTORE_EMULATOR_HOST=localhost:8081
+export CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE=http://localhost:4443/
+
+# Émulateurs / emulators
+gcloud beta emulators pubsub start --host-port=localhost:8085 --project=demo-projet &amp;
+gcloud beta emulators datastore start --host-port=localhost:8081 --project=demo-projet --no-store-on-disk &amp;
+docker run -d --name fakegcs -p 4443:4443 fsouza/fake-gcs-server -scheme http -port 4443 -public-host localhost:4443
+
+# Config &amp; projet / config &amp; project
+gcloud config set project demo-projet
+gcloud config list
+
+# Cloud Storage (gcloud storage) — même syntaxe qu&#39;en réel / same syntax as real
+gcloud storage buckets create gs://bucket
+gcloud storage cp fichier gs://bucket/     ;  gcloud storage ls gs://bucket/
+gcloud storage cat gs://bucket/fichier     ;  gcloud storage rm --recursive gs://bucket
+
+# Pub/Sub -&gt; via bibliothèque cliente (pas gcloud) / via client library (not gcloud)
+#   client Python : PublisherClient / SubscriberClient (avec PUBSUB_EMULATOR_HOST)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://cloud.google.com/sdk/docs/install">Installer le SDK gcloud</a> — toutes plateformes.</li><li><a href="https://cloud.google.com/sdk/gcloud/reference/beta/emulators">Émulateurs locaux GCP</a> — Pub/Sub, Datastore, Firestore…</li><li><a href="https://github.com/fsouza/fake-gcs-server">fake-gcs-server</a> — l&#39;émulateur Cloud Storage communautaire.</li><li><a href="https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy">Hiérarchie des ressources GCP</a> — organisation, projets.</li><li><a href="https://cloud.google.com/learn/certification/cloud-engineer">Certification Associate Cloud Engineer</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://cloud.google.com/sdk/docs/install">Install the gcloud SDK</a> — all platforms.</li><li><a href="https://cloud.google.com/sdk/gcloud/reference/beta/emulators">GCP local emulators</a> — Pub/Sub, Datastore, Firestore…</li><li><a href="https://github.com/fsouza/fake-gcs-server">fake-gcs-server</a> — the community Cloud Storage emulator.</li><li><a href="https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy">GCP resource hierarchy</a> — organization, projects.</li><li><a href="https://cloud.google.com/learn/certification/cloud-engineer">Associate Cloud Engineer certification</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>gcloud storage</code> : erreur d&#39;authentification ou de proxy.</strong> En labo, exporte <code>CLOUDSDK_AUTH_DISABLE_CREDENTIALS=True</code> et l&#39;override d&#39;endpoint <code>CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE=http://localhost:4443/</code>. Vérifie que <code>fakegcs</code> tourne (<code>docker ps</code>).</p>
+<p><strong>Le client Pub/Sub vise le vrai GCP (erreur d&#39;auth).</strong> <code>PUBSUB_EMULATOR_HOST=localhost:8085</code> n&#39;est pas exporté dans <strong>ce</strong> shell. Ré-exporte-le (ou <code>source lab.env</code>).</p>
+<p><strong><code>gcloud beta emulators ...</code> : « command not found » ou erreur Java.</strong> Le composant n&#39;est pas installé (<code>gcloud components install pubsub-emulator beta</code>) ou il manque un JRE (<code>apt install default-jre</code>).</p>
+<p><strong><code>curl http://localhost:4443/...</code> ne répond pas.</strong> fake-gcs n&#39;est pas lancé, ou le port 4443 est pris. <code>docker ps</code>, <code>docker logs fakegcs</code>, ou mappe un autre port.</p>
+<p><strong>Un émulateur « occupe » un port déjà pris.</strong> Un autre process écoute sur 8085/8081/4443. Arrête-le, ou change le <code>--host-port</code> / le mapping Docker et adapte les variables.</p>
+<p><strong><code>gcloud pubsub topics create</code> échoue en labo.</strong> Normal : <code>gcloud pubsub</code> ne parle <strong>pas</strong> à l&#39;émulateur. Utilise la bibliothèque cliente pour l&#39;émulateur ; <code>gcloud pubsub</code> est pour le vrai GCP.</p>
+</div>
+<div data-lang="en"><p><strong><code>gcloud storage</code>: auth or proxy error.</strong> In the lab, export <code>CLOUDSDK_AUTH_DISABLE_CREDENTIALS=True</code> and the endpoint override <code>CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE=http://localhost:4443/</code>. Check <code>fakegcs</code> is running (<code>docker ps</code>).</p>
+<p><strong>The Pub/Sub client targets real GCP (auth error).</strong> <code>PUBSUB_EMULATOR_HOST=localhost:8085</code> isn&#39;t exported in <strong>this</strong> shell. Re-export it (or <code>source lab.env</code>).</p>
+<p><strong><code>gcloud beta emulators ...</code>: &quot;command not found&quot; or Java error.</strong> The component isn&#39;t installed (<code>gcloud components install pubsub-emulator beta</code>) or a JRE is missing (<code>apt install default-jre</code>).</p>
+<p><strong><code>curl http://localhost:4443/...</code> doesn&#39;t answer.</strong> fake-gcs isn&#39;t running, or port 4443 is taken. <code>docker ps</code>, <code>docker logs fakegcs</code>, or map another port.</p>
+<p><strong>An emulator &quot;port already in use&quot;.</strong> Another process listens on 8085/8081/4443. Stop it, or change the <code>--host-port</code> / Docker mapping and adjust the variables.</p>
+<p><strong><code>gcloud pubsub topics create</code> fails in the lab.</strong> Normal: <code>gcloud pubsub</code> does <strong>not</strong> talk to the emulator. Use the client library for the emulator; <code>gcloud pubsub</code> is for real GCP.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
