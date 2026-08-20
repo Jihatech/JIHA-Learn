@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">GCP — stockage : Cloud Storage &amp; Firestore/Datastore — jiha.tech</title>
+  <title data-lang="en">GCP — storage: Cloud Storage &amp; Firestore/Datastore — jiha.tech</title>
+  <meta name="description" content="Le stockage GCP pour l&#39;ACE : Cloud Storage (buckets et objets en local via gcloud storage, classes Standard/Nearline/Coldline/Archive, versioning et cycle de vie côté coût) et la base NoSQL Firestore/Datastore via l&#39;émulateur officiel (entités, clés, kinds, écriture/lecture, requêtes et filtres). Cœur émulé live-testé ; fonctions avancées de GCS en concept + syntaxe." data-lang="fr">
+  <meta name="description" content="GCP storage for ACE: Cloud Storage (buckets and objects locally via gcloud storage, Standard/Nearline/Coldline/Archive classes, versioning and lifecycle on the cost side) and the Firestore/Datastore NoSQL database via the official emulator (entities, keys, kinds, write/read, queries and filters). Emulated core live-tested; GCS advanced features as concept + syntax." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="GCP — stockage : Cloud Storage &amp; Firestore/Datastore">
+  <meta property="og:description" content="Le stockage GCP pour l&#39;ACE : Cloud Storage (buckets et objets en local via gcloud storage, classes Standard/Nearline/Coldline/Archive, versioning et cycle de vie côté coût) et la base NoSQL Firestore/Datastore via l&#39;émulateur officiel (entités, clés, kinds, écriture/lecture, requêtes et filtres). Cœur émulé live-testé ; fonctions avancées de GCS en concept + syntaxe.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/gcp-stockage/">
+  <link rel="canonical" href="https://jiha.tech/guides/gcp-stockage/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="gcp-stockage">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/gcp-stockage</div>
+    <div class="prompt" data-lang="en">~/guides/gcp-stockage</div>
+    <h1 data-lang="fr">GCP — stockage : Cloud Storage &amp; Firestore/Datastore</h1>
+    <h1 data-lang="en">GCP — storage: Cloud Storage &amp; Firestore/Datastore</h1>
+    <p class="tagline" data-lang="fr">buckets, classes, versioning, cycle de vie, base NoSQL.</p>
+    <p class="tagline" data-lang="en">buckets, classes, versioning, lifecycle, NoSQL database.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 200 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-20</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 200 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-20</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Le stockage est le cœur de toute application, et GCP en propose deux familles que l&#39;examen <strong>Associate Cloud Engineer</strong> teste sans relâche : <strong>Cloud Storage</strong> (des <strong>objets</strong> — fichiers, images, sauvegardes) et <strong>Firestore/Datastore</strong> (une <strong>base NoSQL</strong> — des données structurées interrogeables). Savoir <strong>lequel choisir</strong>, et <strong>comment optimiser le coût</strong>, c&#39;est la marque d&#39;un ingénieur cloud.</p>
+<p>Ce guide couvre les deux. Côté <strong>Cloud Storage</strong> : buckets et objets (en local via <code>gcloud storage</code>), les <strong>classes de stockage</strong> (Standard, Nearline, Coldline, Archive — le compromis coût/fréquence d&#39;accès), le <strong>versioning</strong> (protection contre l&#39;écrasement) et le <strong>cycle de vie</strong> (transitions et suppressions automatiques). Côté <strong>Firestore/Datastore</strong> : le modèle <strong>entités / clés / kinds</strong>, l&#39;écriture et la lecture, et les <strong>requêtes</strong> avec filtres — le tout <strong>en local</strong>, sur l&#39;émulateur officiel de Google.</p>
+<p>Un mot d&#39;honnêteté sur le labo : l&#39;émulateur <strong>fake-gcs-server</strong> couvre parfaitement les <strong>opérations de base</strong> de Cloud Storage (créer, copier, lister, lire), mais <strong>pas</strong> les fonctions avancées (il ne rapporte ni la classe de stockage, ni l&#39;état de versioning). Donc les <strong>classes, versioning et cycle de vie</strong> sont vus en <strong>concept + syntaxe <code>gcloud</code></strong> (ce que tu écris est exact pour le vrai GCP), tandis que <strong>Firestore/Datastore</strong> est <strong>pleinement émulé</strong> — tu écris, lis et interroges pour de vrai. On te le signale à chaque étape.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>GCP fondamentaux</em> (labo local monté) et tu veux le stockage sous toutes ses formes.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Ton labo local n&#39;est pas monté → refais <em>GCP fondamentaux</em> (émulateurs + fake-gcs).</li><li>Tu cherches une base <strong>relationnelle</strong> (SQL, jointures) → c&#39;est <strong>Cloud SQL</strong> / AlloyDB, pas Firestore ; on couvre ici le NoSQL et le stockage objet.</li></ul>
+</div>
+<div data-lang="en"><p>Storage is the heart of any application, and GCP offers two families the <strong>Associate Cloud Engineer</strong> exam tests relentlessly: <strong>Cloud Storage</strong> (<strong>objects</strong> — files, images, backups) and <strong>Firestore/Datastore</strong> (a <strong>NoSQL database</strong> — queryable structured data). Knowing <strong>which to choose</strong>, and <strong>how to optimize cost</strong>, is the mark of a cloud engineer.</p>
+<p>This guide covers both. On the <strong>Cloud Storage</strong> side: buckets and objects (locally via <code>gcloud storage</code>), <strong>storage classes</strong> (Standard, Nearline, Coldline, Archive — the cost/access-frequency tradeoff), <strong>versioning</strong> (overwrite protection) and <strong>lifecycle</strong> (automatic transitions and deletions). On the <strong>Firestore/Datastore</strong> side: the <strong>entities / keys / kinds</strong> model, writing and reading, and <strong>queries</strong> with filters — all <strong>locally</strong>, on Google&#39;s official emulator.</p>
+<p>An honesty note about the lab: the <strong>fake-gcs-server</strong> emulator perfectly covers Cloud Storage&#39;s <strong>basic operations</strong> (create, copy, list, read), but <strong>not</strong> the advanced features (it reports neither the storage class nor the versioning state). So <strong>classes, versioning and lifecycle</strong> are seen as <strong>concept + <code>gcloud</code> syntax</strong> (what you write is correct for real GCP), while <strong>Firestore/Datastore</strong> is <strong>fully emulated</strong> — you write, read and query for real. We flag it at each step.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>GCP fundamentals</em> (local lab set up) and want storage in all its forms.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>Your local lab isn&#39;t set up → redo <em>GCP fundamentals</em> (emulators + fake-gcs).</li><li>You want a <strong>relational</strong> database (SQL, joins) → that&#39;s <strong>Cloud SQL</strong> / AlloyDB, not Firestore; here we cover NoSQL and object storage.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Manipuler <strong>buckets et objets</strong> Cloud Storage avec <code>gcloud storage</code>.</li><li>Choisir une <strong>classe de stockage</strong> (Standard/Nearline/Coldline/Archive) selon le coût.</li><li>Expliquer le <strong>versioning</strong> et le <strong>cycle de vie</strong> (transitions, suppression auto).</li><li>Comprendre le modèle <strong>Firestore/Datastore</strong> (entités, clés, kinds).</li><li><strong>Écrire et lire</strong> des entités via l&#39;émulateur.</li><li><strong>Interroger</strong> avec des filtres et un tri.</li><li><strong>Choisir</strong> entre stockage objet (GCS) et base NoSQL (Firestore).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Handle Cloud Storage <strong>buckets and objects</strong> with <code>gcloud storage</code>.</li><li>Choose a <strong>storage class</strong> (Standard/Nearline/Coldline/Archive) by cost.</li><li>Explain <strong>versioning</strong> and <strong>lifecycle</strong> (transitions, auto-deletion).</li><li>Understand the <strong>Firestore/Datastore</strong> model (entities, keys, kinds).</li><li><strong>Write and read</strong> entities via the emulator.</li><li><strong>Query</strong> with filters and ordering.</li><li><strong>Choose</strong> between object storage (GCS) and a NoSQL database (Firestore).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>GCP fondamentaux</strong> terminé, et le <strong>labo local qui tourne</strong> (émulateurs Pub/Sub &amp; Datastore + fake-gcs, variables exportées).</li><li><strong><code>gcloud</code></strong> dans le PATH, et le client Python <strong><code>google-cloud-datastore</code></strong> (<code>pip install google-cloud-datastore</code>).</li><li>Rappel des variables : <code>CLOUDSDK_AUTH_DISABLE_CREDENTIALS=True</code>, <code>CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE=http://localhost:4443/</code>, <code>DATASTORE_EMULATOR_HOST=localhost:8081</code>, et le projet fixé (<code>gcloud config set project demo-projet</code>).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>GCP fundamentals</strong> guide done, and the <strong>local lab running</strong> (Pub/Sub &amp; Datastore emulators + fake-gcs, variables exported).</li><li><strong><code>gcloud</code></strong> on PATH, and the Python client <strong><code>google-cloud-datastore</code></strong> (<code>pip install google-cloud-datastore</code>).</li><li>Variables recap: <code>CLOUDSDK_AUTH_DISABLE_CREDENTIALS=True</code>, <code>CLOUDSDK_API_ENDPOINT_OVERRIDES_STORAGE=http://localhost:4443/</code>, <code>DATASTORE_EMULATOR_HOST=localhost:8081</code>, and the project set (<code>gcloud config set project demo-projet</code>).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../gcp-fondamentaux/">
+    <span class="num">52</span>
+    <span class="title-line" data-lang="fr">GCP — les fondamentaux, en local</span>
+    <span class="title-line" data-lang="en">GCP — the fundamentals, locally</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Cloud Storage (objets).</strong> Un <strong>bucket</strong> (conteneur au nom <strong>unique mondial</strong>) contient des <strong>objets</strong> (fichiers + métadonnées, identifiés par une <strong>clé</strong>). Comme S3, S3 est <strong>plat</strong> : <code>photos/2026/chat.jpg</code> est une seule clé, pas une hiérarchie de dossiers. On le pilote avec <strong><code>gcloud storage</code></strong>.</p>
+<p><strong>Classes de stockage.</strong> Quatre niveaux, du plus cher/chaud au moins cher/froid : <strong>Standard</strong> (accès fréquent), <strong>Nearline</strong> (accès &lt; 1×/mois), <strong>Coldline</strong> (&lt; 1×/trimestre), <strong>Archive</strong> (archivage long terme, récupération lente). Plus c&#39;est froid, moins le <strong>stockage</strong> coûte, mais plus la <strong>récupération</strong> est chère/lente. Choisir la bonne classe selon la fréquence d&#39;accès est un pilier du domaine <strong>coût</strong> de l&#39;ACE.</p>
+<p><strong>Versioning.</strong> Activé sur un bucket, il conserve <strong>chaque version</strong> d&#39;un objet à l&#39;écrasement (comme sur S3). Protection n°1 contre l&#39;erreur humaine. Les vieilles versions comptent dans le coût → on les purge avec le cycle de vie.</p>
+<p><strong>Cycle de vie (lifecycle).</strong> Des <strong>règles automatiques</strong> sur un bucket : « après 30 jours, passe en Nearline », « après 365 jours, supprime », « ne garde que 3 versions ». On automatise l&#39;optimisation du coût.</p>
+<p><strong>Firestore / Datastore.</strong> La <strong>base NoSQL</strong> de GCP, entièrement managée, scalable, à faible latence. Deux « modes » : <strong>Datastore</strong> (l&#39;ancien, orienté entités) et <strong>Firestore</strong> (le moderne, orienté documents, avec temps réel) — mêmes fondations. Un <strong>projet</strong> est en mode Datastore <strong>ou</strong> Firestore. L&#39;émulateur Datastore couvre le modèle entités que tu apprendras ici.</p>
+<p><strong>Entités, clés, kinds.</strong> Une <strong>entité</strong> est un enregistrement (comme une ligne). Son <strong>kind</strong> est son type (comme une table : <code>Produit</code>, <code>Client</code>). Sa <strong>clé</strong> l&#39;identifie de façon unique (kind + identifiant). Pas de schéma fixe : chaque entité a ses <strong>propriétés</strong> (champs typés). On écrit/lit par <strong>clé</strong> (rapide), et on <strong>interroge</strong> par propriété (avec des index).</p>
+<p><strong>Requêtes &amp; index.</strong> Une <strong>requête</strong> filtre les entités d&#39;un kind par propriété (<code>categorie == &quot;info&quot;</code>), les trie, les limite. GCP exige un <strong>index</strong> pour chaque motif de requête — simple (auto) ou composite (déclaré). L&#39;émulateur crée les index simples à la volée ; en réel, les composites se déclarent.</p>
+</div>
+<div data-lang="en"><p><strong>Cloud Storage (objects).</strong> A <strong>bucket</strong> (container with a <strong>globally unique</strong> name) holds <strong>objects</strong> (files + metadata, identified by a <strong>key</strong>). Like S3, it&#39;s <strong>flat</strong>: <code>photos/2026/cat.jpg</code> is a single key, not a folder hierarchy. You drive it with <strong><code>gcloud storage</code></strong>.</p>
+<p><strong>Storage classes.</strong> Four tiers, from most expensive/hot to cheapest/cold: <strong>Standard</strong> (frequent access), <strong>Nearline</strong> (accessed &lt; 1×/month), <strong>Coldline</strong> (&lt; 1×/quarter), <strong>Archive</strong> (long-term archival, slow retrieval). The colder it is, the less <strong>storage</strong> costs, but the more <strong>retrieval</strong> costs/is slow. Choosing the right class by access frequency is a pillar of ACE&#39;s <strong>cost</strong> domain.</p>
+<p><strong>Versioning.</strong> Enabled on a bucket, it keeps <strong>every version</strong> of an object on overwrite (like S3). The #1 protection against human error. Old versions count in cost → you purge them with lifecycle.</p>
+<p><strong>Lifecycle.</strong> <strong>Automatic rules</strong> on a bucket: &quot;after 30 days, move to Nearline&quot;, &quot;after 365 days, delete&quot;, &quot;keep only 3 versions&quot;. You automate cost optimization.</p>
+<p><strong>Firestore / Datastore.</strong> GCP&#39;s <strong>NoSQL database</strong>, fully managed, scalable, low-latency. Two &quot;modes&quot;: <strong>Datastore</strong> (the older, entity-oriented) and <strong>Firestore</strong> (the modern, document-oriented, with real-time) — same foundations. A <strong>project</strong> is in Datastore <strong>or</strong> Firestore mode. The Datastore emulator covers the entity model you&#39;ll learn here.</p>
+<p><strong>Entities, keys, kinds.</strong> An <strong>entity</strong> is a record (like a row). Its <strong>kind</strong> is its type (like a table: <code>Produit</code>, <code>Client</code>). Its <strong>key</strong> identifies it uniquely (kind + identifier). No fixed schema: each entity has its <strong>properties</strong> (typed fields). You write/read by <strong>key</strong> (fast), and <strong>query</strong> by property (with indexes).</p>
+<p><strong>Queries &amp; indexes.</strong> A <strong>query</strong> filters a kind&#39;s entities by property (<code>categorie == &quot;info&quot;</code>), sorts them, limits them. GCP requires an <strong>index</strong> for each query pattern — simple (automatic) or composite (declared). The emulator creates simple indexes on the fly; in real life, composites are declared.</p>
+</div>
+
+<figure class="schema" id="figure-gcp-storage-choice">
+  <p>[schema "gcp-storage-choice" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Choisir le stockage GCP : objets non structurés (fichiers, images) → Cloud Storage, avec classes selon la fréquence d&#39;accès ; données structurées interrogeables → Firestore/Datastore (NoSQL) ; relationnel → Cloud SQL. Le bon service selon la forme de la donnée.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Choosing GCP storage: unstructured objects (files, images) → Cloud Storage, with classes by access frequency; queryable structured data → Firestore/Datastore (NoSQL); relational → Cloud SQL. The right service for the data&#39;s shape.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Manipuler <strong>buckets et objets</strong> avec <code>gcloud storage</code> — le socle (émulé, live).</p>
+<p><strong>🤔 Le modèle plat.</strong> Comme S3, Cloud Storage n&#39;a pas de dossiers : <code>rapports/2026/q1.txt</code> est <strong>une clé</strong>. Le préfixe (<code>rapports/</code>) sert à <strong>filtrer</strong> un listing. <code>gcloud storage cp</code> copie, <code>ls</code> liste (avec <code>--recursive</code> pour tout à plat).</p>
+<p>Crée un bucket et remplis-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Handle <strong>buckets and objects</strong> with <code>gcloud storage</code> — the foundation (emulated, live).</p>
+<p><strong>🤔 The flat model.</strong> Like S3, Cloud Storage has no folders: <code>rapports/2026/q1.txt</code> is <strong>one key</strong>. The prefix (<code>rapports/</code>) is for <strong>filtering</strong> a listing. <code>gcloud storage cp</code> copies, <code>ls</code> lists (with <code>--recursive</code> for everything flat).</p>
+<p>Create a bucket and fill it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un bucket / create a bucket
+gcloud storage buckets create gs://atelier-stockage
+
+# Copier des objets avec des clés &quot;en dossier&quot; / copy objects with &quot;folder&quot; keys
+echo &quot;rapport Q1&quot; &gt; q1.txt
+gcloud storage cp q1.txt gs://atelier-stockage/rapports/2026/q1.txt
+echo &quot;note&quot; &gt; note.txt
+gcloud storage cp note.txt gs://atelier-stockage/notes/note.txt
+
+# Lister : un préfixe, puis tout à plat / list: a prefix, then everything flat
+gcloud storage ls gs://atelier-stockage/rapports/2026/
+gcloud storage ls --recursive gs://atelier-stockage/</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>buckets create</code> affiche <code>Creating gs://atelier-stockage/...</code>. Les <code>cp</code> téléversent les deux objets. <code>ls gs://atelier-stockage/rapports/2026/</code> liste la clé <code>rapports/2026/q1.txt</code>. <code>ls --recursive</code> liste <strong>chaque objet par sa clé complète</strong> — tu vois que <code>rapports/2026/q1.txt</code> est <strong>une seule</strong> clé, pas trois dossiers. Le modèle est identique à S3 : des clés plates, des préfixes pour filtrer.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>buckets create</code> shows <code>Creating gs://atelier-stockage/...</code>. The <code>cp</code>s upload both objects. <code>ls gs://atelier-stockage/rapports/2026/</code> lists the key <code>rapports/2026/q1.txt</code>. <code>ls --recursive</code> lists <strong>every object by its full key</strong> — you see that <code>rapports/2026/q1.txt</code> is <strong>a single</strong> key, not three folders. The model is identical to S3: flat keys, prefixes to filter.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Choisir une <strong>classe de stockage</strong> selon le coût — concept + syntaxe.</p>
+<p><strong>🤔 Le domaine « coût » de l&#39;ACE.</strong> Toutes les données ne se valent pas : un fichier consulté 100×/jour va en <strong>Standard</strong> ; une archive légale consultée 1×/an va en <strong>Archive</strong> (stockage très bon marché, mais récupération lente et payante). L&#39;examen te donne un scénario (« logs rarement lus », « sauvegarde à garder 7 ans ») et attend la bonne classe.</p>
+<p>⚠️ <strong>Note émulateur :</strong> le traitement de la classe par fake-gcs <strong>dépend de sa version</strong> — certains builds la <strong>stockent et la réaffichent</strong>, d&#39;autres l&#39;ignorent (renvoi vide). Peu importe : les commandes ci-dessous sont la <strong>syntaxe exacte du vrai GCP</strong>, et c&#39;est le <strong>raisonnement de choix</strong> qui compte, pas ce que renvoie l&#39;émulateur. Sur un vrai projet, elles fonctionnent pleinement.</p>
+<p>La syntaxe (vrai GCP) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Choose a <strong>storage class</strong> by cost — concept + syntax.</p>
+<p><strong>🤔 ACE&#39;s &quot;cost&quot; domain.</strong> Not all data is equal: a file accessed 100×/day goes to <strong>Standard</strong>; a legal archive accessed 1×/year goes to <strong>Archive</strong> (very cheap storage, but slow, paid retrieval). The exam gives a scenario (&quot;rarely-read logs&quot;, &quot;backup to keep 7 years&quot;) and expects the right class.</p>
+<p>⚠️ <strong>Emulator note:</strong> how fake-gcs handles the class <strong>depends on its version</strong> — some builds <strong>store and echo it back</strong>, others ignore it (empty return). Either way: the commands below are the <strong>exact real-GCP syntax</strong>, and it&#39;s the <strong>choice reasoning</strong> that matters, not what the emulator returns. On a real project, they fully work.</p>
+<p>The syntax (real GCP):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un bucket dans une classe précise / create a bucket in a specific class
+gcloud storage buckets create gs://mon-archive --default-storage-class=ARCHIVE --location=europe-west9
+
+# Déposer un objet dans une classe donnée / put an object in a given class
+gcloud storage cp gros.log gs://atelier-stockage/logs/gros.log --storage-class=COLDLINE
+
+# Voir la classe (en RÉEL) / see the class (on REAL GCP)
+gcloud storage objects describe gs://atelier-stockage/logs/gros.log --format=&quot;value(storageClass)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur le <strong>vrai GCP</strong>, <code>objects describe ... --format=&quot;value(storageClass)&quot;</code> renvoie <code>COLDLINE</code>. Sur l&#39;émulateur, tu obtiendras soit <code>COLDLINE</code> (le build réaffiche la classe), soit un renvoi vide (build qui l&#39;ignore) — les deux sont normaux. Ce qui compte ici, c&#39;est le <strong>raisonnement de choix</strong> : <strong>fréquent → Standard</strong> ; <strong>mensuel → Nearline</strong> ; <strong>trimestriel → Coldline</strong> ; <strong>annuel / archivage → Archive</strong>. C&#39;est un compromis <strong>coût-de-stockage</strong> (baisse quand on refroidit) vs <strong>coût/délai-de-récupération</strong> (monte quand on refroidit). L&#39;ACE teste ce compromis en permanence.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <strong>real GCP</strong>, <code>objects describe ... --format=&quot;value(storageClass)&quot;</code> returns <code>COLDLINE</code>. On the emulator you&#39;ll get either <code>COLDLINE</code> (the build echoes the class) or an empty return (a build that ignores it) — both are normal. What matters here is the <strong>choice reasoning</strong>: <strong>frequent → Standard</strong>; <strong>monthly → Nearline</strong>; <strong>quarterly → Coldline</strong>; <strong>yearly / archival → Archive</strong>. It&#39;s a <strong>storage-cost</strong> (drops as it gets colder) vs <strong>retrieval-cost/delay</strong> (rises as it gets colder) tradeoff. The ACE tests this tradeoff constantly.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>versioning</strong> et le <strong>cycle de vie</strong> — concept + syntaxe.</p>
+<p><strong>🤔 Protéger et optimiser.</strong> Le <strong>versioning</strong> garde les anciennes versions d&#39;un objet écrasé (parade à l&#39;erreur humaine). Mais chaque version coûte → une <strong>règle de cycle de vie</strong> purge automatiquement (transition vers une classe froide, suppression après N jours, limitation du nombre de versions). Ensemble : sécurité <strong>et</strong> maîtrise du coût.</p>
+<p>⚠️ <strong>Note émulateur :</strong> fake-gcs n&#39;émule ni le versioning ni le cycle de vie. Attends-toi à deux comportements côté labo : <code>buckets update --versioning</code> <strong>échoue bruyamment</strong> (après un temps d&#39;attente, une erreur <code>HTTP 500 : not implemented</code>), et <code>--lifecycle-file</code> passe sans erreur mais n&#39;est <strong>pas</strong> restitué. Ce sont des artefacts du labo, pas des fautes de ta part. La syntaxe ci-dessous est celle du <strong>vrai GCP</strong> — à connaître pour l&#39;ACE.</p>
+<p>La syntaxe (vrai GCP) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>versioning</strong> and <strong>lifecycle</strong> — concept + syntax.</p>
+<p><strong>🤔 Protect and optimize.</strong> <strong>Versioning</strong> keeps old versions of an overwritten object (a fix for human error). But each version costs → a <strong>lifecycle rule</strong> auto-purges (transition to a cold class, deletion after N days, version-count limit). Together: safety <strong>and</strong> cost control.</p>
+<p>⚠️ <strong>Emulator note:</strong> fake-gcs emulates neither versioning nor lifecycle. Expect two lab behaviors: <code>buckets update --versioning</code> <strong>fails loudly</strong> (after a wait, an <code>HTTP 500: not implemented</code> error), and <code>--lifecycle-file</code> succeeds silently but is <strong>not</strong> returned back. These are lab artifacts, not mistakes on your part. The syntax below is real GCP&#39;s — to know for ACE.</p>
+<p>The syntax (real GCP):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Activer le versioning / enable versioning
+gcloud storage buckets update gs://atelier-stockage --versioning
+
+# Une règle de cycle de vie (fichier JSON) / a lifecycle rule (JSON file)
+cat &gt; cycle.json &lt;&lt;&#39;EOF&#39;
+{ &quot;rule&quot;: [
+    { &quot;action&quot;: {&quot;type&quot;: &quot;SetStorageClass&quot;, &quot;storageClass&quot;: &quot;NEARLINE&quot;},
+      &quot;condition&quot;: {&quot;age&quot;: 30} },
+    { &quot;action&quot;: {&quot;type&quot;: &quot;Delete&quot;},
+      &quot;condition&quot;: {&quot;age&quot;: 365} }
+] }
+EOF
+gcloud storage buckets update gs://atelier-stockage --lifecycle-file=cycle.json
+
+# Vérifier (en RÉEL) / verify (on REAL GCP)
+gcloud storage buckets describe gs://atelier-stockage --format=&quot;value(lifecycle)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur le <strong>vrai GCP</strong>, <code>buckets describe --format=&quot;value(lifecycle)&quot;</code> réaffiche ta règle (transition à 30 j vers Nearline, suppression à 365 j). Sur l&#39;émulateur, <code>--versioning</code> renvoie une erreur <code>not implemented</code> et le cycle de vie n&#39;est pas restitué — deux artefacts du labo, attendus. Retiens la logique : <strong>versioning</strong> = filet de sécurité (chaque version conservée) ; <strong>cycle de vie</strong> = automatisation du coût (refroidir puis supprimer selon l&#39;âge). En prod, on active presque toujours les deux ensemble, et on limite le nombre de versions non-courantes pour éviter que le coût enfle.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on <strong>real GCP</strong>, <code>buckets describe --format=&quot;value(lifecycle)&quot;</code> shows your rule (transition at 30 d to Nearline, deletion at 365 d). On the emulator, <code>--versioning</code> returns a <code>not implemented</code> error and lifecycle isn&#39;t returned — two lab artifacts, expected. Remember the logic: <strong>versioning</strong> = safety net (every version kept); <strong>lifecycle</strong> = cost automation (cool then delete by age). In prod, you almost always enable both together, and cap the number of noncurrent versions to keep cost from swelling.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Découvrir <strong>Firestore/Datastore</strong> : le modèle <strong>entités / clés / kinds</strong>, et écrire tes premières entités — pleinement émulé, live.</p>
+<p><strong>🤔 Le NoSQL de GCP.</strong> Une <strong>entité</strong> (un enregistrement) a un <strong>kind</strong> (son type, ex. <code>Produit</code>) et une <strong>clé</strong> (son identifiant). Pas de schéma : chaque entité porte ses propres <strong>propriétés</strong> typées. On pilote l&#39;émulateur avec la <strong>bibliothèque cliente</strong> Python (comme Pub/Sub), via <code>DATASTORE_EMULATOR_HOST</code>.</p>
+<p>Installe le client et écris des entités :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Discover <strong>Firestore/Datastore</strong>: the <strong>entities / keys / kinds</strong> model, and write your first entities — fully emulated, live.</p>
+<p><strong>🤔 GCP&#39;s NoSQL.</strong> An <strong>entity</strong> (a record) has a <strong>kind</strong> (its type, e.g. <code>Produit</code>) and a <strong>key</strong> (its identifier). No schema: each entity carries its own typed <strong>properties</strong>. You drive the emulator with the Python <strong>client library</strong> (like Pub/Sub), via <code>DATASTORE_EMULATOR_HOST</code>.</p>
+<p>Install the client and write entities:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install google-cloud-datastore
+# DATASTORE_EMULATOR_HOST=localhost:8081 est déjà exporté (labo) / already exported (lab)</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># ecrire.py
+from google.cloud import datastore
+client = datastore.Client(project=&quot;demo-projet&quot;)
+
+produits = [
+    (&quot;p1&quot;, {&quot;nom&quot;: &quot;clavier&quot;, &quot;prix&quot;: 49,  &quot;categorie&quot;: &quot;info&quot;}),
+    (&quot;p2&quot;, {&quot;nom&quot;: &quot;souris&quot;,  &quot;prix&quot;: 25,  &quot;categorie&quot;: &quot;info&quot;}),
+    (&quot;p3&quot;, {&quot;nom&quot;: &quot;chaise&quot;,  &quot;prix&quot;: 120, &quot;categorie&quot;: &quot;mobilier&quot;}),
+]
+for id_, props in produits:
+    cle = client.key(&quot;Produit&quot;, id_)          # kind = &quot;Produit&quot;, identifiant = id_
+    entite = datastore.Entity(key=cle)
+    entite.update(props)
+    client.put(entite)
+print(&quot;3 entités &#39;Produit&#39; écrites&quot;)
+
+# Lire une entité par sa clé / read an entity by its key
+lu = client.get(client.key(&quot;Produit&quot;, &quot;p1&quot;))
+print(&quot;lu p1 :&quot;, dict(lu))</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 ecrire.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>3 entités &#39;Produit&#39; écrites</code> puis <code>lu p1 : {&#39;categorie&#39;: &#39;info&#39;, &#39;nom&#39;: &#39;clavier&#39;, &#39;prix&#39;: 49}</code> (Datastore restitue les propriétés par ordre alphabétique — le contenu est identique). Tu viens de stocker et relire des données NoSQL <strong>en local</strong>, sans serveur ni schéma déclaré. La <strong>clé</strong> (<code>Produit</code> + <code>p1</code>) identifie l&#39;entité de façon unique ; <code>get(clé)</code> la lit directement (l&#39;accès le plus rapide). ⚠️ Comme S3/DynamoDB, un <code>put</code> avec une clé existante <strong>remplace</strong> l&#39;entité entière — pour ne changer qu&#39;une propriété, on relit, on modifie, on réécrit (ou on utilise une transaction).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>3 entités &#39;Produit&#39; écrites</code> then <code>lu p1 : {&#39;categorie&#39;: &#39;info&#39;, &#39;nom&#39;: &#39;clavier&#39;, &#39;prix&#39;: 49}</code> (Datastore returns properties in alphabetical order — the content is identical). You just stored and read back NoSQL data <strong>locally</strong>, with no server or declared schema. The <strong>key</strong> (<code>Produit</code> + <code>p1</code>) uniquely identifies the entity; <code>get(key)</code> reads it directly (the fastest access). ⚠️ Like S3/DynamoDB, a <code>put</code> with an existing key <strong>replaces</strong> the whole entity — to change one property, you re-read, modify, rewrite (or use a transaction).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Interroger</strong> Datastore : filtrer par propriété et trier — live.</p>
+<p><strong>🤔 Requêtes vs accès par clé.</strong> <code>get(clé)</code> lit <strong>une</strong> entité. Pour en lire <strong>plusieurs</strong> selon un critère (« tous les produits de catégorie info », « les moins chers d&#39;abord »), on écrit une <strong>requête</strong> : un <code>kind</code>, des <strong>filtres</strong> (<code>propriété opérateur valeur</code>), un <strong>tri</strong>. C&#39;est le NoSQL en action.</p>
+<p>Écris une requête filtrée et triée :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Query</strong> Datastore: filter by property and sort — live.</p>
+<p><strong>🤔 Queries vs key access.</strong> <code>get(key)</code> reads <strong>one</strong> entity. To read <strong>several</strong> by a criterion (&quot;all products in category info&quot;, &quot;cheapest first&quot;), you write a <strong>query</strong>: a <code>kind</code>, <strong>filters</strong> (<code>property operator value</code>), an <strong>ordering</strong>. It&#39;s NoSQL in action.</p>
+<p>Write a filtered, sorted query:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># requetes.py
+from google.cloud import datastore
+from google.cloud.datastore.query import PropertyFilter
+client = datastore.Client(project=&quot;demo-projet&quot;)
+
+# Filtrer : catégorie == &quot;info&quot; / filter: category == &quot;info&quot;
+q = client.query(kind=&quot;Produit&quot;)
+q.add_filter(filter=PropertyFilter(&quot;categorie&quot;, &quot;=&quot;, &quot;info&quot;))
+infos = list(q.fetch())
+print(&quot;catégorie info :&quot;, [e[&quot;nom&quot;] for e in infos])
+
+# Trier : par prix croissant / order: by ascending price
+q2 = client.query(kind=&quot;Produit&quot;)
+q2.order = [&quot;prix&quot;]
+print(&quot;par prix :&quot;, [(e[&quot;nom&quot;], e[&quot;prix&quot;]) for e in q2.fetch()])
+
+# Filtrer + limiter : prix &gt; 40, un seul résultat / filter + limit
+q3 = client.query(kind=&quot;Produit&quot;)
+q3.add_filter(filter=PropertyFilter(&quot;prix&quot;, &quot;&gt;&quot;, 40))
+print(&quot;prix &gt; 40 :&quot;, [e[&quot;nom&quot;] for e in q3.fetch()])</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 requetes.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>catégorie info : [&#39;clavier&#39;, &#39;souris&#39;]</code> (les deux produits info), <code>par prix : [(&#39;souris&#39;, 25), (&#39;clavier&#39;, 49), (&#39;chaise&#39;, 120)]</code> (tri croissant), et <code>prix &gt; 40 : [&#39;clavier&#39;, &#39;chaise&#39;]</code>. Tu interroges une base NoSQL <strong>en local</strong>, avec filtres et tri. ⚠️ <strong>Le piège des index :</strong> en réel, une requête qui <strong>combine</strong> un filtre d&#39;inégalité et un tri sur une <strong>autre</strong> propriété exige un <strong>index composite</strong> déclaré (sinon erreur). L&#39;émulateur est plus permissif ; ne te fais pas surprendre en prod — c&#39;est un point d&#39;examen ACE.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>catégorie info : [&#39;clavier&#39;, &#39;souris&#39;]</code> (both info products), <code>par prix : [(&#39;souris&#39;, 25), (&#39;clavier&#39;, 49), (&#39;chaise&#39;, 120)]</code> (ascending sort), and <code>prix &gt; 40 : [&#39;clavier&#39;, &#39;chaise&#39;]</code>. You query a NoSQL database <strong>locally</strong>, with filters and sorting. ⚠️ <strong>The index trap:</strong> in real life, a query that <strong>combines</strong> an inequality filter and a sort on <strong>another</strong> property requires a declared <strong>composite index</strong> (else an error). The emulator is more permissive; don&#39;t get surprised in prod — it&#39;s an ACE exam point.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> le bon stockage — la décision d&#39;architecte.</p>
+<p><strong>🤔 La grille de choix (cœur de l&#39;ACE).</strong> GCP a un service par <strong>forme de données</strong> : des <strong>objets</strong> non structurés (fichiers, images, vidéos, sauvegardes) → <strong>Cloud Storage</strong> (avec la bonne classe selon l&#39;accès) ; des <strong>données structurées interrogeables</strong> à grande échelle, sans jointures complexes → <strong>Firestore/Datastore</strong> (NoSQL) ; du <strong>relationnel</strong> (SQL, transactions, jointures) → <strong>Cloud SQL</strong> / AlloyDB ; de l&#39;<strong>analytique</strong> massif → <strong>BigQuery</strong>. Choisir le mauvais service coûte cher et se paie en performance.</p>
+<p>Récapitule ce que tu as construit :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> the right storage — the architect&#39;s decision.</p>
+<p><strong>🤔 The choice grid (ACE core).</strong> GCP has a service per <strong>data shape</strong>: unstructured <strong>objects</strong> (files, images, videos, backups) → <strong>Cloud Storage</strong> (with the right class by access); <strong>queryable structured data</strong> at scale, without complex joins → <strong>Firestore/Datastore</strong> (NoSQL); <strong>relational</strong> (SQL, transactions, joins) → <strong>Cloud SQL</strong> / AlloyDB; massive <strong>analytics</strong> → <strong>BigQuery</strong>. Choosing the wrong service is expensive and costs performance.</p>
+<p>Recap what you built:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Ce que tu as en stockage objet / what you have in object storage
+gcloud storage ls --recursive gs://atelier-stockage/</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># ...et en base NoSQL / ...and in the NoSQL database
+# (rappel : compter les entités d&#39;un kind / recall: count a kind&#39;s entities)
+from google.cloud import datastore
+c = datastore.Client(project=&quot;demo-projet&quot;)
+print(&quot;entités Produit :&quot;, len(list(c.query(kind=&quot;Produit&quot;).fetch())))</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud storage ls --recursive</code> liste tes objets (<code>rapports/2026/q1.txt</code>, <code>notes/note.txt</code>), et le comptage NoSQL renvoie <code>entités Produit : 3</code>. Tu vois <strong>côte à côte</strong> les deux stockages : des <strong>objets</strong> (fichiers bruts, dans GCS) et des <strong>entités</strong> (données structurées interrogeables, dans Datastore). <strong>La grille à graver</strong> : fichier/média → <strong>Cloud Storage</strong> ; données structurées interrogeables → <strong>Firestore/Datastore</strong> ; relationnel → <strong>Cloud SQL</strong> ; analytique → <strong>BigQuery</strong>. C&#39;est exactement le type de question que l&#39;ACE pose (« quel service pour ce besoin ? »).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud storage ls --recursive</code> lists your objects (<code>rapports/2026/q1.txt</code>, <code>notes/note.txt</code>), and the NoSQL count returns <code>entités Produit : 3</code>. You see the two storages <strong>side by side</strong>: <strong>objects</strong> (raw files, in GCS) and <strong>entities</strong> (queryable structured data, in Datastore). <strong>The grid to engrave</strong>: file/media → <strong>Cloud Storage</strong>; queryable structured data → <strong>Firestore/Datastore</strong>; relational → <strong>Cloud SQL</strong>; analytics → <strong>BigQuery</strong>. It&#39;s exactly the kind of question the ACE asks (&quot;which service for this need?&quot;).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer ton stockage.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime les objets et le bucket, et on efface les entités Datastore. Réflexe <strong>créer → utiliser → nettoyer</strong>, crucial en réel.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up your storage.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the objects and the bucket, and erase the Datastore entities. <strong>Create → use → clean up</strong> reflex, crucial in real life.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cloud Storage : objets puis bucket / objects then bucket
+gcloud storage rm gs://atelier-stockage/**
+gcloud storage buckets delete gs://atelier-stockage</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># Datastore : supprimer les entités / delete the entities
+from google.cloud import datastore
+c = datastore.Client(project=&quot;demo-projet&quot;)
+for id_ in [&quot;p1&quot;, &quot;p2&quot;, &quot;p3&quot;]:
+    c.delete(c.key(&quot;Produit&quot;, id_))
+print(&quot;entités supprimées :&quot;, len(list(c.query(kind=&quot;Produit&quot;).fetch())), &quot;restantes&quot;)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après suppression, <code>gcloud storage ls</code> ne montre plus <code>atelier-stockage</code>, et le comptage Datastore renvoie <code>0 restantes</code>. Ton stockage est rangé. ⚠️ <strong>Rappel émulateur :</strong> contre fake-gcs, <code>rm gs://.../<strong></code> (une fois </strong>par objet<strong>) </strong>et<strong> <code>buckets delete</code> peuvent afficher <code>ERROR: &#39;NoneType&#39; object has no attribute &#39;items&#39;</code> avec un </strong>code de sortie non nul** — alors même que la suppression a bien eu lieu. C&#39;est un artefact du labo (inexistant sur le vrai GCP) : ne t&#39;y fie pas, vérifie le résultat réel avec <code>gcloud storage ls</code>. Tu maîtrises maintenant les deux stockages GCP essentiels. La suite : la messagerie Pub/Sub en profondeur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after deletion, <code>gcloud storage ls</code> no longer shows <code>atelier-stockage</code>, and the Datastore count returns <code>0 restantes</code>. Your storage is tidy. ⚠️ <strong>Emulator reminder:</strong> against fake-gcs, both <code>rm gs://.../<strong></code> (once </strong>per object<strong>) </strong>and<strong> <code>buckets delete</code> may print <code>ERROR: &#39;NoneType&#39; object has no attribute &#39;items&#39;</code> with a </strong>non-zero exit code** — even though the deletion actually happened. It&#39;s a lab artifact (nonexistent on real GCP): don&#39;t trust the exit code, confirm the real result with <code>gcloud storage ls</code>. You now master the two essential GCP storages. Next up: Pub/Sub messaging in depth.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire que les préfixes sont des dossiers.</strong> Cloud Storage est plat : <code>a/b/c.txt</code> est <strong>une clé</strong>. Supprimer « le dossier » = supprimer tous les objets qui partagent ce préfixe.</p>
+<p><strong>2. Choisir Archive pour des données consultées souvent.</strong> Archive/Coldline sont bon marché <strong>au stockage</strong> mais chers/lents <strong>à la récupération</strong>. Pour de l&#39;accès fréquent, c&#39;est un contresens : Standard revient moins cher au total.</p>
+<p><strong>3. Attendre que fake-gcs émule les classes/versioning/cycle de vie.</strong> L&#39;émulateur couvre les <strong>opérations de base</strong> (objets), pas ces métadonnées avancées. Tu apprends la <strong>syntaxe</strong> ici ; l&#39;effet réel n&#39;a lieu que sur le vrai GCP.</p>
+<p><strong>4. Confondre <code>get(clé)</code> et requête.</strong> <code>get(clé)</code> lit <strong>une</strong> entité par sa clé (rapide, pas d&#39;index). Une <strong>requête</strong> lit <strong>plusieurs</strong> entités par propriété (nécessite un index). Deux mécanismes distincts.</p>
+<p><strong>5. Oublier les index composites (en réel).</strong> Une requête combinant inégalité <strong>et</strong> tri sur une autre propriété exige un <strong>index composite</strong> déclaré. L&#39;émulateur pardonne ; le vrai GCP renvoie une erreur avec le lien pour créer l&#39;index.</p>
+<p><strong>6. Mettre des données relationnelles dans Datastore.</strong> Pas de jointures en NoSQL. Si ton modèle a des relations complexes et des transactions multi-tables, c&#39;est <strong>Cloud SQL</strong>, pas Firestore.</p>
+<p><strong>7. Nom de bucket non unique (en réel).</strong> Comme S3, les noms GCS sont <strong>mondiaux</strong>. Préfixe. En local (fake-gcs), pas de collision.</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking prefixes are folders.</strong> Cloud Storage is flat: <code>a/b/c.txt</code> is <strong>one key</strong>. Deleting &quot;the folder&quot; = deleting all objects sharing that prefix.</p>
+<p><strong>2. Choosing Archive for frequently-accessed data.</strong> Archive/Coldline are cheap <strong>to store</strong> but expensive/slow <strong>to retrieve</strong>. For frequent access, it&#39;s a mistake: Standard is cheaper overall.</p>
+<p><strong>3. Expecting fake-gcs to emulate classes/versioning/lifecycle.</strong> The emulator covers <strong>basic operations</strong> (objects), not these advanced metadata. You learn the <strong>syntax</strong> here; the real effect only happens on real GCP.</p>
+<p><strong>4. Confusing <code>get(key)</code> and a query.</strong> <code>get(key)</code> reads <strong>one</strong> entity by its key (fast, no index). A <strong>query</strong> reads <strong>several</strong> entities by property (needs an index). Two distinct mechanisms.</p>
+<p><strong>5. Forgetting composite indexes (in real life).</strong> A query combining an inequality <strong>and</strong> a sort on another property requires a declared <strong>composite index</strong>. The emulator forgives; real GCP returns an error with the link to create the index.</p>
+<p><strong>6. Putting relational data in Datastore.</strong> No joins in NoSQL. If your model has complex relationships and multi-table transactions, it&#39;s <strong>Cloud SQL</strong>, not Firestore.</p>
+<p><strong>7. Non-unique bucket name (in real life).</strong> Like S3, GCS names are <strong>global</strong>. Prefix. Locally (fake-gcs), no collision.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un bucket, y déposes des objets avec des clés « en dossier », listes avec <code>--recursive</code>.</li><li>Tu cites la bonne <strong>classe</strong> (Standard/Nearline/Coldline/Archive) pour un scénario.</li><li>Tu expliques versioning + cycle de vie et écris une règle JSON.</li><li>Tu écris et lis une <strong>entité</strong> Datastore par sa clé.</li><li>Tu <strong>interroges</strong> avec un filtre (<code>PropertyFilter</code>) et un tri.</li><li>Tu connais le piège des <strong>index composites</strong>.</li><li>Tu choisis GCS vs Firestore vs Cloud SQL vs BigQuery selon la donnée.</li></ul>
+<p>Sept cases = tu tiens le stockage GCP au niveau ACE. La suite : Pub/Sub en profondeur.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a bucket, drop objects with &quot;folder&quot; keys, list with <code>--recursive</code>.</li><li>You name the right <strong>class</strong> (Standard/Nearline/Coldline/Archive) for a scenario.</li><li>You explain versioning + lifecycle and write a JSON rule.</li><li>You write and read a Datastore <strong>entity</strong> by its key.</li><li>You <strong>query</strong> with a filter (<code>PropertyFilter</code>) and a sort.</li><li>You know the <strong>composite index</strong> trap.</li><li>You choose GCS vs Firestore vs Cloud SQL vs BigQuery by the data.</li></ul>
+<p>Seven boxes = you hold GCP storage at ACE level. Next up: Pub/Sub in depth.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track GCP → ACE :</p>
+<ol><li><strong>GCP — messagerie Pub/Sub</strong> : sujets, abonnements pull et push, accusés de réception, dead-letter, patterns événementiels — via l&#39;émulateur, en profondeur.</li><li>Plus loin : IAM &amp; Terraform, le <strong>projet d&#39;entreprise</strong> événementiel, puis <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The GCP → ACE track continues:</p>
+<ol><li><strong>GCP — Pub/Sub messaging</strong>: topics, pull and push subscriptions, acknowledgements, dead-letter, event-driven patterns — via the emulator, in depth.</li><li>Further along: IAM &amp; Terraform, the event-driven <strong>enterprise project</strong>, then <strong>going real</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire stockage GCP.</p>
+</div>
+<div data-lang="en"><p>GCP storage cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cloud Storage (gcloud storage)
+gcloud storage buckets create gs://b [--default-storage-class=NEARLINE] [--location=europe-west9]
+gcloud storage cp f gs://b/cle [--storage-class=COLDLINE]
+gcloud storage ls --recursive gs://b/
+gcloud storage rm gs://b/**   ;  gcloud storage buckets delete gs://b
+# Versioning &amp; cycle de vie (vrai GCP) / versioning &amp; lifecycle (real GCP)
+gcloud storage buckets update gs://b --versioning
+gcloud storage buckets update gs://b --lifecycle-file=cycle.json</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># Firestore/Datastore (client Python, DATASTORE_EMULATOR_HOST)
+from google.cloud import datastore
+from google.cloud.datastore.query import PropertyFilter
+c = datastore.Client(project=&quot;demo-projet&quot;)
+c.put(datastore.Entity(key=c.key(&quot;Produit&quot;,&quot;p1&quot;)) | ...)   # écrire / write
+c.get(c.key(&quot;Produit&quot;,&quot;p1&quot;))                               # lire par clé / read by key
+q = c.query(kind=&quot;Produit&quot;); q.add_filter(filter=PropertyFilter(&quot;prix&quot;,&quot;&gt;&quot;,40)); q.order=[&quot;prix&quot;]
+list(q.fetch())                                            # interroger / query</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://cloud.google.com/storage/docs">Cloud Storage — documentation</a> — buckets, objets, <code>gcloud storage</code>.</li><li><a href="https://cloud.google.com/storage/docs/storage-classes">Classes de stockage</a> — Standard/Nearline/Coldline/Archive.</li><li><a href="https://cloud.google.com/storage/docs/lifecycle">Gestion du cycle de vie</a> — transitions, suppression.</li><li><a href="https://cloud.google.com/datastore/docs">Datastore / Firestore en mode Datastore</a> — entités, requêtes, index.</li><li><a href="https://cloud.google.com/datastore/docs/tools/datastore-emulator">Émulateur Datastore</a> — le labo local.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://cloud.google.com/storage/docs">Cloud Storage — documentation</a> — buckets, objects, <code>gcloud storage</code>.</li><li><a href="https://cloud.google.com/storage/docs/storage-classes">Storage classes</a> — Standard/Nearline/Coldline/Archive.</li><li><a href="https://cloud.google.com/storage/docs/lifecycle">Lifecycle management</a> — transitions, deletion.</li><li><a href="https://cloud.google.com/datastore/docs">Datastore / Firestore in Datastore mode</a> — entities, queries, indexes.</li><li><a href="https://cloud.google.com/datastore/docs/tools/datastore-emulator">Datastore emulator</a> — the local lab.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>gcloud storage</code> : le bucket n&#39;est pas listé après création.</strong> Vérifie que fake-gcs tourne (<code>docker ps</code>) et l&#39;override d&#39;endpoint. Sur l&#39;émulateur, certaines métadonnées (classe, versioning) ne reviennent pas — c&#39;est normal.</p>
+<p><strong><code>objects describe ... storageClass</code> renvoie vide (ou <code>COLDLINE</code>).</strong> Selon la version de fake-gcs, la classe est stockée et réaffichée, ou ignorée (renvoi vide) — les deux sont normaux en labo. La syntaxe est correcte pour le vrai GCP ; ici, on apprend la commande.</p>
+<p><strong><code>buckets update --versioning</code> : <code>HTTP 500: not implemented</code>.</strong> fake-gcs n&#39;implémente pas le versioning ; la commande échoue (après un temps d&#39;attente) sur l&#39;émulateur. C&#39;est attendu — la syntaxe reste correcte pour le vrai GCP. Passe à l&#39;étape suivante.</p>
+<p><strong><code>rm</code> ou <code>buckets delete</code> : <code>ERROR: &#39;NoneType&#39; object has no attribute &#39;items&#39;</code> (code non nul).</strong> Artefact de fake-gcs : la suppression a bien eu lieu malgré l&#39;erreur. Confirme avec <code>gcloud storage ls</code>. Inexistant sur le vrai GCP.</p>
+<p><strong>Le client Datastore vise le vrai GCP (erreur d&#39;auth).</strong> <code>DATASTORE_EMULATOR_HOST=localhost:8081</code> n&#39;est pas exporté dans <strong>ce</strong> shell. Ré-exporte-le.</p>
+<p><strong><code>add_filter</code> affiche un avertissement de dépréciation.</strong> Utilise l&#39;API moderne : <code>from google.cloud.datastore.query import PropertyFilter</code> puis <code>q.add_filter(filter=PropertyFilter(&quot;champ&quot;, &quot;=&quot;, valeur))</code>.</p>
+<p><strong>Ma requête renvoie une erreur d&#39;index (en réel).</strong> Le vrai GCP exige un <strong>index composite</strong> pour certains motifs (inégalité + tri sur une autre propriété). Le message d&#39;erreur contient un lien pour le créer. L&#39;émulateur, lui, est permissif.</p>
+<p><strong><code>put</code> avec une clé existante écrase tout.</strong> C&#39;est le comportement : <code>put</code> remplace l&#39;entité entière. Pour modifier une propriété, relis puis réécris, ou utilise une transaction.</p>
+</div>
+<div data-lang="en"><p><strong><code>gcloud storage</code>: the bucket isn&#39;t listed after creation.</strong> Check fake-gcs is running (<code>docker ps</code>) and the endpoint override. On the emulator, some metadata (class, versioning) doesn&#39;t come back — that&#39;s normal.</p>
+<p><strong><code>objects describe ... storageClass</code> returns empty (or <code>COLDLINE</code>).</strong> Depending on the fake-gcs version, the class is stored and echoed back, or ignored (empty return) — both are normal in the lab. The syntax is correct for real GCP; here, we learn the command.</p>
+<p><strong><code>buckets update --versioning</code>: <code>HTTP 500: not implemented</code>.</strong> fake-gcs doesn&#39;t implement versioning; the command fails (after a wait) on the emulator. That&#39;s expected — the syntax stays correct for real GCP. Move on to the next step.</p>
+<p><strong><code>rm</code> or <code>buckets delete</code>: <code>ERROR: &#39;NoneType&#39; object has no attribute &#39;items&#39;</code> (non-zero exit).</strong> A fake-gcs artifact: the deletion did happen despite the error. Confirm with <code>gcloud storage ls</code>. Nonexistent on real GCP.</p>
+<p><strong>The Datastore client targets real GCP (auth error).</strong> <code>DATASTORE_EMULATOR_HOST=localhost:8081</code> isn&#39;t exported in <strong>this</strong> shell. Re-export it.</p>
+<p><strong><code>add_filter</code> prints a deprecation warning.</strong> Use the modern API: <code>from google.cloud.datastore.query import PropertyFilter</code> then <code>q.add_filter(filter=PropertyFilter(&quot;field&quot;, &quot;=&quot;, value))</code>.</p>
+<p><strong>My query returns an index error (in real life).</strong> Real GCP requires a <strong>composite index</strong> for some patterns (inequality + sort on another property). The error message contains a link to create it. The emulator is permissive.</p>
+<p><strong><code>put</code> with an existing key overwrites everything.</strong> That&#39;s the behavior: <code>put</code> replaces the whole entity. To modify one property, re-read then rewrite, or use a transaction.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
