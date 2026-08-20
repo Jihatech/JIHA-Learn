@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">GCP — projet d&#39;entreprise : plateforme d&#39;ingestion événementielle — jiha.tech</title>
+  <title data-lang="en">GCP — enterprise project: event-driven ingestion platform — jiha.tech</title>
+  <meta name="description" content="Le projet de CV du track GCP : une plateforme d&#39;ingestion événementielle complète — producteur → Pub/Sub → travailleur → Firestore/Datastore + archive Cloud Storage, avec dead-letter, fan-out analytique et idempotence — développée et exécutée EN LOCAL sur les émulateurs officiels, et décrite en Terraform (comptes de service au moindre privilège) validé contre le vrai provider. Un livrable d&#39;ingénieur cloud, sans compte ni facture." data-lang="fr">
+  <meta name="description" content="The GCP track&#39;s CV project: a complete event-driven ingestion platform — producer → Pub/Sub → worker → Firestore/Datastore + Cloud Storage archive, with dead-letter, analytics fan-out and idempotence — built and run LOCALLY on the official emulators, and described in Terraform (least-privilege service accounts) validated against the real provider. A cloud-engineer deliverable, no account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="GCP — projet d&#39;entreprise : plateforme d&#39;ingestion événementielle">
+  <meta property="og:description" content="Le projet de CV du track GCP : une plateforme d&#39;ingestion événementielle complète — producteur → Pub/Sub → travailleur → Firestore/Datastore + archive Cloud Storage, avec dead-letter, fan-out analytique et idempotence — développée et exécutée EN LOCAL sur les émulateurs officiels, et décrite en Terraform (comptes de service au moindre privilège) validé contre le vrai provider. Un livrable d&#39;ingénieur cloud, sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/gcp-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/gcp-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="gcp-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/gcp-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/gcp-projet-entreprise</div>
+    <h1 data-lang="fr">GCP — projet d&#39;entreprise : plateforme d&#39;ingestion événementielle</h1>
+    <h1 data-lang="en">GCP — enterprise project: event-driven ingestion platform</h1>
+    <p class="tagline" data-lang="fr">un pipeline Pub/Sub → traitement → Datastore + archive, en IaC.</p>
+    <p class="tagline" data-lang="en">a Pub/Sub → processing → Datastore + archive pipeline, as IaC.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 300 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-20</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 300 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-20</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Voici le <strong>livrable</strong> du track GCP : un projet <strong>complet, de niveau entreprise</strong>, que tu pourras <strong>présenter sur ton CV</strong> et <strong>défendre en entretien</strong>. On ne fait pas un jouet — on construit une <strong>plateforme d&#39;ingestion événementielle</strong> comme celles qui tournent en production : des événements « commande » arrivent, un <strong>pipeline</strong> les traite, les <strong>stocke</strong> de façon structurée, en <strong>archive</strong> la trace brute, gère les <strong>pannes</strong> (messages empoisonnés) et <strong>diffuse</strong> vers plusieurs consommateurs. Tout ce que tu as appris — Pub/Sub, Firestore/Datastore, Cloud Storage, IAM, Terraform — converge ici.</p>
+<p>L&#39;architecture : un <strong>producteur</strong> publie des commandes sur un <strong>sujet Pub/Sub</strong> ; un <strong>travailleur</strong> les <strong>tire</strong>, les <strong>valide</strong>, écrit un enregistrement structuré dans <strong>Datastore</strong> et <strong>archive</strong> la charge brute dans <strong>Cloud Storage</strong> ; les messages invalides partent en <strong>dead-letter</strong> ; un abonnement <strong>analytique</strong> reçoit sa propre copie (<strong>fan-out</strong>). Le tout est <strong>découplé, résilient, idempotent</strong>.</p>
+<p>Et — c&#39;est la marque du track — <strong>tu le construis et le fais tourner EN LOCAL</strong>, sur les <strong>émulateurs officiels</strong>, sans compte ni facture. L&#39;infrastructure est <strong>décrite en Terraform</strong> (comptes de service au <strong>moindre privilège</strong>) et <strong>validée</strong> contre le vrai provider <code>google</code>. En clair : un projet qui <strong>prouve</strong> des compétences d&#39;ingénieur cloud, réalisé à coût zéro, prêt à être déployé pour de vrai (guide suivant).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>messagerie</em> (Pub/Sub) et <em>IAM &amp; Terraform</em>. C&#39;est l&#39;aboutissement — prévois une bonne session.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Il te manque Pub/Sub ou Terraform → fais d&#39;abord <em>messagerie</em> et <em>IAM &amp; Terraform</em>.</li><li>Tes émulateurs ne tournent pas → relance le labo (<em>fondamentaux</em>).</li></ul>
+</div>
+<div data-lang="en"><p>Here&#39;s the <strong>deliverable</strong> of the GCP track: a <strong>complete, enterprise-grade</strong> project you can <strong>put on your CV</strong> and <strong>defend in an interview</strong>. We&#39;re not building a toy — we build an <strong>event-driven ingestion platform</strong> like the ones running in production: &quot;order&quot; events arrive, a <strong>pipeline</strong> processes them, <strong>stores</strong> them in structured form, <strong>archives</strong> the raw trace, handles <strong>failures</strong> (poison messages) and <strong>fans out</strong> to multiple consumers. Everything you learned — Pub/Sub, Firestore/Datastore, Cloud Storage, IAM, Terraform — converges here.</p>
+<p>The architecture: a <strong>producer</strong> publishes orders to a <strong>Pub/Sub topic</strong>; a <strong>worker</strong> <strong>pulls</strong> them, <strong>validates</strong> them, writes a structured record to <strong>Datastore</strong> and <strong>archives</strong> the raw payload to <strong>Cloud Storage</strong>; invalid messages go to <strong>dead-letter</strong>; an <strong>analytics</strong> subscription gets its own copy (<strong>fan-out</strong>). All of it <strong>decoupled, resilient, idempotent</strong>.</p>
+<p>And — the track&#39;s signature — <strong>you build and run it LOCALLY</strong>, on the <strong>official emulators</strong>, no account or bill. The infrastructure is <strong>described in Terraform</strong> (least-privilege service accounts) and <strong>validated</strong> against the real <code>google</code> provider. In short: a project that <strong>proves</strong> cloud-engineer skills, done at zero cost, ready to deploy for real (next guide).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>messaging</em> (Pub/Sub) and <em>IAM &amp; Terraform</em>. This is the culmination — set aside a good session.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re missing Pub/Sub or Terraform → do <em>messaging</em> and <em>IAM &amp; Terraform</em> first.</li><li>Your emulators aren&#39;t running → restart the lab (<em>fundamentals</em>).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu as construit et tu sais expliquer :</p>
+<ul><li>Une <strong>architecture événementielle</strong> complète (producteur, sujet, travailleur, stockage, archive).</li><li>L&#39;<strong>infrastructure en Terraform</strong> : sujets, abonnements (dead-letter), bucket, <strong>2 comptes de service</strong> au <strong>moindre privilège</strong>.</li><li>Un <strong>producteur</strong> qui publie des événements structurés (JSON + attributs).</li><li>Un <strong>travailleur</strong> idempotent : valide, écrit en <strong>Datastore</strong>, archive en <strong>Cloud Storage</strong>.</li><li>La <strong>fiabilité</strong> : <strong>fan-out</strong> analytique + <strong>dead-letter</strong> pour les messages invalides.</li><li>Une <strong>vérification bout en bout</strong> (enregistrements, archives, copies analytiques).</li><li>Comment <strong>présenter ce projet</strong> sur un CV et en entretien.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ve built and can explain:</p>
+<ul><li>A complete <strong>event-driven architecture</strong> (producer, topic, worker, storage, archive).</li><li>The <strong>infrastructure in Terraform</strong>: topics, subscriptions (dead-letter), bucket, <strong>2 service accounts</strong> at <strong>least privilege</strong>.</li><li>A <strong>producer</strong> that publishes structured events (JSON + attributes).</li><li>An idempotent <strong>worker</strong>: validates, writes to <strong>Datastore</strong>, archives to <strong>Cloud Storage</strong>.</li><li><strong>Reliability</strong>: analytics <strong>fan-out</strong> + <strong>dead-letter</strong> for invalid messages.</li><li>An <strong>end-to-end verification</strong> (records, archives, analytics copies).</li><li>How to <strong>present this project</strong> on a CV and in an interview.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>GCP messagerie</strong> et <strong>GCP IAM &amp; Terraform</strong> terminés.</li><li>Le <strong>labo local qui tourne</strong> : émulateurs <strong>Pub/Sub</strong> (8085) et <strong>Datastore</strong> (8081), <strong>fake-gcs</strong> (4443).</li><li>Les clients Python : <code>pip install google-cloud-pubsub google-cloud-datastore google-cloud-storage</code>.</li><li><strong>Terraform</strong> installé (pour la partie IaC).</li><li>Variables exportées : <code>PUBSUB_EMULATOR_HOST=localhost:8085</code>, <code>DATASTORE_EMULATOR_HOST=localhost:8081</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>GCP messaging</strong> and <strong>GCP IAM &amp; Terraform</strong> guides done.</li><li>The <strong>local lab running</strong>: <strong>Pub/Sub</strong> (8085) and <strong>Datastore</strong> (8081) emulators, <strong>fake-gcs</strong> (4443).</li><li>The Python clients: <code>pip install google-cloud-pubsub google-cloud-datastore google-cloud-storage</code>.</li><li><strong>Terraform</strong> installed (for the IaC part).</li><li>Exported variables: <code>PUBSUB_EMULATOR_HOST=localhost:8085</code>, <code>DATASTORE_EMULATOR_HOST=localhost:8081</code>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../gcp-messagerie/">
+    <span class="num">54</span>
+    <span class="title-line" data-lang="fr">GCP — messagerie Pub/Sub : découplage &amp; événementiel</span>
+    <span class="title-line" data-lang="en">GCP — Pub/Sub messaging: decoupling &amp; event-driven</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../gcp-iam-terraform/">
+    <span class="num">55</span>
+    <span class="title-line" data-lang="fr">GCP — IAM &amp; Terraform : droits et infrastructure-as-code</span>
+    <span class="title-line" data-lang="en">GCP — IAM &amp; Terraform: permissions and infrastructure-as-code</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le scénario métier.</strong> Une boutique en ligne émet un événement à chaque <strong>commande passée</strong>. Plusieurs traitements doivent réagir : enregistrer la commande (pour le suivi), l&#39;archiver (pour l&#39;audit/légal), l&#39;agréger (pour l&#39;analytique). Ces traitements ne doivent <strong>pas</strong> se bloquer entre eux, ni bloquer la prise de commande. C&#39;est le cas d&#39;usage canonique de l&#39;<strong>ingestion événementielle</strong>.</p>
+<p><strong>Le pipeline.</strong> <em>Producteur</em> → <em>sujet <code>commandes</code></em> → <em>abonnement <code>traitement</code></em> → <em>travailleur</em> → (<em>Datastore</em> + <em>Cloud Storage</em>). En parallèle, l&#39;abonnement <em><code>analytique</code></em> reçoit sa <strong>copie</strong> (fan-out). Les commandes <strong>invalides</strong> partent en <strong>dead-letter</strong> après échecs répétés. Chaque brique est <strong>découplée</strong> : on peut ajouter un consommateur sans toucher au producteur.</p>
+<p><strong>Découplage &amp; résilience.</strong> Le producteur ne connaît pas les consommateurs. Si le travailleur tombe, les messages <strong>s&#39;accumulent</strong> dans l&#39;abonnement et sont traités à son retour (rien n&#39;est perdu). Un pic de commandes ? Le sujet <strong>absorbe</strong>, le travailleur rattrape. C&#39;est la promesse de l&#39;asynchrone.</p>
+<p><strong>Idempotence.</strong> Pub/Sub garantit <strong>au moins une fois</strong> : un message peut arriver deux fois. On écrit en Datastore avec une <strong>clé = l&#39;id de commande</strong> : réécrire la même commande est <strong>sans effet de bord</strong> (pas de doublon). C&#39;est <strong>la</strong> règle d&#39;or d&#39;un pipeline correct.</p>
+<p><strong>IaC vs exécution locale (le point d&#39;honnêteté).</strong> Terraform (provider <code>google</code>) parle au <strong>vrai GCP</strong>, <strong>pas</strong> aux émulateurs. Donc le projet a <strong>deux faces cohérentes</strong> : (1) l&#39;<strong>infra Terraform</strong> — la définition <em>réelle</em>, <strong>validée</strong> en local (<code>init</code>/<code>fmt</code>/<code>validate</code>), déployée pour de vrai au guide suivant ; (2) un <strong><code>bootstrap.py</code></strong> qui crée <strong>la même topologie</strong> sur les émulateurs, pour faire tourner l&#39;app <strong>maintenant</strong>, sans compte. Le <code>bootstrap</code> fait localement ce que <code>terraform apply</code> ferait en réel.</p>
+<p><strong>Moindre privilège appliqué.</strong> Deux comptes de service : le <strong>producteur</strong> n&#39;a que <code>roles/pubsub.publisher</code> ; le <strong>travailleur</strong> a <code>roles/pubsub.subscriber</code> + <code>roles/datastore.user</code> + <code>roles/storage.objectAdmin</code>. Chacun <strong>strictement</strong> ce qu&#39;il lui faut — le réflexe sécurité que défend l&#39;ACE.</p>
+</div>
+<div data-lang="en"><p><strong>The business scenario.</strong> An online shop emits an event on each <strong>order placed</strong>. Several processes must react: record the order (for tracking), archive it (for audit/legal), aggregate it (for analytics). These must <strong>not</strong> block each other, nor block order-taking. It&#39;s the canonical <strong>event-driven ingestion</strong> use case.</p>
+<p><strong>The pipeline.</strong> <em>Producer</em> → <em>topic <code>commandes</code></em> → <em>subscription <code>traitement</code></em> → <em>worker</em> → (<em>Datastore</em> + <em>Cloud Storage</em>). In parallel, the <em><code>analytique</code></em> subscription gets its <strong>copy</strong> (fan-out). <strong>Invalid</strong> orders go to <strong>dead-letter</strong> after repeated failures. Each block is <strong>decoupled</strong>: you can add a consumer without touching the producer.</p>
+<p><strong>Decoupling &amp; resilience.</strong> The producer doesn&#39;t know the consumers. If the worker goes down, messages <strong>pile up</strong> in the subscription and are processed on its return (nothing lost). An order spike? The topic <strong>absorbs</strong>, the worker catches up. That&#39;s the async promise.</p>
+<p><strong>Idempotence.</strong> Pub/Sub guarantees <strong>at-least-once</strong>: a message can arrive twice. We write to Datastore with a <strong>key = the order id</strong>: rewriting the same order is <strong>side-effect-free</strong> (no duplicate). It&#39;s <strong>the</strong> golden rule of a correct pipeline.</p>
+<p><strong>IaC vs local run (the honesty point).</strong> Terraform (<code>google</code> provider) talks to <strong>real GCP</strong>, <strong>not</strong> the emulators. So the project has <strong>two consistent faces</strong>: (1) the <strong>Terraform infra</strong> — the <em>real</em> definition, <strong>validated</strong> locally (<code>init</code>/<code>fmt</code>/<code>validate</code>), deployed for real in the next guide; (2) a <strong><code>bootstrap.py</code></strong> that creates <strong>the same topology</strong> on the emulators, to run the app <strong>now</strong>, no account. The <code>bootstrap</code> does locally what <code>terraform apply</code> would do for real.</p>
+<p><strong>Least privilege applied.</strong> Two service accounts: the <strong>producer</strong> has only <code>roles/pubsub.publisher</code>; the <strong>worker</strong> has <code>roles/pubsub.subscriber</code> + <code>roles/datastore.user</code> + <code>roles/storage.objectAdmin</code>. Each <strong>strictly</strong> what it needs — the security reflex the ACE champions.</p>
+</div>
+
+<figure class="schema" id="figure-gcp-projet-pipeline">
+  <p>[schema "gcp-projet-pipeline" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La plateforme d&#39;ingestion : le producteur publie sur le sujet &#39;commandes&#39; ; l&#39;abonnement &#39;traitement&#39; alimente le travailleur (validation → Datastore + archive Cloud Storage), les commandes invalides partent en dead-letter ; l&#39;abonnement &#39;analytique&#39; reçoit sa propre copie (fan-out). L&#39;infra est décrite en Terraform (2 comptes de service au moindre privilège) et rejouée sur les émulateurs par bootstrap.py.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The ingestion platform: the producer publishes to the &#39;commandes&#39; topic; the &#39;traitement&#39; subscription feeds the worker (validation → Datastore + Cloud Storage archive), invalid orders go to dead-letter; the &#39;analytique&#39; subscription gets its own copy (fan-out). The infra is described in Terraform (2 least-privilege service accounts) and replayed on the emulators by bootstrap.py.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser le <strong>cahier des charges</strong>, l&#39;<strong>architecture</strong> et le <strong>squelette</strong> du projet.</p>
+<p><strong>🤔 Un vrai projet a une structure.</strong> On sépare l&#39;<strong>infra</strong> (Terraform, la définition réelle) de l&#39;<strong>app</strong> (Python, le code qui tourne). Cette séparation est un <strong>signal de maturité</strong> pour un recruteur.</p>
+<p>Crée l&#39;arborescence :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Lay down the <strong>spec</strong>, the <strong>architecture</strong> and the project <strong>skeleton</strong>.</p>
+<p><strong>🤔 A real project has structure.</strong> We separate the <strong>infra</strong> (Terraform, the real definition) from the <strong>app</strong> (Python, the running code). This separation is a <strong>maturity signal</strong> to a recruiter.</p>
+<p>Create the tree:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/projet-commandes/infra ~/projet-commandes/app
+cd ~/projet-commandes
+# Structure cible / target structure :
+#   infra/   -&gt; Terraform (main.tf, variables.tf, outputs.tf)   [la définition RÉELLE]
+#   app/     -&gt; Python (bootstrap.py, producteur.py, travailleur.py, verifier.py)
+#   README.md</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls ~/projet-commandes</code> montre <code>app</code> et <code>infra</code>. Tu tiens le <strong>plan</strong> : le producteur publie des commandes ; le travailleur valide, enregistre (Datastore) et archive (Storage) ; l&#39;analytique reçoit une copie ; les invalides partent en dead-letter. Garde cette phrase en tête — c&#39;est <strong>exactement</strong> ce que tu diras en entretien pour décrire le projet. Les prochaines étapes remplissent chaque dossier, <strong>une pièce testée à la fois</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls ~/projet-commandes</code> shows <code>app</code> and <code>infra</code>. You hold the <strong>plan</strong>: the producer publishes orders; the worker validates, records (Datastore) and archives (Storage); analytics gets a copy; invalid ones go to dead-letter. Keep this sentence in mind — it&#39;s <strong>exactly</strong> what you&#39;ll say in an interview to describe the project. The next steps fill each folder, <strong>one tested piece at a time</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire l&#39;<strong>infrastructure en Terraform</strong> et la <strong>valider</strong> — la définition réelle du système.</p>
+<p><strong>🤔 L&#39;infra comme code, au moindre privilège.</strong> On décrit : deux <strong>sujets</strong> (<code>commandes</code>, <code>commandes-rebut</code>), deux <strong>abonnements</strong> (<code>traitement</code> avec dead-letter, <code>analytique</code>), un <strong>bucket</strong> d&#39;archive, et <strong>deux comptes de service</strong> avec <strong>exactement</strong> les rôles nécessaires. On <code>validate</code> contre le vrai provider — sans compte.</p>
+<p>Crée <code>infra/main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>infrastructure in Terraform</strong> and <strong>validate</strong> it — the real definition of the system.</p>
+<p><strong>🤔 Infra as code, least privilege.</strong> We describe: two <strong>topics</strong> (<code>commandes</code>, <code>commandes-rebut</code>), two <strong>subscriptions</strong> (<code>traitement</code> with dead-letter, <code>analytique</code>), an archive <strong>bucket</strong>, and <strong>two service accounts</strong> with <strong>exactly</strong> the needed roles. We <code>validate</code> against the real provider — no account.</p>
+<p>Create <code>infra/main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/main.tf
+terraform {
+  required_version = &quot;&gt;= 1.5&quot;
+  required_providers {
+    google = {
+      source  = &quot;hashicorp/google&quot;
+      version = &quot;~&gt; 5.0&quot;
+    }
+  }
+}
+
+provider &quot;google&quot; {
+  project = var.project_id
+  region  = var.region
+}
+
+# --- Comptes de service (identités des workloads) ---
+resource &quot;google_service_account&quot; &quot;producteur&quot; {
+  account_id   = &quot;svc-producteur&quot;
+  display_name = &quot;Producteur d&#39;événements commandes&quot;
+}
+
+resource &quot;google_service_account&quot; &quot;travailleur&quot; {
+  account_id   = &quot;svc-travailleur&quot;
+  display_name = &quot;Travailleur de traitement des commandes&quot;
+}
+
+# --- Moindre privilège : chaque SA n&#39;a que ce qu&#39;il lui faut ---
+resource &quot;google_project_iam_member&quot; &quot;prod_publisher&quot; {
+  project = var.project_id
+  role    = &quot;roles/pubsub.publisher&quot;
+  member  = &quot;serviceAccount:${google_service_account.producteur.email}&quot;
+}
+
+resource &quot;google_project_iam_member&quot; &quot;worker_subscriber&quot; {
+  project = var.project_id
+  role    = &quot;roles/pubsub.subscriber&quot;
+  member  = &quot;serviceAccount:${google_service_account.travailleur.email}&quot;
+}
+
+resource &quot;google_project_iam_member&quot; &quot;worker_datastore&quot; {
+  project = var.project_id
+  role    = &quot;roles/datastore.user&quot;
+  member  = &quot;serviceAccount:${google_service_account.travailleur.email}&quot;
+}
+
+resource &quot;google_project_iam_member&quot; &quot;worker_storage&quot; {
+  project = var.project_id
+  role    = &quot;roles/storage.objectAdmin&quot;
+  member  = &quot;serviceAccount:${google_service_account.travailleur.email}&quot;
+}
+
+# --- Messagerie : sujets + abonnements ---
+resource &quot;google_pubsub_topic&quot; &quot;commandes&quot; {
+  name = &quot;commandes&quot;
+}
+
+resource &quot;google_pubsub_topic&quot; &quot;rebut&quot; {
+  name = &quot;commandes-rebut&quot;
+}
+
+resource &quot;google_pubsub_subscription&quot; &quot;traitement&quot; {
+  name                 = &quot;traitement&quot;
+  topic                = google_pubsub_topic.commandes.id
+  ack_deadline_seconds = 20
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.rebut.id
+    max_delivery_attempts = 5
+  }
+}
+
+resource &quot;google_pubsub_subscription&quot; &quot;analytique&quot; {
+  name  = &quot;analytique&quot;
+  topic = google_pubsub_topic.commandes.id
+}
+
+# --- Archive : bucket Cloud Storage ---
+resource &quot;google_storage_bucket&quot; &quot;archive&quot; {
+  name          = &quot;archive-commandes-${var.project_id}&quot;
+  location      = &quot;EU&quot;
+  force_destroy = true
+
+  versioning {
+    enabled = true
+  }
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/variables.tf
+variable &quot;project_id&quot; {
+  type    = string
+  default = &quot;demo-projet&quot;
+}
+
+variable &quot;region&quot; {
+  type    = string
+  default = &quot;europe-west9&quot;
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/outputs.tf
+output &quot;topic_commandes&quot; {
+  value = google_pubsub_topic.commandes.name
+}
+
+output &quot;bucket_archive&quot; {
+  value = google_storage_bucket.archive.name
+}
+
+output &quot;sa_travailleur&quot; {
+  value = google_service_account.travailleur.email
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/infra
+terraform init
+terraform fmt
+terraform validate</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform validate</code> affiche <strong><code>Success! The configuration is valid.</code></strong>. Tu viens de décrire <strong>tout</strong> le système — messagerie, stockage, identités, droits — en une soixantaine de lignes <strong>versionnables</strong> et <strong>revues en PR</strong>. Note le <strong>moindre privilège</strong> : le producteur ne peut que <strong>publier</strong>, le travailleur ne peut que <strong>s&#39;abonner + écrire Datastore + gérer les objets</strong>. ⚠️ Rappel : <code>validate</code> vérifie la <strong>forme</strong> sans compte ; le <strong>déploiement réel</strong> (<code>apply</code>) viendra au guide <em>passer en réel</em>. Pour <strong>exécuter maintenant</strong> en local, on rejoue la même topologie sur les émulateurs (étape suivante).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform validate</code> prints <strong><code>Success! The configuration is valid.</code></strong>. You just described the <strong>whole</strong> system — messaging, storage, identities, permissions — in about sixty <strong>versionable</strong>, <strong>PR-reviewed</strong> lines. Note the <strong>least privilege</strong>: the producer can only <strong>publish</strong>, the worker can only <strong>subscribe + write Datastore + manage objects</strong>. ⚠️ Reminder: <code>validate</code> checks the <strong>shape</strong> with no account; the <strong>real deployment</strong> (<code>apply</code>) comes in the <em>going real</em> guide. To <strong>run now</strong> locally, we replay the same topology on the emulators (next step).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer la topologie sur les <strong>émulateurs</strong> (<code>bootstrap.py</code>) et écrire le <strong>producteur</strong> — exécuté en live.</p>
+<p><strong>🤔 Rejouer l&#39;infra en local.</strong> Comme Terraform vise le vrai GCP, un petit <code>bootstrap.py</code> crée <strong>les mêmes</strong> sujets et abonnements sur l&#39;émulateur (ce que ferait <code>terraform apply</code> en réel). Puis le <strong>producteur</strong> publie des commandes : chacune est un <strong>JSON</strong> (le corps) avec des <strong>attributs</strong> (type, pays, priorité).</p>
+<p>Crée <code>app/bootstrap.py</code> puis <code>app/producteur.py</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the topology on the <strong>emulators</strong> (<code>bootstrap.py</code>) and write the <strong>producer</strong> — run live.</p>
+<p><strong>🤔 Replaying the infra locally.</strong> Since Terraform targets real GCP, a small <code>bootstrap.py</code> creates <strong>the same</strong> topics and subscriptions on the emulator (what <code>terraform apply</code> would do for real). Then the <strong>producer</strong> publishes orders: each is a <strong>JSON</strong> (the body) with <strong>attributes</strong> (type, country, priority).</p>
+<p>Create <code>app/bootstrap.py</code> then <code>app/producteur.py</code>:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># app/bootstrap.py — crée sur l&#39;émulateur la même topologie que l&#39;infra Terraform
+import os
+os.environ[&quot;PUBSUB_EMULATOR_HOST&quot;] = &quot;localhost:8085&quot;
+from google.cloud import pubsub_v1
+proj = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient(); sub = pubsub_v1.SubscriberClient()
+tp = lambda n: pub.topic_path(proj, n)
+sp = lambda n: sub.subscription_path(proj, n)
+
+# Idempotent : on repart propre / start clean
+for s in sub.list_subscriptions(request={&quot;project&quot;: f&quot;projects/{proj}&quot;}):
+    sub.delete_subscription(request={&quot;subscription&quot;: s.name})
+for t in pub.list_topics(request={&quot;project&quot;: f&quot;projects/{proj}&quot;}):
+    pub.delete_topic(request={&quot;topic&quot;: t.name})
+
+pub.create_topic(request={&quot;name&quot;: tp(&quot;commandes&quot;)})
+pub.create_topic(request={&quot;name&quot;: tp(&quot;commandes-rebut&quot;)})
+sub.create_subscription(request={&quot;name&quot;: sp(&quot;traitement&quot;), &quot;topic&quot;: tp(&quot;commandes&quot;),
+    &quot;ack_deadline_seconds&quot;: 20,
+    &quot;dead_letter_policy&quot;: {&quot;dead_letter_topic&quot;: tp(&quot;commandes-rebut&quot;), &quot;max_delivery_attempts&quot;: 5}})
+sub.create_subscription(request={&quot;name&quot;: sp(&quot;analytique&quot;), &quot;topic&quot;: tp(&quot;commandes&quot;)})
+sub.create_subscription(request={&quot;name&quot;: sp(&quot;rebut-veille&quot;), &quot;topic&quot;: tp(&quot;commandes-rebut&quot;)})
+print(&quot;topologie créée : sujets=[commandes, commandes-rebut], abonnements=[traitement, analytique, rebut-veille]&quot;)</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># app/producteur.py — publie des commandes sur le sujet
+import os, json
+os.environ[&quot;PUBSUB_EMULATOR_HOST&quot;] = &quot;localhost:8085&quot;
+from google.cloud import pubsub_v1
+proj = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient()
+sujet = pub.topic_path(proj, &quot;commandes&quot;)
+
+commandes = [
+    {&quot;id&quot;: &quot;CMD-1001&quot;, &quot;client&quot;: &quot;alice&quot;, &quot;montant&quot;: 149.90, &quot;pays&quot;: &quot;FR&quot;},
+    {&quot;id&quot;: &quot;CMD-1002&quot;, &quot;client&quot;: &quot;bob&quot;,   &quot;montant&quot;: 30.00,  &quot;pays&quot;: &quot;BE&quot;},
+    {&quot;id&quot;: &quot;CMD-1003&quot;, &quot;client&quot;: &quot;carla&quot;, &quot;montant&quot;: 512.50, &quot;pays&quot;: &quot;FR&quot;},
+    {&quot;id&quot;: &quot;CMD-BAD&quot;,  &quot;client&quot;: &quot;&quot;,      &quot;montant&quot;: -1,     &quot;pays&quot;: &quot;??&quot;},  # invalide -&gt; dead-letter
+]
+for c in commandes:
+    data = json.dumps(c).encode()
+    prio = &quot;haute&quot; if c[&quot;montant&quot;] &gt;= 500 else &quot;normale&quot;
+    pub.publish(sujet, data, type=&quot;commande&quot;, pays=c[&quot;pays&quot;], prio=prio).result()
+print(f&quot;{len(commandes)} commandes publiées sur &#39;commandes&#39;&quot;)</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/app
+export PUBSUB_EMULATOR_HOST=localhost:8085
+python3 bootstrap.py
+python3 producteur.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bootstrap.py</code> affiche <code>topologie créée : ...</code> et <code>producteur.py</code> affiche <code>4 commandes publiées sur &#39;commandes&#39;</code>. Les messages sont maintenant <strong>en attente</strong> dans les abonnements <code>traitement</code> et <code>analytique</code> (chacun sa copie). Note la commande <strong><code>CMD-BAD</code></strong> (client vide, montant négatif) : c&#39;est notre <strong>message empoisonné</strong> volontaire, pour tester la robustesse. ⚠️ Chaque commande porte des <strong>attributs</strong> (<code>type</code>, <code>pays</code>, <code>prio</code>) en plus de son corps JSON — utiles pour filtrer/router sans désérialiser.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bootstrap.py</code> prints <code>topologie créée : ...</code> and <code>producteur.py</code> prints <code>4 commandes publiées sur &#39;commandes&#39;</code>. The messages are now <strong>waiting</strong> in the <code>traitement</code> and <code>analytique</code> subscriptions (each its copy). Note the <strong><code>CMD-BAD</code></strong> order (empty client, negative amount): it&#39;s our deliberate <strong>poison message</strong>, to test robustness. ⚠️ Each order carries <strong>attributes</strong> (<code>type</code>, <code>pays</code>, <code>prio</code>) besides its JSON body — useful to filter/route without deserializing.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le <strong>travailleur</strong> : valider, écrire en <strong>Datastore</strong>, archiver en <strong>Cloud Storage</strong> — en live.</p>
+<p><strong>🤔 Le cœur du pipeline.</strong> Le travailleur <strong>tire</strong> l&#39;abonnement <code>traitement</code>, <strong>valide</strong> chaque commande, écrit un <strong>enregistrement structuré</strong> dans Datastore (clé = id de commande → <strong>idempotent</strong>) et <strong>archive</strong> la charge brute dans le bucket. Les commandes <strong>invalides</strong> sont <strong>nack</strong>ées (elles seront redistribuées puis, après N échecs, envoyées en dead-letter).</p>
+<p>⚠️ <strong>Détail plateforme important :</strong> le client <strong>Cloud Storage</strong> Python exige des identifiants ; contre <strong>fake-gcs</strong>, on passe des <strong><code>AnonymousCredentials</code></strong> et l&#39;<strong>endpoint</strong> de l&#39;émulateur. (En réel, on retire ces deux options : le client s&#39;authentifie normalement.)</p>
+<p>Crée <code>app/travailleur.py</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>worker</strong>: validate, write to <strong>Datastore</strong>, archive to <strong>Cloud Storage</strong> — live.</p>
+<p><strong>🤔 The pipeline&#39;s heart.</strong> The worker <strong>pulls</strong> the <code>traitement</code> subscription, <strong>validates</strong> each order, writes a <strong>structured record</strong> to Datastore (key = order id → <strong>idempotent</strong>) and <strong>archives</strong> the raw payload to the bucket. <strong>Invalid</strong> orders are <strong>nack</strong>ed (they&#39;ll be redelivered then, after N failures, sent to dead-letter).</p>
+<p>⚠️ <strong>Important platform detail:</strong> the Python <strong>Cloud Storage</strong> client requires credentials; against <strong>fake-gcs</strong>, we pass <strong><code>AnonymousCredentials</code></strong> and the emulator <strong>endpoint</strong>. (On real GCP, you drop these two options: the client authenticates normally.)</p>
+<p>Create <code>app/travailleur.py</code>:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># app/travailleur.py — valide, écrit en Datastore, archive en Cloud Storage
+import os, json
+os.environ[&quot;PUBSUB_EMULATOR_HOST&quot;] = &quot;localhost:8085&quot;
+os.environ[&quot;DATASTORE_EMULATOR_HOST&quot;] = &quot;localhost:8081&quot;
+from google.cloud import pubsub_v1, datastore, storage
+from google.auth.credentials import AnonymousCredentials
+proj = &quot;demo-projet&quot;
+
+sub = pubsub_v1.SubscriberClient()
+ab = sub.subscription_path(proj, &quot;traitement&quot;)
+ds = datastore.Client(project=proj)
+# fake-gcs : identifiants anonymes + endpoint émulateur (à retirer en réel)
+gcs = storage.Client(project=proj, credentials=AnonymousCredentials(),
+                     client_options={&quot;api_endpoint&quot;: &quot;http://localhost:4443&quot;})
+try:
+    bucket = gcs.create_bucket(&quot;archive-commandes&quot;)
+except Exception:
+    bucket = gcs.bucket(&quot;archive-commandes&quot;)
+
+def valide(c):
+    return bool(c.get(&quot;id&quot;)) and c.get(&quot;client&quot;) and c.get(&quot;montant&quot;, 0) &gt; 0
+
+traites, rejetes = 0, 0
+for _ in range(6):
+    rep = sub.pull(request={&quot;subscription&quot;: ab, &quot;max_messages&quot;: 10})
+    if not rep.received_messages:
+        break
+    for m in rep.received_messages:
+        c = json.loads(m.message.data.decode())
+        if not valide(c):
+            # invalide -&gt; nack (redistribution, puis dead-letter après N échecs)
+            sub.modify_ack_deadline(request={&quot;subscription&quot;: ab,
+                &quot;ack_ids&quot;: [m.ack_id], &quot;ack_deadline_seconds&quot;: 0})
+            rejetes += 1
+            continue
+        # Datastore : clé = id de commande -&gt; écriture idempotente
+        cle = ds.key(&quot;Commande&quot;, c[&quot;id&quot;])
+        ent = datastore.Entity(key=cle)
+        ent.update({&quot;client&quot;: c[&quot;client&quot;], &quot;montant&quot;: c[&quot;montant&quot;],
+                    &quot;pays&quot;: c[&quot;pays&quot;], &quot;prio&quot;: dict(m.message.attributes).get(&quot;prio&quot;)})
+        ds.put(ent)
+        # Cloud Storage : archive de la charge brute
+        bucket.blob(f&quot;commandes/{c[&#39;id&#39;]}.json&quot;).upload_from_string(m.message.data)
+        sub.acknowledge(request={&quot;subscription&quot;: ab, &quot;ack_ids&quot;: [m.ack_id]})
+        traites += 1
+    if traites &gt;= 3:
+        break
+print(f&quot;traités={traites} rejetés(nack)={rejetes}&quot;)</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/app
+python3 travailleur.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le travailleur affiche <code>traités=3 rejetés(nack)=1</code>. Les <strong>3</strong> commandes valides sont écrites en Datastore <strong>et</strong> archivées dans le bucket ; la commande <strong>invalide</strong> (<code>CMD-BAD</code>) est <strong>rejetée</strong> (nack). Tu as un <strong>worker complet</strong> : validation métier, écriture structurée idempotente, archivage. ⚠️ L&#39;<strong>idempotence</strong> vient de la <strong>clé</strong> Datastore (<code>Commande</code> + id) : si le même message est redélivré (at-least-once), on <strong>réécrit</strong> le même enregistrement, sans doublon. C&#39;est ce qui rend le pipeline <strong>correct</strong> face aux redistributions.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the worker prints <code>traités=3 rejetés(nack)=1</code>. The <strong>3</strong> valid orders are written to Datastore <strong>and</strong> archived in the bucket; the <strong>invalid</strong> order (<code>CMD-BAD</code>) is <strong>rejected</strong> (nack). You have a <strong>complete worker</strong>: business validation, idempotent structured write, archival. ⚠️ <strong>Idempotence</strong> comes from the Datastore <strong>key</strong> (<code>Commande</code> + id): if the same message is redelivered (at-least-once), we <strong>rewrite</strong> the same record, no duplicate. That&#39;s what makes the pipeline <strong>correct</strong> under redeliveries.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Éprouver la <strong>fiabilité</strong> : le <strong>fan-out</strong> analytique et le <strong>dead-letter</strong> — en live.</p>
+<p><strong>🤔 Un événement, plusieurs usages.</strong> L&#39;abonnement <code>analytique</code> reçoit <strong>sa propre copie</strong> de <strong>chaque</strong> commande (y compris <code>CMD-BAD</code>) : l&#39;analytique voit <strong>tout le flux</strong>, indépendamment du travailleur. Et la commande invalide, <strong>nack</strong>ée en boucle par le travailleur, finirait — après 5 tentatives — sur le sujet <strong><code>commandes-rebut</code></strong> (dead-letter), où l&#39;abonnement <code>rebut-veille</code> permet de l&#39;inspecter.</p>
+<p>Vérifie le fan-out analytique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Stress-test <strong>reliability</strong>: the analytics <strong>fan-out</strong> and the <strong>dead-letter</strong> — live.</p>
+<p><strong>🤔 One event, many uses.</strong> The <code>analytique</code> subscription gets <strong>its own copy</strong> of <strong>every</strong> order (including <code>CMD-BAD</code>): analytics sees <strong>the whole stream</strong>, independently of the worker. And the invalid order, <strong>nack</strong>ed in a loop by the worker, would end up — after 5 attempts — on the <strong><code>commandes-rebut</code></strong> topic (dead-letter), where the <code>rebut-veille</code> subscription lets you inspect it.</p>
+<p>Check the analytics fan-out:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># app/analytique.py — l&#39;analytique voit tout le flux (fan-out indépendant)
+import os
+os.environ[&quot;PUBSUB_EMULATOR_HOST&quot;] = &quot;localhost:8085&quot;
+from google.cloud import pubsub_v1
+proj = &quot;demo-projet&quot;
+sub = pubsub_v1.SubscriberClient()
+an = sub.subscription_path(proj, &quot;analytique&quot;)
+
+rep = sub.pull(request={&quot;subscription&quot;: an, &quot;max_messages&quot;: 10})
+print(f&quot;analytique a reçu {len(rep.received_messages)} commandes (copie indépendante)&quot;)
+for m in rep.received_messages:
+    sub.acknowledge(request={&quot;subscription&quot;: an, &quot;ack_ids&quot;: [m.ack_id]})</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/app
+python3 analytique.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>analytique.py</code> affiche <code>analytique a reçu 4 commandes (copie indépendante)</code> — <strong>les 4</strong>, y compris <code>CMD-BAD</code>. C&#39;est le <strong>fan-out</strong> : l&#39;analytique reçoit tout le flux, sans dépendre du travailleur (qui, lui, a filtré la mauvaise). ⚠️ <strong>Dead-letter (concept vérifié à l&#39;infra) :</strong> la politique est <strong>déclarée</strong> dans le Terraform (<code>max_delivery_attempts = 5</code>) et <strong>créée</strong> sur l&#39;émulateur par <code>bootstrap.py</code>. Le <strong>routage effectif</strong> de <code>CMD-BAD</code> vers <code>commandes-rebut</code> suppose 5 redistributions réelles — on le <strong>conceptualise</strong> ici (l&#39;émulateur le déclencherait sur un cycle long ; le vrai GCP le fait en production). L&#39;essentiel est <strong>architectural</strong> : les messages irrécupérables ont une <strong>porte de sortie</strong>, ils ne bloquent jamais la file.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>analytique.py</code> prints <code>analytique a reçu 4 commandes (copie indépendante)</code> — <strong>all 4</strong>, including <code>CMD-BAD</code>. That&#39;s <strong>fan-out</strong>: analytics gets the whole stream, independent of the worker (which filtered out the bad one). ⚠️ <strong>Dead-letter (concept verified at the infra):</strong> the policy is <strong>declared</strong> in the Terraform (<code>max_delivery_attempts = 5</code>) and <strong>created</strong> on the emulator by <code>bootstrap.py</code>. The <strong>actual routing</strong> of <code>CMD-BAD</code> to <code>commandes-rebut</code> requires 5 real redeliveries — we <strong>conceptualize</strong> it here (the emulator would trigger it over a long cycle; real GCP does it in production). The key point is <strong>architectural</strong>: unrecoverable messages have an <strong>exit door</strong>, they never block the queue.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer le pipeline <strong>bout en bout</strong> et <strong>vérifier</strong> le résultat — le moment « ça marche ».</p>
+<p><strong>🤔 La preuve par la sortie.</strong> On rejoue tout depuis zéro (bootstrap → produire → traiter) puis on <strong>vérifie</strong> les trois sorties : les <strong>enregistrements</strong> Datastore, les <strong>archives</strong> Storage, et les <strong>copies</strong> analytiques. C&#39;est ce que tu montreras comme <strong>démonstration</strong>.</p>
+<p>Crée <code>app/verifier.py</code>, puis lance la séquence complète :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run the pipeline <strong>end-to-end</strong> and <strong>verify</strong> the result — the &quot;it works&quot; moment.</p>
+<p><strong>🤔 Proof by output.</strong> We replay everything from scratch (bootstrap → produce → process) then <strong>verify</strong> the three outputs: Datastore <strong>records</strong>, Storage <strong>archives</strong>, and analytics <strong>copies</strong>. That&#39;s what you&#39;ll show as a <strong>demo</strong>.</p>
+<p>Create <code>app/verifier.py</code>, then run the full sequence:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># app/verifier.py — vérifie les trois sorties du pipeline
+import os
+os.environ[&quot;PUBSUB_EMULATOR_HOST&quot;] = &quot;localhost:8085&quot;
+os.environ[&quot;DATASTORE_EMULATOR_HOST&quot;] = &quot;localhost:8081&quot;
+from google.cloud import datastore, storage
+from google.auth.credentials import AnonymousCredentials
+proj = &quot;demo-projet&quot;
+
+# 1) Datastore : les commandes enregistrées / recorded orders
+ds = datastore.Client(project=proj)
+cmds = list(ds.query(kind=&quot;Commande&quot;).fetch())
+print(&quot;Datastore Commande :&quot;, sorted(e.key.name for e in cmds))
+
+# 2) Cloud Storage : les archives / the archives
+gcs = storage.Client(project=proj, credentials=AnonymousCredentials(),
+                     client_options={&quot;api_endpoint&quot;: &quot;http://localhost:4443&quot;})
+blobs = sorted(b.name for b in gcs.list_blobs(&quot;archive-commandes&quot;))
+print(&quot;Archives Storage    :&quot;, blobs)
+
+print(&quot;Pipeline OK&quot; if len(cmds) == 3 and len(blobs) == 3 else &quot;Pipeline INCOMPLET&quot;)</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/app
+export PUBSUB_EMULATOR_HOST=localhost:8085 DATASTORE_EMULATOR_HOST=localhost:8081
+python3 bootstrap.py &amp;&amp; python3 producteur.py &amp;&amp; python3 travailleur.py &amp;&amp; python3 verifier.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la séquence se termine par :</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Datastore Commande : [&#39;CMD-1001&#39;, &#39;CMD-1002&#39;, &#39;CMD-1003&#39;]
+Archives Storage    : [&#39;commandes/CMD-1001.json&#39;, &#39;commandes/CMD-1002.json&#39;, &#39;commandes/CMD-1003.json&#39;]
+Pipeline OK</code></pre>
+<p>Les <strong>3</strong> commandes valides sont <strong>enregistrées</strong> ET <strong>archivées</strong> ; la mauvaise a été écartée. <strong>Ton pipeline fonctionne de bout en bout.</strong> C&#39;est <strong>exactement</strong> la démo à faire tourner devant un recruteur (ou à capturer en GIF dans ton README). ⚠️ Relance la séquence : le résultat est <strong>identique</strong> (idempotence + bootstrap propre) — un pipeline <strong>déterministe</strong>, marque d&#39;un travail sérieux.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the sequence ends with:</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Datastore Commande : [&#39;CMD-1001&#39;, &#39;CMD-1002&#39;, &#39;CMD-1003&#39;]
+Archives Storage    : [&#39;commandes/CMD-1001.json&#39;, &#39;commandes/CMD-1002.json&#39;, &#39;commandes/CMD-1003.json&#39;]
+Pipeline OK</code></pre>
+<p>The <strong>3</strong> valid orders are <strong>recorded</strong> AND <strong>archived</strong>; the bad one was dropped. <strong>Your pipeline works end-to-end.</strong> It&#39;s <strong>exactly</strong> the demo to run in front of a recruiter (or capture as a GIF in your README). ⚠️ Re-run the sequence: the result is <strong>identical</strong> (idempotence + clean bootstrap) — a <strong>deterministic</strong> pipeline, the mark of serious work.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Emballer</strong> le projet pour ton CV, puis nettoyer.</p>
+<p><strong>🤔 Un projet non présenté n&#39;existe pas.</strong> Le code, c&#39;est la moitié ; savoir le <strong>raconter</strong> est l&#39;autre. Un <code>README</code> clair, une phrase d&#39;accroche, la liste des compétences prouvées — c&#39;est ce qui transforme un dossier en <strong>atout d&#39;embauche</strong>.</p>
+<p>Crée <code>README.md</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Package</strong> the project for your CV, then clean up.</p>
+<p><strong>🤔 An unpresented project doesn&#39;t exist.</strong> The code is half; knowing how to <strong>tell it</strong> is the other. A clear <code>README</code>, a hook sentence, the list of proven skills — that&#39;s what turns a folder into a <strong>hiring asset</strong>.</p>
+<p>Create <code>README.md</code>:</p>
+</div>
+<pre class="term lang-markdown"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">markdown</span><button class="copy-btn" type="button">Copy</button></div><code># Plateforme d&#39;ingestion événementielle (GCP)
+
+Pipeline événementiel : un producteur publie des commandes sur **Pub/Sub** ;
+un travailleur idempotent les valide, les enregistre dans **Firestore/Datastore**
+et archive la charge brute dans **Cloud Storage**. Fan-out vers un abonnement
+analytique ; **dead-letter** pour les messages invalides. Infrastructure décrite
+en **Terraform** (2 comptes de service au **moindre privilège**).
+
+**Architecture**
+Producteur → Pub/Sub `commandes` → abonnement `traitement` → Travailleur
+→ Datastore + Cloud Storage. Abonnement `analytique` (fan-out). Dead-letter `commandes-rebut`.
+
+**Stack**
+Google Cloud (Pub/Sub, Firestore/Datastore, Cloud Storage, IAM), Terraform, Python.
+Développé et testé **en local** sur les émulateurs officiels GCP.
+
+**Lancer**
+1. `cd infra &amp;&amp; terraform init &amp;&amp; terraform validate`   # valider l&#39;infra
+2. `cd ../app &amp;&amp; python3 bootstrap.py &amp;&amp; python3 producteur.py &amp;&amp; python3 travailleur.py &amp;&amp; python3 verifier.py`
+
+**Compétences démontrées**
+Architecture événementielle · découplage · idempotence · dead-letter · fan-out
+· IaC (Terraform) · moindre privilège (IAM) · test local sur émulateurs.</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Nettoyage émulateurs (optionnel) / emulator cleanup (optional)
+cd ~/projet-commandes/app &amp;&amp; python3 bootstrap.py   # repart d&#39;une topologie propre
+# En RÉEL, le déploiement/retrait se fait avec / on REAL GCP, deploy/tear down with:
+#   cd infra &amp;&amp; terraform apply   # (guide &quot;passer en réel&quot;)
+#   cd infra &amp;&amp; terraform destroy</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ton dossier <code>~/projet-commandes</code> contient <code>infra/</code> (Terraform validé), <code>app/</code> (pipeline qui tourne) et <code>README.md</code>. <strong>Tu as un projet de CV complet.</strong> La phrase d&#39;accroche à réutiliser : <em>« J&#39;ai conçu une plateforme d&#39;ingestion événementielle sur GCP — Pub/Sub, Firestore/Datastore, Cloud Storage — avec Terraform et IAM au moindre privilège, développée et testée en local sur les émulateurs officiels. »</em> Pousse-le sur <strong>GitHub</strong> (avec le README). ⚠️ La dernière étape du track : <strong>passer en réel</strong> — brancher un vrai compte, <code>terraform apply</code>, garde-fous de coût, et la ligne d&#39;arrivée : la <strong>certification ACE</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> your <code>~/projet-commandes</code> folder holds <code>infra/</code> (validated Terraform), <code>app/</code> (a running pipeline) and <code>README.md</code>. <strong>You have a complete CV project.</strong> The hook sentence to reuse: <em>&quot;I designed an event-driven ingestion platform on GCP — Pub/Sub, Firestore/Datastore, Cloud Storage — with Terraform and least-privilege IAM, built and tested locally on the official emulators.&quot;</em> Push it to <strong>GitHub</strong> (with the README). ⚠️ The track&#39;s last step: <strong>going real</strong> — wire a real account, <code>terraform apply</code>, cost guardrails, and the finish line: the <strong>ACE certification</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Un travailleur non idempotent.</strong> Sans clé stable (l&#39;id de commande), une redistribution crée un <strong>doublon</strong>. Écris <strong>par clé</strong> ; c&#39;est la parade au at-least-once.</p>
+<p><strong>2. Oublier <code>AnonymousCredentials</code> avec fake-gcs.</strong> Le client Storage Python exige des identifiants ; contre l&#39;émulateur, passe <code>AnonymousCredentials()</code> + l&#39;endpoint. En réel, retire-les.</p>
+<p><strong>3. Croire que Terraform pilote les émulateurs.</strong> Non : le provider <code>google</code> vise le vrai GCP. En local, <code>bootstrap.py</code> rejoue la topologie ; <code>terraform validate</code> prouve la config.</p>
+<p><strong>4. Accorder trop de droits aux comptes de service.</strong> Producteur = <code>publisher</code> <strong>seulement</strong> ; travailleur = juste <code>subscriber</code> + <code>datastore.user</code> + <code>storage.objectAdmin</code>. Jamais <code>Editor</code>/<code>Owner</code>.</p>
+<p><strong>5. Traiter et analyser dans le même abonnement.</strong> Le fan-out existe pour ça : <strong>un abonnement par usage</strong>. Mélanger, c&#39;est se priver du découplage.</p>
+<p><strong>6. Ignorer les messages empoisonnés.</strong> Sans dead-letter, une commande corrompue tourne en boucle et bloque le worker. Déclare la politique (fait ici).</p>
+<p><strong>7. Un projet sans README.</strong> Le code seul ne se vend pas. Le README (architecture, stack, compétences) est ce que lit le recruteur <strong>en premier</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>1. A non-idempotent worker.</strong> Without a stable key (the order id), a redelivery creates a <strong>duplicate</strong>. Write <strong>by key</strong>; that&#39;s the at-least-once fix.</p>
+<p><strong>2. Forgetting <code>AnonymousCredentials</code> with fake-gcs.</strong> The Python Storage client requires credentials; against the emulator, pass <code>AnonymousCredentials()</code> + the endpoint. On real GCP, drop them.</p>
+<p><strong>3. Thinking Terraform drives the emulators.</strong> No: the <code>google</code> provider targets real GCP. Locally, <code>bootstrap.py</code> replays the topology; <code>terraform validate</code> proves the config.</p>
+<p><strong>4. Over-granting service accounts.</strong> Producer = <code>publisher</code> <strong>only</strong>; worker = just <code>subscriber</code> + <code>datastore.user</code> + <code>storage.objectAdmin</code>. Never <code>Editor</code>/<code>Owner</code>.</p>
+<p><strong>5. Processing and analyzing in the same subscription.</strong> Fan-out exists for this: <strong>one subscription per use</strong>. Mixing them forfeits the decoupling.</p>
+<p><strong>6. Ignoring poison messages.</strong> Without dead-letter, a corrupt order loops forever and blocks the worker. Declare the policy (done here).</p>
+<p><strong>7. A project with no README.</strong> Code alone doesn&#39;t sell. The README (architecture, stack, skills) is what the recruiter reads <strong>first</strong>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Ton <code>infra/</code> <strong>valide</strong> (<code>terraform validate</code> → Success).</li><li><code>bootstrap.py</code> + <code>producteur.py</code> publient 4 commandes.</li><li><code>travailleur.py</code> affiche <code>traités=3 rejetés(nack)=1</code>.</li><li><code>analytique.py</code> reçoit <strong>4</strong> commandes (fan-out).</li><li><code>verifier.py</code> affiche <strong>3</strong> enregistrements Datastore et <strong>3</strong> archives → <code>Pipeline OK</code>.</li><li>Tu expliques <strong>découplage, idempotence, dead-letter, fan-out, moindre privilège</strong>.</li><li>Ton <code>README.md</code> raconte le projet en une phrase d&#39;accroche.</li></ul>
+<p>Sept cases = tu as un <strong>projet d&#39;entreprise</strong> défendable. La suite : passer en réel.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>Your <code>infra/</code> <strong>validates</strong> (<code>terraform validate</code> → Success).</li><li><code>bootstrap.py</code> + <code>producteur.py</code> publish 4 orders.</li><li><code>travailleur.py</code> prints <code>traités=3 rejetés(nack)=1</code>.</li><li><code>analytique.py</code> receives <strong>4</strong> orders (fan-out).</li><li><code>verifier.py</code> prints <strong>3</strong> Datastore records and <strong>3</strong> archives → <code>Pipeline OK</code>.</li><li>You explain <strong>decoupling, idempotence, dead-letter, fan-out, least privilege</strong>.</li><li>Your <code>README.md</code> tells the project in a hook sentence.</li></ul>
+<p>Seven boxes = you have a defensible <strong>enterprise project</strong>. Next up: going real.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La dernière étape du track GCP → ACE :</p>
+<ol><li><strong>GCP — passer en réel</strong> : créer un vrai projet, brancher les identifiants (ADC), poser des <strong>garde-fous de coût</strong> (budgets, alertes), faire un vrai <code>terraform apply</code> de cette infra, puis nettoyer avec <code>destroy</code>.</li><li>Et la <strong>certification Associate Cloud Engineer</strong> : ce que tu as construit couvre le cœur de l&#39;examen (services, IAM, IaC, opérations).</li></ol>
+</div>
+<div data-lang="en"><p>The last step of the GCP → ACE track:</p>
+<ol><li><strong>GCP — going real</strong>: create a real project, wire credentials (ADC), set <strong>cost guardrails</strong> (budgets, alerts), run a real <code>terraform apply</code> of this infra, then clean up with <code>destroy</code>.</li><li>And the <strong>Associate Cloud Engineer certification</strong>: what you built covers the exam&#39;s core (services, IAM, IaC, operations).</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du projet (depuis <code>~/projet-commandes</code>).</p>
+</div>
+<div data-lang="en"><p>Project cheat sheet (from <code>~/projet-commandes</code>).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Infra (définition réelle, validée en local) / infra (real definition, validated locally)
+cd infra &amp;&amp; terraform init &amp;&amp; terraform fmt &amp;&amp; terraform validate
+
+# App (exécution locale sur émulateurs) / app (local run on emulators)
+cd ../app
+export PUBSUB_EMULATOR_HOST=localhost:8085 DATASTORE_EMULATOR_HOST=localhost:8081
+python3 bootstrap.py      # crée la topologie sur l&#39;émulateur / create topology on emulator
+python3 producteur.py     # publie les commandes / publish orders
+python3 travailleur.py    # valide -&gt; Datastore + archive Storage / validate -&gt; DS + Storage
+python3 analytique.py     # fan-out : voit tout le flux / sees the whole stream
+python3 verifier.py       # 3 enregistrements + 3 archives -&gt; Pipeline OK</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Architecture : Producteur → Pub/Sub(commandes) → [traitement] → Travailleur → Datastore + Storage
+                                                → [analytique] → (fan-out)
+                          commandes invalides → dead-letter (commandes-rebut)
+Moindre privilège : producteur=pubsub.publisher ; travailleur=pubsub.subscriber+datastore.user+storage.objectAdmin</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://cloud.google.com/architecture/event-driven-architectures">Architectures événementielles sur GCP</a> — patterns de référence.</li><li><a href="https://cloud.google.com/pubsub/docs/handling-failures">Pub/Sub — gérer les échecs</a> — dead-letter, retry.</li><li><a href="https://cloud.google.com/datastore/docs/best-practices">Datastore — bonnes pratiques</a> — clés, requêtes, idempotence.</li><li><a href="https://github.com/fsouza/fake-gcs-server">fake-gcs-server</a> — l&#39;émulateur Cloud Storage.</li><li><a href="https://cloud.google.com/docs/terraform/best-practices-for-terraform">Terraform sur GCP — structure de projet</a> — infra/, modules, state.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://cloud.google.com/architecture/event-driven-architectures">Event-driven architectures on GCP</a> — reference patterns.</li><li><a href="https://cloud.google.com/pubsub/docs/handling-failures">Pub/Sub — handling failures</a> — dead-letter, retry.</li><li><a href="https://cloud.google.com/datastore/docs/best-practices">Datastore — best practices</a> — keys, queries, idempotence.</li><li><a href="https://github.com/fsouza/fake-gcs-server">fake-gcs-server</a> — the Cloud Storage emulator.</li><li><a href="https://cloud.google.com/docs/terraform/best-practices-for-terraform">Terraform on GCP — project structure</a> — infra/, modules, state.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>bootstrap.py</code> : erreur de connexion.</strong> L&#39;émulateur Pub/Sub n&#39;est pas lancé (<code>localhost:8085</code>) ou <code>PUBSUB_EMULATOR_HOST</code> n&#39;est pas exporté dans ce shell. Vérifie le labo (<em>fondamentaux</em>).</p>
+<p><strong><code>travailleur.py</code> : <code>DefaultCredentialsError</code> sur Storage.</strong> Il manque <code>credentials=AnonymousCredentials()</code> (et l&#39;<code>api_endpoint</code>) sur le client <code>storage.Client</code> — obligatoire contre fake-gcs.</p>
+<p><strong><code>travailleur.py</code> : <code>traités=0</code>.</strong> As-tu lancé <code>producteur.py</code> <strong>après</strong> <code>bootstrap.py</code> ? Un abonnement ne reçoit que les messages publiés <strong>après</strong> sa création. Rejoue la séquence bootstrap → produire → traiter.</p>
+<p><strong><code>verifier.py</code> : moins de 3 archives/enregistrements.</strong> Le travailleur n&#39;a pas tout traité (relance-le : les messages non acquittés sont redistribués), ou <code>bootstrap.py</code> n&#39;a pas été rejoué avant une nouvelle production. Repars propre : bootstrap → produire → traiter → vérifier.</p>
+<p><strong><code>terraform validate</code> échoue dans <code>infra/</code>.</strong> Vérifie que <code>terraform init</code> a bien téléchargé le provider <code>google</code>, et que tes accolades/arguments correspondent au schéma (le message d&#39;erreur pointe la ligne).</p>
+<p><strong>Les résultats varient d&#39;un run à l&#39;autre.</strong> Tu ne repars pas d&#39;une topologie propre. <code>bootstrap.py</code> <strong>réinitialise</strong> (supprime puis recrée) — lance-le toujours en premier.</p>
+</div>
+<div data-lang="en"><p><strong><code>bootstrap.py</code>: connection error.</strong> The Pub/Sub emulator isn&#39;t running (<code>localhost:8085</code>) or <code>PUBSUB_EMULATOR_HOST</code> isn&#39;t exported in this shell. Check the lab (<em>fundamentals</em>).</p>
+<p><strong><code>travailleur.py</code>: <code>DefaultCredentialsError</code> on Storage.</strong> You&#39;re missing <code>credentials=AnonymousCredentials()</code> (and the <code>api_endpoint</code>) on the <code>storage.Client</code> — required against fake-gcs.</p>
+<p><strong><code>travailleur.py</code>: <code>traités=0</code>.</strong> Did you run <code>producteur.py</code> <strong>after</strong> <code>bootstrap.py</code>? A subscription only receives messages published <strong>after</strong> its creation. Replay bootstrap → produce → process.</p>
+<p><strong><code>verifier.py</code>: fewer than 3 archives/records.</strong> The worker didn&#39;t process everything (re-run it: unacked messages are redelivered), or <code>bootstrap.py</code> wasn&#39;t replayed before a new production. Start clean: bootstrap → produce → process → verify.</p>
+<p><strong><code>terraform validate</code> fails in <code>infra/</code>.</strong> Check that <code>terraform init</code> downloaded the <code>google</code> provider, and that your braces/arguments match the schema (the error message points to the line).</p>
+<p><strong>Results vary from run to run.</strong> You&#39;re not starting from a clean topology. <code>bootstrap.py</code> <strong>resets</strong> (deletes then recreates) — always run it first.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
