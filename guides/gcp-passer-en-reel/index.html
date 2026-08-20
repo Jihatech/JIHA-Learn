@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">GCP — passer en réel proprement — jiha.tech</title>
+  <title data-lang="en">GCP — going real, cleanly — jiha.tech</title>
+  <meta name="description" content="La transition du labo au vrai Google Cloud, sans mauvaise surprise : créer un projet et lier la facturation (crédits d&#39;essai + palier Always Free), s&#39;authentifier proprement (gcloud + ADC pour Terraform), poser des garde-fous de coût AVANT toute ressource (budgets Cloud Billing + alertes), activer les APIs, créer la base Firestore/Datastore, déployer ton projet Terraform pour de vrai (apply) puis tout démonter (destroy + suppression du projet), et comprendre ce que les émulateurs cachaient (IAM appliqué, unicité mondiale, dead-letter réel, cohérence, quotas). Plus la feuille de route vers la certification ACE." data-lang="fr">
+  <meta name="description" content="The transition from lab to real Google Cloud, with no nasty surprise: create a project and link billing (trial credits + Always Free tier), authenticate cleanly (gcloud + ADC for Terraform), set cost guardrails BEFORE any resource (Cloud Billing budgets + alerts), enable APIs, create the Firestore/Datastore database, deploy your Terraform project for real (apply) then tear it all down (destroy + project deletion), and understand what the emulators hid (IAM enforced, global uniqueness, real dead-letter, consistency, quotas). Plus the roadmap to the ACE certification." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="GCP — passer en réel proprement">
+  <meta property="og:description" content="La transition du labo au vrai Google Cloud, sans mauvaise surprise : créer un projet et lier la facturation (crédits d&#39;essai + palier Always Free), s&#39;authentifier proprement (gcloud + ADC pour Terraform), poser des garde-fous de coût AVANT toute ressource (budgets Cloud Billing + alertes), activer les APIs, créer la base Firestore/Datastore, déployer ton projet Terraform pour de vrai (apply) puis tout démonter (destroy + suppression du projet), et comprendre ce que les émulateurs cachaient (IAM appliqué, unicité mondiale, dead-letter réel, cohérence, quotas). Plus la feuille de route vers la certification ACE.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/gcp-passer-en-reel/">
+  <link rel="canonical" href="https://jiha.tech/guides/gcp-passer-en-reel/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="gcp-passer-en-reel">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/gcp-passer-en-reel</div>
+    <div class="prompt" data-lang="en">~/guides/gcp-passer-en-reel</div>
+    <h1 data-lang="fr">GCP — passer en réel proprement</h1>
+    <h1 data-lang="en">GCP — going real, cleanly</h1>
+    <p class="tagline" data-lang="fr">projet, facturation, ADC, garde-fous de coût, ce que les émulateurs cachaient.</p>
+    <p class="tagline" data-lang="en">project, billing, ADC, cost guardrails, what the emulators hid.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 190 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-20</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 190 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-20</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as appris tout GCP <strong>sans compte, sans carte, sans risque</strong> grâce aux émulateurs officiels et à fake-gcs. À un moment, tu voudras (ou devras) toucher au <strong>vrai</strong> Google Cloud : pour l&#39;examen, pour un projet client, pour valider en conditions réelles. Ce guide est le <strong>pont</strong> — et surtout le <strong>garde-fou</strong>. Car le vrai GCP a une différence de taille avec les émulateurs : <strong>il facture</strong>. Une base laissée active, un bucket oublié, une API coûteuse activée, et c&#39;est la facture surprise. Ce guide t&#39;apprend à passer en réel <strong>proprement</strong> : créer un projet, poser des garde-fous de coût <strong>avant</strong> de créer quoi que ce soit, déployer ton projet Terraform, puis <strong>tout démonter</strong>.</p>
+<p>On avance dans l&#39;ordre qui évite les catastrophes : d&#39;abord <strong>créer un projet</strong> et <strong>lier la facturation</strong> (avec les <strong>crédits d&#39;essai</strong> et le palier <strong>Always Free</strong>), puis <strong>s&#39;authentifier proprement</strong> (<code>gcloud</code> pour toi, <strong>ADC</strong> pour Terraform), puis — <strong>avant toute ressource</strong> — les <strong>garde-fous de coût</strong> (budgets Cloud Billing + alertes). Ensuite seulement on <strong>active les APIs</strong>, on <strong>crée la base</strong> Firestore/Datastore, et on déploie ton <strong>projet Terraform</strong> pour de vrai (<code>apply</code>). Enfin, on <strong>démonte tout</strong> (<code>destroy</code> + suppression du projet) et on démonte aussi les <strong>illusions des émulateurs</strong> : ce qu&#39;ils cachaient et qui compte vraiment en production.</p>
+<p>⚠️ <strong>Ce guide implique de VRAIES actions sur un VRAI compte Google Cloud</strong>, qui peuvent <strong>coûter de l&#39;argent</strong> si tu n&#39;es pas discipliné·e. On reste dans les <strong>crédits d&#39;essai</strong> / l&#39;<strong>offre gratuite</strong> et on nettoie tout — mais lis chaque avertissement. Les vérifications « ✅ » décrivent ce que tu dois <strong>voir</strong> dans la console/CLI, pas des commandes de labo à rejouer à l&#39;aveugle.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé tout le track GCP (jusqu&#39;au projet d&#39;entreprise) et tu es prêt·e à mettre le pied dans le vrai cloud.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu veux juste réviser/t&#39;entraîner → reste sur les <strong>émulateurs</strong>, c&#39;est gratuit et sans risque.</li><li>Tu n&#39;es pas sûr·e de pouvoir surveiller tes coûts → pose <strong>d&#39;abord</strong> les garde-fous de ce guide (étape 3), puis reviens créer des ressources.</li></ul>
+</div>
+<div data-lang="en"><p>You learned all of GCP <strong>with no account, no card, no risk</strong> thanks to the official emulators and fake-gcs. At some point, you&#39;ll want (or need) to touch <strong>real</strong> Google Cloud: for the exam, a client project, a real-conditions validation. This guide is the <strong>bridge</strong> — and above all the <strong>guardrail</strong>. Because real GCP has one big difference from the emulators: <strong>it bills</strong>. A database left active, a forgotten bucket, an expensive API enabled, and it&#39;s a surprise bill. This guide teaches you to go real <strong>cleanly</strong>: create a project, set cost guardrails <strong>before</strong> creating anything, deploy your Terraform project, then <strong>tear it all down</strong>.</p>
+<p>We go in the disaster-avoiding order: first <strong>create a project</strong> and <strong>link billing</strong> (with the <strong>trial credits</strong> and the <strong>Always Free</strong> tier), then <strong>authenticate cleanly</strong> (<code>gcloud</code> for you, <strong>ADC</strong> for Terraform), then — <strong>before any resource</strong> — the <strong>cost guardrails</strong> (Cloud Billing budgets + alerts). Only then do we <strong>enable the APIs</strong>, <strong>create the</strong> Firestore/Datastore <strong>database</strong>, and deploy your <strong>Terraform project</strong> for real (<code>apply</code>). Finally, we <strong>tear everything down</strong> (<code>destroy</code> + project deletion) and also dismantle the <strong>emulators&#39; illusions</strong>: what they hid and what truly matters in production.</p>
+<p>⚠️ <strong>This guide involves REAL actions on a REAL Google Cloud account</strong>, which can <strong>cost money</strong> if you&#39;re not disciplined. We stay in the <strong>trial credits</strong> / <strong>free tier</strong> and clean everything up — but read every warning. The &quot;✅&quot; checks describe what you should <strong>see</strong> in the console/CLI, not lab commands to replay blindly.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the whole GCP track (through the enterprise project) and you&#39;re ready to step into the real cloud.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You just want to revise/practice → stay on the <strong>emulators</strong>, it&#39;s free and risk-free.</li><li>You&#39;re not sure you can watch your costs → set <strong>this guide&#39;s guardrails first</strong> (step 3), then come back to create resources.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer un <strong>projet GCP</strong> et <strong>lier la facturation</strong> (crédits d&#39;essai, Always Free).</li><li>T&#39;authentifier avec <strong><code>gcloud</code></strong> et surtout <strong>ADC</strong> (ce que Terraform utilise).</li><li>Poser des <strong>garde-fous de coût</strong> (budgets + alertes) <strong>avant</strong> toute ressource.</li><li><strong>Activer les APIs</strong> nécessaires et <strong>créer la base</strong> Firestore/Datastore.</li><li>Déployer ton <strong>projet Terraform</strong> pour de vrai (<code>plan</code> → <code>apply</code>).</li><li><strong>Faire tourner le pipeline</strong> contre le vrai GCP (sans les variables d&#39;émulateur).</li><li><strong>Tout démonter</strong> (<code>destroy</code> + suppression du projet) — la discipline anti-facture.</li><li>Reconnaître <strong>ce que les émulateurs cachaient</strong> (IAM, unicité, dead-letter, cohérence).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create a <strong>GCP project</strong> and <strong>link billing</strong> (trial credits, Always Free).</li><li>Authenticate with <strong><code>gcloud</code></strong> and above all <strong>ADC</strong> (what Terraform uses).</li><li>Set <strong>cost guardrails</strong> (budgets + alerts) <strong>before</strong> any resource.</li><li><strong>Enable the APIs</strong> needed and <strong>create the</strong> Firestore/Datastore <strong>database</strong>.</li><li>Deploy your <strong>Terraform project</strong> for real (<code>plan</code> → <code>apply</code>).</li><li><strong>Run the pipeline</strong> against real GCP (without the emulator variables).</li><li><strong>Tear everything down</strong> (<code>destroy</code> + project deletion) — the anti-bill discipline.</li><li>Recognize <strong>what the emulators hid</strong> (IAM, uniqueness, dead-letter, consistency).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>GCP projet d&#39;entreprise</strong> terminé (l&#39;infra Terraform + l&#39;app que tu vas déployer).</li><li>Un <strong>compte Google</strong> et une <strong>carte bancaire</strong> (exigée pour ouvrir la facturation, même en essai gratuit — GCP ne débite pas sans ton accord explicite en fin d&#39;essai).</li><li><strong><code>gcloud</code></strong> et <strong>Terraform</strong> installés.</li><li>⚠️ La volonté de <strong>lire les avertissements</strong> et de <strong>nettoyer</strong> derrière toi. Le vrai cloud facture.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>GCP enterprise project</strong> guide done (the Terraform infra + app you&#39;ll deploy).</li><li>A <strong>Google account</strong> and a <strong>payment card</strong> (required to open billing, even on the free trial — GCP won&#39;t charge without your explicit consent at trial&#39;s end).</li><li><strong><code>gcloud</code></strong> and <strong>Terraform</strong> installed.</li><li>⚠️ The willingness to <strong>read the warnings</strong> and <strong>clean up</strong> after yourself. Real cloud bills.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../gcp-projet-entreprise/">
+    <span class="num">56</span>
+    <span class="title-line" data-lang="fr">GCP — projet d&#39;entreprise : plateforme d&#39;ingestion événementielle</span>
+    <span class="title-line" data-lang="en">GCP — enterprise project: event-driven ingestion platform</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Projet &amp; facturation.</strong> Sur GCP, <strong>tout</strong> vit dans un <strong>projet</strong> (l&#39;unité d&#39;isolation et de facturation). Pour créer des ressources payantes, le projet doit être <strong>lié à un compte de facturation</strong>. GCP offre des <strong>crédits d&#39;essai</strong> (un montant offert sur une période) et un palier <strong>Always Free</strong> (des quotas gratuits permanents sur certains services — Pub/Sub, Cloud Storage, Firestore ont des franchises généreuses). Bien utilisé, ce track se déploie <strong>sans dépenser un centime réel</strong>.</p>
+<p><strong>Authentification : toi vs les machines.</strong> Deux niveaux. <code>gcloud auth login</code> t&#39;authentifie <strong>toi</strong> (pour la CLI). <code>gcloud auth application-default login</code> écrit les <strong>Application Default Credentials (ADC)</strong> — le fichier d&#39;identifiants que les <strong>bibliothèques et Terraform</strong> cherchent automatiquement. C&#39;est <strong>précisément</strong> l&#39;ADC qui manquait au guide <em>IAM &amp; Terraform</em> quand <code>plan</code> échouait. En prod, on n&#39;utilise pas ses identifiants perso mais un <strong>compte de service</strong> (Workload Identity).</p>
+<p><strong>Garde-fous de coût (LE réflexe).</strong> Un <strong>budget</strong> Cloud Billing te <strong>prévient</strong> (par e-mail, à 50/90/100 % d&#39;un seuil) quand la dépense approche une limite. ⚠️ <strong>Un budget ALERTE, il ne BLOQUE pas</strong> par défaut : c&#39;est un signal, pas un plafond dur. On le pose <strong>avant</strong> de créer quoi que ce soit. Complément : surveiller le tableau de bord de facturation et <strong>supprimer</strong> ce qu&#39;on n&#39;utilise plus.</p>
+<p><strong>Activer les APIs.</strong> Sur GCP, chaque service a une <strong>API</strong> à <strong>activer</strong> par projet avant usage (<code>pubsub.googleapis.com</code>, <code>firestore.googleapis.com</code>, <code>storage.googleapis.com</code>, <code>iam.googleapis.com</code>…). Les émulateurs n&#39;exigeaient rien de tel — c&#39;est une étape <strong>réelle</strong> à ne pas oublier (sinon <code>apply</code> échoue avec « API not enabled »).</p>
+<p><strong>Créer la base Firestore/Datastore.</strong> L&#39;émulateur Datastore fonctionnait « tout seul ». En réel, il faut <strong>créer une base</strong> dans le projet et <strong>choisir son mode</strong> : <strong>Firestore natif</strong> (moderne, temps réel) <strong>ou</strong> <strong>Datastore mode</strong> (compatible avec le code du track). Ce choix est <strong>définitif</strong> par projet — un vrai point d&#39;examen.</p>
+<p><strong>Le cycle réel de Terraform.</strong> Ici, <code>terraform apply</code> <strong>crée vraiment</strong> les ressources ; le fichier d&#39;<strong>état</strong> (<code>terraform.tfstate</code>) mémorise ce qui existe. <code>destroy</code> supprime <strong>exactement</strong> ce que le state gère — la contrepartie propre. C&#39;est la force de l&#39;IaC : ce que tu as <strong>validé</strong> en local, tu le <strong>déploies</strong> et le <strong>retires</strong> d&#39;une commande.</p>
+</div>
+<div data-lang="en"><p><strong>Project &amp; billing.</strong> On GCP, <strong>everything</strong> lives in a <strong>project</strong> (the unit of isolation and billing). To create paid resources, the project must be <strong>linked to a billing account</strong>. GCP offers <strong>trial credits</strong> (a granted amount over a period) and an <strong>Always Free</strong> tier (permanent free quotas on some services — Pub/Sub, Cloud Storage, Firestore have generous allowances). Used well, this track deploys <strong>without spending a real cent</strong>.</p>
+<p><strong>Authentication: you vs machines.</strong> Two levels. <code>gcloud auth login</code> authenticates <strong>you</strong> (for the CLI). <code>gcloud auth application-default login</code> writes the <strong>Application Default Credentials (ADC)</strong> — the credential file that <strong>libraries and Terraform</strong> look for automatically. It&#39;s <strong>precisely</strong> the ADC that was missing in the <em>IAM &amp; Terraform</em> guide when <code>plan</code> failed. In prod, you don&#39;t use personal credentials but a <strong>service account</strong> (Workload Identity).</p>
+<p><strong>Cost guardrails (THE reflex).</strong> A Cloud Billing <strong>budget</strong> <strong>warns</strong> you (by email, at 50/90/100% of a threshold) when spend approaches a limit. ⚠️ <strong>A budget ALERTS, it does NOT BLOCK</strong> by default: it&#39;s a signal, not a hard cap. You set it <strong>before</strong> creating anything. Complement: watch the billing dashboard and <strong>delete</strong> what you no longer use.</p>
+<p><strong>Enabling APIs.</strong> On GCP, each service has an <strong>API</strong> to <strong>enable</strong> per project before use (<code>pubsub.googleapis.com</code>, <code>firestore.googleapis.com</code>, <code>storage.googleapis.com</code>, <code>iam.googleapis.com</code>…). The emulators required no such thing — it&#39;s a <strong>real</strong> step not to forget (else <code>apply</code> fails with &quot;API not enabled&quot;).</p>
+<p><strong>Creating the Firestore/Datastore database.</strong> The Datastore emulator &quot;just worked&quot;. For real, you must <strong>create a database</strong> in the project and <strong>choose its mode</strong>: <strong>Firestore native</strong> (modern, real-time) <strong>or</strong> <strong>Datastore mode</strong> (compatible with the track&#39;s code). This choice is <strong>permanent</strong> per project — a real exam point.</p>
+<p><strong>Terraform&#39;s real cycle.</strong> Here, <code>terraform apply</code> <strong>really creates</strong> resources; the <strong>state</strong> file (<code>terraform.tfstate</code>) remembers what exists. <code>destroy</code> removes <strong>exactly</strong> what the state manages — the clean counterpart. That&#39;s the strength of IaC: what you <strong>validated</strong> locally, you <strong>deploy</strong> and <strong>remove</strong> with one command.</p>
+</div>
+
+<figure class="schema" id="figure-gcp-lab-to-real">
+  <p>[schema "gcp-lab-to-real" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Du labo au réel : à gauche, les émulateurs (Pub/Sub, Datastore, fake-gcs), gratuits et sans compte ; à droite, le vrai GCP. Le pont se traverse dans l&#39;ordre : projet + facturation → auth (gcloud + ADC) → garde-fous de coût (budgets/alertes) → activer APIs + créer la base → terraform apply → destroy. La sécurité coût avant toute ressource.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> From lab to real: on the left, the emulators (Pub/Sub, Datastore, fake-gcs), free and account-less; on the right, real GCP. The bridge is crossed in order: project + billing → auth (gcloud + ADC) → cost guardrails (budgets/alerts) → enable APIs + create the database → terraform apply → destroy. Cost safety before any resource.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>projet GCP</strong> et <strong>lier la facturation</strong> — proprement.</p>
+<p><strong>🤔 Le projet, unité de tout.</strong> On crée un projet <strong>dédié</strong> à cet apprentissage (facile à supprimer en bloc à la fin). On y lie un <strong>compte de facturation</strong> (nécessaire pour les ressources, mais couvert par les crédits d&#39;essai / l&#39;Always Free).</p>
+<p>En CLI (ou via la console <code>console.cloud.google.com</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>GCP project</strong> and <strong>link billing</strong> — cleanly.</p>
+<p><strong>🤔 The project, unit of everything.</strong> We create a project <strong>dedicated</strong> to this learning (easy to delete wholesale at the end). We link a <strong>billing account</strong> to it (needed for resources, but covered by trial credits / Always Free).</p>
+<p>In the CLI (or via the console <code>console.cloud.google.com</code>):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Crée un projet dédié (ID mondialement unique) / create a dedicated project (globally unique ID)
+gcloud projects create mon-labo-ace-2026 --name=&quot;Labo ACE&quot;
+
+# Liste tes comptes de facturation / list your billing accounts
+gcloud billing accounts list
+
+# Lie la facturation au projet / link billing to the project
+gcloud billing projects link mon-labo-ace-2026 \
+  --billing-account=XXXXXX-XXXXXX-XXXXXX
+
+# Fixe ce projet comme actif / set this project as active
+gcloud config set project mon-labo-ace-2026</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud projects describe mon-labo-ace-2026</code> renvoie l&#39;état <code>ACTIVE</code>. <code>gcloud billing projects describe mon-labo-ace-2026</code> montre <code>billingEnabled: true</code>. Dans la console, le projet apparaît dans le sélecteur en haut. ⚠️ <strong>L&#39;ID de projet est définitif et mondialement unique</strong> (ajoute un suffixe si « pris »). Sépare bien <strong>compte de facturation</strong> (le moyen de paiement) et <strong>projet</strong> (où vivent les ressources) : un compte de facturation peut porter plusieurs projets. Garde ce projet <strong>isolé</strong> — on le supprimera <strong>entièrement</strong> à la fin.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud projects describe mon-labo-ace-2026</code> returns state <code>ACTIVE</code>. <code>gcloud billing projects describe mon-labo-ace-2026</code> shows <code>billingEnabled: true</code>. In the console, the project shows in the top selector. ⚠️ <strong>The project ID is permanent and globally unique</strong> (add a suffix if &quot;taken&quot;). Keep <strong>billing account</strong> (the payment method) and <strong>project</strong> (where resources live) distinct: one billing account can carry several projects. Keep this project <strong>isolated</strong> — we&#39;ll delete it <strong>entirely</strong> at the end.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> T&#39;authentifier proprement : <strong><code>gcloud</code></strong> pour toi, <strong>ADC</strong> pour Terraform.</p>
+<p><strong>🤔 L&#39;ADC, le chaînon manquant.</strong> Au guide <em>IAM &amp; Terraform</em>, <code>terraform plan</code> échouait sur « No credentials loaded ». La raison : Terraform cherche les <strong>Application Default Credentials</strong>. On les crée maintenant. Deux commandes distinctes : l&#39;une pour la <strong>CLI</strong> (toi), l&#39;autre pour les <strong>bibliothèques/Terraform</strong> (ADC).</p>
+<p>Authentifie-toi :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Authenticate cleanly: <strong><code>gcloud</code></strong> for you, <strong>ADC</strong> for Terraform.</p>
+<p><strong>🤔 ADC, the missing link.</strong> In the <em>IAM &amp; Terraform</em> guide, <code>terraform plan</code> failed on &quot;No credentials loaded&quot;. The reason: Terraform looks for the <strong>Application Default Credentials</strong>. We create them now. Two distinct commands: one for the <strong>CLI</strong> (you), one for <strong>libraries/Terraform</strong> (ADC).</p>
+<p>Authenticate:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) T&#39;authentifier pour la CLI gcloud / authenticate for the gcloud CLI
+gcloud auth login
+
+# 2) Écrire les Application Default Credentials (ce que Terraform utilise) / write ADC
+gcloud auth application-default login
+
+# Vérifier / verify
+gcloud auth list                        # ton compte actif / your active account
+gcloud config list                      # projet + compte / project + account</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud auth list</code> montre ton compte avec un <code>*</code> (actif). Un fichier d&#39;identifiants ADC est écrit (typiquement <code>~/.config/gcloud/application_default_credentials.json</code>). <strong>Désormais, <code>terraform plan</code> ne renverra plus l&#39;erreur d&#39;identifiants</strong> — il s&#39;authentifiera via l&#39;ADC. ⚠️ <strong>Ces identifiants sont sensibles</strong> (ils agissent en ton nom). Ne les committe jamais, ne les partage pas. En production, on n&#39;utilise <strong>pas</strong> ses identifiants perso : on attache un <strong>compte de service</strong> au workload (Workload Identity) — pas de clé à traîner. Ici, en labo perso, l&#39;ADC suffit.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud auth list</code> shows your account with a <code>*</code> (active). An ADC credentials file is written (typically <code>~/.config/gcloud/application_default_credentials.json</code>). <strong>From now on, <code>terraform plan</code> won&#39;t return the credentials error</strong> — it authenticates via ADC. ⚠️ <strong>These credentials are sensitive</strong> (they act as you). Never commit them, never share them. In production, you don&#39;t use personal credentials: you attach a <strong>service account</strong> to the workload (Workload Identity) — no key to carry. Here, in a personal lab, ADC suffices.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser les <strong>garde-fous de coût</strong> — <strong>AVANT</strong> toute ressource.</p>
+<p><strong>🤔 Le réflexe qui sauve.</strong> On crée un <strong>budget</strong> Cloud Billing avec des <strong>alertes</strong> par e-mail (50 %, 90 %, 100 % d&#39;un petit seuil, ex. 5 €). Ça ne bloque pas la dépense, mais ça te <strong>prévient</strong> immédiatement si quelque chose dérape. On le fait <strong>maintenant</strong>, avant de créer la moindre ressource.</p>
+<p>Via la console (recommandé) : <strong>Facturation → Budgets et alertes → Créer un budget</strong>. En CLI (nécessite l&#39;API Billing Budgets activée) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set the <strong>cost guardrails</strong> — <strong>BEFORE</strong> any resource.</p>
+<p><strong>🤔 The reflex that saves you.</strong> We create a Cloud Billing <strong>budget</strong> with email <strong>alerts</strong> (50%, 90%, 100% of a small threshold, e.g. €5). It doesn&#39;t block spend, but it <strong>warns</strong> you immediately if something goes wrong. We do it <strong>now</strong>, before creating any resource.</p>
+<p>Via the console (recommended): <strong>Billing → Budgets &amp; alerts → Create budget</strong>. In the CLI (needs the Billing Budgets API enabled):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Activer l&#39;API des budgets / enable the Budgets API
+gcloud services enable billingbudgets.googleapis.com
+
+# Créer un budget de 5 € avec alertes à 50/90/100 % / create a €5 budget with 50/90/100% alerts
+gcloud billing budgets create \
+  --billing-account=XXXXXX-XXXXXX-XXXXXX \
+  --display-name=&quot;Garde-fou labo ACE&quot; \
+  --budget-amount=5EUR \
+  --threshold-rule=percent=0.5 \
+  --threshold-rule=percent=0.9 \
+  --threshold-rule=percent=1.0</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans <strong>Facturation → Budgets et alertes</strong>, ton budget « Garde-fou labo ACE » apparaît avec ses seuils. Tu recevras un e-mail dès 50 % atteints. ⚠️ <strong>Un budget n&#39;est PAS un plafond dur</strong> (point d&#39;examen crucial) : il <strong>alerte</strong>, il ne <strong>coupe</strong> pas la dépense automatiquement. Pour vraiment couper, il faut un mécanisme actif (une Cloud Function déclenchée par l&#39;alerte qui désactive la facturation) — hors périmètre ici. La vraie garantie anti-facture de ce guide, c&#39;est la <strong>discipline</strong> : rester dans l&#39;Always Free et <strong>tout supprimer</strong> (étape 7). Pose ce garde-fou <strong>avant</strong> de continuer.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in <strong>Billing → Budgets &amp; alerts</strong>, your &quot;Garde-fou labo ACE&quot; budget appears with its thresholds. You&#39;ll get an email as soon as 50% is reached. ⚠️ <strong>A budget is NOT a hard cap</strong> (crucial exam point): it <strong>alerts</strong>, it doesn&#39;t <strong>cut</strong> spend automatically. To truly cut, you need an active mechanism (a Cloud Function triggered by the alert that disables billing) — out of scope here. This guide&#39;s real anti-bill guarantee is <strong>discipline</strong>: stay in Always Free and <strong>delete everything</strong> (step 7). Set this guardrail <strong>before</strong> continuing.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Activer les APIs</strong> et <strong>créer la base</strong> Firestore/Datastore.</p>
+<p><strong>🤔 Ce que les émulateurs ne demandaient pas.</strong> En réel, chaque service a une <strong>API à activer</strong> par projet, et la base Datastore doit être <strong>créée</strong> (avec son <strong>mode</strong>, définitif). On active Pub/Sub, Firestore, Storage, IAM ; puis on crée la base en <strong>mode Datastore</strong> (le mode qu&#39;utilise le code de ton projet).</p>
+<p>Active et crée :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Enable the APIs</strong> and <strong>create the</strong> Firestore/Datastore <strong>database</strong>.</p>
+<p><strong>🤔 What the emulators didn&#39;t require.</strong> For real, each service has an <strong>API to enable</strong> per project, and the Datastore database must be <strong>created</strong> (with its <strong>mode</strong>, permanent). We enable Pub/Sub, Firestore, Storage, IAM; then create the database in <strong>Datastore mode</strong> (the mode your project&#39;s code uses).</p>
+<p>Enable and create:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Activer les APIs nécessaires / enable the needed APIs
+gcloud services enable \
+  pubsub.googleapis.com \
+  firestore.googleapis.com \
+  storage.googleapis.com \
+  iam.googleapis.com
+
+# Créer la base en MODE DATASTORE (définitif pour le projet) / create the database in DATASTORE MODE (permanent)
+gcloud firestore databases create \
+  --location=eur3 \
+  --type=datastore-mode</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>gcloud services list --enabled</code> liste les quatre APIs. <code>gcloud firestore databases describe --database=&quot;(default)&quot;</code> montre <code>type: DATASTORE_MODE</code>. Ta base est prête, dans une multirégion européenne (<code>eur3</code>). ⚠️ <strong>Le mode est DÉFINITIF</strong> : un projet est en <strong>Datastore mode</strong> OU <strong>Firestore natif</strong>, pas les deux, et on ne change pas après coup. Ton code du projet d&#39;entreprise utilise l&#39;API Datastore → <strong>Datastore mode</strong>. ⚠️ <strong>Point coût :</strong> activer une API ne coûte rien ; ce sont les <strong>ressources</strong> créées ensuite qui comptent (et Firestore/Pub/Sub/Storage ont des franchises Always Free généreuses).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>gcloud services list --enabled</code> lists the four APIs. <code>gcloud firestore databases describe --database=&quot;(default)&quot;</code> shows <code>type: DATASTORE_MODE</code>. Your database is ready, in a European multi-region (<code>eur3</code>). ⚠️ <strong>The mode is PERMANENT</strong>: a project is in <strong>Datastore mode</strong> OR <strong>Firestore native</strong>, not both, and you don&#39;t change it afterward. Your enterprise-project code uses the Datastore API → <strong>Datastore mode</strong>. ⚠️ <strong>Cost point:</strong> enabling an API costs nothing; it&#39;s the <strong>resources</strong> created afterward that count (and Firestore/Pub/Sub/Storage have generous Always Free allowances).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer ton <strong>projet Terraform</strong> pour de vrai (<code>apply</code>) et <strong>faire tourner</strong> le pipeline.</p>
+<p><strong>🤔 Le même code, le vrai cloud.</strong> Bonne surprise : ton infra Terraform du projet d&#39;entreprise <strong>ne change quasiment pas</strong> — elle visait déjà le vrai GCP (aucun endpoint d&#39;émulateur dedans). Il suffit de pointer le bon <code>project_id</code> et de faire <code>apply</code>. Côté <strong>app</strong>, on retire les <strong>variables d&#39;émulateur</strong> (<code>PUBSUB_EMULATOR_HOST</code>, <code>DATASTORE_EMULATOR_HOST</code>) et, dans le worker, les options <strong>fake-gcs</strong> (<code>AnonymousCredentials</code>, <code>api_endpoint</code>) — les clients visent alors le vrai GCP via l&#39;ADC.</p>
+<p>Déploie l&#39;infra, puis lance le pipeline :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy your <strong>Terraform project</strong> for real (<code>apply</code>) and <strong>run</strong> the pipeline.</p>
+<p><strong>🤔 The same code, the real cloud.</strong> Good surprise: your enterprise-project Terraform infra <strong>barely changes</strong> — it already targeted real GCP (no emulator endpoints in it). Just point to the right <code>project_id</code> and <code>apply</code>. On the <strong>app</strong> side, drop the <strong>emulator variables</strong> (<code>PUBSUB_EMULATOR_HOST</code>, <code>DATASTORE_EMULATOR_HOST</code>) and, in the worker, the <strong>fake-gcs</strong> options (<code>AnonymousCredentials</code>, <code>api_endpoint</code>) — the clients then target real GCP via ADC.</p>
+<p>Deploy the infra, then run the pipeline:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/infra
+
+# Le bucket doit être MONDIALEMENT unique : ajuste le nom si besoin (var project_id l&#39;y aide).
+# The bucket must be GLOBALLY unique: adjust the name if needed (var project_id helps).
+terraform plan  -var=&quot;project_id=mon-labo-ace-2026&quot;    # cette fois, ça marche (ADC) / this time it works (ADC)
+terraform apply -var=&quot;project_id=mon-labo-ace-2026&quot;    # crée VRAIMENT les ressources / really creates resources</code></pre>
+<div data-lang="fr"><p>Puis l&#39;app, <strong>sans</strong> les variables d&#39;émulateur (retire aussi <code>credentials=AnonymousCredentials()</code> et <code>api_endpoint</code> du worker) :</p>
+</div>
+<div data-lang="en"><p>Then the app, <strong>without</strong> the emulator variables (also remove <code>credentials=AnonymousCredentials()</code> and <code>api_endpoint</code> from the worker):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/projet-commandes/app
+unset PUBSUB_EMULATOR_HOST DATASTORE_EMULATOR_HOST   # viser le VRAI GCP / target REAL GCP
+# (les sujets/abonnements existent déjà — créés par terraform apply — pas besoin de bootstrap.py)
+python3 producteur.py
+python3 travailleur.py
+python3 verifier.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> affiche <code>Apply complete! Resources: N added.</code> Dans la console : les sujets Pub/Sub, la base Datastore et le bucket <strong>existent réellement</strong>. Le pipeline tourne contre le vrai GCP, et <code>verifier.py</code> liste <strong>3</strong> enregistrements et <strong>3</strong> archives — comme en local, mais <strong>pour de vrai</strong>. ⚠️ <strong>Différences réelles :</strong> <code>bootstrap.py</code> n&#39;est <strong>plus</strong> nécessaire (Terraform a créé la topologie) ; le <strong>nom du bucket</strong> doit être <strong>mondialement unique</strong> (d&#39;où le suffixe projet) ; les identités <strong>IAM</strong> sont <strong>réellement appliquées</strong> (un compte de service sans le bon rôle sera <strong>refusé</strong>, ce que l&#39;émulateur ignorait). Tu déploies désormais comme un pro : IaC + app, sur le vrai cloud.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> prints <code>Apply complete! Resources: N added.</code> In the console: the Pub/Sub topics, the Datastore database and the bucket <strong>really exist</strong>. The pipeline runs against real GCP, and <code>verifier.py</code> lists <strong>3</strong> records and <strong>3</strong> archives — like locally, but <strong>for real</strong>. ⚠️ <strong>Real differences:</strong> <code>bootstrap.py</code> is <strong>no longer</strong> needed (Terraform created the topology); the <strong>bucket name</strong> must be <strong>globally unique</strong> (hence the project suffix); <strong>IAM</strong> identities are <strong>really enforced</strong> (a service account without the right role is <strong>denied</strong>, which the emulator ignored). You now deploy like a pro: IaC + app, on the real cloud.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Démonter les <strong>illusions des émulateurs</strong> — ce qui change en réel.</p>
+<p><strong>🤔 Ce que le labo cachait (et qui compte à l&#39;examen).</strong> Les émulateurs sont parfaits pour apprendre la <strong>logique</strong>, mais ils <strong>simplifient</strong>. Connaître les écarts, c&#39;est éviter les mauvaises surprises en prod — et répondre juste à l&#39;ACE.</p>
+<p>Les principaux écarts :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Dismantle the <strong>emulators&#39; illusions</strong> — what changes for real.</p>
+<p><strong>🤔 What the lab hid (and what matters on the exam).</strong> The emulators are perfect for learning the <strong>logic</strong>, but they <strong>simplify</strong>. Knowing the gaps means avoiding nasty prod surprises — and answering the ACE correctly.</p>
+<p>The main gaps:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Émulateur / Emulator            →  Réel / Real
+──────────────────────────────────────────────────────────────────────────
+IAM ignoré / IAM ignored        →  IAM APPLIQUÉ : sans le bon rôle, accès refusé
+Noms « libres » / free names    →  bucket = unicité MONDIALE ; SA = unique par projet
+dead-letter conceptuel          →  routage RÉEL après N échecs (droits IAM requis pour Pub/Sub)
+classe/versioning ignorés (GCS) →  RÉELLEMENT appliqués et facturés
+cohérence immédiate             →  Datastore : requêtes éventuellement cohérentes possibles
+pas de quotas / no quotas       →  quotas &amp; limites par région/API (à surveiller)
+gratuit / free                  →  facturé au-delà de l&#39;Always Free (surveille le budget)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu peux <strong>expliquer</strong> chaque écart. Les plus piégeux à l&#39;examen : (1) <strong>IAM est réellement appliqué</strong> — teste en retirant un rôle au compte de service, l&#39;appel est <strong>refusé</strong> (l&#39;émulateur laissait tout passer) ; (2) l&#39;<strong>unicité mondiale</strong> des noms de bucket ; (3) le <strong>dead-letter réel</strong> exige que Pub/Sub ait les <strong>droits</strong> de publier dans le sujet de rebut (un binding IAM à ajouter) ; (4) certaines requêtes Datastore sont <strong>éventuellement cohérentes</strong> (une entité juste écrite peut ne pas apparaître immédiatement dans une requête). ⚠️ Ces écarts ne <strong>remettent pas en cause</strong> ce que tu as appris : la <strong>logique</strong> est la même. Ils ajoutent la <strong>rigueur</strong> du réel — sécurité, unicité, cohérence, coût.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>explain</strong> each gap. The trickiest on the exam: (1) <strong>IAM is really enforced</strong> — test by removing a role from the service account, the call is <strong>denied</strong> (the emulator let everything through); (2) the <strong>global uniqueness</strong> of bucket names; (3) <strong>real dead-letter</strong> requires Pub/Sub to have the <strong>rights</strong> to publish to the dead-letter topic (an IAM binding to add); (4) some Datastore queries are <strong>eventually consistent</strong> (a just-written entity may not appear immediately in a query). ⚠️ These gaps don&#39;t <strong>invalidate</strong> what you learned: the <strong>logic</strong> is the same. They add the <strong>rigor</strong> of real life — security, uniqueness, consistency, cost.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Tout démonter</strong> (la discipline anti-facture) et <strong>cap sur la certification ACE</strong>.</p>
+<p><strong>🤔 Créer → utiliser → détruire.</strong> La seule vraie garantie contre la facture surprise : <strong>supprimer</strong> ce que tu ne veux plus payer. <code>terraform destroy</code> retire ce que le state gère ; puis, pour être <strong>certain</strong> qu&#39;il ne reste <strong>rien</strong> de facturable, on <strong>supprime le projet entier</strong>.</p>
+<p>Démonte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Tear everything down</strong> (the anti-bill discipline) and <strong>aim for the ACE certification</strong>.</p>
+<p><strong>🤔 Create → use → destroy.</strong> The only real guarantee against a surprise bill: <strong>delete</strong> what you no longer want to pay for. <code>terraform destroy</code> removes what the state manages; then, to be <strong>certain</strong> nothing billable remains, we <strong>delete the whole project</strong>.</p>
+<p>Tear it down:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Détruire l&#39;infra gérée par Terraform / destroy the Terraform-managed infra
+cd ~/projet-commandes/infra
+terraform destroy -var=&quot;project_id=mon-labo-ace-2026&quot;
+
+# 2) Filet de sécurité : supprimer le PROJET entier (retire TOUT résiduel + arrête la facturation)
+#    safety net: delete the WHOLE project (removes ANY leftover + stops billing)
+gcloud projects delete mon-labo-ace-2026</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform destroy</code> affiche <code>Destroy complete! Resources: N destroyed.</code>. Après <code>gcloud projects delete</code>, <code>gcloud projects describe mon-labo-ace-2026</code> montre l&#39;état <code>DELETE_REQUESTED</code> (le projet est planifié pour suppression, réversible ~30 jours puis définitif). <strong>Plus aucune ressource facturable.</strong> Tu as bouclé le cycle <strong>créer → utiliser → détruire</strong> — le réflexe d&#39;un ingénieur cloud responsable. 🎓 <strong>Cap sur l&#39;ACE :</strong> ton parcours GCP couvre le cœur de l&#39;examen <strong>Associate Cloud Engineer</strong> — projets &amp; IAM, Compute/Storage, Pub/Sub, bases de données, IaC Terraform, facturation &amp; garde-fous. Entraîne-toi sur des <strong>examens blancs</strong>, révise les <strong>quotas/régions</strong> et les <strong>choix de service</strong>, et présente ton <strong>projet d&#39;entreprise</strong> en entretien. Tu es prêt·e.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform destroy</code> prints <code>Destroy complete! Resources: N destroyed.</code>. After <code>gcloud projects delete</code>, <code>gcloud projects describe mon-labo-ace-2026</code> shows state <code>DELETE_REQUESTED</code> (the project is scheduled for deletion, reversible ~30 days then permanent). <strong>No more billable resource.</strong> You closed the <strong>create → use → destroy</strong> cycle — the reflex of a responsible cloud engineer. 🎓 <strong>Aim for ACE:</strong> your GCP path covers the core of the <strong>Associate Cloud Engineer</strong> exam — projects &amp; IAM, Compute/Storage, Pub/Sub, databases, Terraform IaC, billing &amp; guardrails. Practice on <strong>mock exams</strong>, revise <strong>quotas/regions</strong> and <strong>service choices</strong>, and present your <strong>enterprise project</strong> in interviews. You&#39;re ready.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Créer des ressources AVANT le budget.</strong> Toujours l&#39;inverse : garde-fous <strong>d&#39;abord</strong>, ressources ensuite. Un budget posé après ne rattrape pas une dépense déjà partie.</p>
+<p><strong>2. Croire qu&#39;un budget bloque la dépense.</strong> Il <strong>alerte</strong>, il ne <strong>coupe</strong> pas. La vraie protection, c&#39;est la <strong>suppression</strong> (destroy + delete project).</p>
+<p><strong>3. Oublier d&#39;activer une API.</strong> <code>apply</code> échoue avec « API not enabled ». Active Pub/Sub, Firestore, Storage, IAM <strong>avant</strong>.</p>
+<p><strong>4. Se tromper de mode Firestore/Datastore.</strong> Le mode est <strong>définitif</strong> par projet. Le code du track utilise l&#39;API <strong>Datastore</strong> → <strong>Datastore mode</strong>.</p>
+<p><strong>5. Laisser les variables d&#39;émulateur.</strong> Si <code>PUBSUB_EMULATOR_HOST</code> reste exporté, ton app vise <strong>encore l&#39;émulateur</strong> local, pas le réel. <code>unset</code> avant de lancer.</p>
+<p><strong>6. Nom de bucket non unique.</strong> En réel, les noms GCS sont <strong>mondiaux</strong>. Suffixe avec l&#39;ID de projet (déjà fait dans l&#39;infra).</p>
+<p><strong>7. Utiliser ses identifiants perso en prod.</strong> L&#39;ADC perso, c&#39;est pour le <strong>labo</strong>. En prod, un <strong>compte de service</strong> (Workload Identity), pas de clé.</p>
+<p><strong>8. Oublier de supprimer le projet.</strong> Le filet de sécurité ultime. <code>gcloud projects delete</code> arrête <strong>toute</strong> facturation résiduelle.</p>
+</div>
+<div data-lang="en"><p><strong>1. Creating resources BEFORE the budget.</strong> Always the reverse: guardrails <strong>first</strong>, resources next. A budget set afterward won&#39;t recover an already-started spend.</p>
+<p><strong>2. Thinking a budget blocks spend.</strong> It <strong>alerts</strong>, it doesn&#39;t <strong>cut</strong>. The real protection is <strong>deletion</strong> (destroy + delete project).</p>
+<p><strong>3. Forgetting to enable an API.</strong> <code>apply</code> fails with &quot;API not enabled&quot;. Enable Pub/Sub, Firestore, Storage, IAM <strong>first</strong>.</p>
+<p><strong>4. Picking the wrong Firestore/Datastore mode.</strong> The mode is <strong>permanent</strong> per project. The track&#39;s code uses the <strong>Datastore</strong> API → <strong>Datastore mode</strong>.</p>
+<p><strong>5. Leaving the emulator variables set.</strong> If <code>PUBSUB_EMULATOR_HOST</code> stays exported, your app <strong>still targets the local emulator</strong>, not real. <code>unset</code> before running.</p>
+<p><strong>6. Non-unique bucket name.</strong> For real, GCS names are <strong>global</strong>. Suffix with the project ID (already done in the infra).</p>
+<p><strong>7. Using personal credentials in prod.</strong> Personal ADC is for the <strong>lab</strong>. In prod, a <strong>service account</strong> (Workload Identity), no key.</p>
+<p><strong>8. Forgetting to delete the project.</strong> The ultimate safety net. <code>gcloud projects delete</code> stops <strong>any</strong> residual billing.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un <strong>projet</strong> et <strong>lies la facturation</strong>.</li><li>Tu écris l&#39;<strong>ADC</strong> (<code>gcloud auth application-default login</code>) et <code>plan</code> ne se plaint plus.</li><li>Tu poses un <strong>budget + alertes</strong> <strong>avant</strong> toute ressource.</li><li>Tu <strong>actives les APIs</strong> et <strong>crées la base</strong> en mode Datastore.</li><li>Tu fais un <strong><code>terraform apply</code></strong> réel et le pipeline tourne sur le vrai GCP.</li><li>Tu cites <strong>3 écarts</strong> émulateur → réel (IAM appliqué, unicité, cohérence…).</li><li>Tu fais <strong><code>destroy</code></strong> puis <strong>supprimes le projet</strong> — zéro ressource facturable.</li></ul>
+<p>Sept cases = tu sais passer en réel <strong>proprement</strong>. Prochain arrêt : la <strong>certification ACE</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a <strong>project</strong> and <strong>link billing</strong>.</li><li>You write the <strong>ADC</strong> (<code>gcloud auth application-default login</code>) and <code>plan</code> stops complaining.</li><li>You set a <strong>budget + alerts</strong> <strong>before</strong> any resource.</li><li>You <strong>enable the APIs</strong> and <strong>create the database</strong> in Datastore mode.</li><li>You run a real <strong><code>terraform apply</code></strong> and the pipeline runs on real GCP.</li><li>You name <strong>3 gaps</strong> emulator → real (IAM enforced, uniqueness, consistency…).</li><li>You run <strong><code>destroy</code></strong> then <strong>delete the project</strong> — zero billable resource.</li></ul>
+<p>Seven boxes = you can go real <strong>cleanly</strong>. Next stop: the <strong>ACE certification</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as terminé le track <strong>GCP → Associate Cloud Engineer</strong> ! 🎉</p>
+<ol><li><strong>Certification ACE</strong> : entraîne-toi sur des <strong>examens blancs</strong>, révise les <strong>choix de service</strong> (quel stockage ? quelle base ?), les <strong>quotas/régions</strong>, et les <strong>modèles IAM</strong>.</li><li><strong>Ton CV</strong> : mets en avant le <strong>projet d&#39;entreprise</strong> (plateforme d&#39;ingestion événementielle) — architecture, IaC, moindre privilège, test local.</li><li><strong>Pour aller plus loin</strong> : Kubernetes (GKE), CI/CD (Cloud Build), observabilité (Cloud Monitoring), et les autres tracks de la plateforme.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve finished the <strong>GCP → Associate Cloud Engineer</strong> track! 🎉</p>
+<ol><li><strong>ACE certification</strong>: practice on <strong>mock exams</strong>, revise <strong>service choices</strong> (which storage? which database?), <strong>quotas/regions</strong>, and <strong>IAM models</strong>.</li><li><strong>Your CV</strong>: highlight the <strong>enterprise project</strong> (event-driven ingestion platform) — architecture, IaC, least privilege, local testing.</li><li><strong>To go further</strong>: Kubernetes (GKE), CI/CD (Cloud Build), observability (Cloud Monitoring), and the platform&#39;s other tracks.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire « passer en réel ».</p>
+</div>
+<div data-lang="en"><p>&quot;Going real&quot; cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Projet &amp; facturation / project &amp; billing
+gcloud projects create mon-labo-ace-2026 --name=&quot;Labo ACE&quot;
+gcloud billing projects link mon-labo-ace-2026 --billing-account=XXXXXX-XXXXXX-XXXXXX
+gcloud config set project mon-labo-ace-2026
+
+# Auth (toi + ADC pour Terraform) / auth (you + ADC for Terraform)
+gcloud auth login
+gcloud auth application-default login
+
+# Garde-fous de coût AVANT tout / cost guardrails FIRST
+gcloud services enable billingbudgets.googleapis.com
+# ...puis créer un budget + alertes (console ou gcloud billing budgets create)
+
+# Activer APIs + créer la base / enable APIs + create the database
+gcloud services enable pubsub.googleapis.com firestore.googleapis.com storage.googleapis.com iam.googleapis.com
+gcloud firestore databases create --location=eur3 --type=datastore-mode
+
+# Déployer / deploy
+terraform apply -var=&quot;project_id=mon-labo-ace-2026&quot;
+unset PUBSUB_EMULATOR_HOST DATASTORE_EMULATOR_HOST     # app vise le vrai GCP / app targets real GCP
+
+# TOUT démonter / tear it ALL down
+terraform destroy -var=&quot;project_id=mon-labo-ace-2026&quot;
+gcloud projects delete mon-labo-ace-2026</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-projects">Créer et gérer des projets</a> — l&#39;unité de base.</li><li><a href="https://cloud.google.com/docs/authentication/provide-credentials-adc">Authentification (ADC)</a> — ce que Terraform utilise.</li><li><a href="https://cloud.google.com/billing/docs/how-to/budgets">Budgets et alertes</a> — les garde-fous de coût.</li><li><a href="https://cloud.google.com/free/docs/free-cloud-features">Palier Always Free</a> — les quotas gratuits permanents.</li><li><a href="https://cloud.google.com/datastore/docs/firestore-or-datastore">Firestore : mode Datastore vs natif</a> — le choix définitif.</li><li><a href="https://cloud.google.com/learn/certification/cloud-engineer">Certification Associate Cloud Engineer</a> — le programme officiel.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-projects">Creating and managing projects</a> — the base unit.</li><li><a href="https://cloud.google.com/docs/authentication/provide-credentials-adc">Authentication (ADC)</a> — what Terraform uses.</li><li><a href="https://cloud.google.com/billing/docs/how-to/budgets">Budgets and alerts</a> — the cost guardrails.</li><li><a href="https://cloud.google.com/free/docs/free-cloud-features">Always Free tier</a> — the permanent free quotas.</li><li><a href="https://cloud.google.com/datastore/docs/firestore-or-datastore">Firestore: Datastore mode vs native</a> — the permanent choice.</li><li><a href="https://cloud.google.com/learn/certification/cloud-engineer">Associate Cloud Engineer certification</a> — the official program.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform apply</code> : « API [xxx] not enabled ».</strong> Tu n&#39;as pas activé l&#39;API du service concerné. <code>gcloud services enable xxx.googleapis.com</code>, attends une minute, relance.</p>
+<p><strong><code>apply</code> : « billing account ... disabled » ou permission refusée.</strong> Le projet n&#39;est pas lié à un compte de facturation actif, ou ton compte manque de droits. Vérifie <code>gcloud billing projects describe</code>.</p>
+<p><strong>Le pipeline vise encore l&#39;émulateur.</strong> <code>PUBSUB_EMULATOR_HOST</code> / <code>DATASTORE_EMULATOR_HOST</code> sont encore exportés. <code>unset</code>-les. Et retire <code>AnonymousCredentials</code>/<code>api_endpoint</code> du client Storage.</p>
+<p><strong>Erreur de nom de bucket (« already exists »).</strong> Les noms GCS sont <strong>mondiaux</strong>. Change le suffixe (l&#39;ID de projet aide, mais un autre l&#39;a peut-être pris) : rends-le plus spécifique.</p>
+<p><strong><code>firestore databases create</code> échoue (« already exists »).</strong> La base par défaut existe déjà (une seule par projet). Vérifie son mode : <code>gcloud firestore databases describe --database=&quot;(default)&quot;</code>.</p>
+<p><strong>Refus d&#39;accès IAM inattendu.</strong> En réel, IAM <strong>s&#39;applique</strong> : le compte de service doit avoir le rôle nécessaire (contrairement à l&#39;émulateur). Ajoute le binding manquant (<code>google_project_iam_member</code>).</p>
+<p><strong>Peur de la facture.</strong> Le plus sûr : <code>gcloud projects delete &lt;projet&gt;</code>. Ça planifie la suppression de <strong>tout</strong> le projet et <strong>arrête</strong> la facturation. Réversible ~30 jours.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform apply</code>: &quot;API [xxx] not enabled&quot;.</strong> You didn&#39;t enable that service&#39;s API. <code>gcloud services enable xxx.googleapis.com</code>, wait a minute, re-run.</p>
+<p><strong><code>apply</code>: &quot;billing account ... disabled&quot; or permission denied.</strong> The project isn&#39;t linked to an active billing account, or your account lacks rights. Check <code>gcloud billing projects describe</code>.</p>
+<p><strong>The pipeline still targets the emulator.</strong> <code>PUBSUB_EMULATOR_HOST</code> / <code>DATASTORE_EMULATOR_HOST</code> are still exported. <code>unset</code> them. And remove <code>AnonymousCredentials</code>/<code>api_endpoint</code> from the Storage client.</p>
+<p><strong>Bucket name error (&quot;already exists&quot;).</strong> GCS names are <strong>global</strong>. Change the suffix (the project ID helps, but someone may have taken another): make it more specific.</p>
+<p><strong><code>firestore databases create</code> fails (&quot;already exists&quot;).</strong> The default database already exists (one per project). Check its mode: <code>gcloud firestore databases describe --database=&quot;(default)&quot;</code>.</p>
+<p><strong>Unexpected IAM access denial.</strong> For real, IAM <strong>applies</strong>: the service account must have the needed role (unlike the emulator). Add the missing binding (<code>google_project_iam_member</code>).</p>
+<p><strong>Fear of the bill.</strong> Safest: <code>gcloud projects delete &lt;project&gt;</code>. It schedules deletion of the <strong>whole</strong> project and <strong>stops</strong> billing. Reversible ~30 days.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
