@@ -112,7 +112,7 @@ By the end of this guide, you can:
 ## concepts
 
 :::lang fr
-**Projet & facturation.** Sur GCP, **tout** vit dans un **projet** (l'unité d'isolation et de facturation). Pour créer des ressources payantes, le projet doit être **lié à un compte de facturation**. GCP offre des **crédits d'essai** (un montant offert sur une période) et un palier **Always Free** (des quotas gratuits permanents sur certains services — Pub/Sub, Cloud Storage, Firestore ont des franchises généreuses). Bien utilisé, ce track se déploie **sans dépenser un centime réel**.
+**Projet & facturation.** Sur GCP, **tout** vit dans un **projet** (l'unité d'isolation et de facturation). Pour créer des ressources payantes, le projet doit être **lié à un compte de facturation**. GCP offre des **crédits d'essai** (un montant offert sur une période) et un palier **Always Free** (des quotas gratuits permanents sur certains services — Pub/Sub et Firestore ont des franchises généreuses ; celle de **Cloud Storage** ne s'applique **qu'aux régions US** : us-west1/us-central1/us-east1). Bien utilisé, ce track se déploie **sans dépenser un centime réel**.
 
 **Authentification : toi vs les machines.** Deux niveaux. `gcloud auth login` t'authentifie **toi** (pour la CLI). `gcloud auth application-default login` écrit les **Application Default Credentials (ADC)** — le fichier d'identifiants que les **bibliothèques et Terraform** cherchent automatiquement. C'est **précisément** l'ADC qui manquait au guide *IAM & Terraform* quand `plan` échouait. En prod, on n'utilise pas ses identifiants perso mais un **compte de service** (Workload Identity).
 
@@ -120,13 +120,13 @@ By the end of this guide, you can:
 
 **Activer les APIs.** Sur GCP, chaque service a une **API** à **activer** par projet avant usage (`pubsub.googleapis.com`, `firestore.googleapis.com`, `storage.googleapis.com`, `iam.googleapis.com`…). Les émulateurs n'exigeaient rien de tel — c'est une étape **réelle** à ne pas oublier (sinon `apply` échoue avec « API not enabled »).
 
-**Créer la base Firestore/Datastore.** L'émulateur Datastore fonctionnait « tout seul ». En réel, il faut **créer une base** dans le projet et **choisir son mode** : **Firestore natif** (moderne, temps réel) **ou** **Datastore mode** (compatible avec le code du track). Ce choix est **définitif** par projet — un vrai point d'examen.
+**Créer la base Firestore/Datastore.** L'émulateur Datastore fonctionnait « tout seul ». En réel, il faut **créer une base** dans le projet et **choisir son mode** : **Firestore natif** (moderne, temps réel) **ou** **Datastore mode** (compatible avec le code du track). Le mode se fige **une fois la base remplie de données** (modifiable tant qu'elle est vide) ; il est permanent **par base**, et un projet peut désormais héberger **plusieurs** bases, même de modes différents — un vrai point d'examen.
 
 **Le cycle réel de Terraform.** Ici, `terraform apply` **crée vraiment** les ressources ; le fichier d'**état** (`terraform.tfstate`) mémorise ce qui existe. `destroy` supprime **exactement** ce que le state gère — la contrepartie propre. C'est la force de l'IaC : ce que tu as **validé** en local, tu le **déploies** et le **retires** d'une commande.
 :::
 
 :::lang en
-**Project & billing.** On GCP, **everything** lives in a **project** (the unit of isolation and billing). To create paid resources, the project must be **linked to a billing account**. GCP offers **trial credits** (a granted amount over a period) and an **Always Free** tier (permanent free quotas on some services — Pub/Sub, Cloud Storage, Firestore have generous allowances). Used well, this track deploys **without spending a real cent**.
+**Project & billing.** On GCP, **everything** lives in a **project** (the unit of isolation and billing). To create paid resources, the project must be **linked to a billing account**. GCP offers **trial credits** (a granted amount over a period) and an **Always Free** tier (permanent free quotas on some services — Pub/Sub and Firestore have generous allowances; **Cloud Storage**'s applies **only to US regions**: us-west1/us-central1/us-east1). Used well, this track deploys **without spending a real cent**.
 
 **Authentication: you vs machines.** Two levels. `gcloud auth login` authenticates **you** (for the CLI). `gcloud auth application-default login` writes the **Application Default Credentials (ADC)** — the credential file that **libraries and Terraform** look for automatically. It's **precisely** the ADC that was missing in the *IAM & Terraform* guide when `plan` failed. In prod, you don't use personal credentials but a **service account** (Workload Identity).
 
@@ -134,7 +134,7 @@ By the end of this guide, you can:
 
 **Enabling APIs.** On GCP, each service has an **API** to **enable** per project before use (`pubsub.googleapis.com`, `firestore.googleapis.com`, `storage.googleapis.com`, `iam.googleapis.com`…). The emulators required no such thing — it's a **real** step not to forget (else `apply` fails with "API not enabled").
 
-**Creating the Firestore/Datastore database.** The Datastore emulator "just worked". For real, you must **create a database** in the project and **choose its mode**: **Firestore native** (modern, real-time) **or** **Datastore mode** (compatible with the track's code). This choice is **permanent** per project — a real exam point.
+**Creating the Firestore/Datastore database.** The Datastore emulator "just worked". For real, you must **create a database** in the project and **choose its mode**: **Firestore native** (modern, real-time) **or** **Datastore mode** (compatible with the track's code). The mode becomes fixed **once the database holds data** (changeable while empty); it's permanent **per database**, and a project can now host **several** databases, even of different modes — a real exam point.
 
 **Terraform's real cycle.** Here, `terraform apply` **really creates** resources; the **state** file (`terraform.tfstate`) remembers what exists. `destroy` removes **exactly** what the state manages — the clean counterpart. That's the strength of IaC: what you **validated** locally, you **deploy** and **remove** with one command.
 :::
@@ -256,6 +256,8 @@ Via the console (recommended): **Billing → Budgets & alerts → Create budget*
 gcloud services enable billingbudgets.googleapis.com
 
 # Créer un budget de 5 € avec alertes à 50/90/100 % / create a €5 budget with 50/90/100% alerts
+# ⚠️ la devise doit correspondre à celle du compte de facturation (ex. 5USD si compte en USD)
+#    the currency must match the billing account's (e.g. 5USD if your account bills in USD)
 gcloud billing budgets create \
   --billing-account=XXXXXX-XXXXXX-XXXXXX \
   --display-name="Garde-fou labo ACE" \
@@ -306,11 +308,11 @@ gcloud firestore databases create \
 ```
 
 :::lang fr
-**✅ Vérification :** `gcloud services list --enabled` liste les quatre APIs. `gcloud firestore databases describe --database="(default)"` montre `type: DATASTORE_MODE`. Ta base est prête, dans une multirégion européenne (`eur3`). ⚠️ **Le mode est DÉFINITIF** : un projet est en **Datastore mode** OU **Firestore natif**, pas les deux, et on ne change pas après coup. Ton code du projet d'entreprise utilise l'API Datastore → **Datastore mode**. ⚠️ **Point coût :** activer une API ne coûte rien ; ce sont les **ressources** créées ensuite qui comptent (et Firestore/Pub/Sub/Storage ont des franchises Always Free généreuses).
+**✅ Vérification :** `gcloud services list --enabled` liste les quatre APIs. `gcloud firestore databases describe --database="(default)"` montre `type: DATASTORE_MODE`. Ta base est prête, dans une multirégion européenne (`eur3`). ⚠️ **Le mode d'une base est DÉFINITIF une fois qu'elle contient des données** (modifiable tant qu'elle est vide) ; il est permanent **par base** — et un projet peut désormais héberger **plusieurs** bases, même de modes différents. Ton code du projet d'entreprise utilise l'API Datastore → crée la base `(default)` en **Datastore mode**. ⚠️ **Point coût :** activer une API ne coûte rien ; ce sont les **ressources** créées ensuite qui comptent (et Firestore/Pub/Sub/Storage ont des franchises Always Free généreuses).
 :::
 
 :::lang en
-**✅ Check:** `gcloud services list --enabled` lists the four APIs. `gcloud firestore databases describe --database="(default)"` shows `type: DATASTORE_MODE`. Your database is ready, in a European multi-region (`eur3`). ⚠️ **The mode is PERMANENT**: a project is in **Datastore mode** OR **Firestore native**, not both, and you don't change it afterward. Your enterprise-project code uses the Datastore API → **Datastore mode**. ⚠️ **Cost point:** enabling an API costs nothing; it's the **resources** created afterward that count (and Firestore/Pub/Sub/Storage have generous Always Free allowances).
+**✅ Check:** `gcloud services list --enabled` lists the four APIs. `gcloud firestore databases describe --database="(default)"` shows `type: DATASTORE_MODE`. Your database is ready, in a European multi-region (`eur3`). ⚠️ **A database's mode is PERMANENT once it holds data** (changeable while empty); it's permanent **per database** — and a project can now host **several** databases, even of different modes. Your enterprise-project code uses the Datastore API → create the `(default)` database in **Datastore mode**. ⚠️ **Cost point:** enabling an API costs nothing; it's the **resources** created afterward that count (and Firestore/Pub/Sub/Storage have generous Always Free allowances).
 :::
 
 ### step-05
@@ -390,17 +392,17 @@ IAM ignoré / IAM ignored        →  IAM APPLIQUÉ : sans le bon rôle, accès 
 Noms « libres » / free names    →  bucket = unicité MONDIALE ; SA = unique par projet
 dead-letter conceptuel          →  routage RÉEL après N échecs (droits IAM requis pour Pub/Sub)
 classe/versioning ignorés (GCS) →  RÉELLEMENT appliqués et facturés
-cohérence immédiate             →  Datastore : requêtes éventuellement cohérentes possibles
+cohérence (héritage: éventuel)  →  Datastore mode : FORTEMENT cohérent par défaut aujourd'hui
 pas de quotas / no quotas       →  quotas & limites par région/API (à surveiller)
 gratuit / free                  →  facturé au-delà de l'Always Free (surveille le budget)
 ```
 
 :::lang fr
-**✅ Vérification :** tu peux **expliquer** chaque écart. Les plus piégeux à l'examen : (1) **IAM est réellement appliqué** — teste en retirant un rôle au compte de service, l'appel est **refusé** (l'émulateur laissait tout passer) ; (2) l'**unicité mondiale** des noms de bucket ; (3) le **dead-letter réel** exige que Pub/Sub ait les **droits** de publier dans le sujet de rebut (un binding IAM à ajouter) ; (4) certaines requêtes Datastore sont **éventuellement cohérentes** (une entité juste écrite peut ne pas apparaître immédiatement dans une requête). ⚠️ Ces écarts ne **remettent pas en cause** ce que tu as appris : la **logique** est la même. Ils ajoutent la **rigueur** du réel — sécurité, unicité, cohérence, coût.
+**✅ Vérification :** tu peux **expliquer** chaque écart. Les plus piégeux à l'examen : (1) **IAM est réellement appliqué** — teste en retirant un rôle au compte de service, l'appel est **refusé** (l'émulateur laissait tout passer) ; (2) l'**unicité mondiale** des noms de bucket ; (3) le **dead-letter réel** exige que Pub/Sub ait les **droits** de publier dans le sujet de rebut (un binding IAM à ajouter) ; (4) la **cohérence** : l'ancien Cloud Datastore avait des requêtes (non-ancêtres) **éventuellement cohérentes**, mais **Firestore en mode Datastore** — le seul créé aujourd'hui — est **fortement cohérent par défaut** (une entité juste écrite apparaît immédiatement) ; c'est un piège d'examen classique, où l'ancienne réponse « éventuellement cohérent » est désormais dépassée. ⚠️ Ces écarts ne **remettent pas en cause** ce que tu as appris : la **logique** est la même. Ils ajoutent la **rigueur** du réel — sécurité, unicité, cohérence, coût.
 :::
 
 :::lang en
-**✅ Check:** you can **explain** each gap. The trickiest on the exam: (1) **IAM is really enforced** — test by removing a role from the service account, the call is **denied** (the emulator let everything through); (2) the **global uniqueness** of bucket names; (3) **real dead-letter** requires Pub/Sub to have the **rights** to publish to the dead-letter topic (an IAM binding to add); (4) some Datastore queries are **eventually consistent** (a just-written entity may not appear immediately in a query). ⚠️ These gaps don't **invalidate** what you learned: the **logic** is the same. They add the **rigor** of real life — security, uniqueness, consistency, cost.
+**✅ Check:** you can **explain** each gap. The trickiest on the exam: (1) **IAM is really enforced** — test by removing a role from the service account, the call is **denied** (the emulator let everything through); (2) the **global uniqueness** of bucket names; (3) **real dead-letter** requires Pub/Sub to have the **rights** to publish to the dead-letter topic (an IAM binding to add); (4) **consistency**: legacy Cloud Datastore had **eventually-consistent** (non-ancestor) queries, but **Firestore in Datastore mode** — the only kind created today — is **strongly consistent by default** (a just-written entity appears immediately); it's a classic exam trap where the old "eventually consistent" answer is now outdated. ⚠️ These gaps don't **invalidate** what you learned: the **logic** is the same. They add the **rigor** of real life — security, uniqueness, consistency, cost.
 :::
 
 ### step-07
@@ -448,7 +450,7 @@ gcloud projects delete mon-labo-ace-2026
 
 **3. Oublier d'activer une API.** `apply` échoue avec « API not enabled ». Active Pub/Sub, Firestore, Storage, IAM **avant**.
 
-**4. Se tromper de mode Firestore/Datastore.** Le mode est **définitif** par projet. Le code du track utilise l'API **Datastore** → **Datastore mode**.
+**4. Se tromper de mode Firestore/Datastore.** Le mode est **définitif** une fois la base remplie (permanent par **base**, pas par projet). Le code du track utilise l'API **Datastore** → **Datastore mode**.
 
 **5. Laisser les variables d'émulateur.** Si `PUBSUB_EMULATOR_HOST` reste exporté, ton app vise **encore l'émulateur** local, pas le réel. `unset` avant de lancer.
 
@@ -466,7 +468,7 @@ gcloud projects delete mon-labo-ace-2026
 
 **3. Forgetting to enable an API.** `apply` fails with "API not enabled". Enable Pub/Sub, Firestore, Storage, IAM **first**.
 
-**4. Picking the wrong Firestore/Datastore mode.** The mode is **permanent** per project. The track's code uses the **Datastore** API → **Datastore mode**.
+**4. Picking the wrong Firestore/Datastore mode.** The mode is **permanent** once the database holds data (per **database**, not per project). The track's code uses the **Datastore** API → **Datastore mode**.
 
 **5. Leaving the emulator variables set.** If `PUBSUB_EMULATOR_HOST` stays exported, your app **still targets the local emulator**, not real. `unset` before running.
 
