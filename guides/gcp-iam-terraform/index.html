@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">GCP — IAM &amp; Terraform : droits et infrastructure-as-code — jiha.tech</title>
+  <title data-lang="en">GCP — IAM &amp; Terraform: permissions and infrastructure-as-code — jiha.tech</title>
+  <meta name="description" content="IAM et Terraform pour l&#39;ACE, en local-first : le modèle IAM (principals, rôles primitifs/prédéfinis/personnalisés, bindings, moindre privilège), les comptes de service, et l&#39;infrastructure-as-code avec le provider Terraform google — écrite, formatée et VALIDÉE en live contre le vrai provider (init/fmt/validate hors ligne, sans compte). Le plan/apply, qui exige de vrais identifiants, prépare le passage en réel." data-lang="fr">
+  <meta name="description" content="IAM and Terraform for ACE, local-first: the IAM model (principals, primitive/predefined/custom roles, bindings, least privilege), service accounts, and infrastructure-as-code with the Terraform google provider — written, formatted and VALIDATED live against the real provider (init/fmt/validate offline, no account). plan/apply, which needs real credentials, sets up going real." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="GCP — IAM &amp; Terraform : droits et infrastructure-as-code">
+  <meta property="og:description" content="IAM et Terraform pour l&#39;ACE, en local-first : le modèle IAM (principals, rôles primitifs/prédéfinis/personnalisés, bindings, moindre privilège), les comptes de service, et l&#39;infrastructure-as-code avec le provider Terraform google — écrite, formatée et VALIDÉE en live contre le vrai provider (init/fmt/validate hors ligne, sans compte). Le plan/apply, qui exige de vrais identifiants, prépare le passage en réel.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/gcp-iam-terraform/">
+  <link rel="canonical" href="https://jiha.tech/guides/gcp-iam-terraform/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="gcp-iam-terraform">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/gcp-iam-terraform</div>
+    <div class="prompt" data-lang="en">~/guides/gcp-iam-terraform</div>
+    <h1 data-lang="fr">GCP — IAM &amp; Terraform : droits et infrastructure-as-code</h1>
+    <h1 data-lang="en">GCP — IAM &amp; Terraform: permissions and infrastructure-as-code</h1>
+    <p class="tagline" data-lang="fr">principals, rôles, moindre privilège, comptes de service, IaC.</p>
+    <p class="tagline" data-lang="en">principals, roles, least privilege, service accounts, IaC.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 220 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-20</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 220 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-20</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Deux compétences séparent l&#39;amateur du pro sur GCP, et l&#39;examen <strong>Associate Cloud Engineer</strong> les teste toutes deux sans relâche : <strong>donner les bons droits</strong> (IAM) et <strong>décrire son infrastructure en code</strong> (Terraform). La première évite les catastrophes de sécurité ; la seconde rend ton infra <strong>reproductible, versionnée, revue en équipe</strong>. Ce guide couvre les deux ensemble, car en pratique on écrit <strong>les droits ET les ressources</strong> dans le même code.</p>
+<p>Côté <strong>IAM</strong>, tu apprends le modèle : <strong>qui</strong> (un <em>principal</em> — utilisateur, groupe, compte de service) a <strong>quel rôle</strong> (un ensemble de permissions) <strong>sur quoi</strong> (projet, bucket, sujet). Tu découvres les trois familles de rôles (<strong>primitifs</strong>, <strong>prédéfinis</strong>, <strong>personnalisés</strong>), les <strong>comptes de service</strong> (l&#39;identité des applications), et surtout le <strong>principe du moindre privilège</strong> — la règle d&#39;or de la sécurité cloud.</p>
+<p>Côté <strong>Terraform</strong>, tu écris ton infra en <strong>HCL</strong> avec le provider <strong><code>google</code></strong>, et — c&#39;est la force du labo — tu la <strong>valides en live contre le vrai provider</strong>, <strong>sans compte GCP</strong>. <code>terraform init</code>, <code>fmt</code> et <code>validate</code> tournent <strong>hors ligne</strong> : ta config est vérifiée (syntaxe, schéma, arguments) exactement comme en réel. Seuls <code>plan</code> et <code>apply</code> exigent de vrais identifiants — on te montrera précisément <strong>où</strong> et <strong>pourquoi</strong>, et c&#39;est le guide <em>passer en réel</em> qui te branchera un vrai compte.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as monté le labo (guide <em>fondamentaux</em>) et vu Pub/Sub et le stockage ; tu veux les <strong>droits</strong> et l&#39;<strong>IaC</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes totalement sur GCP → fais d&#39;abord <em>fondamentaux</em> (le modèle projet, <code>gcloud</code>).</li><li>Tu veux <strong>déployer</strong> pour de vrai maintenant → il te faudra un compte + <code>apply</code> : c&#39;est le guide <em>passer en réel</em>. Ici, on écrit et on <strong>valide</strong> l&#39;infra, sans facturer un centime.</li></ul>
+</div>
+<div data-lang="en"><p>Two skills separate the amateur from the pro on GCP, and the <strong>Associate Cloud Engineer</strong> exam tests both relentlessly: <strong>granting the right permissions</strong> (IAM) and <strong>describing your infrastructure as code</strong> (Terraform). The first avoids security disasters; the second makes your infra <strong>reproducible, versioned, team-reviewed</strong>. This guide covers both together, because in practice you write <strong>the permissions AND the resources</strong> in the same code.</p>
+<p>On the <strong>IAM</strong> side, you learn the model: <strong>who</strong> (a <em>principal</em> — user, group, service account) has <strong>which role</strong> (a set of permissions) <strong>on what</strong> (project, bucket, topic). You discover the three role families (<strong>primitive</strong>, <strong>predefined</strong>, <strong>custom</strong>), <strong>service accounts</strong> (the identity of applications), and above all the <strong>principle of least privilege</strong> — the golden rule of cloud security.</p>
+<p>On the <strong>Terraform</strong> side, you write your infra in <strong>HCL</strong> with the <strong><code>google</code></strong> provider, and — the lab&#39;s strength — you <strong>validate it live against the real provider</strong>, <strong>with no GCP account</strong>. <code>terraform init</code>, <code>fmt</code> and <code>validate</code> run <strong>offline</strong>: your config is checked (syntax, schema, arguments) exactly as in real life. Only <code>plan</code> and <code>apply</code> need real credentials — we&#39;ll show you precisely <strong>where</strong> and <strong>why</strong>, and it&#39;s the <em>going real</em> guide that wires up a real account.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve set up the lab (<em>fundamentals</em> guide) and seen Pub/Sub and storage; you want <strong>permissions</strong> and <strong>IaC</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re brand new to GCP → do <em>fundamentals</em> first (the project model, <code>gcloud</code>).</li><li>You want to <strong>deploy</strong> for real now → you&#39;ll need an account + <code>apply</code>: that&#39;s the <em>going real</em> guide. Here, we write and <strong>validate</strong> the infra, without billing a cent.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Expliquer le modèle IAM : <strong>principal → rôle → ressource</strong>, et les <strong>bindings</strong>.</li><li>Distinguer rôles <strong>primitifs</strong>, <strong>prédéfinis</strong> et <strong>personnalisés</strong>.</li><li>Créer un <strong>compte de service</strong> et lui accorder le <strong>moindre privilège</strong>.</li><li>Écrire un <strong>rôle personnalisé</strong> avec la liste exacte de permissions.</li><li>Décrire des ressources (Pub/Sub, Storage) en <strong>Terraform</strong> (provider <code>google</code>).</li><li>Utiliser <strong><code>init</code></strong>, <strong><code>fmt</code></strong>, <strong><code>validate</code></strong> — et valider ta config <strong>sans compte</strong>.</li><li>Comprendre le cycle <strong><code>plan</code> / <code>apply</code> / state</strong> et pourquoi il exige de vrais identifiants.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Explain the IAM model: <strong>principal → role → resource</strong>, and <strong>bindings</strong>.</li><li>Tell <strong>primitive</strong>, <strong>predefined</strong> and <strong>custom</strong> roles apart.</li><li>Create a <strong>service account</strong> and grant it <strong>least privilege</strong>.</li><li>Write a <strong>custom role</strong> with the exact list of permissions.</li><li>Describe resources (Pub/Sub, Storage) in <strong>Terraform</strong> (<code>google</code> provider).</li><li>Use <strong><code>init</code></strong>, <strong><code>fmt</code></strong>, <strong><code>validate</code></strong> — and validate your config <strong>with no account</strong>.</li><li>Understand the <strong><code>plan</code> / <code>apply</code> / state</strong> cycle and why it needs real credentials.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>GCP fondamentaux</strong> terminé (modèle projet, <code>gcloud</code>).</li><li><strong>Terraform</strong> installé (<code>terraform version</code> ≥ 1.5). Sinon : <a href="https://developer.hashicorp.com/terraform/downloads">téléchargement officiel</a>.</li><li>Un accès réseau à <strong><code>registry.terraform.io</code></strong> (pour télécharger le provider <code>google</code> <strong>une fois</strong>, à l&#39;<code>init</code>).</li><li>Aucun compte GCP, aucune carte : <code>init</code>, <code>fmt</code> et <code>validate</code> tournent <strong>hors ligne</strong> après le téléchargement du provider.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>GCP fundamentals</strong> guide done (project model, <code>gcloud</code>).</li><li><strong>Terraform</strong> installed (<code>terraform version</code> ≥ 1.5). Otherwise: <a href="https://developer.hashicorp.com/terraform/downloads">official download</a>.</li><li>Network access to <strong><code>registry.terraform.io</code></strong> (to download the <code>google</code> provider <strong>once</strong>, at <code>init</code>).</li><li>No GCP account, no card: <code>init</code>, <code>fmt</code> and <code>validate</code> run <strong>offline</strong> after the provider download.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../gcp-fondamentaux/">
+    <span class="num">52</span>
+    <span class="title-line" data-lang="fr">GCP — les fondamentaux, en local</span>
+    <span class="title-line" data-lang="en">GCP — the fundamentals, locally</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le modèle IAM (le cœur).</strong> Une autorisation GCP répond à trois questions : <strong>qui</strong> (le <em>principal</em>), a <strong>quel rôle</strong> (un paquet de permissions), <strong>sur quelle ressource</strong>. On l&#39;exprime par un <strong>binding</strong> (liaison) : <code>principal + rôle</code> attaché à une ressource (projet, bucket, sujet…). L&#39;ensemble des bindings d&#39;une ressource forme sa <strong>politique</strong> (policy).</p>
+<p><strong>Les principals (membres).</strong> <em>Qui</em> peut être : un <strong>utilisateur</strong> (<code>user:alice@ex.com</code>), un <strong>groupe</strong> (<code>group:eng@ex.com</code>), un <strong>compte de service</strong> (<code>serviceAccount:...</code>), un <strong>domaine</strong>, ou des identités spéciales. On accorde des droits à des <strong>groupes</strong> plutôt qu&#39;à des personnes une à une — plus simple, plus sûr.</p>
+<p><strong>Les trois familles de rôles.</strong> (1) <strong>Primitifs</strong> : <code>Owner</code>, <code>Editor</code>, <code>Viewer</code> — très larges, hérités de l&#39;ancien temps, <strong>à éviter</strong> (trop de pouvoir). (2) <strong>Prédéfinis</strong> : granulaires, maintenus par Google, ciblés par service (<code>roles/pubsub.publisher</code>, <code>roles/storage.objectViewer</code>) — <strong>le choix par défaut</strong>. (3) <strong>Personnalisés</strong> (custom) : <strong>toi</strong> qui listes les permissions exactes, quand aucun prédéfini ne colle assez serré.</p>
+<p><strong>Comptes de service (service accounts).</strong> Une <strong>application</strong> n&#39;est pas une personne : elle s&#39;authentifie avec un <strong>compte de service</strong> — une identité robotisée à qui on accorde des rôles précis. C&#39;est <strong>l&#39;identité des workloads</strong> (une VM, une Cloud Function, un pod). Bonne pratique moderne : <strong>pas de clés JSON</strong> à traîner ; on attache le compte de service à la ressource (Workload Identity).</p>
+<p><strong>Le moindre privilège.</strong> La règle d&#39;or : accorde <strong>le minimum</strong> de permissions nécessaires, <strong>rien de plus</strong>. Pas de <code>Owner</code> « pour être tranquille ». Un service qui publie sur Pub/Sub reçoit <code>roles/pubsub.publisher</code>, <strong>pas</strong> l&#39;accès au stockage ni aux VMs. C&#39;est <strong>le</strong> réflexe sécurité que l&#39;ACE veut te voir avoir.</p>
+<p><strong>Terraform &amp; l&#39;infrastructure-as-code.</strong> Plutôt que de cliquer dans la console (non reproductible) ou de scripter <code>gcloud</code> (impératif, fragile), on <strong>décrit l&#39;état voulu</strong> en <strong>HCL</strong>, et Terraform calcule les changements. Avantages : <strong>versionné</strong> (Git), <strong>revu</strong> (pull request), <strong>reproductible</strong> (même code = même infra), <strong>documenté</strong> (le code EST la doc).</p>
+<p><strong>Le cycle Terraform.</strong> <code>init</code> (télécharge les providers), <code>fmt</code> (formate), <code>validate</code> (vérifie syntaxe + schéma, <strong>hors ligne</strong>), <code>plan</code> (calcule le diff avec le réel — <strong>exige des identifiants</strong>), <code>apply</code> (applique), <code>destroy</code> (supprime). L&#39;<strong>état</strong> (state) est le fichier où Terraform mémorise ce qu&#39;il gère — <strong>sensible</strong>, à ne jamais committer en clair.</p>
+</div>
+<div data-lang="en"><p><strong>The IAM model (the core).</strong> A GCP authorization answers three questions: <strong>who</strong> (the <em>principal</em>), has <strong>which role</strong> (a bundle of permissions), <strong>on which resource</strong>. You express it with a <strong>binding</strong>: <code>principal + role</code> attached to a resource (project, bucket, topic…). All of a resource&#39;s bindings form its <strong>policy</strong>.</p>
+<p><strong>Principals (members).</strong> <em>Who</em> can be: a <strong>user</strong> (<code>user:alice@ex.com</code>), a <strong>group</strong> (<code>group:eng@ex.com</code>), a <strong>service account</strong> (<code>serviceAccount:...</code>), a <strong>domain</strong>, or special identities. Grant rights to <strong>groups</strong> rather than to people one by one — simpler, safer.</p>
+<p><strong>The three role families.</strong> (1) <strong>Primitive</strong>: <code>Owner</code>, <code>Editor</code>, <code>Viewer</code> — very broad, legacy, <strong>to avoid</strong> (too much power). (2) <strong>Predefined</strong>: granular, Google-maintained, targeted per service (<code>roles/pubsub.publisher</code>, <code>roles/storage.objectViewer</code>) — <strong>the default choice</strong>. (3) <strong>Custom</strong>: <strong>you</strong> list the exact permissions, when no predefined role fits tightly enough.</p>
+<p><strong>Service accounts.</strong> An <strong>application</strong> isn&#39;t a person: it authenticates with a <strong>service account</strong> — a robot identity granted specific roles. It&#39;s the <strong>identity of workloads</strong> (a VM, a Cloud Function, a pod). Modern best practice: <strong>no JSON keys</strong> lying around; attach the service account to the resource (Workload Identity).</p>
+<p><strong>Least privilege.</strong> The golden rule: grant <strong>the minimum</strong> permissions needed, <strong>nothing more</strong>. No <code>Owner</code> &quot;to be safe&quot;. A service that publishes to Pub/Sub gets <code>roles/pubsub.publisher</code>, <strong>not</strong> storage or VM access. It&#39;s <strong>the</strong> security reflex the ACE wants to see.</p>
+<p><strong>Terraform &amp; infrastructure-as-code.</strong> Rather than clicking in the console (not reproducible) or scripting <code>gcloud</code> (imperative, fragile), you <strong>describe the desired state</strong> in <strong>HCL</strong>, and Terraform computes the changes. Benefits: <strong>versioned</strong> (Git), <strong>reviewed</strong> (pull request), <strong>reproducible</strong> (same code = same infra), <strong>documented</strong> (the code IS the doc).</p>
+<p><strong>The Terraform cycle.</strong> <code>init</code> (downloads providers), <code>fmt</code> (formats), <code>validate</code> (checks syntax + schema, <strong>offline</strong>), <code>plan</code> (computes the diff with reality — <strong>needs credentials</strong>), <code>apply</code> (applies), <code>destroy</code> (removes). The <strong>state</strong> is the file where Terraform remembers what it manages — <strong>sensitive</strong>, never commit it in the clear.</p>
+</div>
+
+<figure class="schema" id="figure-gcp-iam-terraform">
+  <p>[schema "gcp-iam-terraform" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> IAM + Terraform : un fichier HCL décrit des principals (compte de service), des rôles (prédéfinis/personnalisés, au moindre privilège) et des ressources (Pub/Sub, Storage). init/fmt/validate vérifient le tout en local contre le vrai provider google, sans compte ; plan/apply — qui touchent le vrai GCP — exigent des identifiants.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> IAM + Terraform: an HCL file describes principals (service account), roles (predefined/custom, least-privileged) and resources (Pub/Sub, Storage). init/fmt/validate check it all locally against the real google provider, no account; plan/apply — which touch real GCP — need credentials.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser le modèle IAM et écrire ton <strong>premier Terraform</strong> — un provider et un <strong>compte de service</strong> — puis le <strong>valider en live</strong>.</p>
+<p><strong>🤔 Décrire, pas cliquer.</strong> On crée un dossier, un bloc <code>terraform</code> (versions), un bloc <code>provider &quot;google&quot;</code> (projet, région), et une première ressource : un <strong>compte de service</strong> (l&#39;identité d&#39;une future application). Puis <code>init</code> (télécharge le provider <strong>une fois</strong>) et <code>validate</code> (vérifie <strong>sans compte</strong>).</p>
+<p>Crée le dossier et les fichiers :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Lay down the IAM model and write your <strong>first Terraform</strong> — a provider and a <strong>service account</strong> — then <strong>validate it live</strong>.</p>
+<p><strong>🤔 Describe, don&#39;t click.</strong> We create a folder, a <code>terraform</code> block (versions), a <code>provider &quot;google&quot;</code> block (project, region), and a first resource: a <strong>service account</strong> (the identity of a future application). Then <code>init</code> (downloads the provider <strong>once</strong>) and <code>validate</code> (checks <strong>with no account</strong>).</p>
+<p>Create the folder and files:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/tf-gcp &amp;&amp; cd ~/tf-gcp</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># main.tf
+terraform {
+  required_version = &quot;&gt;= 1.5&quot;
+  required_providers {
+    google = {
+      source  = &quot;hashicorp/google&quot;
+      version = &quot;~&gt; 5.0&quot;
+    }
+  }
+}
+
+provider &quot;google&quot; {
+  project = &quot;demo-projet&quot;
+  region  = &quot;europe-west9&quot;
+}
+
+# Un compte de service : l&#39;identité d&#39;un workload (pas une personne).
+# A service account: the identity of a workload (not a person).
+resource &quot;google_service_account&quot; &quot;app&quot; {
+  account_id   = &quot;app-runtime&quot;
+  display_name = &quot;Service account de l&#39;application&quot;
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init       # télécharge le provider google (une fois) / downloads the google provider (once)
+terraform validate   # vérifie syntaxe + schéma, HORS LIGNE / checks syntax + schema, OFFLINE</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init</code> affiche <code>Terraform has been successfully initialized!</code> (et <code>Installed hashicorp/google v5.x</code>). <code>terraform validate</code> affiche <strong><code>Success! The configuration is valid.</code></strong>. Tu viens d&#39;écrire et de <strong>valider</strong> une ressource GCP <strong>sans compte, sans carte</strong> : le provider vérifie que <code>google_service_account</code> existe et que tes arguments (<code>account_id</code>, <code>display_name</code>) sont corrects. C&#39;est la boucle de travail : écrire → <code>validate</code> → corriger. ⚠️ <code>validate</code> ne parle <strong>pas</strong> au vrai GCP (il ne crée rien) : il valide la <strong>forme</strong>. Créer viendra avec <code>apply</code> (et un compte).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init</code> prints <code>Terraform has been successfully initialized!</code> (and <code>Installed hashicorp/google v5.x</code>). <code>terraform validate</code> prints <strong><code>Success! The configuration is valid.</code></strong>. You just wrote and <strong>validated</strong> a GCP resource <strong>with no account, no card</strong>: the provider checks that <code>google_service_account</code> exists and that your arguments (<code>account_id</code>, <code>display_name</code>) are correct. That&#39;s the work loop: write → <code>validate</code> → fix. ⚠️ <code>validate</code> does <strong>not</strong> talk to real GCP (it creates nothing): it validates the <strong>shape</strong>. Creating comes with <code>apply</code> (and an account).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Accorder des droits au <strong>moindre privilège</strong> avec des <strong>rôles prédéfinis</strong> — validé en live.</p>
+<p><strong>🤔 Le triple principal-rôle-ressource.</strong> On lie le compte de service à des <strong>rôles prédéfinis précis</strong> via <code>google_project_iam_member</code> : chaque bloc = <strong>un</strong> principal + <strong>un</strong> rôle sur le projet. On donne <code>roles/pubsub.publisher</code> (publier des messages) et <code>roles/storage.objectViewer</code> (lire des objets) — <strong>rien d&#39;autre</strong>. Surtout <strong>pas</strong> <code>Owner</code>.</p>
+<p>Ajoute à <code>main.tf</code>, puis re-valide :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Grant permissions at <strong>least privilege</strong> with <strong>predefined roles</strong> — validated live.</p>
+<p><strong>🤔 The principal-role-resource triple.</strong> We bind the service account to <strong>precise predefined roles</strong> via <code>google_project_iam_member</code>: each block = <strong>one</strong> principal + <strong>one</strong> role on the project. We give <code>roles/pubsub.publisher</code> (publish messages) and <code>roles/storage.objectViewer</code> (read objects) — <strong>nothing else</strong>. Definitely <strong>not</strong> <code>Owner</code>.</p>
+<p>Add to <code>main.tf</code>, then re-validate:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Least privilege : un rôle prédéfini précis par besoin, jamais Owner.
+# Least privilege: one precise predefined role per need, never Owner.
+resource &quot;google_project_iam_member&quot; &quot;app_publisher&quot; {
+  project = &quot;demo-projet&quot;
+  role    = &quot;roles/pubsub.publisher&quot;
+  member  = &quot;serviceAccount:${google_service_account.app.email}&quot;
+}
+
+resource &quot;google_project_iam_member&quot; &quot;app_storage_viewer&quot; {
+  project = &quot;demo-projet&quot;
+  role    = &quot;roles/storage.objectViewer&quot;
+  member  = &quot;serviceAccount:${google_service_account.app.email}&quot;
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform fmt        # formate proprement / clean formatting
+terraform validate</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform validate</code> affiche de nouveau <code>Success! The configuration is valid.</code>. Note le <code>member = &quot;serviceAccount:${google_service_account.app.email}&quot;</code> : Terraform <strong>relie</strong> les ressources — l&#39;e-mail du compte de service (calculé à la création) est <strong>référencé</strong>, pas recopié à la main. ⚠️ <strong>Point ACE — <code>iam_member</code> vs <code>iam_binding</code> vs <code>iam_policy</code> :</strong> <code>_member</code> ajoute <strong>un</strong> principal à un rôle (non destructif — recommandé) ; <code>_binding</code> fixe la <strong>liste complète</strong> des principals d&#39;un rôle (écrase les autres) ; <code>_policy</code> <strong>remplace toute</strong> la politique (dangereux). En cas de doute, <code>_member</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform validate</code> again prints <code>Success! The configuration is valid.</code>. Note <code>member = &quot;serviceAccount:${google_service_account.app.email}&quot;</code>: Terraform <strong>links</strong> resources — the service account&#39;s email (computed at creation) is <strong>referenced</strong>, not hand-copied. ⚠️ <strong>ACE point — <code>iam_member</code> vs <code>iam_binding</code> vs <code>iam_policy</code>:</strong> <code>_member</code> adds <strong>one</strong> principal to a role (non-destructive — recommended); <code>_binding</code> sets the <strong>full list</strong> of a role&#39;s principals (overwrites others); <code>_policy</code> <strong>replaces the entire</strong> policy (dangerous). When in doubt, <code>_member</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire un <strong>rôle personnalisé</strong> — la liste exacte de permissions — validé en live.</p>
+<p><strong>🤔 Quand le prédéfini ne suffit pas.</strong> Parfois aucun rôle prédéfini ne colle : trop large, ou trop étroit. On crée alors un <strong>rôle personnalisé</strong> avec <strong>exactement</strong> les permissions voulues (format <code>service.ressource.action</code>). Ici, un rôle qui <strong>lit</strong> les abonnements Pub/Sub, sans plus.</p>
+<p>Ajoute le rôle personnalisé :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>custom role</strong> — the exact list of permissions — validated live.</p>
+<p><strong>🤔 When predefined isn&#39;t enough.</strong> Sometimes no predefined role fits: too broad, or too narrow. You then create a <strong>custom role</strong> with <strong>exactly</strong> the permissions you want (format <code>service.resource.action</code>). Here, a role that <strong>reads</strong> Pub/Sub subscriptions, nothing more.</p>
+<p>Add the custom role:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Rôle personnalisé : le strict nécessaire, permission par permission.
+# Custom role: the strict minimum, permission by permission.
+resource &quot;google_project_iam_custom_role&quot; &quot;lecteur_files&quot; {
+  role_id     = &quot;lecteurFiles&quot;
+  title       = &quot;Lecteur de files Pub/Sub&quot;
+  description = &quot;Lit les abonnements Pub/Sub, sans plus.&quot;
+  permissions = [
+    &quot;pubsub.subscriptions.get&quot;,
+    &quot;pubsub.subscriptions.list&quot;,
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform validate</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>Success! The configuration is valid.</code>. Ton rôle personnalisé n&#39;accorde <strong>que</strong> <code>get</code> et <code>list</code> sur les abonnements — l&#39;incarnation du moindre privilège. ⚠️ <strong>Quand l&#39;utiliser (point ACE) :</strong> privilégie <strong>toujours</strong> un rôle <strong>prédéfini</strong> s&#39;il existe (Google le maintient à jour) ; ne crée un <strong>personnalisé</strong> que si aucun prédéfini n&#39;est assez serré. Un rôle personnalisé, c&#39;est <strong>toi</strong> qui le maintiens quand GCP ajoute des permissions. Le format des permissions est <code>service.ressource.verbe</code> (ex. <code>pubsub.subscriptions.get</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>Success! The configuration is valid.</code>. Your custom role grants <strong>only</strong> <code>get</code> and <code>list</code> on subscriptions — least privilege incarnate. ⚠️ <strong>When to use it (ACE point):</strong> <strong>always</strong> prefer a <strong>predefined</strong> role if one exists (Google keeps it up to date); only create a <strong>custom</strong> one if no predefined fits tightly enough. A custom role is <strong>yours</strong> to maintain when GCP adds permissions. The permission format is <code>service.resource.verb</code> (e.g. <code>pubsub.subscriptions.get</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire <strong>tes ressources</strong> en IaC — les mêmes qu&#39;aux guides précédents — validé en live.</p>
+<p><strong>🤔 L&#39;infra comme code.</strong> Aux guides <em>stockage</em> et <em>messagerie</em>, tu as créé buckets et sujets <strong>à la main</strong>. Ici, tu les <strong>décris</strong> : un sujet Pub/Sub, son abonnement (avec dead-letter), un sujet de rebut, et un bucket (avec versioning + cycle de vie). Le <strong>même résultat</strong>, mais <strong>reproductible</strong> et <strong>versionné</strong>.</p>
+<p>Ajoute les ressources :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe <strong>your resources</strong> as IaC — the same as in previous guides — validated live.</p>
+<p><strong>🤔 Infra as code.</strong> In the <em>storage</em> and <em>messaging</em> guides, you created buckets and topics <strong>by hand</strong>. Here, you <strong>describe</strong> them: a Pub/Sub topic, its subscription (with dead-letter), a dead-letter topic, and a bucket (with versioning + lifecycle). The <strong>same result</strong>, but <strong>reproducible</strong> and <strong>versioned</strong>.</p>
+<p>Add the resources:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Sujet + abonnement (avec dead-letter) / topic + subscription (with dead-letter)
+resource &quot;google_pubsub_topic&quot; &quot;commandes&quot; {
+  name = &quot;commandes&quot;
+}
+
+resource &quot;google_pubsub_topic&quot; &quot;rebut&quot; {
+  name = &quot;commandes-rebut&quot;
+}
+
+resource &quot;google_pubsub_subscription&quot; &quot;facturation&quot; {
+  name                 = &quot;facturation&quot;
+  topic                = google_pubsub_topic.commandes.id
+  ack_deadline_seconds = 20
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.rebut.id
+    max_delivery_attempts = 5
+  }
+}
+
+# Bucket avec versioning + cycle de vie / bucket with versioning + lifecycle
+resource &quot;google_storage_bucket&quot; &quot;artefacts&quot; {
+  name          = &quot;atelier-artefacts-demo-projet&quot;
+  location      = &quot;EU&quot;
+  storage_class = &quot;STANDARD&quot;
+  force_destroy = true
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    condition {
+      age = 30
+    }
+    action {
+      type          = &quot;SetStorageClass&quot;
+      storage_class = &quot;NEARLINE&quot;
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform fmt
+terraform validate</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>Success! The configuration is valid.</code>. Tu as décrit en <strong>une trentaine de lignes</strong> ce qu&#39;il fallait cliquer/scripter aux guides précédents — et c&#39;est <strong>rejouable à l&#39;identique</strong>. Remarque les <strong>références</strong> entre ressources : <code>topic = google_pubsub_topic.commandes.id</code>, <code>dead_letter_topic = google_pubsub_topic.rebut.id</code>. Terraform en déduit l&#39;<strong>ordre de création</strong> (le sujet avant l&#39;abonnement) via ce graphe de dépendances. ⚠️ Le <code>versioning</code> et le <code>lifecycle_rule</code> — vus en <strong>concept</strong> au guide <em>stockage</em> car fake-gcs ne les émule pas — sont ici <strong>exacts pour le vrai GCP</strong> et <strong>validés</strong> par le provider.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>Success! The configuration is valid.</code>. You described in <strong>about thirty lines</strong> what needed clicking/scripting in the previous guides — and it&#39;s <strong>replayable identically</strong>. Note the <strong>references</strong> between resources: <code>topic = google_pubsub_topic.commandes.id</code>, <code>dead_letter_topic = google_pubsub_topic.rebut.id</code>. Terraform infers the <strong>creation order</strong> (topic before subscription) from this dependency graph. ⚠️ The <code>versioning</code> and <code>lifecycle_rule</code> — seen as <strong>concept</strong> in the <em>storage</em> guide since fake-gcs doesn&#39;t emulate them — are here <strong>exact for real GCP</strong> and <strong>validated</strong> by the provider.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Rendre ta config <strong>réutilisable</strong> avec des <strong>variables</strong> et des <strong>outputs</strong> — validé en live.</p>
+<p><strong>🤔 Paramétrer, pas coder en dur.</strong> Répéter <code>&quot;demo-projet&quot;</code> partout est fragile. On extrait le projet et la région en <strong>variables</strong> (<code>var.project_id</code>), et on expose des <strong>outputs</strong> (l&#39;e-mail du compte de service, le nom du sujet) — utiles pour l&#39;humain et pour chaîner des modules. La même config sert alors <strong>plusieurs environnements</strong> (dev, prod) en changeant une valeur.</p>
+<p>Crée <code>variables.tf</code> et <code>outputs.tf</code>, et remplace les valeurs en dur :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Make your config <strong>reusable</strong> with <strong>variables</strong> and <strong>outputs</strong> — validated live.</p>
+<p><strong>🤔 Parameterize, don&#39;t hard-code.</strong> Repeating <code>&quot;demo-projet&quot;</code> everywhere is fragile. We extract project and region into <strong>variables</strong> (<code>var.project_id</code>), and expose <strong>outputs</strong> (the service account email, the topic name) — useful for humans and for chaining modules. The same config then serves <strong>multiple environments</strong> (dev, prod) by changing one value.</p>
+<p>Create <code>variables.tf</code> and <code>outputs.tf</code>, and replace the hard-coded values:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># variables.tf
+variable &quot;project_id&quot; {
+  type        = string
+  description = &quot;L&#39;identifiant du projet GCP.&quot;
+  default     = &quot;demo-projet&quot;
+}
+
+variable &quot;region&quot; {
+  type    = string
+  default = &quot;europe-west9&quot;
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># outputs.tf
+output &quot;service_account_email&quot; {
+  value       = google_service_account.app.email
+  description = &quot;L&#39;e-mail du compte de service applicatif.&quot;
+}
+
+output &quot;topic_name&quot; {
+  value = google_pubsub_topic.commandes.name
+}</code></pre>
+<div data-lang="fr"><p>Puis, dans <code>main.tf</code>, remplace <code>project = &quot;demo-projet&quot;</code> par <code>project = var.project_id</code> (et la région par <code>var.region</code>) dans le provider et les blocs <code>iam_member</code>. Re-valide :</p>
+</div>
+<div data-lang="en"><p>Then, in <code>main.tf</code>, replace <code>project = &quot;demo-projet&quot;</code> with <code>project = var.project_id</code> (and the region with <code>var.region</code>) in the provider and the <code>iam_member</code> blocks. Re-validate:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform fmt
+terraform validate</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>Success! The configuration is valid.</code>. Ta config est maintenant <strong>paramétrée</strong> : changer de projet = changer <strong>une</strong> variable (ou passer <code>-var=&quot;project_id=autre-projet&quot;</code>). Les <strong>outputs</strong> exposent les valeurs calculées (l&#39;e-mail du compte de service n&#39;existe qu&#39;après création — Terraform le résoudra à l&#39;<code>apply</code>). ⚠️ Bonne pratique : un fichier <code>terraform.tfvars</code> (non committé) porte les valeurs par environnement ; les <code>variable</code> <strong>sans</strong> <code>default</code> deviennent <strong>obligatoires</strong> (Terraform les demande). C&#39;est la base des <strong>modules</strong> réutilisables.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>Success! The configuration is valid.</code>. Your config is now <strong>parameterized</strong>: switching projects = changing <strong>one</strong> variable (or passing <code>-var=&quot;project_id=other-project&quot;</code>). The <strong>outputs</strong> expose computed values (the service account email exists only after creation — Terraform resolves it at <code>apply</code>). ⚠️ Best practice: a <code>terraform.tfvars</code> file (not committed) carries per-environment values; <code>variable</code>s <strong>without</strong> a <code>default</code> become <strong>required</strong> (Terraform asks for them). It&#39;s the basis of reusable <strong>modules</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le cycle <strong><code>plan</code> / <code>apply</code> / state</strong> — et voir <strong>pourquoi</strong> il exige un vrai compte.</p>
+<p><strong>🤔 Là où le local s&#39;arrête (honnêtement).</strong> <code>validate</code> vérifie la <strong>forme</strong> sans compte. Mais <strong>créer</strong> l&#39;infra, c&#39;est <code>plan</code> (calculer le diff entre ton code et le réel) puis <code>apply</code> (l&#39;appliquer). Or <code>plan</code> doit <strong>interroger le vrai GCP</strong> → il lui faut des <strong>identifiants</strong> (Application Default Credentials). Sans compte, <code>plan</code> <strong>échoue</strong> — et c&#39;est <strong>normal</strong>. Voyons l&#39;erreur exacte, pour la reconnaître :</p>
+<p>Lance <code>plan</code> (il va échouer, volontairement) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong><code>plan</code> / <code>apply</code> / state</strong> cycle — and see <strong>why</strong> it needs a real account.</p>
+<p><strong>🤔 Where local stops (honestly).</strong> <code>validate</code> checks the <strong>shape</strong> with no account. But <strong>creating</strong> the infra is <code>plan</code> (compute the diff between your code and reality) then <code>apply</code> (apply it). And <code>plan</code> must <strong>query real GCP</strong> → it needs <strong>credentials</strong> (Application Default Credentials). With no account, <code>plan</code> <strong>fails</strong> — and that&#39;s <strong>normal</strong>. Let&#39;s see the exact error, to recognize it:</p>
+<p>Run <code>plan</code> (it will fail, on purpose):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform plan</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>plan</code> s&#39;arrête sur : <code>Error: Attempted to load application default credentials ... No credentials loaded. To use your gcloud credentials, run &#39;gcloud auth application-default login&#39;</code>. <strong>C&#39;est le résultat attendu</strong> : ta config est <strong>valide</strong> (prouvé à l&#39;étape 1-5), mais <code>plan</code>/<code>apply</code> <strong>touchent le vrai GCP</strong> et exigent une authentification. Retiens le cycle complet : <code>init</code> → <code>fmt</code> → <code>validate</code> (<strong>local, sans compte</strong>) → <code>plan</code> → <code>apply</code> → <code>destroy</code> (<strong>réel, avec compte</strong>). Le fichier d&#39;<strong>état</strong> (<code>terraform.tfstate</code>) mémorise ce que Terraform gère : <strong>sensible</strong> (jamais dans Git ; en équipe, un <strong>backend distant</strong> verrouillé). ⚠️ Brancher un <strong>vrai compte</strong> (ADC, projet de test, garde-fous de coût) et faire un <code>apply</code> réel, c&#39;est <strong>exactement</strong> l&#39;objet du guide <em>passer en réel</em>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>plan</code> stops on: <code>Error: Attempted to load application default credentials ... No credentials loaded. To use your gcloud credentials, run &#39;gcloud auth application-default login&#39;</code>. <strong>That&#39;s the expected result</strong>: your config is <strong>valid</strong> (proven in steps 1-5), but <code>plan</code>/<code>apply</code> <strong>touch real GCP</strong> and require authentication. Remember the full cycle: <code>init</code> → <code>fmt</code> → <code>validate</code> (<strong>local, no account</strong>) → <code>plan</code> → <code>apply</code> → <code>destroy</code> (<strong>real, with account</strong>). The <strong>state</strong> file (<code>terraform.tfstate</code>) remembers what Terraform manages: <strong>sensitive</strong> (never in Git; on a team, a locked <strong>remote backend</strong>). ⚠️ Wiring a <strong>real account</strong> (ADC, a test project, cost guardrails) and doing a real <code>apply</code> is <strong>exactly</strong> the subject of the <em>going real</em> guide.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer le réflexe <strong>moindre privilège</strong>, puis nettoyer.</p>
+<p><strong>🤔 La grille de décision (cœur de l&#39;ACE).</strong> Avant d&#39;accorder un droit, demande-toi : <strong>qui</strong> en a besoin (un groupe ? un compte de service ?), <strong>pour quoi faire</strong> (le rôle <strong>le plus étroit</strong> qui suffit), <strong>sur quelle ressource</strong> (le projet ? un seul bucket ?). L&#39;ordre de préférence des rôles : <strong>prédéfini</strong> &gt; <strong>personnalisé</strong> &gt; (jamais) <strong>primitif</strong>. Et côté IaC : <strong>décris tout</strong>, <strong>versionne</strong>, <strong>revois en PR</strong>.</p>
+<p>Vérifie une dernière fois, puis nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>least-privilege</strong> reflex, then clean up.</p>
+<p><strong>🤔 The decision grid (ACE core).</strong> Before granting a right, ask: <strong>who</strong> needs it (a group? a service account?), <strong>for what</strong> (the <strong>narrowest</strong> role that suffices), <strong>on which resource</strong> (the project? a single bucket?). Role preference order: <strong>predefined</strong> &gt; <strong>custom</strong> &gt; (never) <strong>primitive</strong>. And on the IaC side: <strong>describe everything</strong>, <strong>version it</strong>, <strong>review in PRs</strong>.</p>
+<p>Check one last time, then clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform validate         # doit encore afficher Success / must still print Success
+terraform fmt -check       # confirme que tout est bien formaté / confirms clean formatting
+
+# Nettoyage local (aucune ressource réelle n&#39;a été créée) / local cleanup (no real resource was created)
+cd ~ &amp;&amp; rm -rf ~/tf-gcp
+# En RÉEL, on supprimerait l&#39;infra gérée avec / on REAL GCP, you&#39;d tear down managed infra with:
+#   terraform destroy</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform validate</code> affiche une dernière fois <code>Success! The configuration is valid.</code> et <code>fmt -check</code> ne renvoie rien (tout est formaté). Tu as <strong>écrit, structuré et validé</strong> une infra GCP complète — comptes de service, rôles au moindre privilège, rôle personnalisé, Pub/Sub, Storage, variables, outputs — <strong>sans compte ni facture</strong>. Le nettoyage local suffit ici : aucune ressource réelle n&#39;a été créée (on n&#39;a jamais fait <code>apply</code>). ⚠️ <strong>En réel</strong>, <code>terraform destroy</code> détruit ce que le state gère — la contrepartie propre de <code>apply</code>. La suite : le <strong>projet d&#39;entreprise</strong>, où tu assembles tout (pipeline événementiel sur émulateurs + cette infra Terraform) en un livrable de CV.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform validate</code> prints one last <code>Success! The configuration is valid.</code> and <code>fmt -check</code> returns nothing (all formatted). You <strong>wrote, structured and validated</strong> a complete GCP infra — service accounts, least-privilege roles, a custom role, Pub/Sub, Storage, variables, outputs — <strong>with no account or bill</strong>. Local cleanup suffices here: no real resource was created (we never ran <code>apply</code>). ⚠️ <strong>On real GCP</strong>, <code>terraform destroy</code> tears down what the state manages — the clean counterpart to <code>apply</code>. Next up: the <strong>enterprise project</strong>, where you assemble everything (an event-driven pipeline on emulators + this Terraform infra) into a CV-worthy deliverable.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Accorder <code>Owner</code>/<code>Editor</code> « pour être tranquille ».</strong> C&#39;est l&#39;anti-moindre-privilège. Un principal <code>Owner</code> peut <strong>tout</strong> faire, y compris supprimer le projet. Utilise des rôles <strong>prédéfinis</strong> ciblés.</p>
+<p><strong>2. Confondre <code>iam_member</code>, <code>iam_binding</code>, <code>iam_policy</code>.</strong> <code>_member</code> = additif (sûr). <code>_binding</code> = fixe la liste d&#39;un rôle (écrase les autres membres). <code>_policy</code> = remplace <strong>toute</strong> la politique (peut te verrouiller dehors). En cas de doute, <code>_member</code>.</p>
+<p><strong>3. Committer le fichier d&#39;état.</strong> <code>terraform.tfstate</code> contient des données <strong>sensibles</strong> (parfois des secrets). Jamais dans Git. En équipe : <strong>backend distant</strong> chiffré + verrou.</p>
+<p><strong>4. Créer des clés JSON de compte de service.</strong> Une clé qui fuite = une porte ouverte. Préfère l&#39;<strong>attachement</strong> du compte de service à la ressource (Workload Identity) — pas de clé à gérer.</p>
+<p><strong>5. Coder les valeurs en dur.</strong> <code>project</code>, <code>region</code>, noms… en variables. Sinon la config n&#39;est ni réutilisable ni multi-environnement.</p>
+<p><strong>6. Croire que <code>validate</code> crée quelque chose.</strong> <code>validate</code> vérifie la <strong>forme</strong>, hors ligne. Rien n&#39;est créé tant que tu n&#39;as pas fait <code>apply</code> (avec un compte).</p>
+<p><strong>7. Oublier <code>fmt</code> avant la revue.</strong> Un code mal formaté pollue les diffs. <code>terraform fmt</code> (ou <code>fmt -check</code> en CI) garde tout net.</p>
+</div>
+<div data-lang="en"><p><strong>1. Granting <code>Owner</code>/<code>Editor</code> &quot;to be safe&quot;.</strong> That&#39;s the anti-least-privilege. An <code>Owner</code> principal can do <strong>everything</strong>, including deleting the project. Use targeted <strong>predefined</strong> roles.</p>
+<p><strong>2. Confusing <code>iam_member</code>, <code>iam_binding</code>, <code>iam_policy</code>.</strong> <code>_member</code> = additive (safe). <code>_binding</code> = sets a role&#39;s list (overwrites other members). <code>_policy</code> = replaces the <strong>whole</strong> policy (can lock you out). When in doubt, <code>_member</code>.</p>
+<p><strong>3. Committing the state file.</strong> <code>terraform.tfstate</code> holds <strong>sensitive</strong> data (sometimes secrets). Never in Git. On a team: an encrypted <strong>remote backend</strong> + lock.</p>
+<p><strong>4. Creating service-account JSON keys.</strong> A leaked key = an open door. Prefer <strong>attaching</strong> the service account to the resource (Workload Identity) — no key to manage.</p>
+<p><strong>5. Hard-coding values.</strong> <code>project</code>, <code>region</code>, names… into variables. Otherwise the config is neither reusable nor multi-environment.</p>
+<p><strong>6. Thinking <code>validate</code> creates something.</strong> <code>validate</code> checks the <strong>shape</strong>, offline. Nothing is created until you <code>apply</code> (with an account).</p>
+<p><strong>7. Forgetting <code>fmt</code> before review.</strong> Badly formatted code pollutes diffs. <code>terraform fmt</code> (or <code>fmt -check</code> in CI) keeps it tidy.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques <strong>principal → rôle → ressource</strong> et le rôle des <strong>bindings</strong>.</li><li>Tu distingues rôles <strong>primitifs / prédéfinis / personnalisés</strong> et sais lequel préférer.</li><li>Tu crées un <strong>compte de service</strong> et lui accordes un rôle <strong>précis</strong> (pas Owner).</li><li>Tu écris un <strong>rôle personnalisé</strong> avec la liste exacte de permissions.</li><li>Tu décris Pub/Sub + Storage en <strong>Terraform</strong> et ça <strong>valide</strong>.</li><li>Tu paramètres avec <strong>variables</strong> et exposes des <strong>outputs</strong>.</li><li>Tu expliques pourquoi <strong><code>plan</code>/<code>apply</code></strong> exigent un compte, pas <strong><code>validate</code></strong>.</li></ul>
+<p>Sept cases = tu tiens IAM &amp; Terraform au niveau ACE. La suite : le projet d&#39;entreprise.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You explain <strong>principal → role → resource</strong> and the role of <strong>bindings</strong>.</li><li>You tell <strong>primitive / predefined / custom</strong> roles apart and know which to prefer.</li><li>You create a <strong>service account</strong> and grant it a <strong>precise</strong> role (not Owner).</li><li>You write a <strong>custom role</strong> with the exact list of permissions.</li><li>You describe Pub/Sub + Storage in <strong>Terraform</strong> and it <strong>validates</strong>.</li><li>You parameterize with <strong>variables</strong> and expose <strong>outputs</strong>.</li><li>You explain why <strong><code>plan</code>/<code>apply</code></strong> need an account, but not <strong><code>validate</code></strong>.</li></ul>
+<p>Seven boxes = you hold IAM &amp; Terraform at ACE level. Next up: the enterprise project.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track GCP → ACE :</p>
+<ol><li><strong>GCP — projet d&#39;entreprise</strong> : un <strong>pipeline événementiel complet</strong> (ingestion → Pub/Sub → traitement → stockage) tourné sur les émulateurs <strong>et</strong> décrit en Terraform — le livrable à mettre sur ton CV.</li><li>Puis <strong>passer en réel</strong> : brancher un vrai compte (ADC), garde-fous de coût, <code>plan</code>/<code>apply</code>, et la dernière ligne droite vers la <strong>certification ACE</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The GCP → ACE track continues:</p>
+<ol><li><strong>GCP — enterprise project</strong>: a <strong>full event-driven pipeline</strong> (ingestion → Pub/Sub → processing → storage) run on the emulators <strong>and</strong> described in Terraform — the deliverable for your CV.</li><li>Then <strong>going real</strong>: wiring a real account (ADC), cost guardrails, <code>plan</code>/<code>apply</code>, and the final stretch toward the <strong>ACE certification</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list"></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire IAM &amp; Terraform.</p>
+</div>
+<div data-lang="en"><p>IAM &amp; Terraform cheat sheet.</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Provider / provider
+provider &quot;google&quot; {
+  project = var.project_id
+  region  = var.region
+}
+
+# Compte de service / service account
+resource &quot;google_service_account&quot; &quot;app&quot; {
+  account_id = &quot;app-runtime&quot;
+}
+
+# Moindre privilège : ajouter UN principal à UN rôle / least privilege: add ONE principal to ONE role
+resource &quot;google_project_iam_member&quot; &quot;x&quot; {
+  project = var.project_id
+  role    = &quot;roles/pubsub.publisher&quot; # prédéfini / predefined
+  member  = &quot;serviceAccount:${google_service_account.app.email}&quot;
+}
+
+# Rôle personnalisé / custom role
+resource &quot;google_project_iam_custom_role&quot; &quot;r&quot; {
+  role_id     = &quot;monRole&quot;
+  title       = &quot;Mon rôle&quot;
+  permissions = [&quot;pubsub.subscriptions.get&quot;]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle Terraform / Terraform cycle
+terraform init        # providers (une fois / once)
+terraform fmt         # formater / format         (fmt -check en CI)
+terraform validate    # syntaxe + schéma, HORS LIGNE / offline — sans compte / no account
+terraform plan        # diff avec le réel — EXIGE un compte / needs an account
+terraform apply       # créer/mettre à jour / create-update  (avec compte / with account)
+terraform destroy     # supprimer / tear down</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://cloud.google.com/iam/docs/overview">Vue d&#39;ensemble IAM</a> — principals, rôles, policies.</li><li><a href="https://cloud.google.com/iam/docs/understanding-roles">Rôles prédéfinis</a> — le catalogue par service.</li><li><a href="https://cloud.google.com/iam/docs/creating-custom-roles">Rôles personnalisés</a> — permissions à la carte.</li><li><a href="https://cloud.google.com/iam/docs/service-account-overview">Comptes de service</a> — l&#39;identité des workloads.</li><li><a href="https://registry.terraform.io/providers/hashicorp/google/latest/docs">Provider Terraform <code>google</code></a> — la référence des ressources.</li><li><a href="https://cloud.google.com/docs/terraform/best-practices-for-terraform">Terraform sur GCP — bonnes pratiques</a> — structure, state, modules.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://cloud.google.com/iam/docs/overview">IAM overview</a> — principals, roles, policies.</li><li><a href="https://cloud.google.com/iam/docs/understanding-roles">Predefined roles</a> — the per-service catalog.</li><li><a href="https://cloud.google.com/iam/docs/creating-custom-roles">Custom roles</a> — à la carte permissions.</li><li><a href="https://cloud.google.com/iam/docs/service-account-overview">Service accounts</a> — the identity of workloads.</li><li><a href="https://registry.terraform.io/providers/hashicorp/google/latest/docs">Terraform <code>google</code> provider</a> — the resource reference.</li><li><a href="https://cloud.google.com/docs/terraform/best-practices-for-terraform">Terraform on GCP — best practices</a> — structure, state, modules.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform init</code> échoue (téléchargement du provider).</strong> Il faut un accès à <code>registry.terraform.io</code> <strong>une fois</strong>. Vérifie ton réseau/proxy. Après ce téléchargement, <code>fmt</code>/<code>validate</code> sont hors ligne.</p>
+<p><strong><code>validate</code> : <code>Reference to undeclared resource</code>.</strong> Tu références une ressource (<code>google_...</code>) non déclarée, ou une faute de frappe dans son nom local. Vérifie que le bloc existe et que le nom correspond exactement.</p>
+<p><strong><code>validate</code> : <code>Unsupported argument</code> / <code>Missing required argument</code>.</strong> Un argument n&#39;existe pas (ou manque) pour cette ressource dans le schéma du provider. Consulte la doc du provider <code>google</code> pour la ressource concernée — le schéma fait foi.</p>
+<p><strong><code>plan</code> : <code>Attempted to load application default credentials ... No credentials loaded</code>.</strong> <strong>Attendu sans compte.</strong> <code>plan</code>/<code>apply</code> touchent le vrai GCP. Ce sera l&#39;objet du guide <em>passer en réel</em> (<code>gcloud auth application-default login</code>).</p>
+<p><strong><code>terraform fmt</code> modifie mes fichiers.</strong> Normal : il réindente. Lance-le avant chaque commit ; en CI, <code>terraform fmt -check</code> échoue si un fichier n&#39;est pas formaté (sans le modifier).</p>
+<p><strong>Version de provider incompatible.</strong> <code>version = &quot;~&gt; 5.0&quot;</code> fige la <strong>majeure</strong> 5. Si une ressource/argument diffère, aligne ta version sur la doc que tu lis (le schéma change entre majeures).</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform init</code> fails (provider download).</strong> You need access to <code>registry.terraform.io</code> <strong>once</strong>. Check your network/proxy. After that download, <code>fmt</code>/<code>validate</code> are offline.</p>
+<p><strong><code>validate</code>: <code>Reference to undeclared resource</code>.</strong> You reference a resource (<code>google_...</code>) that isn&#39;t declared, or a typo in its local name. Check the block exists and the name matches exactly.</p>
+<p><strong><code>validate</code>: <code>Unsupported argument</code> / <code>Missing required argument</code>.</strong> An argument doesn&#39;t exist (or is missing) for that resource in the provider schema. Check the <code>google</code> provider docs for the resource — the schema is authoritative.</p>
+<p><strong><code>plan</code>: <code>Attempted to load application default credentials ... No credentials loaded</code>.</strong> <strong>Expected with no account.</strong> <code>plan</code>/<code>apply</code> touch real GCP. That&#39;s the subject of the <em>going real</em> guide (<code>gcloud auth application-default login</code>).</p>
+<p><strong><code>terraform fmt</code> changes my files.</strong> Normal: it re-indents. Run it before each commit; in CI, <code>terraform fmt -check</code> fails if a file isn&#39;t formatted (without modifying it).</p>
+<p><strong>Incompatible provider version.</strong> <code>version = &quot;~&gt; 5.0&quot;</code> pins <strong>major</strong> 5. If a resource/argument differs, align your version with the docs you&#39;re reading (the schema changes between majors).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
