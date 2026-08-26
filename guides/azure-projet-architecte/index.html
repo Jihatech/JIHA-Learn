@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — projet d&#39;architecte (AZ-305) : une solution Well-Architected — jiha.tech</title>
+  <title data-lang="en">Azure — architect project (AZ-305): a Well-Architected solution — jiha.tech</title>
+  <meta name="description" content="Le projet de CV du track AZ-305 : concevoir et assembler une solution Azure Well-Architected complète, justifiée pilier par pilier. Un socle réseau segmenté (Terraform live sur miniblue), un tier compute (Container App) et données (SQL + cache Redis, en live), un durcissement gouvernance (RBAC moindre privilège + verrou) et continuité (coffre de sauvegarde + stockage géo-redondant) en Bicep validé. Puis une revue Well-Architected des 5 piliers et l&#39;emballage CV. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="The AZ-305 track&#39;s CV project: designing and assembling a complete Well-Architected Azure solution, justified pillar by pillar. A segmented network foundation (Terraform live on miniblue), a compute tier (Container App) and data tier (SQL + Redis cache, live), governance hardening (least-privilege RBAC + lock) and continuity (backup vault + geo-redundant storage) in validated Bicep. Then a Well-Architected review of the 5 pillars and CV packaging. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — projet d&#39;architecte (AZ-305) : une solution Well-Architected">
+  <meta property="og:description" content="Le projet de CV du track AZ-305 : concevoir et assembler une solution Azure Well-Architected complète, justifiée pilier par pilier. Un socle réseau segmenté (Terraform live sur miniblue), un tier compute (Container App) et données (SQL + cache Redis, en live), un durcissement gouvernance (RBAC moindre privilège + verrou) et continuité (coffre de sauvegarde + stockage géo-redondant) en Bicep validé. Puis une revue Well-Architected des 5 piliers et l&#39;emballage CV. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-projet-architecte/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-projet-architecte/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-projet-architecte">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-projet-architecte</div>
+    <div class="prompt" data-lang="en">~/guides/azure-projet-architecte</div>
+    <h1 data-lang="fr">Azure — projet d&#39;architecte (AZ-305) : une solution Well-Architected</h1>
+    <h1 data-lang="en">Azure — architect project (AZ-305): a Well-Architected solution</h1>
+    <p class="tagline" data-lang="fr">compute, données, réseau, continuité, gouvernance — justifiés.</p>
+    <p class="tagline" data-lang="en">compute, data, network, continuity, governance — justified.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Voici le <strong>livrable</strong> du track AZ-305 : concevoir et assembler une <strong>solution Azure complète, Well-Architected</strong>, que tu pourras <strong>présenter sur ton CV</strong> et <strong>défendre en entretien</strong>. On ne fait pas une brique isolée — on réunit <strong>tout</strong> ce que tu as appris (compute, données, réseau, continuité, gouvernance) en <strong>une architecture cohérente</strong>, et surtout on la <strong>justifie pilier par pilier</strong>. C&#39;est exactement ce qu&#39;un architecte de solutions produit et présente.</p>
+<p>L&#39;architecture : un <strong>socle réseau segmenté</strong> (VNet + sous-réseaux web/app/data), un <strong>tier compute</strong> (une Container App), un <strong>tier données</strong> (une base <strong>SQL</strong> + un <strong>cache Redis</strong>), un <strong>durcissement gouvernance</strong> (RBAC au <strong>moindre privilège</strong> + verrou) et <strong>continuité</strong> (coffre de <strong>sauvegarde</strong> + stockage <strong>géo-redondant</strong>). Chaque choix est <strong>relié à un pilier</strong> du Well-Architected Framework.</p>
+<p>Et — c&#39;est la marque du parcours — <strong>tu le déploies EN LOCAL</strong> sur miniblue : le socle réseau et les tiers compute/données <strong>en live</strong> (Terraform + <code>azlocal</code>), le durcissement et la continuité <strong>validés en Bicep</strong>. Puis tu produis une <strong>revue Well-Architected</strong> (le livrable d&#39;architecte) et tu <strong>emballes</strong> le projet pour ton CV. Une solution qui <strong>prouve</strong> des compétences d&#39;architecte, à coût zéro.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>données</em>, <em>continuité</em> et <em>infrastructure</em>. C&#39;est l&#39;aboutissement — prévois une bonne session.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Il te manque un guide AZ-305 → fais-les d&#39;abord ; ce projet les assemble.</li><li>miniblue ne tourne pas → relance le labo.</li></ul>
+</div>
+<div data-lang="en"><p>Here&#39;s the <strong>deliverable</strong> of the AZ-305 track: designing and assembling a <strong>complete, Well-Architected Azure solution</strong> you can <strong>put on your CV</strong> and <strong>defend in an interview</strong>. We&#39;re not building an isolated block — we bring together <strong>everything</strong> you learned (compute, data, networking, continuity, governance) into <strong>one coherent architecture</strong>, and above all we <strong>justify</strong> it pillar by pillar. It&#39;s exactly what a solutions architect produces and presents.</p>
+<p>The architecture: a <strong>segmented network foundation</strong> (VNet + web/app/data subnets), a <strong>compute tier</strong> (a Container App), a <strong>data tier</strong> (a <strong>SQL</strong> database + a <strong>Redis cache</strong>), a <strong>governance hardening</strong> (least-privilege <strong>RBAC</strong> + lock) and <strong>continuity</strong> (<strong>backup</strong> vault + <strong>geo-redundant</strong> storage). Every choice is <strong>tied to a pillar</strong> of the Well-Architected Framework.</p>
+<p>And — the path&#39;s signature — <strong>you deploy it LOCALLY</strong> on miniblue: the network foundation and compute/data tiers <strong>live</strong> (Terraform + <code>azlocal</code>), the hardening and continuity <strong>validated in Bicep</strong>. Then you produce a <strong>Well-Architected review</strong> (the architect&#39;s deliverable) and <strong>package</strong> the project for your CV. A solution that <strong>proves</strong> architect skills, at zero cost.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>data</em>, <em>continuity</em> and <em>infrastructure</em>. This is the culmination — set aside a good session.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re missing an AZ-305 guide → do them first; this project assembles them.</li><li>miniblue isn&#39;t running → restart the lab.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu as construit et tu sais expliquer :</p>
+<ul><li>Une <strong>solution multi-tier</strong> complète (réseau, compute, données, continuité, gouvernance).</li><li>Un <strong>socle réseau</strong> segmenté déployé en live (Terraform).</li><li>Un <strong>tier compute</strong> (Container App) et <strong>données</strong> (SQL + Redis) en live.</li><li>Un <strong>durcissement gouvernance</strong> (RBAC moindre privilège + verrou) en Bicep.</li><li>Une <strong>continuité</strong> (coffre de sauvegarde + stockage géo-redondant) en Bicep.</li><li>Une <strong>revue Well-Architected</strong> justifiant l&#39;architecture pilier par pilier.</li><li>Comment <strong>présenter ce projet</strong> sur un CV et en entretien.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ve built and can explain:</p>
+<ul><li>A complete <strong>multi-tier solution</strong> (network, compute, data, continuity, governance).</li><li>A segmented <strong>network foundation</strong> deployed live (Terraform).</li><li>A <strong>compute tier</strong> (Container App) and <strong>data tier</strong> (SQL + Redis) live.</li><li>A <strong>governance hardening</strong> (least-privilege RBAC + lock) in Bicep.</li><li>A <strong>continuity</strong> (backup vault + geo-redundant storage) in Bicep.</li><li>A <strong>Well-Architected review</strong> justifying the architecture pillar by pillar.</li><li>How to <strong>present this project</strong> on a CV and in an interview.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides AZ-305 <strong>données</strong>, <strong>continuité</strong> et <strong>infrastructure</strong> terminés.</li><li><strong>miniblue</strong> qui tourne, <strong>Terraform</strong> et <strong>Bicep</strong> installés ; <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Rappel : réseau → Terraform (live) ; compute/données → <code>azlocal</code> (live) ; gouvernance/continuité → Bicep (validé).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The AZ-305 <strong>data</strong>, <strong>continuity</strong> and <strong>infrastructure</strong> guides done.</li><li><strong>miniblue</strong> running, <strong>Terraform</strong> and <strong>Bicep</strong> installed; <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Reminder: network → Terraform (live); compute/data → <code>azlocal</code> (live); governance/continuity → Bicep (validated).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-conception-donnees/">
+    <span class="num">66</span>
+    <span class="title-line" data-lang="fr">Azure — conception des données (AZ-305) : SQL, Cosmos, cache</span>
+    <span class="title-line" data-lang="en">Azure — data design (AZ-305): SQL, Cosmos, cache</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../azure-continuite/">
+    <span class="num">67</span>
+    <span class="title-line" data-lang="fr">Azure — continuité d&#39;activité (AZ-305) : HA, sauvegarde, reprise</span>
+    <span class="title-line" data-lang="en">Azure — business continuity (AZ-305): HA, backup, disaster recovery</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../azure-conception-infrastructure/">
+    <span class="num">68</span>
+    <span class="title-line" data-lang="fr">Azure — conception d&#39;infrastructure (AZ-305) : compute &amp; réseau</span>
+    <span class="title-line" data-lang="en">Azure — infrastructure design (AZ-305): compute &amp; networking</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>La solution comme assemblage justifié.</strong> Un architecte ne pose pas des ressources au hasard : il <strong>assemble</strong> des tiers cohérents et <strong>relie chaque décision à un pilier</strong> du Well-Architected Framework. C&#39;est ce qui distingue une « pile de services » d&#39;une <strong>architecture</strong>.</p>
+<p><strong>Les tiers de la solution.</strong> On construit une application web classique en <strong>couches</strong> :</p>
+<ul><li><strong>Réseau (fondation).</strong> Un VNet segmenté (web/app/data) : isolation et défense en profondeur (<strong>sécurité</strong>, <strong>fiabilité</strong>).</li><li><strong>Compute (tier applicatif).</strong> Une <strong>Container App</strong> serverless : élasticité et coût à l&#39;usage (<strong>performance</strong>, <strong>coût</strong>).</li><li><strong>Données (tier persistance).</strong> Une base <strong>SQL</strong> (source de vérité transactionnelle) + un <strong>cache Redis</strong> (lectures rapides) (<strong>performance</strong>, <strong>fiabilité</strong>).</li><li><strong>Gouvernance (transverse).</strong> RBAC au <strong>moindre privilège</strong> + <strong>verrou</strong> de protection (<strong>sécurité</strong>, <strong>excellence opérationnelle</strong>).</li><li><strong>Continuité (transverse).</strong> Coffre de <strong>sauvegarde</strong> + stockage <strong>géo-redondant</strong> (<strong>fiabilité</strong>).</li></ul>
+<p><strong>Trois outils, trois rôles.</strong> (1) <strong>Terraform</strong> déploie le <strong>réseau</strong> en live sur miniblue. (2) <strong><code>azlocal</code></strong> crée les <strong>charges</strong> (Container App, SQL, Redis). (3) <strong>Bicep</strong> <strong>valide</strong> la <strong>gouvernance</strong> et la <strong>continuité</strong> (RBAC/verrou/coffre/stockage géo-redondant), prêtes à déployer sur un compte.</p>
+<p><strong>La revue Well-Architected — le livrable.</strong> Une solution n&#39;est « finie » que quand elle est <strong>auditée</strong> : on passe les 5 piliers et on note forces et améliorations. C&#39;est <strong>ce</strong> document (plus le README) qui transforme un tas de ressources en <strong>projet d&#39;architecte présentable</strong>.</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>socle réseau</strong> (Terraform) et les <strong>tiers compute/données</strong> (<code>azlocal</code>) sont <strong>déployés en live</strong> sur miniblue. Le <strong>durcissement</strong> et la <strong>continuité</strong> sont <strong>validés en Bicep</strong> — la forme exacte du vrai Azure, prête pour un <code>az deployment</code> sur un compte (guide <em>passer en réel</em> de l&#39;AZ-104).</p>
+</div>
+<div data-lang="en"><p><strong>The solution as a justified assembly.</strong> An architect doesn&#39;t drop resources at random: they <strong>assemble</strong> coherent tiers and <strong>tie each decision to a pillar</strong> of the Well-Architected Framework. That&#39;s what distinguishes a &quot;pile of services&quot; from an <strong>architecture</strong>.</p>
+<p><strong>The solution&#39;s tiers.</strong> We build a classic web application in <strong>layers</strong>:</p>
+<ul><li><strong>Network (foundation).</strong> A segmented VNet (web/app/data): isolation and defense in depth (<strong>security</strong>, <strong>reliability</strong>).</li><li><strong>Compute (application tier).</strong> A serverless <strong>Container App</strong>: elasticity and pay-per-use cost (<strong>performance</strong>, <strong>cost</strong>).</li><li><strong>Data (persistence tier).</strong> A <strong>SQL</strong> database (transactional source of truth) + a <strong>Redis cache</strong> (fast reads) (<strong>performance</strong>, <strong>reliability</strong>).</li><li><strong>Governance (cross-cutting).</strong> Least-privilege <strong>RBAC</strong> + a protection <strong>lock</strong> (<strong>security</strong>, <strong>operational excellence</strong>).</li><li><strong>Continuity (cross-cutting).</strong> A <strong>backup</strong> vault + <strong>geo-redundant</strong> storage (<strong>reliability</strong>).</li></ul>
+<p><strong>Three tools, three roles.</strong> (1) <strong>Terraform</strong> deploys the <strong>network</strong> live on miniblue. (2) <strong><code>azlocal</code></strong> creates the <strong>workloads</strong> (Container App, SQL, Redis). (3) <strong>Bicep</strong> <strong>validates</strong> the <strong>governance</strong> and <strong>continuity</strong> (RBAC/lock/vault/geo-redundant storage), ready to deploy on an account.</p>
+<p><strong>The Well-Architected review — the deliverable.</strong> A solution is only &quot;done&quot; once it&#39;s <strong>audited</strong>: you run the 5 pillars and note strengths and improvements. It&#39;s <strong>that</strong> document (plus the README) that turns a pile of resources into a <strong>presentable architect project</strong>.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>network foundation</strong> (Terraform) and the <strong>compute/data tiers</strong> (<code>azlocal</code>) are <strong>deployed live</strong> on miniblue. The <strong>hardening</strong> and <strong>continuity</strong> are <strong>validated in Bicep</strong> — the exact shape of real Azure, ready for an <code>az deployment</code> on an account (AZ-104&#39;s <em>going real</em> guide).</p>
+</div>
+
+<figure class="schema" id="figure-azure-solution-waf">
+  <p>[schema "azure-solution-waf" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La solution Well-Architected : un socle RÉSEAU segmenté (web/app/data, Terraform live) ; un tier COMPUTE (Container App) et DONNÉES (SQL + cache Redis, azlocal live) ; un durcissement GOUVERNANCE (RBAC moindre privilège + verrou) et CONTINUITÉ (coffre de sauvegarde + stockage géo-redondant) en Bicep validé. Chaque tier relié à un pilier WAF, l&#39;ensemble audité par la revue Well-Architected.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The Well-Architected solution: a segmented NETWORK foundation (web/app/data, Terraform live); a COMPUTE tier (Container App) and DATA tier (SQL + Redis cache, azlocal live); GOVERNANCE hardening (least-privilege RBAC + lock) and CONTINUITY (backup vault + geo-redundant storage) in validated Bicep. Each tier tied to a WAF pillar, the whole audited by the Well-Architected review.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser le <strong>cahier des charges</strong> et le <strong>squelette</strong>.</p>
+<p><strong>🤔 Des besoins à l&#39;architecture.</strong> Le brief : « une application web, données transactionnelles, disponible et sécurisée, budget maîtrisé ». On traduit en tiers (réseau, compute, données) + transverses (gouvernance, continuité), et on structure le projet.</p>
+<p>Crée l&#39;arborescence :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Lay down the <strong>brief</strong> and the <strong>skeleton</strong>.</p>
+<p><strong>🤔 From requirements to architecture.</strong> The brief: &quot;a web application, transactional data, available and secure, controlled budget&quot;. We translate into tiers (network, compute, data) + cross-cutting (governance, continuity), and structure the project.</p>
+<p>Create the tree:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/solution-waf/infra ~/solution-waf/durcissement
+cd ~/solution-waf
+export SSL_CERT_FILE=~/.miniblue/cert.pem
+# infra/         -&gt; Terraform (réseau live) ; durcissement/ -&gt; Bicep (gouvernance + continuité) ; README.md</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls ~/solution-waf</code> montre <code>durcissement</code> et <code>infra</code>. Tu tiens le <strong>plan</strong> relié aux piliers : réseau (sécurité/fiabilité), compute (performance/coût), données (performance/fiabilité), gouvernance (sécurité), continuité (fiabilité). La phrase d&#39;entretien : « J&#39;ai conçu une solution Azure Well-Architected — réseau segmenté, compute serverless, données SQL+cache, gouvernance au moindre privilège et continuité — justifiée pilier par pilier. » Les étapes suivantes remplissent chaque couche, <strong>testée</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls ~/solution-waf</code> shows <code>durcissement</code> and <code>infra</code>. You hold the <strong>plan</strong> tied to the pillars: network (security/reliability), compute (performance/cost), data (performance/reliability), governance (security), continuity (reliability). The interview sentence: &quot;I designed a Well-Architected Azure solution — segmented network, serverless compute, SQL+cache data, least-privilege governance and continuity — justified pillar by pillar.&quot; The next steps fill each layer, <strong>tested</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer le <strong>socle réseau</strong> — sécurité &amp; fiabilité, en live.</p>
+<p><strong>🤔 La fondation.</strong> On déploie le VNet segmenté (web/app/data) en Terraform paramétré. Crée <code>infra/providers.tf</code> (le bloc provider <code>azurerm</code> → miniblue, cf. guide <em>réseau</em>) et <code>infra/main.tf</code>, <strong>puis</strong> applique.</p>
+<p>Crée les fichiers, puis déploie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>network foundation</strong> — security &amp; reliability, live.</p>
+<p><strong>🤔 The foundation.</strong> We deploy the segmented VNet (web/app/data) in parameterized Terraform. Create <code>infra/providers.tf</code> (the <code>azurerm</code> provider block → miniblue, see the <em>networking</em> guide) and <code>infra/main.tf</code>, <strong>then</strong> apply.</p>
+<p>Create the files, then deploy:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/main.tf — socle réseau segmenté
+resource &quot;azurerm_resource_group&quot; &quot;sol&quot; {
+  name     = &quot;rg-solution&quot;
+  location = &quot;westeurope&quot;
+  tags     = { projet = &quot;solution-waf&quot;, env = &quot;archi&quot; }
+}
+resource &quot;azurerm_virtual_network&quot; &quot;hub&quot; {
+  name                = &quot;vnet-solution&quot;
+  address_space       = [&quot;10.0.0.0/16&quot;]
+  location            = azurerm_resource_group.sol.location
+  resource_group_name = azurerm_resource_group.sol.name
+  tags                = { projet = &quot;solution-waf&quot; }
+}
+resource &quot;azurerm_subnet&quot; &quot;tiers&quot; {
+  for_each             = { web = &quot;10.0.1.0/24&quot;, app = &quot;10.0.2.0/24&quot;, data = &quot;10.0.3.0/24&quot; }
+  name                 = &quot;snet-${each.key}&quot;
+  resource_group_name  = azurerm_resource_group.sol.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [each.value]
+}
+output &quot;resource_group&quot; { value = azurerm_resource_group.sol.name }</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd infra &amp;&amp; terraform init &amp;&amp; terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> affiche <code>Apply complete! Resources: 5 added.</code> — le groupe <code>rg-solution</code>, le VNet et les <strong>trois sous-réseaux</strong> (web/app/data), taggés. La <strong>fondation</strong> est en place, segmentée par tier. Piliers servis : <strong>sécurité</strong> (segmentation, défense en profondeur), <strong>fiabilité</strong> (isolation des pannes), <strong>excellence opérationnelle</strong> (IaC paramétrée). C&#39;est sur ce socle qu&#39;on pose compute et données.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> shows <code>Apply complete! Resources: 5 added.</code> — the <code>rg-solution</code> group, the VNet and the <strong>three subnets</strong> (web/app/data), tagged. The <strong>foundation</strong> is in place, segmented by tier. Pillars served: <strong>security</strong> (segmentation, defense in depth), <strong>reliability</strong> (failure isolation), <strong>operational excellence</strong> (parameterized IaC). On this base we place compute and data.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer les tiers <strong>compute</strong> et <strong>données</strong> — performance &amp; coût, en live.</p>
+<p><strong>🤔 L&#39;application et sa donnée.</strong> Le tier applicatif : une <strong>Container App</strong> serverless (élastique, payée à l&#39;usage). Le tier données : une base <strong>SQL</strong> (transactionnel) + un <strong>cache Redis</strong> (lectures rapides). Tous dans le groupe <code>rg-solution</code>.</p>
+<p>Déploie les charges (azlocal) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>compute</strong> and <strong>data</strong> tiers — performance &amp; cost, live.</p>
+<p><strong>🤔 The application and its data.</strong> The application tier: a serverless <strong>Container App</strong> (elastic, pay-per-use). The data tier: a <strong>SQL</strong> database (transactional) + a <strong>Redis cache</strong> (fast reads). All in the <code>rg-solution</code> group.</p>
+<p>Deploy the workloads (azlocal):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Tier compute : Container App serverless / compute tier: serverless Container App
+azlocal containerapp create --name ca-app --resource-group rg-solution
+
+# Tier données : SQL (source de vérité) + Redis (cache) / data tier: SQL + Redis cache
+azlocal sql server create   --name sqlsrv-sol --resource-group rg-solution
+azlocal sql database create --server sqlsrv-sol --name soldb --resource-group rg-solution
+azlocal redis create        --name redis-sol --resource-group rg-solution</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les créations renvoient des objets ARM <code>Succeeded</code> : la Container App <code>ca-app</code>, le serveur SQL <code>sqlsrv-sol</code> + la base <code>soldb</code>, le cache <code>redis-sol</code>. Ta solution a un <strong>tier applicatif</strong> élastique et un <strong>tier données</strong> durable+rapide. Piliers servis : <strong>performance</strong> (serverless élastique + cache), <strong>coût</strong> (Container App payée à l&#39;usage, pas de VM au repos), <strong>fiabilité</strong> (SQL comme source de vérité). ⚠️ Ces charges vivent dans <code>rg-solution</code> avec le réseau — un seul groupe, un seul cycle de vie.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the creations return <code>Succeeded</code> ARM objects: the <code>ca-app</code> Container App, the <code>sqlsrv-sol</code> SQL server + <code>soldb</code> database, the <code>redis-sol</code> cache. Your solution has an elastic <strong>application tier</strong> and a durable+fast <strong>data tier</strong>. Pillars served: <strong>performance</strong> (elastic serverless + cache), <strong>cost</strong> (pay-per-use Container App, no idle VM), <strong>reliability</strong> (SQL as source of truth). ⚠️ These workloads live in <code>rg-solution</code> with the network — one group, one lifecycle.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire le <strong>durcissement</strong> (gouvernance) et la <strong>continuité</strong> — sécurité &amp; fiabilité, en Bicep.</p>
+<p><strong>🤔 Sécuriser et pérenniser.</strong> Deux transverses : la <strong>gouvernance</strong> (une identité au <strong>moindre privilège</strong> + un <strong>verrou</strong> anti-suppression) et la <strong>continuité</strong> (un <strong>coffre de sauvegarde</strong> + un <strong>stockage géo-redondant</strong>). On les décrit en Bicep, prêtes à déployer.</p>
+<p>Crée <code>durcissement/securite.bicep</code> et <code>durcissement/resilience.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe the <strong>hardening</strong> (governance) and <strong>continuity</strong> — security &amp; reliability, in Bicep.</p>
+<p><strong>🤔 Secure and sustain.</strong> Two cross-cutting concerns: <strong>governance</strong> (a least-privilege identity + an anti-deletion <strong>lock</strong>) and <strong>continuity</strong> (a <strong>backup vault</strong> + <strong>geo-redundant storage</strong>). We describe them in Bicep, ready to deploy.</p>
+<p>Create <code>durcissement/securite.bicep</code> and <code>durcissement/resilience.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// durcissement/securite.bicep — RBAC moindre privilège + verrou (sécurité)
+targetScope = &#39;resourceGroup&#39;
+param principalId string
+
+var readerRoleId = &#39;acdd72a7-3385-48ef-bd42-f606fba81ae7&#39;  // rôle intégré Lecteur
+
+resource attribution &#39;Microsoft.Authorization/roleAssignments@2022-04-01&#39; = {
+  name: guid(resourceGroup().id, principalId, readerRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId(&#39;Microsoft.Authorization/roleDefinitions&#39;, readerRoleId)
+    principalId: principalId
+    principalType: &#39;ServicePrincipal&#39;
+  }
+}
+
+resource verrou &#39;Microsoft.Authorization/locks@2020-05-01&#39; = {
+  name: &#39;protege-solution&#39;
+  properties: { level: &#39;CanNotDelete&#39;, notes: &#39;Solution critique&#39; }
+}</code></pre>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// durcissement/resilience.bicep — coffre de sauvegarde + stockage géo-redondant (fiabilité)
+targetScope = &#39;resourceGroup&#39;
+param location string = resourceGroup().location
+
+resource coffre &#39;Microsoft.RecoveryServices/vaults@2023-06-01&#39; = {
+  name: &#39;rsv-solution&#39;
+  location: location
+  sku: { name: &#39;RS0&#39;, tier: &#39;Standard&#39; }
+  properties: {}
+}
+
+resource stockageGeo &#39;Microsoft.Storage/storageAccounts@2023-01-01&#39; = {
+  name: &#39;stsol${uniqueString(resourceGroup().id)}&#39;
+  location: location
+  sku: { name: &#39;Standard_RAGRS&#39; }   // géo-redondant + lecture
+  kind: &#39;StorageV2&#39;
+  properties: { minimumTlsVersion: &#39;TLS1_2&#39;, allowBlobPublicAccess: false }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/solution-waf/durcissement
+bicep build securite.bicep --stdout | head -n 15
+bicep build resilience.bicep --stdout | head -n 15</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build securite.bicep</code> compile l&#39;<strong>attribution de rôle</strong> (Lecteur, moindre privilège) et le <strong>verrou</strong> (<code>CanNotDelete</code>) ; <code>bicep build resilience.bicep</code> compile le <strong>coffre</strong> Recovery Services et le <strong>stockage RA-GRS</strong> — sans erreur. Piliers servis : <strong>sécurité</strong> (moindre privilège, verrou), <strong>fiabilité</strong> (sauvegarde, géo-redondance), <strong>excellence opérationnelle</strong> (tout en IaC). ⚠️ Ces mécanismes se <strong>valident</strong> ici et se <strong>déploient</strong> sur un vrai compte (<code>az deployment group create</code>) — l&#39;émulateur ne provisionne pas RBAC/coffres, mais la <strong>conception</strong> est exacte.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build securite.bicep</code> compiles the <strong>role assignment</strong> (Reader, least privilege) and the <strong>lock</strong> (<code>CanNotDelete</code>); <code>bicep build resilience.bicep</code> compiles the Recovery Services <strong>vault</strong> and the <strong>RA-GRS storage</strong> — with no error. Pillars served: <strong>security</strong> (least privilege, lock), <strong>reliability</strong> (backup, geo-redundancy), <strong>operational excellence</strong> (all in IaC). ⚠️ These mechanisms are <strong>validated</strong> here and <strong>deployed</strong> on a real account (<code>az deployment group create</code>) — the emulator doesn&#39;t provision RBAC/vaults, but the <strong>design</strong> is exact.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Produire la <strong>revue Well-Architected</strong> — le livrable d&#39;architecte.</p>
+<p><strong>🤔 Auditer les 5 piliers.</strong> L&#39;architecte ne dit pas « c&#39;est fini » : il <strong>audite</strong> la solution pilier par pilier et note forces et améliorations. C&#39;est <strong>le</strong> document qui accompagne l&#39;architecture.</p>
+<p>Rédige la revue :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Produce the <strong>Well-Architected review</strong> — the architect&#39;s deliverable.</p>
+<p><strong>🤔 Audit the 5 pillars.</strong> The architect doesn&#39;t say &quot;it&#39;s done&quot;: they <strong>audit</strong> the solution pillar by pillar and note strengths and improvements. It&#39;s <strong>the</strong> document that accompanies the architecture.</p>
+<p>Write the review:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>REVUE WELL-ARCHITECTED de la solution / WAF REVIEW of the solution
+
+  Fiabilité      FORT : SQL source de vérité, sauvegarde (coffre), stockage RA-GRS
+                 + : zones de disponibilité, réplica Redis, géo-réplication SQL
+  Sécurité       FORT : réseau segmenté, RBAC moindre privilège, verrou, TLS 1.2
+                 + : private endpoints data, Key Vault pour les secrets, WAF en entrée
+  Coût           FORT : Container App serverless (usage), tags de coût
+                 + : dimensionner SQL, budgets/alertes, arrêt hors-prod
+  Excellence     FORT : tout en IaC (Terraform + Bicep), un seul groupe = un cycle de vie
+                 + : monitoring (Azure Monitor), alertes, CI/CD
+  Performance    FORT : cache Redis devant SQL, compute élastique
+                 + : Front Door/CDN en entrée, App Gateway L7, région proche</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu as une <strong>revue Well-Architected</strong> : pour chaque pilier, ce qui est <strong>fort</strong> et ce qu&#39;on <strong>renforce</strong>. C&#39;est le livrable qui <strong>prouve</strong> ta démarche d&#39;architecte — non pas « voici des ressources », mais « voici une architecture <strong>justifiée</strong> et <strong>auditée</strong>, avec sa feuille de route d&#39;amélioration ». ⚠️ En entretien, on te demandera <strong>pourquoi</strong> tel choix : réponds par le <strong>pilier</strong> et le <strong>compromis</strong> (« Container App plutôt qu&#39;AKS pour le coût et la simplicité, au prix d&#39;un contrôle Kubernetes moindre »). C&#39;est ça, penser en architecte.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you have a <strong>Well-Architected review</strong>: for each pillar, what&#39;s <strong>strong</strong> and what you <strong>reinforce</strong>. It&#39;s the deliverable that <strong>proves</strong> your architect approach — not &quot;here are resources&quot;, but &quot;here&#39;s a <strong>justified</strong> and <strong>audited</strong> architecture, with its improvement roadmap&quot;. ⚠️ In an interview, you&#39;ll be asked <strong>why</strong> a choice: answer with the <strong>pillar</strong> and the <strong>tradeoff</strong> (&quot;Container App rather than AKS for cost and simplicity, at the price of less Kubernetes control&quot;). That&#39;s thinking like an architect.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Emballer</strong> le projet pour ton CV.</p>
+<p><strong>🤔 Raconter la solution.</strong> Un <code>README</code> clair (architecture, piliers, stack) + la revue WAF : c&#39;est ce qui transforme le projet en <strong>atout d&#39;embauche</strong>.</p>
+<p>Crée <code>README.md</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Package</strong> the project for your CV.</p>
+<p><strong>🤔 Tell the solution.</strong> A clear <code>README</code> (architecture, pillars, stack) + the WAF review: that&#39;s what turns the project into a <strong>hiring asset</strong>.</p>
+<p>Create <code>README.md</code>:</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Assembler sans justifier.</strong> Une pile de services n&#39;est pas une architecture. <strong>Relie chaque tier à un pilier</strong> — c&#39;est la marque de l&#39;architecte.</p>
+<p><strong>2. Négliger la revue WAF.</strong> Sans audit des 5 piliers, la solution n&#39;est pas « finie ». La revue est <strong>le</strong> livrable.</p>
+<p><strong>3. Maximiser un pilier.</strong> Sur-sécuriser ou sur-fiabiliser sans le coût déséquilibre. On <strong>équilibre</strong> selon le brief.</p>
+<p><strong>4. Mélanger les outils.</strong> Réseau → Terraform ; charges → azlocal ; gouvernance/continuité → Bicep. Chacun pour ce qu&#39;il fait le mieux sur miniblue.</p>
+<p><strong>5. Oublier les transverses.</strong> Compute + données ne suffisent pas : <strong>gouvernance</strong> (sécurité) et <strong>continuité</strong> (fiabilité) sont <strong>obligatoires</strong> dans une vraie solution.</p>
+<p><strong>6. Un projet sans README ni justification.</strong> Le recruteur lit le README et demande le <strong>pourquoi</strong>. Prépare les deux.</p>
+<p><strong>7. Ne pas connaître les compromis.</strong> « Pourquoi Container App et pas AKS ? » Réponds par le pilier (coût/simplicité) et le prix payé (contrôle Kubernetes).</p>
+</div>
+<div data-lang="en"><p><strong>1. Assembling without justifying.</strong> A pile of services isn&#39;t an architecture. <strong>Tie each tier to a pillar</strong> — the architect&#39;s mark.</p>
+<p><strong>2. Skipping the WAF review.</strong> Without a 5-pillar audit, the solution isn&#39;t &quot;done&quot;. The review is <strong>the</strong> deliverable.</p>
+<p><strong>3. Maximizing one pillar.</strong> Over-securing or over-hardening without cost is unbalanced. You <strong>balance</strong> by the brief.</p>
+<p><strong>4. Mixing the tools.</strong> Network → Terraform; workloads → azlocal; governance/continuity → Bicep. Each for what it does best on miniblue.</p>
+<p><strong>5. Forgetting the cross-cutting concerns.</strong> Compute + data aren&#39;t enough: <strong>governance</strong> (security) and <strong>continuity</strong> (reliability) are <strong>mandatory</strong> in a real solution.</p>
+<p><strong>6. A project with no README or justification.</strong> The recruiter reads the README and asks <strong>why</strong>. Prepare both.</p>
+<p><strong>7. Not knowing the tradeoffs.</strong> &quot;Why Container App and not AKS?&quot; Answer with the pillar (cost/simplicity) and the price paid (Kubernetes control).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu déploies un <strong>socle réseau</strong> segmenté en live (5 ressources).</li><li>Tu déploies un <strong>tier compute</strong> (Container App) et <strong>données</strong> (SQL + Redis).</li><li>Tu <strong>valides</strong> la <strong>gouvernance</strong> (RBAC + verrou) en Bicep.</li><li>Tu <strong>valides</strong> la <strong>continuité</strong> (coffre + stockage géo-redondant) en Bicep.</li><li>Tu produis une <strong>revue Well-Architected</strong> (5 piliers).</li><li>Ton <code>README.md</code> raconte la solution et ses piliers.</li><li>Tu justifies chaque choix par un <strong>pilier</strong> et un <strong>compromis</strong>.</li></ul>
+<p>Sept cases = tu as un <strong>projet d&#39;architecte</strong> AZ-305 défendable. Cap sur l&#39;examen.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You deploy a segmented <strong>network foundation</strong> live (5 resources).</li><li>You deploy a <strong>compute tier</strong> (Container App) and <strong>data tier</strong> (SQL + Redis).</li><li>You <strong>validate</strong> the <strong>governance</strong> (RBAC + lock) in Bicep.</li><li>You <strong>validate</strong> the <strong>continuity</strong> (vault + geo-redundant storage) in Bicep.</li><li>You produce a <strong>Well-Architected review</strong> (5 pillars).</li><li>Your <code>README.md</code> tells the solution and its pillars.</li><li>You justify each choice by a <strong>pillar</strong> and a <strong>tradeoff</strong>.</li></ul>
+<p>Seven boxes = you have a defensible AZ-305 <strong>architect project</strong>. Aim for the exam.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as terminé le track <strong>AZ-305 — Architecte de solutions</strong> ! 🎉</p>
+<ol><li><strong>Certification AZ-305</strong> : entraîne-toi sur des <strong>études de cas</strong> (le format de l&#39;examen), révise les <strong>choix de service</strong> et les <strong>compromis</strong> par pilier.</li><li><strong>Ton CV</strong> : mets en avant la <strong>solution Well-Architected</strong> (multi-tier, IaC, justifiée).</li><li><strong>La suite du parcours Azure</strong> : <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (sécurité), <strong>AZ-700</strong> (réseau) — même méthode, même labo miniblue.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve finished the <strong>AZ-305 — Solutions Architect</strong> track! 🎉</p>
+<ol><li><strong>AZ-305 certification</strong>: practice on <strong>case studies</strong> (the exam format), revise <strong>service choices</strong> and <strong>tradeoffs</strong> by pillar.</li><li><strong>Your CV</strong>: highlight the <strong>Well-Architected solution</strong> (multi-tier, IaC, justified).</li><li><strong>The rest of the Azure path</strong>: <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (security), <strong>AZ-700</strong> (networking) — same method, same miniblue lab.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du projet (depuis <code>~/solution-waf</code>).</p>
+</div>
+<div data-lang="en"><p>Project cheat sheet (from <code>~/solution-waf</code>).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=~/.miniblue/cert.pem
+
+# Socle réseau (Terraform, live) / network foundation
+cd infra &amp;&amp; terraform init &amp;&amp; terraform apply -auto-approve
+
+# Compute + données (azlocal, live) / compute + data
+azlocal containerapp create --name ca-app     --resource-group rg-solution
+azlocal sql server create   --name sqlsrv-sol --resource-group rg-solution
+azlocal sql database create --server sqlsrv-sol --name soldb --resource-group rg-solution
+azlocal redis create        --name redis-sol  --resource-group rg-solution
+
+# Durcissement (Bicep, validé) / hardening
+cd ../durcissement &amp;&amp; bicep build securite.bicep --stdout &amp;&amp; bicep build resilience.bicep --stdout
+
+# Démonter / tear down
+azlocal group delete --name rg-solution ; cd ../infra &amp;&amp; terraform destroy -auto-approve</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Tiers -&gt; piliers : réseau(sécu/fiab) · compute(perf/coût) · données(perf/fiab) · gouvernance(sécu) · continuité(fiab)
+Outils : Terraform(réseau live) · azlocal(charges live) · Bicep(gouvernance/continuité validé)
+Livrable : la solution + la REVUE Well-Architected (5 piliers) + le README</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/well-architected/">Well-Architected Framework</a> — les 5 piliers.</li><li><a href="https://learn.microsoft.com/azure/architecture/">Centre d&#39;architecture Azure</a> — architectures de référence.</li><li><a href="https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/">Zones d&#39;atterrissage Azure</a> — les fondations.</li><li><a href="https://learn.microsoft.com/credentials/certifications/azure-solutions-architect/">Certification AZ-305</a> — le programme officiel.</li><li><a href="https://github.com/moabukar/miniblue">miniblue — émulateur Azure local</a> — le labo.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/well-architected/">Well-Architected Framework</a> — the 5 pillars.</li><li><a href="https://learn.microsoft.com/azure/architecture/">Azure Architecture Center</a> — reference architectures.</li><li><a href="https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/">Azure landing zones</a> — the foundations.</li><li><a href="https://learn.microsoft.com/credentials/certifications/azure-solutions-architect/">AZ-305 certification</a> — the official program.</li><li><a href="https://github.com/moabukar/miniblue">miniblue — local Azure emulator</a> — the lab.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform apply</code> : erreur de certificat.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> avant Terraform.</p>
+<p><strong><code>azlocal ... create</code> : « resource group not found ».</strong> Lance d&#39;abord <code>terraform apply</code> (qui crée <code>rg-solution</code>), puis les charges.</p>
+<p><strong><code>bicep build securite.bicep</code> : <code>principalId</code> requis.</strong> Passe-le au déploiement, ou donne une valeur par défaut pour la compilation. En réel, mets le <code>principalId</code> de l&#39;identité managée.</p>
+<p><strong>Comment justifier un choix en entretien ?</strong> Toujours : <strong>pilier</strong> servi + <strong>compromis</strong> accepté. Ex. « Container App (coût/simplicité) plutôt qu&#39;AKS (contrôle Kubernetes) ».</p>
+<p><strong>Ma solution est « forte » partout.</strong> Méfie-toi : souvent trop chère. Une bonne solution <strong>équilibre</strong> les piliers selon le brief.</p>
+<p><strong>Le state Terraform est désynchronisé (après <code>azlocal reset</code>).</strong> Supprime <code>terraform.tfstate</code> et refais <code>apply</code>, ou recommence proprement.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform apply</code>: certificate error.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> before Terraform.</p>
+<p><strong><code>azlocal ... create</code>: &quot;resource group not found&quot;.</strong> Run <code>terraform apply</code> first (which creates <code>rg-solution</code>), then the workloads.</p>
+<p><strong><code>bicep build securite.bicep</code>: <code>principalId</code> required.</strong> Pass it at deployment, or give a default for compilation. For real, use the managed identity&#39;s <code>principalId</code>.</p>
+<p><strong>How to justify a choice in an interview?</strong> Always: the <strong>pillar</strong> served + the <strong>tradeoff</strong> accepted. E.g. &quot;Container App (cost/simplicity) rather than AKS (Kubernetes control)&quot;.</p>
+<p><strong>My solution is &quot;strong&quot; everywhere.</strong> Be suspicious: often too expensive. A good solution <strong>balances</strong> the pillars by the brief.</p>
+<p><strong>Terraform state out of sync (after <code>azlocal reset</code>).</strong> Delete <code>terraform.tfstate</code> and re-run <code>apply</code>, or start clean.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
