@@ -519,17 +519,25 @@ print('stages:', [s['stage'] for s in st]); \
 print('deps:', {s['stage']: s.get('dependsOn') for s in st}); \
 print('environnement / environment:', st[2]['jobs'][0]['environment'])"
 
+# Ne versionne PAS les artefacts générés (paquet, rapport) / don't version generated artifacts
+cat > .gitignore <<'GI'
+panier-dist.tgz
+test-report.tap
+node_modules/
+GI
+
 # Versionner CI + CD (pipeline-as-code) / version CI + CD
 git init -q 2>/dev/null; git config user.email you@example.com; git config user.name student
 git add -A && git commit -qm "ci: pipeline CI/CD (jobs, matrice, artefacts) + CD" && git log --oneline -1
+echo "--- fichiers versionnés / tracked files ---"; git ls-files
 ```
 
 :::lang fr
-**✅ Vérification :** la sortie affiche `stages: ['Valider', 'Tester', 'Deployer']`, `deps` chaînés (`Tester`←`Valider`, `Deployer`←`Tester`) et `environnement / environment: production`. Le stage `Deployer` est un **deployment job** ciblant l'**environnement** `production` : dans Azure DevOps, on y attache une **approbation** — la pipeline attendra un humain avant de déployer. Tu tiens une pipeline **multi-stages** complète (CI + CD), versionnée. La suite du track : **l'IaC dans les pipelines** (déployer Bicep/Terraform depuis un stage), puis la **sécurité** (DevSecOps) et la **supervision**.
+**✅ Vérification :** la sortie affiche `stages: ['Valider', 'Tester', 'Deployer']`, `deps` chaînés (`Tester`←`Valider`, `Deployer`←`Tester`) et `environnement / environment: production`. Le stage `Deployer` est un **deployment job** ciblant l'**environnement** `production` : dans Azure DevOps, on y attache une **approbation** — la pipeline attendra un humain avant de déployer. Tu tiens une pipeline **multi-stages** complète (CI + CD), versionnée. Note que `git ls-files` **n'inclut pas** `panier-dist.tgz` ni `test-report.tap` : le `.gitignore` les exclut — un **artefact** est **produit** par la pipeline, il ne se versionne pas (seul le **code source** et la **pipeline** le sont). La suite du track : **l'IaC dans les pipelines** (déployer Bicep/Terraform depuis un stage), puis la **sécurité** (DevSecOps) et la **supervision**.
 :::
 
 :::lang en
-**✅ Check:** the output shows `stages: ['Valider', 'Tester', 'Deployer']`, chained `deps` (`Tester`←`Valider`, `Deployer`←`Tester`) and `environnement / environment: production`. The `Deployer` stage is a **deployment job** targeting the `production` **environment**: in Azure DevOps you attach an **approval** to it — the pipeline will wait for a human before deploying. You hold a complete **multi-stage** pipeline (CI + CD), versioned. Next in the track: **IaC in pipelines** (deploy Bicep/Terraform from a stage), then **security** (DevSecOps) and **monitoring**.
+**✅ Check:** the output shows `stages: ['Valider', 'Tester', 'Deployer']`, chained `deps` (`Tester`←`Valider`, `Deployer`←`Tester`) and `environnement / environment: production`. The `Deployer` stage is a **deployment job** targeting the `production` **environment**: in Azure DevOps you attach an **approval** to it — the pipeline will wait for a human before deploying. You hold a complete **multi-stage** pipeline (CI + CD), versioned. Note that `git ls-files` **does not include** `panier-dist.tgz` or `test-report.tap`: the `.gitignore` excludes them — an **artifact** is **produced** by the pipeline, it isn't versioned (only the **source code** and the **pipeline** are). Next in the track: **IaC in pipelines** (deploy Bicep/Terraform from a stage), then **security** (DevSecOps) and **monitoring**.
 :::
 
 ## pitfalls
