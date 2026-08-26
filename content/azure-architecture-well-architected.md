@@ -206,7 +206,7 @@ WELL-ARCHITECTED FRAMEWORK — 5 PILIERS / 5 PILLARS
 
 **🤔 La base de tout.** Une architecture solide commence par un **réseau segmenté** : un VNet découpé en tiers (web/app/data) avec un **NSG** limitant l'exposition. Fiabilité (isolation des pannes) et sécurité (défense en profondeur) **dès la fondation**.
 
-Déploie la fondation (Terraform contre miniblue) :
+Déploie la fondation (Terraform contre miniblue). ⚠️ Réutilise le fichier **`providers.tf`** du guide *réseau* (le bloc provider `azurerm` qui cible miniblue via `metadata_host` et les identifiants factices) — sans lui, Terraform viserait le **vrai** Azure et échouerait à l'authentification.
 :::
 
 :::lang en
@@ -214,7 +214,7 @@ Déploie la fondation (Terraform contre miniblue) :
 
 **🤔 The base of everything.** A solid architecture starts with a **segmented network**: a VNet split into tiers (web/app/data) with an **NSG** limiting exposure. Reliability (failure isolation) and security (defense in depth) **from the foundation**.
 
-Deploy the foundation (Terraform against miniblue):
+Deploy the foundation (Terraform against miniblue). ⚠️ Reuse the **`providers.tf`** file from the *networking* guide (the `azurerm` provider block targeting miniblue via `metadata_host` and dummy credentials) — without it, Terraform would target **real** Azure and fail authentication.
 :::
 
 ```hcl
