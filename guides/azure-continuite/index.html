@@ -270,11 +270,7 @@ Exemple : RTO 1 h / RPO 15 min  -&gt; de retour en 1 h, au pire 15 min de donné
 <p><strong>🤔 First, production.</strong> We deploy a &quot;primary&quot; region: a network and a storage account. It&#39;s the workload we&#39;ll make resilient in the next steps.</p>
 <p>Deploy the baseline (Terraform + azlocal):</p>
 </div>
-<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Réseau primaire (Terraform contre miniblue ; réutilise providers.tf du guide réseau)
-cd infra &amp;&amp; export SSL_CERT_FILE=~/.miniblue/cert.pem &amp;&amp; terraform init &amp;&amp; terraform apply -auto-approve
-
-# Une charge à protéger (compte de stockage) / a workload to protect (storage account)
-azlocal storage account create --name stprimaire2026 --resource-group rg-continuite</code></pre>
+<p>D&#39;abord crée les fichiers <strong><code>infra/main.tf</code></strong> (ci-dessous) et <strong><code>infra/providers.tf</code></strong> (le bloc provider <code>azurerm</code> → miniblue, à reprendre du guide <em>réseau</em>). <strong>Ensuite</strong> lance Terraform (l&#39;apply crée le groupe, indispensable avant le compte de stockage).</p>
 <pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/main.tf — socle primaire minimal
 resource &quot;azurerm_resource_group&quot; &quot;cont&quot; {
   name     = &quot;rg-continuite&quot;
@@ -287,6 +283,11 @@ resource &quot;azurerm_virtual_network&quot; &quot;primaire&quot; {
   location            = azurerm_resource_group.cont.location
   resource_group_name = azurerm_resource_group.cont.name
 }</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Réseau primaire (Terraform crée d&#39;abord le groupe rg-continuite)
+cd infra &amp;&amp; export SSL_CERT_FILE=~/.miniblue/cert.pem &amp;&amp; terraform init &amp;&amp; terraform apply -auto-approve
+
+# 2) Une charge à protéger, DANS le groupe créé / a workload to protect, IN the created group
+azlocal storage account create --name stprimaire2026 --resource-group rg-continuite</code></pre>
 <div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> déploie le groupe <code>rg-continuite</code> et le VNet primaire (<code>Apply complete!</code>), et <code>storage account create</code> ajoute une charge (<code>stprimaire2026</code>, <code>StorageV2</code>). Tu as une <strong>région primaire</strong> fonctionnelle — le point de départ. Retiens : la continuité se <strong>conçoit sur</strong> un workload réel ; les trois couches (HA, sauvegarde, DR) viennent <strong>s&#39;ajouter</strong> dessus. ⚠️ En réel, on choisirait dès maintenant la <strong>région</strong> primaire (proximité, souveraineté) et sa <strong>paire de régions</strong> Azure (pour la DR — chaque région a une paire recommandée).</p>
 </div>
 <div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> deploys the <code>rg-continuite</code> group and the primary VNet (<code>Apply complete!</code>), and <code>storage account create</code> adds a workload (<code>stprimaire2026</code>, <code>StorageV2</code>). You have a working <strong>primary region</strong> — the starting point. Remember: continuity is <strong>designed onto</strong> a real workload; the three layers (HA, backup, DR) come <strong>added</strong> on top. ⚠️ For real, you&#39;d choose the primary <strong>region</strong> now (proximity, sovereignty) and its Azure <strong>region pair</strong> (for DR — each region has a recommended pair).</p>

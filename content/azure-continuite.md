@@ -209,13 +209,7 @@ Déploie le socle (Terraform + azlocal) :
 Deploy the baseline (Terraform + azlocal):
 :::
 
-```bash
-# Réseau primaire (Terraform contre miniblue ; réutilise providers.tf du guide réseau)
-cd infra && export SSL_CERT_FILE=~/.miniblue/cert.pem && terraform init && terraform apply -auto-approve
-
-# Une charge à protéger (compte de stockage) / a workload to protect (storage account)
-azlocal storage account create --name stprimaire2026 --resource-group rg-continuite
-```
+D'abord crée les fichiers **`infra/main.tf`** (ci-dessous) et **`infra/providers.tf`** (le bloc provider `azurerm` → miniblue, à reprendre du guide *réseau*). **Ensuite** lance Terraform (l'apply crée le groupe, indispensable avant le compte de stockage).
 
 ```hcl
 # infra/main.tf — socle primaire minimal
@@ -230,6 +224,14 @@ resource "azurerm_virtual_network" "primaire" {
   location            = azurerm_resource_group.cont.location
   resource_group_name = azurerm_resource_group.cont.name
 }
+```
+
+```bash
+# 1) Réseau primaire (Terraform crée d'abord le groupe rg-continuite)
+cd infra && export SSL_CERT_FILE=~/.miniblue/cert.pem && terraform init && terraform apply -auto-approve
+
+# 2) Une charge à protéger, DANS le groupe créé / a workload to protect, IN the created group
+azlocal storage account create --name stprimaire2026 --resource-group rg-continuite
 ```
 
 :::lang fr
