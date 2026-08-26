@@ -255,11 +255,11 @@ azlocal postgres server list --resource-group rg-data
 ```
 
 :::lang fr
-**✅ Vérification :** `postgres server create` renvoie un serveur `pg-archi` `Succeeded`, listé par `server list`. Tu offres maintenant les **trois moteurs relationnels** en réflexe. Retiens la grille : **Azure SQL** pour l'écosystème Microsoft/.NET et la compatibilité SQL Server ; **PostgreSQL** pour l'open-source riche (extensions, JSON) ; **MySQL** pour les applis web classiques (LAMP, WordPress). ⚠️ Tous trois sont **managés** (Azure gère patchs, sauvegardes, HA) — l'architecte choisit le **moteur**, pas la gestion du serveur. Le mode **Flexible Server** est le déploiement moderne recommandé (contrôle de la maintenance, zones de dispo).
+**✅ Vérification :** `postgres server create` renvoie un serveur `pg-archi` à l'état `Ready` (Flexible Server, version 16), listé par `server list`. Tu offres maintenant les **trois moteurs relationnels** en réflexe. Retiens la grille : **Azure SQL** pour l'écosystème Microsoft/.NET et la compatibilité SQL Server ; **PostgreSQL** pour l'open-source riche (extensions, JSON) ; **MySQL** pour les applis web classiques (LAMP, WordPress). ⚠️ Tous trois sont **managés** (Azure gère patchs, sauvegardes, HA) — l'architecte choisit le **moteur**, pas la gestion du serveur. Le mode **Flexible Server** est le déploiement moderne recommandé (contrôle de la maintenance, zones de dispo).
 :::
 
 :::lang en
-**✅ Check:** `postgres server create` returns a `Succeeded` `pg-archi` server, listed by `server list`. You now offer the **three relational engines** as a reflex. Remember the grid: **Azure SQL** for the Microsoft/.NET ecosystem and SQL Server compatibility; **PostgreSQL** for rich open-source (extensions, JSON); **MySQL** for classic web apps (LAMP, WordPress). ⚠️ All three are **managed** (Azure handles patches, backups, HA) — the architect chooses the **engine**, not server management. **Flexible Server** mode is the recommended modern deployment (maintenance control, availability zones).
+**✅ Check:** `postgres server create` returns a `pg-archi` server in the `Ready` state (Flexible Server, version 16), listed by `server list`. You now offer the **three relational engines** as a reflex. Remember the grid: **Azure SQL** for the Microsoft/.NET ecosystem and SQL Server compatibility; **PostgreSQL** for rich open-source (extensions, JSON); **MySQL** for classic web apps (LAMP, WordPress). ⚠️ All three are **managed** (Azure handles patches, backups, HA) — the architect chooses the **engine**, not server management. **Flexible Server** mode is the recommended modern deployment (maintenance control, availability zones).
 :::
 
 ### step-04
