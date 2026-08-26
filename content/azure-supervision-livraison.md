@@ -478,7 +478,7 @@ erreurs = sum(1 for s in requetes if s >= 500)
 taux = 100 * erreurs / len(requetes)
 SEUIL = 1.0
 etat = "🔴 DECLENCHEE" if taux > SEUIL else "🟢 OK"
-print(f"Taux d'erreur : {taux:.0f}% (seuil {SEUIL}%) -> alerte {etat}")
+print(f"Taux d'erreur : {taux:.0f}% (seuil {SEUIL:.0f}%) -> alerte {etat}")
 if taux > SEUIL:
     print("  Action : notifier l'équipe + envisager un rollback (rebascule le canari à 0%).")
 PY
