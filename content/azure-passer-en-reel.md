@@ -253,6 +253,8 @@ Via the portal (recommended): **Cost Management + Billing → Budgets → Add**.
 ```bash
 # Un budget mensuel de 5 € avec alertes (portée abonnement)
 # A €5 monthly budget with alerts (subscription scope)
+# ⚠️ `az consumption budget` est en préversion ; le portail Budgets est la voie stable
+#    `az consumption budget` is in preview; the portal Budgets is the stable path
 az consumption budget create \
   --budget-name garde-fou-labo \
   --amount 5 \
