@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — projet réseau (AZ-700) : concevoir une topologie complète — jiha.tech</title>
+  <title data-lang="en">Azure — network project (AZ-700): design a complete topology — jiha.tech</title>
+  <meta name="description" content="&quot;Le projet de CV du track AZ-700 : concevoir ET implémenter une topologie réseau hub-and-spoke complète, en local et pour de vrai. Un plan d&#39;adressage sans chevauchement, un hub et un spoke déployés live sur miniblue (VNets + sous-réseaux, dont AzureFirewallSubnet), le peering et sa contrainte de non-chevauchement, le routage par UDR (tunneling forcé vers le pare-feu du hub, validé en Bicep + moteur), l&#39;accès privé au PaaS (point de terminaison privé + DNS privatelink live), et le choix de distribution. Puis l&#39;emballage CV. Sans compte ni facture.&quot;," data-lang="fr">
+  <meta name="description" content="The AZ-700 track&#39;s CV project: designing AND implementing a complete hub-and-spoke network topology, locally and for real. A non-overlapping address plan, a hub and a spoke deployed live on miniblue (VNets + subnets, including AzureFirewallSubnet), peering and its non-overlap constraint, UDR routing (forced tunneling to the hub firewall, validated in Bicep + engine), private access to PaaS (private endpoint + live privatelink DNS), and the delivery choice. Then CV packaging. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — projet réseau (AZ-700) : concevoir une topologie complète">
+  <meta property="og:description" content="&quot;Le projet de CV du track AZ-700 : concevoir ET implémenter une topologie réseau hub-and-spoke complète, en local et pour de vrai. Un plan d&#39;adressage sans chevauchement, un hub et un spoke déployés live sur miniblue (VNets + sous-réseaux, dont AzureFirewallSubnet), le peering et sa contrainte de non-chevauchement, le routage par UDR (tunneling forcé vers le pare-feu du hub, validé en Bicep + moteur), l&#39;accès privé au PaaS (point de terminaison privé + DNS privatelink live), et le choix de distribution. Puis l&#39;emballage CV. Sans compte ni facture.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-projet-reseau/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-projet-reseau/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-projet-reseau">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-projet-reseau</div>
+    <div class="prompt" data-lang="en">~/guides/azure-projet-reseau</div>
+    <h1 data-lang="fr">Azure — projet réseau (AZ-700) : concevoir une topologie complète</h1>
+    <h1 data-lang="en">Azure — network project (AZ-700): design a complete topology</h1>
+    <p class="tagline" data-lang="fr">adressage, hub-spoke, routage, accès privé — sur un réseau réel.</p>
+    <p class="tagline" data-lang="en">addressing, hub-spoke, routing, private access — on a real network.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>C&#39;est le <strong>projet de synthèse</strong> du track <strong>AZ-700</strong> — et de tout le parcours réseau. Tu as appris, un pilier à la fois : l&#39;<strong>adressage</strong>, le <strong>routage</strong>, la <strong>connectivité hybride</strong>, la <strong>distribution</strong>, l&#39;<strong>accès privé</strong>. Ici, tu <strong>assembles tout</strong> en <strong>une topologie réseau complète</strong> — le genre de conception qui tient sur un CV d&#39;<strong>ingénieur réseau Azure</strong>.</p>
+<p>Fidèle à la méthode, tout est <strong>local et pour de vrai</strong> : un <strong>plan d&#39;adressage</strong> sans chevauchement, un <strong>hub</strong> et un <strong>spoke</strong> <strong>déployés live</strong> sur <strong>miniblue</strong> (VNets + sous-réseaux, dont un <code>AzureFirewallSubnet</code>), le <strong>peering</strong> et sa contrainte de <strong>non-chevauchement</strong>, le <strong>routage par UDR</strong> (<strong>tunneling forcé</strong> vers le pare-feu du hub, validé en <strong>Bicep</strong> + moteur), l&#39;<strong>accès privé</strong> au PaaS (<strong>point de terminaison privé</strong> + <strong>DNS privatelink</strong> live), et le <strong>choix de distribution</strong>. On finit par l&#39;<strong>emballage CV</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait les cinq guides AZ-700 et tu veux un <strong>livrable</strong> qui prouve tes compétences réseau.</p>
+<p><strong>Ce que tu vas produire :</strong> une <strong>topologie hub-and-spoke</strong> conçue et <strong>déployée</strong> (adressage + VNets + peering + routage + accès privé), avec un <strong>schéma</strong> de conception et une <strong>fiche CV</strong> qui la résume.</p>
+</div>
+<div data-lang="en"><p>This is the <strong>capstone</strong> of the <strong>AZ-700</strong> track — and of the whole networking path. You learned, one pillar at a time: <strong>addressing</strong>, <strong>routing</strong>, <strong>hybrid connectivity</strong>, <strong>delivery</strong>, <strong>private access</strong>. Here you <strong>assemble everything</strong> into <strong>a complete network topology</strong> — the kind of design that fits an <strong>Azure Network Engineer</strong>&#39;s CV.</p>
+<p>True to the method, everything is <strong>local and for real</strong>: a non-overlapping <strong>address plan</strong>, a <strong>hub</strong> and a <strong>spoke</strong> <strong>deployed live</strong> on <strong>miniblue</strong> (VNets + subnets, including an <code>AzureFirewallSubnet</code>), <strong>peering</strong> and its <strong>non-overlap</strong> constraint, <strong>UDR routing</strong> (<strong>forced tunneling</strong> to the hub firewall, validated in <strong>Bicep</strong> + engine), <strong>private access</strong> to PaaS (<strong>private endpoint</strong> + live <strong>privatelink DNS</strong>), and the <strong>delivery choice</strong>. We finish with <strong>CV packaging</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you did the five AZ-700 guides and want a <strong>deliverable</strong> that proves your networking skills.</p>
+<p><strong>What you&#39;ll produce:</strong> a <strong>hub-and-spoke topology</strong> designed and <strong>deployed</strong> (addressing + VNets + peering + routing + private access), with a design <strong>diagram</strong> and a <strong>CV sheet</strong> summarizing it.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu sais :</p>
+<ul><li><strong>Planifier</strong> un espace d&#39;adressage hub-and-spoke sans chevauchement.</li><li><strong>Déployer</strong> un hub et un spoke (VNets + sous-réseaux, dont spéciaux).</li><li>Concevoir le <strong>peering</strong> et vérifier le <strong>non-chevauchement</strong>.</li><li>Router par <strong>UDR</strong> (tunneling forcé vers le pare-feu du hub).</li><li>Rendre un PaaS <strong>privé</strong> (point de terminaison privé + DNS privatelink).</li><li><strong>Choisir</strong> la distribution applicative adaptée.</li><li><strong>Emballer</strong> la conception réseau pour le CV.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you can:</p>
+<ul><li><strong>Plan</strong> a non-overlapping hub-and-spoke address space.</li><li><strong>Deploy</strong> a hub and a spoke (VNets + subnets, including special ones).</li><li>Design <strong>peering</strong> and check <strong>non-overlap</strong>.</li><li>Route by <strong>UDR</strong> (forced tunneling to the hub firewall).</li><li>Make a PaaS <strong>private</strong> (private endpoint + privatelink DNS).</li><li><strong>Choose</strong> the right application delivery.</li><li><strong>Package</strong> the network design for the CV.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Tous les guides AZ-700</strong> : fondamentaux, routage, hybride, distribution, accès privé.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré, <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> sur le <code>PATH</code>, <strong>Bicep CLI</strong>, <strong>Python 3</strong>.</li><li><strong>Aucun compte cloud</strong> : le réseau cible l&#39;émulateur ; routage/accès privé validés en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>All AZ-700 guides</strong>: fundamentals, routing, hybrid, delivery, private access.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started, <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> on <code>PATH</code>, <strong>Bicep CLI</strong>, <strong>Python 3</strong>.</li><li><strong>No cloud account</strong>: the network targets the emulator; routing/private access validated locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-reseau-acces-prive/">
+    <span class="num">86</span>
+    <span class="title-line" data-lang="fr">Azure — accès privé aux services (AZ-700) : Private Endpoint, Private Link</span>
+    <span class="title-line" data-lang="en">Azure — private access to services (AZ-700): Private Endpoint, Private Link</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Une topologie réseau, cinq décisions.</strong> Le projet relie ce que tu as vu séparément, dans l&#39;ordre où on <strong>conçoit</strong> un réseau :</p>
+<ol><li><strong>Adressage.</strong> La <strong>première</strong> décision, la plus dure à changer : un plan <strong>CIDR</strong> global, <strong>sans chevauchement</strong> entre hub et spokes (sinon le peering échoue). On réserve aussi les <strong>sous-réseaux spéciaux</strong> (firewall, gateway).</li><li><strong>Topologie hub-and-spoke.</strong> Un <strong>hub</strong> central (services partagés : pare-feu, passerelle, DNS) et des <strong>spokes</strong> (charges de travail) reliés par <strong>peering</strong>. Le peering est <strong>non transitif</strong> : le hub <strong>centralise</strong> et <strong>relaie</strong>.</li><li><strong>Routage.</strong> Par défaut, chaque spoke sort <strong>directement</strong> vers Internet. On impose une <strong>UDR</strong> (<code>0.0.0.0/0</code> → pare-feu du hub) : <strong>tunneling forcé</strong> — tout l&#39;egress est <strong>inspecté</strong> au hub. Le préfixe le plus long garde le trafic <strong>intra-VNet</strong> local.</li><li><strong>Accès privé.</strong> Les données (PaaS) sortent d&#39;Internet : un <strong>point de terminaison privé</strong> leur donne une <strong>IP privée</strong> dans un spoke, avec l&#39;<strong>intégration DNS privatelink</strong> et la <strong>fermeture</strong> de l&#39;accès public.</li><li><strong>Distribution.</strong> L&#39;application est <strong>répartie</strong> et <strong>fiabilisée</strong> : on <strong>choisit</strong> le bon équilibreur (L4/L7, régional/global) selon la charge.</li></ol>
+<p><strong>Concevoir ET implémenter.</strong> L&#39;AZ-700 ne demande pas que de la théorie : il faut <strong>concevoir</strong> (le plan, les choix) <strong>et implémenter</strong> (déployer, valider). Les quatre premières décisions <strong>structurent</strong> ; la cinquième <strong>sert</strong> l&#39;application. Un vrai ingénieur réseau fait <strong>les deux</strong> — et sait le <strong>montrer</strong>.</p>
+<p><strong>Pourquoi ça vaut pour un CV.</strong> Ce projet prouve, <strong>preuves à l&#39;appui</strong>, que tu sais : planifier un adressage sans chevauchement, déployer une topologie hub-and-spoke, contrôler les chemins par routage (tunneling forcé), privatiser l&#39;accès au PaaS, et choisir la distribution. C&#39;est <strong>exactement</strong> le périmètre <strong>AZ-700</strong> — et le quotidien d&#39;un <strong>Azure Network Engineer</strong>.</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>hub</strong> et le <strong>spoke</strong> (VNets + sous-réseaux) se <strong>déploient</strong> sur miniblue (Terraform, live). La <strong>zone DNS privatelink</strong> se <strong>crée</strong> (azlocal, live). Le <strong>peering</strong>, le <strong>routage</strong> (UDR) et le <strong>point de terminaison privé</strong> se <strong>valident</strong> (Bicep) et se <strong>raisonnent</strong> (moteurs) — miniblue ne les exécute pas. Le <strong>choix de distribution</strong> est un <strong>moteur</strong>. Tout <strong>sans compte cloud</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>A network topology, five decisions.</strong> The project connects what you saw separately, in the order you <strong>design</strong> a network:</p>
+<ol><li><strong>Addressing.</strong> The <strong>first</strong> decision, hardest to change: a global <strong>CIDR</strong> plan, <strong>non-overlapping</strong> between hub and spokes (else peering fails). You also reserve the <strong>special subnets</strong> (firewall, gateway).</li><li><strong>Hub-and-spoke topology.</strong> A central <strong>hub</strong> (shared services: firewall, gateway, DNS) and <strong>spokes</strong> (workloads) linked by <strong>peering</strong>. Peering is <strong>non-transitive</strong>: the hub <strong>centralizes</strong> and <strong>relays</strong>.</li><li><strong>Routing.</strong> By default, each spoke egresses <strong>directly</strong> to the Internet. We enforce a <strong>UDR</strong> (<code>0.0.0.0/0</code> → hub firewall): <strong>forced tunneling</strong> — all egress is <strong>inspected</strong> at the hub. Longest prefix keeps <strong>intra-VNet</strong> traffic local.</li><li><strong>Private access.</strong> Data (PaaS) leaves the Internet: a <strong>private endpoint</strong> gives it a <strong>private IP</strong> in a spoke, with the <strong>privatelink DNS integration</strong> and the <strong>closure</strong> of public access.</li><li><strong>Delivery.</strong> The application is <strong>spread</strong> and <strong>hardened</strong>: we <strong>choose</strong> the right balancer (L4/L7, regional/global) by load.</li></ol>
+<p><strong>Design AND implement.</strong> AZ-700 asks for more than theory: you must <strong>design</strong> (the plan, the choices) <strong>and implement</strong> (deploy, validate). The first four decisions <strong>structure</strong>; the fifth <strong>serves</strong> the application. A real network engineer does <strong>both</strong> — and can <strong>show</strong> it.</p>
+<p><strong>Why it&#39;s CV-worthy.</strong> This project proves, <strong>with evidence</strong>, that you can: plan non-overlapping addressing, deploy a hub-and-spoke topology, control paths by routing (forced tunneling), privatize PaaS access, and choose delivery. That&#39;s <strong>exactly</strong> the <strong>AZ-700</strong> scope — and an <strong>Azure Network Engineer</strong>&#39;s daily work.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>hub</strong> and the <strong>spoke</strong> (VNets + subnets) are <strong>deployed</strong> on miniblue (Terraform, live). The <strong>privatelink DNS zone</strong> is <strong>created</strong> (azlocal, live). <strong>Peering</strong>, <strong>routing</strong> (UDR) and the <strong>private endpoint</strong> are <strong>validated</strong> (Bicep) and <strong>reasoned</strong> (engines) — miniblue doesn&#39;t execute them. The <strong>delivery choice</strong> is an <strong>engine</strong>. All <strong>without a cloud account</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-projet-reseau-topologie">
+  <p>[schema "azure-projet-reseau-topologie" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La topologie complète : un plan d&#39;ADRESSAGE sans chevauchement (hub 10.0.0.0/16, spoke 10.1.0.0/16). Le HUB porte les services partagés (AzureFirewallSubnet). Le SPOKE (charge de travail) est relié par PEERING. Le ROUTAGE (UDR 0.0.0.0/0 → pare-feu du hub) force l&#39;egress par le hub (tunneling forcé). Le PaaS est PRIVÉ (point de terminaison privé + DNS privatelink, accès public coupé). La DISTRIBUTION répartit la charge. Cinq piliers AZ-700 sur une seule topologie, prête pour le CV.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The complete topology: a non-overlapping ADDRESS plan (hub 10.0.0.0/16, spoke 10.1.0.0/16). The HUB holds shared services (AzureFirewallSubnet). The SPOKE (workload) is linked by PEERING. ROUTING (UDR 0.0.0.0/0 → hub firewall) forces egress through the hub (forced tunneling). The PaaS is PRIVATE (private endpoint + privatelink DNS, public access cut). DELIVERY spreads the load. Five AZ-700 pillars on one topology, CV-ready.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Planifier</strong> l&#39;adressage hub-and-spoke — sans chevauchement.</p>
+<p><strong>🤔 D&#39;abord le plan.</strong> On alloue des plages <strong>disjointes</strong> : hub <code>10.0.0.0/16</code>, spoke <code>10.1.0.0/16</code>. On <strong>vérifie</strong> qu&#39;elles ne se chevauchent pas (sinon le peering échouera).</p>
+<p>Planifie et vérifie l&#39;adressage :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Plan</strong> the hub-and-spoke addressing — no overlap.</p>
+<p><strong>🤔 The plan first.</strong> We allocate <strong>disjoint</strong> ranges: hub <code>10.0.0.0/16</code>, spoke <code>10.1.0.0/16</code>. We <strong>check</strong> they don&#39;t overlap (else peering will fail).</p>
+<p>Plan and verify the addressing:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p projet-reseau/infra &amp;&amp; cd projet-reseau
+cat &gt; plan.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+reseaux = {&quot;hub&quot;: &quot;10.0.0.0/16&quot;, &quot;spoke&quot;: &quot;10.1.0.0/16&quot;}
+nets = {n: ipaddress.ip_network(p) for n, p in reseaux.items()}
+print(&quot;Plan d&#39;adressage :&quot;)
+for n, net in nets.items():
+    print(f&quot;  {n:6} {net} ({net.num_addresses} adresses)&quot;)
+h, s = nets[&quot;hub&quot;], nets[&quot;spoke&quot;]
+print(f&quot;Chevauchement hub/spoke ? {&#39;❌ OUI (peering impossible)&#39; if h.overlaps(s) else &#39;✅ NON (peering OK)&#39;}&quot;)
+PY
+python3 plan.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche le plan (<code>hub 10.0.0.0/16</code>, <code>spoke 10.1.0.0/16</code>) et <code>Chevauchement hub/spoke ? ✅ NON (peering OK)</code>. Les plages sont <strong>disjointes</strong> — condition <strong>absolue</strong> pour le peering (et pour tout le reste). C&#39;est la <strong>première</strong> décision de conception, prise <strong>avant</strong> de déployer quoi que ce soit. Sur cette base saine, on <strong>construit</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows the plan (<code>hub 10.0.0.0/16</code>, <code>spoke 10.1.0.0/16</code>) and <code>Chevauchement hub/spoke ? ✅ NON (peering OK)</code>. The ranges are <strong>disjoint</strong> — the <strong>absolute</strong> condition for peering (and for everything else). It&#39;s the <strong>first</strong> design decision, taken <strong>before</strong> deploying anything. On this sound base, we <strong>build</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Déployer</strong> le hub et le spoke — VNets + sous-réseaux (dont spécial).</p>
+<p><strong>🤔 Du plan au réel.</strong> On déploie le <strong>hub</strong> (avec un <code>AzureFirewallSubnet</code>) et le <strong>spoke</strong> (avec un sous-réseau applicatif) <strong>pour de vrai</strong> sur miniblue.</p>
+<p>Déploie le hub et le spoke :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Deploy</strong> the hub and the spoke — VNets + subnets (including special).</p>
+<p><strong>🤔 From plan to reality.</strong> We deploy the <strong>hub</strong> (with an <code>AzureFirewallSubnet</code>) and the <strong>spoke</strong> (with an app subnet) <strong>for real</strong> on miniblue.</p>
+<p>Deploy the hub and the spoke:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+cat &gt; infra/providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers {
+    azurerm = {
+      source  = &quot;hashicorp/azurerm&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}
+TF
+cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;net&quot; {
+  name     = &quot;rg-netproj&quot;
+  location = &quot;westeurope&quot;
+}
+resource &quot;azurerm_virtual_network&quot; &quot;hub&quot; {
+  name                = &quot;vnet-hub&quot;
+  location            = azurerm_resource_group.net.location
+  resource_group_name = azurerm_resource_group.net.name
+  address_space       = [&quot;10.0.0.0/16&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;hub_fw&quot; {
+  name                 = &quot;AzureFirewallSubnet&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [&quot;10.0.0.0/26&quot;]
+}
+resource &quot;azurerm_virtual_network&quot; &quot;spoke&quot; {
+  name                = &quot;vnet-spoke&quot;
+  location            = azurerm_resource_group.net.location
+  resource_group_name = azurerm_resource_group.net.name
+  address_space       = [&quot;10.1.0.0/16&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;spoke_app&quot; {
+  name                 = &quot;snet-app&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.spoke.name
+  address_prefixes     = [&quot;10.1.1.0/24&quot;]
+}
+TF
+cd infra &amp;&amp; terraform init -no-color &gt;/dev/null 2&gt;&amp;1
+terraform apply -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Apply complete&quot;
+cd ..</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> confirme <code>Apply complete! Resources: 5 added</code> — le groupe, le <strong>VNet hub</strong> (<code>10.0.0.0/16</code>) avec son <code>AzureFirewallSubnet</code>, et le <strong>VNet spoke</strong> (<code>10.1.0.0/16</code>) avec son <code>snet-app</code> sont <strong>déployés</strong> sur miniblue. La topologie <strong>hub-and-spoke</strong> prend forme : un hub qui portera le pare-feu, un spoke pour la charge. Le sous-réseau <strong>spécial</strong> <code>AzureFirewallSubnet</code> (nom <strong>obligatoire</strong>) est réservé pour le pare-feu. On <strong>relie</strong> maintenant les deux.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> confirms <code>Apply complete! Resources: 5 added</code> — the group, the <strong>hub VNet</strong> (<code>10.0.0.0/16</code>) with its <code>AzureFirewallSubnet</code>, and the <strong>spoke VNet</strong> (<code>10.1.0.0/16</code>) with its <code>snet-app</code> are <strong>deployed</strong> on miniblue. The <strong>hub-and-spoke</strong> topology takes shape: a hub that will hold the firewall, a spoke for the workload. The <strong>special</strong> <code>AzureFirewallSubnet</code> subnet (<strong>mandatory</strong> name) is reserved for the firewall. Now we <strong>connect</strong> the two.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir le <strong>peering</strong> — relier le spoke au hub.</p>
+<p><strong>🤔 Connecter en privé.</strong> Le <strong>peering</strong> relie le spoke au hub (trafic privé). On <strong>re-vérifie</strong> le non-chevauchement (déjà planifié) et on note la propriété clé : le peering est <strong>non transitif</strong> (le hub relaie).</p>
+<p>Vérifie et décris le peering :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design the <strong>peering</strong> — connect the spoke to the hub.</p>
+<p><strong>🤔 Connect privately.</strong> <strong>Peering</strong> connects the spoke to the hub (private traffic). We <strong>re-check</strong> non-overlap (already planned) and note the key property: peering is <strong>non-transitive</strong> (the hub relays).</p>
+<p>Check and describe the peering:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; peering.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+hub, spoke = ipaddress.ip_network(&quot;10.0.0.0/16&quot;), ipaddress.ip_network(&quot;10.1.0.0/16&quot;)
+ok = not hub.overlaps(spoke)
+print(f&quot;Peering hub &lt;-&gt; spoke : {&#39;✅ possible&#39; if ok else &#39;❌ impossible (chevauchement)&#39;}&quot;)
+print(&quot;Proprietes du peering :&quot;)
+print(&quot;  - trafic PRIVE (backbone Microsoft), faible latence&quot;)
+print(&quot;  - NON transitif : le spoke joint le hub, PAS les autres spokes directement&quot;)
+print(&quot;  - le hub centralise (pare-feu, passerelle, DNS) et relaie&quot;)
+PY
+python3 peering.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie confirme <code>Peering hub &lt;-&gt; spoke : ✅ possible</code>, puis les propriétés : trafic <strong>privé</strong>, <strong>non transitif</strong>, hub <strong>central</strong>. Le spoke est désormais <strong>relié</strong> au hub (en vrai Azure, deux objets de peering réciproques). Comme le peering est <strong>non transitif</strong>, tout ce qui doit être <strong>partagé</strong> (pare-feu, passerelle) vit au <strong>hub</strong> — et les spokes y accèdent via le peering. ⚠️ miniblue n&#39;exécute pas le peering (comme le vrai déploiement des passerelles) : on le <strong>conçoit</strong> et on <strong>vérifie</strong> sa contrainte. On impose maintenant le <strong>routage</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output confirms <code>Peering hub &lt;-&gt; spoke : ✅ possible</code>, then the properties: <strong>private</strong> traffic, <strong>non-transitive</strong>, <strong>central</strong> hub. The spoke is now <strong>linked</strong> to the hub (in real Azure, two reciprocal peering objects). Since peering is <strong>non-transitive</strong>, everything to be <strong>shared</strong> (firewall, gateway) lives in the <strong>hub</strong> — and spokes access it via peering. ⚠️ miniblue doesn&#39;t execute peering (like the actual gateway deployment): we <strong>design</strong> it and <strong>check</strong> its constraint. Now we enforce <strong>routing</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Imposer le <strong>routage</strong> — UDR de <strong>tunneling forcé</strong> vers le pare-feu du hub.</p>
+<p><strong>🤔 Tout l&#39;egress par le hub.</strong> On force le trafic sortant du spoke à passer par le <strong>pare-feu du hub</strong> : une <strong>UDR</strong> <code>0.0.0.0/0</code> → pare-feu (<code>10.0.0.4</code>). On l&#39;écrit en <strong>Bicep</strong> et on <strong>prouve</strong> l&#39;effet avec le moteur de routage (le trafic interne reste local).</p>
+<p>Écris l&#39;UDR et prouve le tunneling forcé :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enforce <strong>routing</strong> — a <strong>forced tunneling</strong> UDR to the hub firewall.</p>
+<p><strong>🤔 All egress through the hub.</strong> We force the spoke&#39;s outbound traffic through the <strong>hub firewall</strong>: a <strong>UDR</strong> <code>0.0.0.0/0</code> → firewall (<code>10.0.0.4</code>). We write it in <strong>Bicep</strong> and <strong>prove</strong> the effect with the routing engine (internal traffic stays local).</p>
+<p>Write the UDR and prove forced tunneling:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; rt.bicep &lt;&lt;&#39;BICEP&#39;
+resource rt &#39;Microsoft.Network/routeTables@2023-05-01&#39; = {
+  name: &#39;rt-spoke&#39;
+  location: resourceGroup().location
+  properties: {
+    routes: [
+      {
+        name: &#39;egress-par-le-hub&#39;
+        properties: {
+          addressPrefix: &#39;0.0.0.0/0&#39;
+          nextHopType: &#39;VirtualAppliance&#39;
+          nextHopIpAddress: &#39;10.0.0.4&#39;   // pare-feu du hub
+        }
+      }
+    ]
+  }
+}
+BICEP
+bicep build rt.bicep --stdout 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;UDR -&gt; ARM OK:&#39;, d[&#39;resources&#39;][0][&#39;type&#39;])&quot;
+
+cat &gt; routage.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+PRIORITE = {&quot;UDR&quot;: 0, &quot;Systeme&quot;: 1}
+routes = [
+    {&quot;prefixe&quot;: &quot;10.1.0.0/16&quot;, &quot;next_hop&quot;: &quot;spoke local&quot;, &quot;source&quot;: &quot;Systeme&quot;},
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;,   &quot;next_hop&quot;: &quot;Internet&quot;,    &quot;source&quot;: &quot;Systeme&quot;},
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;,   &quot;next_hop&quot;: &quot;Pare-feu du hub (10.0.0.4)&quot;, &quot;source&quot;: &quot;UDR&quot;},
+]
+def router(dest):
+    ip = ipaddress.ip_address(dest)
+    c = [r for r in routes if ip in ipaddress.ip_network(r[&quot;prefixe&quot;])]
+    c.sort(key=lambda r: (-ipaddress.ip_network(r[&quot;prefixe&quot;]).prefixlen, PRIORITE[r[&quot;source&quot;]]))
+    return c[0]
+for dest in [&quot;8.8.8.8&quot;, &quot;10.1.2.3&quot;]:
+    r = router(dest)
+    print(f&quot;{dest:10} -&gt; {r[&#39;next_hop&#39;]:28} (source {r[&#39;source&#39;]})&quot;)
+PY
+python3 routage.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>UDR -&gt; ARM OK: Microsoft.Network/routeTables</code>, puis <code>8.8.8.8 -&gt; Pare-feu du hub (10.0.0.4) (source UDR)</code> et <code>10.1.2.3 -&gt; spoke local (source Systeme)</code>. Le <strong>tunneling forcé</strong> est en place : tout le trafic <strong>Internet</strong> du spoke passe par le <strong>pare-feu du hub</strong> (UDR écrase la route système), tandis que le trafic <strong>intra-spoke</strong> reste <strong>local</strong> (préfixe <code>/16</code> plus spécifique que le <code>/0</code>). C&#39;est la puissance du hub-and-spoke : le <strong>pare-feu partagé</strong> inspecte <strong>tout</strong> l&#39;egress, sans casser le trafic interne. Reste à <strong>privatiser</strong> les données.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>UDR -&gt; ARM OK: Microsoft.Network/routeTables</code>, then <code>8.8.8.8 -&gt; Pare-feu du hub (10.0.0.4) (source UDR)</code> and <code>10.1.2.3 -&gt; spoke local (source Systeme)</code>. <strong>Forced tunneling</strong> is in place: all the spoke&#39;s <strong>Internet</strong> traffic goes through the <strong>hub firewall</strong> (UDR overrides the system route), while <strong>intra-spoke</strong> traffic stays <strong>local</strong> (the <code>/16</code> prefix is more specific than the <code>/0</code>). That&#39;s the power of hub-and-spoke: the <strong>shared firewall</strong> inspects <strong>all</strong> egress, without breaking internal traffic. Now to <strong>privatize</strong> the data.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Rendre le PaaS <strong>privé</strong> — point de terminaison privé + DNS privatelink.</p>
+<p><strong>🤔 Les données hors d&#39;Internet.</strong> On donne au stockage une <strong>IP privée</strong> dans le spoke (point de terminaison privé, Bicep) et on crée l&#39;<strong>intégration DNS privatelink</strong> <strong>obligatoire</strong> (live). Le PaaS devient joignable <strong>uniquement</strong> depuis le réseau.</p>
+<p>Privatise le PaaS (endpoint + DNS) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Make the PaaS <strong>private</strong> — private endpoint + privatelink DNS.</p>
+<p><strong>🤔 Data off the Internet.</strong> We give the storage a <strong>private IP</strong> in the spoke (private endpoint, Bicep) and create the <strong>mandatory</strong> privatelink <strong>DNS integration</strong> (live). The PaaS becomes reachable <strong>only</strong> from the network.</p>
+<p>Privatize the PaaS (endpoint + DNS):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-netproj --location westeurope &gt;/dev/null 2&gt;&amp;1
+
+# Le point de terminaison prive (Bicep) / the private endpoint (Bicep)
+cat &gt; pe.bicep &lt;&lt;&#39;BICEP&#39;
+param location string = resourceGroup().location
+resource pe &#39;Microsoft.Network/privateEndpoints@2023-05-01&#39; = {
+  name: &#39;pe-stockage&#39;
+  location: location
+  properties: {
+    subnet: { id: resourceId(&#39;Microsoft.Network/virtualNetworks/subnets&#39;, &#39;vnet-spoke&#39;, &#39;snet-app&#39;) }
+    privateLinkServiceConnections: [
+      {
+        name: &#39;vers-stockage&#39;
+        properties: {
+          privateLinkServiceId: resourceId(&#39;Microsoft.Storage/storageAccounts&#39;, &#39;stnetproj&#39;)
+          groupIds: [ &#39;blob&#39; ]
+        }
+      }
+    ]
+  }
+}
+BICEP
+bicep build pe.bicep --stdout 2&gt;/dev/null | python3 -c &quot;import sys,json; print(&#39;private endpoint -&gt; ARM OK:&#39;, json.load(sys.stdin)[&#39;resources&#39;][0][&#39;type&#39;])&quot;
+
+# L&#39;integration DNS privatelink OBLIGATOIRE (live) / the mandatory privatelink DNS (live)
+azlocal dns zone create --resource-group rg-netproj --name privatelink.blob.core.windows.net &gt;/dev/null 2&gt;&amp;1
+azlocal dns record create --resource-group rg-netproj --zone privatelink.blob.core.windows.net --name stnetproj --type A --value 10.1.1.10 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;DNS privatelink:&#39;, d[&#39;name&#39;], &#39;-&gt; 10.1.1.10 (IP privee)&#39;)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>private endpoint -&gt; ARM OK: Microsoft.Network/privateEndpoints</code> et <code>DNS privatelink: stnetproj -&gt; 10.1.1.10 (IP privee)</code>. Le PaaS est <strong>privatisé</strong> : une <strong>IP privée</strong> dans <code>snet-app</code> (point de terminaison), et la <strong>zone privatelink</strong> qui résout le nom vers cette IP (l&#39;intégration <strong>obligatoire</strong>). Combiné à la <strong>fermeture</strong> de l&#39;accès public, le stockage est <strong>hors d&#39;Internet</strong>, joignable <strong>uniquement</strong> depuis le réseau (et depuis l&#39;on-prem via le hub). La topologie est <strong>sécurisée par conception</strong>. Reste la <strong>distribution</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>private endpoint -&gt; ARM OK: Microsoft.Network/privateEndpoints</code> and <code>DNS privatelink: stnetproj -&gt; 10.1.1.10 (IP privee)</code>. The PaaS is <strong>privatized</strong>: a <strong>private IP</strong> in <code>snet-app</code> (endpoint), and the <strong>privatelink zone</strong> resolving the name to that IP (the <strong>mandatory</strong> integration). Combined with <strong>closing</strong> public access, the storage is <strong>off the Internet</strong>, reachable <strong>only</strong> from the network (and from on-prem via the hub). The topology is <strong>secure by design</strong>. The <strong>delivery</strong> remains.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> la distribution et dresser la <strong>carte</strong> de conception.</p>
+<p><strong>🤔 Servir l&#39;application.</strong> La charge du spoke a besoin d&#39;un <strong>équilibreur</strong>. On <strong>choisit</strong> le bon service (L4/L7, régional/global) et on récapitule la <strong>conception complète</strong>.</p>
+<p>Choisis la distribution et dresse la carte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> delivery and draw the design <strong>map</strong>.</p>
+<p><strong>🤔 Serve the application.</strong> The spoke&#39;s workload needs a <strong>balancer</strong>. We <strong>choose</strong> the right service (L4/L7, regional/global) and recap the <strong>complete design</strong>.</p>
+<p>Choose delivery and draw the map:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 &lt;&lt;&#39;PY&#39;
+# Choix de distribution pour la charge du spoke (site web regional avec routage + WAF)
+besoin = {&quot;couche&quot;: &quot;L7&quot;, &quot;global&quot;: False}
+service = &quot;Application Gateway (L7 regional, routage par chemin + WAF)&quot; if besoin[&quot;couche&quot;] == &quot;L7&quot; and not besoin[&quot;global&quot;] else &quot;autre&quot;
+print(&quot;Distribution choisie :&quot;, service)
+print()
+print(&quot;=== Carte de la topologie (conception complete) ===&quot;)
+print(&quot;  Adressage   : hub 10.0.0.0/16 | spoke 10.1.0.0/16 (disjoints)&quot;)
+print(&quot;  Hub         : AzureFirewallSubnet (services partages)&quot;)
+print(&quot;  Spoke       : snet-app (charge de travail)&quot;)
+print(&quot;  Peering     : hub &lt;-&gt; spoke (prive, non transitif)&quot;)
+print(&quot;  Routage     : UDR 0.0.0.0/0 -&gt; pare-feu du hub (tunneling force)&quot;)
+print(&quot;  Acces prive : point de terminaison + DNS privatelink (PaaS hors Internet)&quot;)
+print(&quot;  Distribution: Application Gateway (L7, WAF) devant la charge&quot;)
+PY</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie choisit <code>Application Gateway (L7 regional, routage par chemin + WAF)</code> pour la charge (site web régional), puis dresse la <strong>carte complète</strong> : adressage disjoint, hub avec pare-feu, spoke applicatif, peering, tunneling forcé, accès privé au PaaS, et distribution L7. C&#39;est <strong>toute la topologie</strong> conçue et cohérente — chaque décision <strong>s&#39;appuie</strong> sur la précédente. Tu tiens une <strong>conception réseau d&#39;entreprise</strong> : segmentée, routée, privatisée, distribuée. On l&#39;<strong>emballe</strong> pour le CV.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output picks <code>Application Gateway (L7 regional, routage par chemin + WAF)</code> for the workload (regional website), then draws the <strong>complete map</strong>: disjoint addressing, hub with firewall, app spoke, peering, forced tunneling, private PaaS access, and L7 delivery. That&#39;s <strong>the whole topology</strong> designed and coherent — each decision <strong>builds on</strong> the previous one. You hold an <strong>enterprise network design</strong>: segmented, routed, privatized, delivered. We <strong>package</strong> it for the CV.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Emballer</strong> la conception réseau pour le CV, puis nettoyer.</p>
+<p><strong>🤔 Preuves et pitch.</strong> On rédige la <strong>fiche CV</strong> qui résume la topologie hub-and-spoke, puis on <strong>détruit</strong> proprement le lab.</p>
+<p>Rédige la fiche CV et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Package</strong> the network design for the CV, then clean up.</p>
+<p><strong>🤔 Evidence and pitch.</strong> We write the <strong>CV sheet</strong> summarizing the hub-and-spoke topology, then <strong>destroy</strong> the lab cleanly.</p>
+<p>Write the CV sheet and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; CV.md &lt;&lt;&#39;MD&#39;
+# Projet : topologie reseau Azure hub-and-spoke (AZ-700)
+Conception ET implementation d&#39;une topologie reseau complete - 100% local (emulateur).
+
+- **Adressage** : plan CIDR global sans chevauchement (hub /16, spoke /16), sous-reseaux
+  speciaux reserves (AzureFirewallSubnet).
+- **Topologie** : hub-and-spoke, peering (prive, non transitif), hub central des
+  services partages (pare-feu).
+- **Routage** : UDR de tunneling force (0.0.0.0/0 -&gt; pare-feu du hub) ; trafic interne
+  garde local (prefixe le plus long).
+- **Acces prive** : point de terminaison prive + DNS privatelink + fermeture de l&#39;acces
+  public (PaaS hors Internet).
+- **Distribution** : Application Gateway (L7, routage par chemin + WAF) devant la charge.
+
+Stack : Terraform, Bicep, VNet/sous-reseaux, peering, route tables (UDR), Private Link,
+DNS prive, Application Gateway. Aligne AZ-700.
+MD
+echo &quot;--- fiche CV creee / CV sheet created ---&quot;; head -3 CV.md
+
+# Nettoyer le lab / clean up
+cd infra &amp;&amp; terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete&quot; ; cd ..
+azlocal group delete --name rg-netproj &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-netproj supprime / deleted&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la <strong>fiche CV</strong> est créée (résumant les cinq décisions de conception), puis <code>Destroy complete!</code> et <code>rg-netproj supprime</code> nettoient le lab. <strong>Félicitations — tu as terminé le track AZ-700 !</strong> Tu tiens un <strong>projet complet</strong> : une topologie <strong>hub-and-spoke</strong> conçue et <strong>déployée</strong> (adressage, VNets, peering, routage, accès privé, distribution), avec un <strong>schéma</strong> et une <strong>fiche CV</strong>. Mets <code>CV.md</code> en avant et parle de <strong>chaque décision</strong> en entretien.</p>
+<p><strong>Et surtout : tu as bouclé tout le parcours Azure — AZ-900, AZ-104, AZ-305, AZ-400, AZ-500 et AZ-700 — 100% en local, 100% pratique, sans jamais payer un centime de cloud.</strong> De débutant à ingénieur cloud complet : architecture, DevOps, sécurité et réseau. Bravo.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <strong>CV sheet</strong> is created (summarizing the five design decisions), then <code>Destroy complete!</code> and <code>rg-netproj supprime</code> clean the lab. <strong>Congratulations — you finished the AZ-700 track!</strong> You hold a <strong>complete project</strong>: a <strong>hub-and-spoke</strong> topology designed and <strong>deployed</strong> (addressing, VNets, peering, routing, private access, delivery), with a <strong>diagram</strong> and a <strong>CV sheet</strong>. Feature <code>CV.md</code> and speak to <strong>each decision</strong> in an interview.</p>
+<p><strong>And above all: you completed the entire Azure path — AZ-900, AZ-104, AZ-305, AZ-400, AZ-500 and AZ-700 — 100% locally, 100% hands-on, without ever paying a cent for cloud.</strong> From beginner to a complete cloud engineer: architecture, DevOps, security and networking. Well done.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Adressage improvisé.</strong> Sans plan <strong>global sans chevauchement</strong>, le peering échoue et le réseau se <strong>coince</strong>. Planifie <strong>d&#39;abord</strong>.</p>
+<p><strong>2. Oublier les sous-réseaux spéciaux.</strong> <code>AzureFirewallSubnet</code>, <code>GatewaySubnet</code> ont des <strong>noms</strong> et <strong>tailles</strong> imposés. Réserve-les dans le plan.</p>
+<p><strong>3. Croire le peering transitif.</strong> Le spoke joint le hub, <strong>pas</strong> les autres spokes directement. Centralise au <strong>hub</strong> et route.</p>
+<p><strong>4. Egress non contrôlé.</strong> Sans <strong>UDR</strong> de tunneling forcé, chaque spoke sort <strong>directement</strong> vers Internet, sans inspection. Force par le <strong>pare-feu du hub</strong>.</p>
+<p><strong>5. Point de terminaison privé sans DNS.</strong> L&#39;erreur n°1 : sans la zone <code>privatelink.*</code>, le client va <strong>encore</strong> à l&#39;IP publique.</p>
+<p><strong>6. PaaS public « derrière un pare-feu ».</strong> Un pare-feu IP ne suffit pas — l&#39;IP publique <strong>existe</strong>. Le <strong>point de terminaison privé</strong> + fermeture le retire vraiment d&#39;Internet.</p>
+<p><strong>7. Distribution inadaptée.</strong> Un L4 pour de l&#39;HTTP (pas de routage/WAF), ou du global pour du régional (coût). Choisis selon <strong>couche</strong> et <strong>portée</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Improvised addressing.</strong> Without a <strong>global non-overlapping</strong> plan, peering fails and the network gets <strong>stuck</strong>. Plan <strong>first</strong>.</p>
+<p><strong>2. Forgetting special subnets.</strong> <code>AzureFirewallSubnet</code>, <code>GatewaySubnet</code> have <strong>mandatory</strong> names and sizes. Reserve them in the plan.</p>
+<p><strong>3. Thinking peering is transitive.</strong> The spoke reaches the hub, <strong>not</strong> other spokes directly. Centralize at the <strong>hub</strong> and route.</p>
+<p><strong>4. Uncontrolled egress.</strong> Without a forced-tunneling <strong>UDR</strong>, each spoke egresses <strong>directly</strong> to the Internet, uninspected. Force through the <strong>hub firewall</strong>.</p>
+<p><strong>5. Private endpoint without DNS.</strong> Mistake #1: without the <code>privatelink.*</code> zone, the client <strong>still</strong> goes to the public IP.</p>
+<p><strong>6. Public PaaS &quot;behind a firewall&quot;.</strong> An IP firewall isn&#39;t enough — the public IP <strong>exists</strong>. The <strong>private endpoint</strong> + closure truly removes it from the Internet.</p>
+<p><strong>7. Wrong delivery.</strong> An L4 for HTTP (no routing/WAF), or global for regional (cost). Choose by <strong>layer</strong> and <strong>scope</strong>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si ta topologie a :</p>
+<ul><li>Un <strong>plan d&#39;adressage</strong> disjoint (hub + spoke), sous-réseaux spéciaux réservés.</li><li>Un <strong>hub</strong> et un <strong>spoke</strong> <strong>déployés</strong> (VNets + sous-réseaux).</li><li>Un <strong>peering</strong> conçu (non-chevauchement vérifié, non transitif).</li><li>Un <strong>routage</strong> UDR de <strong>tunneling forcé</strong> vers le pare-feu du hub.</li><li>Un PaaS <strong>privé</strong> (point de terminaison + DNS privatelink).</li><li>Une <strong>distribution</strong> adaptée et une <strong>fiche CV</strong> résumant la conception.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if your topology has:</p>
+<ul><li>A disjoint <strong>address plan</strong> (hub + spoke), special subnets reserved.</li><li>A <strong>hub</strong> and a <strong>spoke</strong> <strong>deployed</strong> (VNets + subnets).</li><li>A <strong>peering</strong> designed (non-overlap checked, non-transitive).</li><li>A <strong>forced-tunneling</strong> UDR routing to the hub firewall.</li><li>A <strong>private</strong> PaaS (private endpoint + privatelink DNS).</li><li>A fitting <strong>delivery</strong> and a <strong>CV sheet</strong> summarizing the design.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> consolide sur un <strong>vrai</strong> compte Azure gratuit, ou révise un cert du parcours (AZ-900 → AZ-700).</li><li><strong>Réviser :</strong> n&#39;importe quel guide AZ-700 dont un pilier t&#39;a semblé fragile.</li><li><strong>Aller plus loin :</strong> ajoute un <strong>2e spoke</strong> (avec routage inter-spoke via le hub), une <strong>passerelle VPN</strong> au hub (gateway transit), et un <strong>Front Door</strong> global.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> consolidate on a <strong>real</strong> free Azure account, or review a cert from the path (AZ-900 → AZ-700).</li><li><strong>Review:</strong> any AZ-700 guide whose pillar felt shaky.</li><li><strong>Go further:</strong> add a <strong>2nd spoke</strong> (with inter-spoke routing via the hub), a <strong>VPN gateway</strong> at the hub (gateway transit), and a global <strong>Front Door</strong>.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Les cinq décisions de conception</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. ADRESSAGE    plan CIDR global, disjoint (hub 10.0/16, spoke 10.1/16)   [Python]
+2. TOPOLOGIE    hub-and-spoke, peering (prive, NON transitif)             [live+model]
+3. ROUTAGE      UDR 0.0.0.0/0 -&gt; pare-feu du hub (tunneling force)        [Bicep+moteur]
+4. ACCES PRIVE  point de terminaison + DNS privatelink + fermeture public [Bicep+live]
+5. DISTRIBUTION L4/L7, regional/global selon la charge                    [moteur]</code></pre>
+<p><strong>Ordre de conception (immuable)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>adressage -&gt; topologie -&gt; routage -&gt; acces prive -&gt; distribution
+(chaque decision s&#39;appuie sur la precedente ; l&#39;adressage est le plus dur a changer)</code></pre>
+<p><strong>Commandes cles</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply                                   # hub + spoke (VNets + sous-reseaux)
+bicep build rt.bicep --stdout                     # UDR (tunneling force)
+bicep build pe.bicep --stdout                     # point de terminaison prive
+azlocal dns zone create ... privatelink.blob...   # integration DNS (OBLIGATOIRE)</code></pre>
+</div>
+<div data-lang="en"><p><strong>The five design decisions</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. ADDRESSING   global CIDR plan, disjoint (hub 10.0/16, spoke 10.1/16)   [Python]
+2. TOPOLOGY     hub-and-spoke, peering (private, NON-transitive)          [live+model]
+3. ROUTING      UDR 0.0.0.0/0 -&gt; hub firewall (forced tunneling)          [Bicep+engine]
+4. PRIVATE ACC. private endpoint + privatelink DNS + public closure       [Bicep+live]
+5. DELIVERY     L4/L7, regional/global by workload                        [engine]</code></pre>
+<p><strong>Design order (fixed)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>addressing -&gt; topology -&gt; routing -&gt; private access -&gt; delivery
+(each decision builds on the previous; addressing is the hardest to change)</code></pre>
+<p><strong>Key commands</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply                                   # hub + spoke (VNets + subnets)
+bicep build rt.bicep --stdout                     # UDR (forced tunneling)
+bicep build pe.bicep --stdout                     # private endpoint
+azlocal dns zone create ... privatelink.blob...   # DNS integration (MANDATORY)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>AZ-700</strong> : Designing and Implementing Microsoft Azure Networking Solutions — objectifs officiels, Microsoft Learn.</li><li><strong>Hub-and-spoke</strong> : topologie de référence, peering, gateway transit — Cloud Adoption Framework.</li><li><strong>Route tables (UDR)</strong> : tunneling forcé, appliance — Microsoft Learn.</li><li><strong>Private Link / Private Endpoint</strong> : IP privée, DNS privatelink — Microsoft Learn.</li><li><strong>Application Gateway</strong> : L7, routage, WAF — Microsoft Learn.</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>AZ-700</strong>: Designing and Implementing Microsoft Azure Networking Solutions — official objectives, Microsoft Learn.</li><li><strong>Hub-and-spoke</strong>: reference topology, peering, gateway transit — Cloud Adoption Framework.</li><li><strong>Route tables (UDR)</strong>: forced tunneling, appliance — Microsoft Learn.</li><li><strong>Private Link / Private Endpoint</strong>: private IP, privatelink DNS — Microsoft Learn.</li><li><strong>Application Gateway</strong>: L7, routing, WAF — Microsoft Learn.</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform</code> : erreur TLS / certificat (step-02).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> et vérifie que miniblue tourne (port 4567).</p>
+<p><strong><code>Apply</code> déploie moins de 5 ressources.</strong> Vérifie que <code>main.tf</code> contient le RG, les <strong>deux</strong> VNets et leurs sous-réseaux, en HCL <strong>multi-ligne</strong>.</p>
+<p><strong>Le plan signale un chevauchement.</strong> Les plages hub/spoke se recoupent. Reprends le plan d&#39;adressage (step-01) : elles doivent être <strong>disjointes</strong>.</p>
+<p><strong><code>bicep : command not found</code> (step-04/05).</strong> <code>az bicep install</code> ou le binaire autonome.</p>
+<p><strong>Le point de terminaison privé « ne marche pas ».</strong> 99% : le <strong>DNS</strong>. Vérifie la zone <code>privatelink.*</code>, l&#39;enregistrement vers l&#39;IP privée et la liaison au VNet (step-05).</p>
+<p><strong>Peering/UDR/endpoint ne se déploient pas en local.</strong> miniblue n&#39;émule pas ces objets. On les <strong>valide</strong> (Bicep) et on les <strong>raisonne</strong> (moteurs) ; les <strong>VNets/sous-réseaux</strong> et le <strong>DNS</strong>, eux, sont <strong>live</strong>. L&#39;exécution complète vise du vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform</code>: TLS / certificate error (step-02).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> and check miniblue is running (port 4567).</p>
+<p><strong><code>Apply</code> deploys fewer than 5 resources.</strong> Check <code>main.tf</code> holds the RG, <strong>both</strong> VNets and their subnets, in <strong>multi-line</strong> HCL.</p>
+<p><strong>The plan flags an overlap.</strong> The hub/spoke ranges intersect. Redo the address plan (step-01): they must be <strong>disjoint</strong>.</p>
+<p><strong><code>bicep: command not found</code> (step-04/05).</strong> <code>az bicep install</code> or the standalone binary.</p>
+<p><strong>The private endpoint &quot;doesn&#39;t work&quot;.</strong> 99%: the <strong>DNS</strong>. Check the <code>privatelink.*</code> zone, the record to the private IP, and the VNet link (step-05).</p>
+<p><strong>Peering/UDR/endpoint won&#39;t deploy locally.</strong> miniblue doesn&#39;t emulate these objects. We <strong>validate</strong> them (Bicep) and <strong>reason</strong> about them (engines); the <strong>VNets/subnets</strong> and the <strong>DNS</strong> are <strong>live</strong>. Full execution targets real Azure.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
