@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — identité &amp; gouvernance (AZ-104) : Entra ID, RBAC, policies — jiha.tech</title>
+  <title data-lang="en">Azure — identity &amp; governance (AZ-104): Entra ID, RBAC, policies — jiha.tech</title>
+  <meta name="description" content="L&#39;identité et la gouvernance Azure pour l&#39;AZ-104 : les identités (Entra ID — utilisateurs, groupes, principaux de service, identités managées, créées en local sur miniblue), le contrôle d&#39;accès RBAC (principal → rôle → portée, rôles intégrés et personnalisés), Azure Policy (imposer des règles), les tags (organiser, gouverner par le coût) et les verrous. Modèle expliqué, RBAC/policy/rôle personnalisé décrits et validés en Bicep, identités et tags déployés en live. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure identity and governance for AZ-104: identities (Entra ID — users, groups, service principals, managed identities, created locally on miniblue), RBAC access control (principal → role → scope, built-in and custom roles), Azure Policy (enforce rules), tags (organize, govern by cost) and locks. Model explained, RBAC/policy/custom-role described and validated in Bicep, identities and tags deployed live. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — identité &amp; gouvernance (AZ-104) : Entra ID, RBAC, policies">
+  <meta property="og:description" content="L&#39;identité et la gouvernance Azure pour l&#39;AZ-104 : les identités (Entra ID — utilisateurs, groupes, principaux de service, identités managées, créées en local sur miniblue), le contrôle d&#39;accès RBAC (principal → rôle → portée, rôles intégrés et personnalisés), Azure Policy (imposer des règles), les tags (organiser, gouverner par le coût) et les verrous. Modèle expliqué, RBAC/policy/rôle personnalisé décrits et validés en Bicep, identités et tags déployés en live. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-identite-gouvernance/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-identite-gouvernance/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-identite-gouvernance">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-identite-gouvernance</div>
+    <div class="prompt" data-lang="en">~/guides/azure-identite-gouvernance</div>
+    <h1 data-lang="fr">Azure — identité &amp; gouvernance (AZ-104) : Entra ID, RBAC, policies</h1>
+    <h1 data-lang="en">Azure — identity &amp; governance (AZ-104): Entra ID, RBAC, policies</h1>
+    <p class="tagline" data-lang="fr">identités, rôles, attributions, policies, tags, verrous.</p>
+    <p class="tagline" data-lang="en">identities, roles, assignments, policies, tags, locks.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Qui a le droit de faire quoi, où — et comment garder le contrôle quand des dizaines de ressources s&#39;accumulent ? C&#39;est <strong>l&#39;identité et la gouvernance</strong>, le plus gros domaine de l&#39;examen <strong>AZ-104</strong>, et la colonne vertébrale de la sécurité Azure. Une mauvaise attribution de rôle, et un compte a trop de pouvoir ; pas de gouvernance, et les ressources prolifèrent sans règle ni traçabilité de coût.</p>
+<p>Ce guide couvre les quatre piliers : les <strong>identités</strong> (Entra ID — utilisateurs, groupes, principaux de service, et surtout les <strong>identités managées</strong> qu&#39;on crée ici en local), le <strong>contrôle d&#39;accès RBAC</strong> (le modèle <strong>principal → rôle → portée</strong>, les rôles <strong>intégrés</strong> et <strong>personnalisés</strong>, le <strong>moindre privilège</strong>), <strong>Azure Policy</strong> (imposer des règles à grande échelle — « toute ressource doit avoir un tag <code>env</code> »), et les <strong>tags</strong> &amp; <strong>verrous</strong> (organiser, gouverner le coût, protéger). Tu crées une <strong>identité managée</strong> et poses des <strong>tags en live</strong> sur miniblue ; tu décris et <strong>valides</strong> RBAC, rôle personnalisé, policy et verrou en <strong>Bicep</strong> — la forme exacte du vrai Azure.</p>
+<p>C&#39;est le pilier « sécurité &amp; conformité » du track AZ-104. Les concepts ici — RBAC vs Policy, portées et héritage, moindre privilège — reviennent dans <strong>tous</strong> les autres examens Azure (AZ-500 sécurité en tête).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>Azure fondamentaux</em> et tu veux comprendre le contrôle d&#39;accès et la gouvernance.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Ton labo n&#39;est pas monté → refais <em>Azure fondamentaux</em> (miniblue).</li><li>Tu veux la sécurité réseau (NSG, pare-feu) → c&#39;est le guide <em>réseau</em> ; ici c&#39;est l&#39;<strong>identité</strong> et la <strong>conformité</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>Who is allowed to do what, where — and how do you keep control when dozens of resources pile up? That&#39;s <strong>identity and governance</strong>, the biggest <strong>AZ-104</strong> exam domain, and the backbone of Azure security. A bad role assignment, and an account has too much power; no governance, and resources proliferate with no rule or cost traceability.</p>
+<p>This guide covers the four pillars: <strong>identities</strong> (Entra ID — users, groups, service principals, and above all the <strong>managed identities</strong> we create here locally), <strong>RBAC access control</strong> (the <strong>principal → role → scope</strong> model, <strong>built-in</strong> and <strong>custom</strong> roles, <strong>least privilege</strong>), <strong>Azure Policy</strong> (enforce rules at scale — &quot;every resource must have an <code>env</code> tag&quot;), and <strong>tags</strong> &amp; <strong>locks</strong> (organize, govern cost, protect). You create a <strong>managed identity</strong> and set <strong>tags live</strong> on miniblue; you describe and <strong>validate</strong> RBAC, a custom role, policy and a lock in <strong>Bicep</strong> — the exact shape of real Azure.</p>
+<p>This is the &quot;security &amp; compliance&quot; pillar of the AZ-104 track. The concepts here — RBAC vs Policy, scopes and inheritance, least privilege — recur in <strong>all</strong> the other Azure exams (AZ-500 security foremost).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>Azure fundamentals</em> and want to understand access control and governance.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>Your lab isn&#39;t set up → redo <em>Azure fundamentals</em> (miniblue).</li><li>You want network security (NSG, firewall) → that&#39;s the <em>networking</em> guide; here it&#39;s <strong>identity</strong> and <strong>compliance</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Distinguer les <strong>identités</strong> Entra ID (utilisateurs, groupes, principaux de service, identités managées).</li><li>Créer une <strong>identité managée</strong> en local (miniblue).</li><li>Expliquer le modèle <strong>RBAC</strong> : principal → rôle → portée.</li><li>Écrire une <strong>attribution de rôle</strong> (intégré) et un <strong>rôle personnalisé</strong> en Bicep.</li><li>Appliquer le <strong>moindre privilège</strong>.</li><li>Écrire une <strong>policy</strong> (imposer une règle) en Bicep, et la distinguer du RBAC.</li><li>Utiliser <strong>tags</strong> (organiser, coût) et <strong>verrous</strong> (protéger).</li><li>Comprendre les <strong>portées</strong> et l&#39;<strong>héritage</strong> (MG → abonnement → groupe → ressource).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Distinguish Entra ID <strong>identities</strong> (users, groups, service principals, managed identities).</li><li>Create a <strong>managed identity</strong> locally (miniblue).</li><li>Explain the <strong>RBAC</strong> model: principal → role → scope.</li><li>Write a <strong>role assignment</strong> (built-in) and a <strong>custom role</strong> in Bicep.</li><li>Apply <strong>least privilege</strong>.</li><li>Write a <strong>policy</strong> (enforce a rule) in Bicep, and distinguish it from RBAC.</li><li>Use <strong>tags</strong> (organize, cost) and <strong>locks</strong> (protect).</li><li>Understand <strong>scopes</strong> and <strong>inheritance</strong> (MG → subscription → group → resource).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure fondamentaux</strong> terminé, et <strong>miniblue</strong> qui tourne (<code>azlocal health</code>).</li><li><strong>Terraform</strong> (pour les tags live) et <strong>Bicep</strong> (pour RBAC/policy) installés.</li><li>Rappel : <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> pour que Terraform accepte l&#39;endpoint local.</li><li>⚠️ Sur miniblue, RBAC (rôles/attributions), policies et verrous se <strong>décrivent et valident</strong> en Bicep (l&#39;émulateur ne provisionne pas ces API — l&#39;API des rôles renvoie 404). Les <strong>identités managées</strong> et les <strong>tags</strong> sont <strong>live</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure fundamentals</strong> guide done, and <strong>miniblue</strong> running (<code>azlocal health</code>).</li><li><strong>Terraform</strong> (for live tags) and <strong>Bicep</strong> (for RBAC/policy) installed.</li><li>Reminder: <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> so Terraform accepts the local endpoint.</li><li>⚠️ On miniblue, RBAC (roles/assignments), policies and locks are <strong>described and validated</strong> in Bicep (the emulator doesn&#39;t provision these APIs — the roles API returns 404). <strong>Managed identities</strong> and <strong>tags</strong> are <strong>live</strong>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-fondamentaux/">
+    <span class="num">58</span>
+    <span class="title-line" data-lang="fr">Azure — fondamentaux : le labo local (miniblue) et le modèle Azure</span>
+    <span class="title-line" data-lang="en">Azure — fundamentals: the local lab (miniblue) and the Azure model</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Entra ID (ex-Azure AD).</strong> L&#39;annuaire d&#39;identités d&#39;Azure. Quatre types d&#39;identités à connaître : les <strong>utilisateurs</strong> (des personnes), les <strong>groupes</strong> (des ensembles d&#39;utilisateurs — on attribue les droits <strong>au groupe</strong>, pas un par un), les <strong>principaux de service</strong> (l&#39;identité d&#39;une <strong>application</strong>), et les <strong>identités managées</strong> (une identité Azure gérée automatiquement pour un service — <strong>sans mot de passe à gérer</strong>, le nec plus ultra). Un <strong>tenant</strong> (locataire) est une instance d&#39;Entra ID (une organisation).</p>
+<p><strong>RBAC (contrôle d&#39;accès basé sur les rôles).</strong> Le mécanisme d&#39;autorisation d&#39;Azure. Trois ingrédients dans une <strong>attribution</strong> : un <strong>principal</strong> (qui — utilisateur, groupe, principal de service, identité managée) + un <strong>rôle</strong> (quoi — un ensemble de permissions) + une <strong>portée</strong> (où — un abonnement, un groupe de ressources, une ressource). « Alice a le rôle <strong>Contributeur</strong> sur le <strong>groupe rg-prod</strong> ». Simple et puissant.</p>
+<p><strong>Rôles intégrés vs personnalisés.</strong> Azure fournit des <strong>rôles intégrés</strong> (built-in) prêts à l&#39;emploi : <strong>Propriétaire</strong> (tout, y compris déléguer), <strong>Contributeur</strong> (tout gérer sauf déléguer les accès), <strong>Lecteur</strong> (lecture seule), et des centaines de rôles spécialisés (« Contributeur de stockage »…). Si aucun ne convient, on crée un <strong>rôle personnalisé</strong> avec <strong>exactement</strong> les permissions voulues.</p>
+<p><strong>Moindre privilège.</strong> La règle d&#39;or : accorder le <strong>strict minimum</strong> de droits, à la <strong>portée la plus étroite</strong>, de préférence via des <strong>groupes</strong> et des <strong>identités managées</strong>. Jamais <strong>Propriétaire</strong> « par confort ». C&#39;est le réflexe que testent l&#39;AZ-104 et l&#39;AZ-500.</p>
+<p><strong>Azure Policy.</strong> Différent du RBAC ! Le RBAC dit <strong>qui peut faire</strong> quoi ; la <strong>Policy</strong> dit <strong>ce qui est autorisé</strong> sur les ressources, quel que soit l&#39;auteur. Une policy impose une règle : <code>deny</code> (interdire — « pas de VM hors d&#39;Europe »), <code>audit</code> (signaler la non-conformité), <code>append</code>/<code>modify</code> (ajouter/corriger — « ajoute le tag <code>env</code> »). On l&#39;<strong>assigne</strong> à une portée ; elle s&#39;applique à <strong>toutes</strong> les ressources dessous.</p>
+<p><strong>Tags.</strong> Des paires <strong>clé-valeur</strong> sur les ressources (<code>env=prod</code>, <code>cost-center=marketing</code>). Ils <strong>organisent</strong>, permettent le <strong>filtrage</strong> et surtout la <strong>répartition des coûts</strong> (facturation par tag). Une policy peut les <strong>rendre obligatoires</strong>.</p>
+<p><strong>Verrous (locks).</strong> Pour <strong>protéger</strong> une ressource : <strong>CanNotDelete</strong> (on peut modifier, pas supprimer) ou <strong>ReadOnly</strong> (lecture seule). Contre la suppression accidentelle d&#39;une ressource critique.</p>
+<p><strong>Portées &amp; héritage.</strong> La hiérarchie <strong>groupe d&#39;administration → abonnement → groupe de ressources → ressource</strong> est aussi celle des <strong>portées</strong>. Un rôle ou une policy assigné à un niveau <strong>descend</strong> (hérite) sur tout ce qui est en dessous. Assigner au bon niveau = gouverner efficacement.</p>
+<p><strong>Ce qui est live ici.</strong> Les <strong>identités managées</strong> (miniblue) et les <strong>tags</strong> (Terraform sur miniblue) sont <strong>déployés en live</strong>. Le <strong>RBAC</strong> (attribution, rôle personnalisé), les <strong>policies</strong> et les <strong>verrous</strong> se <strong>décrivent et valident en Bicep</strong> — l&#39;émulateur n&#39;implémente pas ces API (l&#39;API des rôles renvoie 404). La syntaxe Bicep est celle du <strong>vrai Azure</strong>, à connaître pour l&#39;examen ; le déploiement réel se fait sur un compte (guide <em>passer en réel</em>).</p>
+</div>
+<div data-lang="en"><p><strong>Entra ID (formerly Azure AD).</strong> Azure&#39;s identity directory. Four identity types to know: <strong>users</strong> (people), <strong>groups</strong> (sets of users — you grant rights <strong>to the group</strong>, not one by one), <strong>service principals</strong> (an <strong>application&#39;s</strong> identity), and <strong>managed identities</strong> (an Azure identity managed automatically for a service — <strong>no password to manage</strong>, the gold standard). A <strong>tenant</strong> is an Entra ID instance (an organization).</p>
+<p><strong>RBAC (role-based access control).</strong> Azure&#39;s authorization mechanism. Three ingredients in an <strong>assignment</strong>: a <strong>principal</strong> (who — user, group, service principal, managed identity) + a <strong>role</strong> (what — a set of permissions) + a <strong>scope</strong> (where — a subscription, a resource group, a resource). &quot;Alice has the <strong>Contributor</strong> role on the <strong>rg-prod group</strong>.&quot; Simple and powerful.</p>
+<p><strong>Built-in vs custom roles.</strong> Azure provides ready-made <strong>built-in roles</strong>: <strong>Owner</strong> (everything, including delegating), <strong>Contributor</strong> (manage everything except delegating access), <strong>Reader</strong> (read-only), and hundreds of specialized roles (&quot;Storage Contributor&quot;…). If none fits, you create a <strong>custom role</strong> with <strong>exactly</strong> the permissions you want.</p>
+<p><strong>Least privilege.</strong> The golden rule: grant the <strong>bare minimum</strong> rights, at the <strong>narrowest scope</strong>, preferably via <strong>groups</strong> and <strong>managed identities</strong>. Never <strong>Owner</strong> &quot;for convenience&quot;. It&#39;s the reflex AZ-104 and AZ-500 test.</p>
+<p><strong>Azure Policy.</strong> Different from RBAC! RBAC says <strong>who can do</strong> what; <strong>Policy</strong> says <strong>what is allowed</strong> on resources, regardless of the author. A policy enforces a rule: <code>deny</code> (forbid — &quot;no VM outside Europe&quot;), <code>audit</code> (flag non-compliance), <code>append</code>/<code>modify</code> (add/fix — &quot;add the <code>env</code> tag&quot;). You <strong>assign</strong> it to a scope; it applies to <strong>all</strong> resources under it.</p>
+<p><strong>Tags.</strong> <strong>Key-value</strong> pairs on resources (<code>env=prod</code>, <code>cost-center=marketing</code>). They <strong>organize</strong>, enable <strong>filtering</strong> and above all <strong>cost allocation</strong> (billing by tag). A policy can make them <strong>mandatory</strong>.</p>
+<p><strong>Locks.</strong> To <strong>protect</strong> a resource: <strong>CanNotDelete</strong> (you can modify, not delete) or <strong>ReadOnly</strong> (read-only). Against accidental deletion of a critical resource.</p>
+<p><strong>Scopes &amp; inheritance.</strong> The <strong>management group → subscription → resource group → resource</strong> hierarchy is also the <strong>scope</strong> hierarchy. A role or policy assigned at one level <strong>flows down</strong> (inherits) to everything below. Assigning at the right level = governing effectively.</p>
+<p><strong>What&#39;s live here.</strong> <strong>Managed identities</strong> (miniblue) and <strong>tags</strong> (Terraform on miniblue) are <strong>deployed live</strong>. <strong>RBAC</strong> (assignment, custom role), <strong>policies</strong> and <strong>locks</strong> are <strong>described and validated in Bicep</strong> — the emulator doesn&#39;t implement these APIs (the roles API returns 404). The Bicep syntax is real Azure&#39;s, to know for the exam; real deployment is on an account (<em>going real</em> guide).</p>
+</div>
+
+<figure class="schema" id="figure-azure-rbac-modele">
+  <p>[schema "azure-rbac-modele" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le modèle RBAC : une ATTRIBUTION relie un PRINCIPAL (utilisateur, groupe, principal de service, identité managée) à un RÔLE (intégré ou personnalisé) sur une PORTÉE (groupe d&#39;administration → abonnement → groupe de ressources → ressource), et l&#39;accès HÉRITE vers le bas. En parallèle, une POLICY impose des règles sur les ressources d&#39;une portée. Tags et verrous complètent la gouvernance.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The RBAC model: an ASSIGNMENT links a PRINCIPAL (user, group, service principal, managed identity) to a ROLE (built-in or custom) at a SCOPE (management group → subscription → resource group → resource), and access INHERITS downward. In parallel, a POLICY enforces rules on a scope&#39;s resources. Tags and locks complete governance.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>identité managée</strong> — une identité sans mot de passe, live sur miniblue.</p>
+<p><strong>🤔 L&#39;identité idéale d&#39;un workload.</strong> Plutôt qu&#39;une application porte un mot de passe (à protéger, faire tourner), on lui donne une <strong>identité managée</strong> : Azure gère les secrets pour elle. C&#39;est <strong>la</strong> bonne pratique moderne (et un point d&#39;examen). On en crée une en local.</p>
+<p>Crée une identité managée dans un groupe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>managed identity</strong> — a password-less identity, live on miniblue.</p>
+<p><strong>🤔 A workload&#39;s ideal identity.</strong> Rather than an application carrying a password (to protect, rotate), you give it a <strong>managed identity</strong>: Azure manages the secrets for it. It&#39;s <strong>the</strong> modern best practice (and an exam point). We create one locally.</p>
+<p>Create a managed identity in a group:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Groupe + identité managée (miniblue) / group + managed identity (miniblue)
+azlocal group create --name rg-gouvernance --location westeurope
+azlocal identity create --name id-app --resource-group rg-gouvernance
+
+# La lister / list it
+azlocal identity list --resource-group rg-gouvernance</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>identity create</code> renvoie un objet avec un <code>name</code> (<code>id-app</code>) et un <code>clientId</code> (un GUID) — c&#39;est une <strong>identité Entra ID</strong> utilisable par un service, <strong>sans mot de passe</strong>. <code>identity list</code> la montre. Retiens les <strong>4 types d&#39;identités</strong> : utilisateur (personne), groupe (ensemble), principal de service (appli avec secret/certificat), <strong>identité managée</strong> (appli sans secret à gérer — préférée). ⚠️ En réel, on <strong>attribue</strong> ensuite un rôle RBAC à cette identité (étape 3) pour lui donner des droits — l&#39;identité seule ne peut <strong>rien</strong> tant qu&#39;aucun rôle ne lui est attribué.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>identity create</code> returns an object with a <code>name</code> (<code>id-app</code>) and a <code>clientId</code> (a GUID) — it&#39;s an <strong>Entra ID identity</strong> usable by a service, <strong>password-less</strong>. <code>identity list</code> shows it. Remember the <strong>4 identity types</strong>: user (person), group (set), service principal (app with secret/certificate), <strong>managed identity</strong> (app with no secret to manage — preferred). ⚠️ For real, you then <strong>assign</strong> an RBAC role to this identity (step 3) to give it rights — the identity alone can do <strong>nothing</strong> until a role is assigned to it.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser des <strong>tags</strong> de gouvernance — live sur miniblue (Terraform).</p>
+<p><strong>🤔 Organiser et suivre le coût.</strong> Un <strong>tag</strong> est une paire clé-valeur (<code>env=labo</code>, <code>cost-center=formation</code>). Il sert à <strong>classer</strong> les ressources et à <strong>répartir les coûts</strong> (facturation par tag). On applique des tags à un groupe de ressources via Terraform.</p>
+<p>Décris un groupe avec des tags et applique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set governance <strong>tags</strong> — live on miniblue (Terraform).</p>
+<p><strong>🤔 Organize and track cost.</strong> A <strong>tag</strong> is a key-value pair (<code>env=labo</code>, <code>cost-center=formation</code>). It classifies resources and <strong>allocates costs</strong> (billing by tag). We apply tags to a resource group via Terraform.</p>
+<p>Describe a group with tags and apply:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># gouvernance.tf — un groupe avec des tags (provider azurerm -&gt; miniblue, cf. guide réseau)
+resource &quot;azurerm_resource_group&quot; &quot;gouv&quot; {
+  name     = &quot;rg-tags&quot;
+  location = &quot;westeurope&quot;
+  tags = {
+    env           = &quot;labo&quot;
+    &quot;cost-center&quot; = &quot;formation&quot;
+    owner         = &quot;equipe-plateforme&quot;
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=~/.miniblue/cert.pem
+terraform init
+terraform apply -auto-approve
+terraform state show azurerm_resource_group.gouv   # voir les tags appliqués</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> crée <code>rg-tags</code> (<code>Apply complete! Resources: 1 added.</code>), et <code>terraform state show</code> affiche le bloc <code>tags</code> avec <code>env</code>, <code>cost-center</code>, <code>owner</code>. Les tags sont <strong>appliqués en live</strong> sur miniblue. Retiens leur double usage : <strong>organisation</strong> (filtrer « toutes les ressources <code>env=prod</code> ») et <strong>coût</strong> (ventiler la facture par <code>cost-center</code>). ⚠️ Les tags <strong>ne s&#39;héritent pas</strong> automatiquement des ressources parentes vers les enfants (contrairement aux rôles/policies) — pour les imposer partout, on utilise une <strong>policy</strong> (étape 5).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> creates <code>rg-tags</code> (<code>Apply complete! Resources: 1 added.</code>), and <code>terraform state show</code> displays the <code>tags</code> block with <code>env</code>, <code>cost-center</code>, <code>owner</code>. The tags are <strong>applied live</strong> on miniblue. Remember their dual use: <strong>organization</strong> (filter &quot;all <code>env=prod</code> resources&quot;) and <strong>cost</strong> (break the bill down by <code>cost-center</code>). ⚠️ Tags do <strong>not</strong> auto-inherit from parent resources to children (unlike roles/policies) — to enforce them everywhere, you use a <strong>policy</strong> (step 5).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong>attribution de rôle</strong> RBAC (rôle intégré) — en Bicep.</p>
+<p><strong>🤔 Le cœur du contrôle d&#39;accès.</strong> Une <strong>attribution</strong> relie un <strong>principal</strong> à un <strong>rôle</strong> sur une <strong>portée</strong>. On attribue le rôle <strong>intégré</strong> <code>Lecteur</code> (Reader — lecture seule) à un principal, à la portée du groupe de ressources. On l&#39;écrit en Bicep (validé hors-ligne).</p>
+<p>Crée <code>rbac.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write an RBAC <strong>role assignment</strong> (built-in role) — in Bicep.</p>
+<p><strong>🤔 The heart of access control.</strong> An <strong>assignment</strong> links a <strong>principal</strong> to a <strong>role</strong> at a <strong>scope</strong>. We assign the <strong>built-in</strong> <code>Reader</code> role (read-only) to a principal, at the resource-group scope. We write it in Bicep (validated offline).</p>
+<p>Create <code>rbac.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// rbac.bicep — attribution du rôle intégré Lecteur (Reader)
+targetScope = &#39;resourceGroup&#39;
+
+@description(&#39;Id du principal (identité managée, groupe, utilisateur…)&#39;)
+param principalId string
+
+// Id du rôle intégré &quot;Reader&quot; (stable dans tout Azure)
+var readerRoleId = &#39;acdd72a7-3385-48ef-bd42-f606fba81ae7&#39;
+
+resource attributionLecteur &#39;Microsoft.Authorization/roleAssignments@2022-04-01&#39; = {
+  name: guid(resourceGroup().id, principalId, readerRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId(&#39;Microsoft.Authorization/roleDefinitions&#39;, readerRoleId)
+    principalId: principalId
+    principalType: &#39;ServicePrincipal&#39;
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build rbac.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile la ressource <code>Microsoft.Authorization/roleAssignments</code> sans erreur. Tu as décrit « ce principal a le rôle <strong>Lecteur</strong> sur ce groupe de ressources ». Analyse les trois ingrédients : <strong>principalId</strong> (qui), <strong>roleDefinitionId</strong> (quoi — l&#39;id stable du rôle Reader), la <strong>portée</strong> (le <code>targetScope = &#39;resourceGroup&#39;</code>, où). ⚠️ Le <code>name</code> d&#39;une attribution est un <strong>GUID déterministe</strong> (<code>guid(...)</code>) — ainsi rejouer le déploiement ne crée pas de doublon (idempotence). ⚠️ <strong>Note émulateur :</strong> l&#39;attribution se <strong>valide</strong> ici ; l&#39;appliquer réellement demande un vrai compte (l&#39;API des rôles renvoie 404 sur miniblue). La <strong>logique</strong> est celle du vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles the <code>Microsoft.Authorization/roleAssignments</code> resource with no error. You described &quot;this principal has the <strong>Reader</strong> role on this resource group&quot;. Analyze the three ingredients: <strong>principalId</strong> (who), <strong>roleDefinitionId</strong> (what — the Reader role&#39;s stable id), the <strong>scope</strong> (<code>targetScope = &#39;resourceGroup&#39;</code>, where). ⚠️ An assignment&#39;s <code>name</code> is a <strong>deterministic GUID</strong> (<code>guid(...)</code>) — so re-running the deployment doesn&#39;t create a duplicate (idempotence). ⚠️ <strong>Emulator note:</strong> the assignment is <strong>validated</strong> here; actually applying it needs a real account (the roles API returns 404 on miniblue). The <strong>logic</strong> is real Azure&#39;s.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>rôle personnalisé</strong> au moindre privilège — en Bicep.</p>
+<p><strong>🤔 Exactement les bonnes permissions.</strong> Quand aucun rôle intégré ne convient (trop large, trop étroit), on crée un <strong>rôle personnalisé</strong> : on liste les <strong>actions</strong> autorisées, on fixe les <strong>portées assignables</strong>. Ici, un rôle « lecture seule du stockage ».</p>
+<p>Crée <code>role-perso.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>custom role</strong> at least privilege — in Bicep.</p>
+<p><strong>🤔 Exactly the right permissions.</strong> When no built-in role fits (too broad, too narrow), you create a <strong>custom role</strong>: you list the allowed <strong>actions</strong>, set the <strong>assignable scopes</strong>. Here, a &quot;storage read-only&quot; role.</p>
+<p>Create <code>role-perso.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// role-perso.bicep — un rôle personnalisé au moindre privilège
+targetScope = &#39;resourceGroup&#39;
+
+resource roleLectureStockage &#39;Microsoft.Authorization/roleDefinitions@2022-04-01&#39; = {
+  name: guid(resourceGroup().id, &#39;LectureStockage&#39;)
+  properties: {
+    roleName: &#39;Lecture stockage (labo)&#39;
+    description: &#39;Lecture seule sur les ressources de stockage&#39;
+    type: &#39;CustomRole&#39;
+    permissions: [
+      {
+        actions: [
+          &#39;Microsoft.Storage/storageAccounts/read&#39;
+          &#39;Microsoft.Storage/storageAccounts/blobServices/containers/read&#39;
+        ]
+        notActions: []
+      }
+    ]
+    assignableScopes: [
+      resourceGroup().id
+    ]
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build role-perso.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile la ressource <code>Microsoft.Authorization/roleDefinitions</code> sans erreur. Ton rôle n&#39;autorise <strong>que</strong> deux actions de lecture du stockage — le <strong>moindre privilège</strong> incarné. Retiens la structure : <code>actions</code> (ce qui est permis), <code>notActions</code> (exclusions), <code>assignableScopes</code> (où le rôle peut être attribué). ⚠️ Un rôle personnalisé ne <strong>donne</strong> aucun droit tant qu&#39;il n&#39;est pas <strong>attribué</strong> (étape 3) à un principal. Rôle = définition des permissions ; attribution = application à quelqu&#39;un. Deux objets distincts.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles the <code>Microsoft.Authorization/roleDefinitions</code> resource with no error. Your role allows <strong>only</strong> two storage-read actions — <strong>least privilege</strong> embodied. Remember the structure: <code>actions</code> (what&#39;s allowed), <code>notActions</code> (exclusions), <code>assignableScopes</code> (where the role can be assigned). ⚠️ A custom role <strong>grants</strong> no rights until it&#39;s <strong>assigned</strong> (step 3) to a principal. Role = permission definition; assignment = applying it to someone. Two distinct objects.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong>policy</strong> qui impose une règle — en Bicep (portée abonnement).</p>
+<p><strong>🤔 RBAC vs Policy.</strong> Le RBAC dit <strong>qui peut</strong> agir ; la <strong>Policy</strong> dit <strong>ce qui est permis</strong> sur les ressources. On impose : « toute ressource <strong>doit</strong> avoir un tag <code>env</code>, sinon on <strong>refuse</strong> la création ». C&#39;est une policy de portée <strong>abonnement</strong> (<code>targetScope = &#39;subscription&#39;</code>).</p>
+<p>Crée <code>policy.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>policy</strong> that enforces a rule — in Bicep (subscription scope).</p>
+<p><strong>🤔 RBAC vs Policy.</strong> RBAC says <strong>who can</strong> act; <strong>Policy</strong> says <strong>what is allowed</strong> on resources. We enforce: &quot;every resource <strong>must</strong> have an <code>env</code> tag, else creation is <strong>denied</strong>&quot;. It&#39;s a subscription-scoped policy (<code>targetScope = &#39;subscription&#39;</code>).</p>
+<p>Create <code>policy.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// policy.bicep — imposer le tag env (deny sinon), portée abonnement
+targetScope = &#39;subscription&#39;
+
+resource exigerTagEnv &#39;Microsoft.Authorization/policyDefinitions@2021-06-01&#39; = {
+  name: &#39;exiger-tag-env&#39;
+  properties: {
+    displayName: &#39;Exiger le tag env&#39;
+    policyType: &#39;Custom&#39;
+    mode: &#39;Indexed&#39;
+    policyRule: {
+      if: {
+        field: &#39;tags[env]&#39;
+        exists: &#39;false&#39;
+      }
+      then: {
+        effect: &#39;deny&#39;
+      }
+    }
+  }
+}
+
+resource appliquerTagEnv &#39;Microsoft.Authorization/policyAssignments@2022-06-01&#39; = {
+  name: &#39;appliquer-tag-env&#39;
+  properties: {
+    displayName: &#39;Appliquer : tag env obligatoire&#39;
+    policyDefinitionId: exigerTagEnv.id
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build policy.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile <strong>deux</strong> ressources — <code>policyDefinitions</code> (la règle) et <code>policyAssignments</code> (son application) — sans erreur. Ta policy <strong>refuse</strong> (<code>effect: deny</code>) toute ressource sans tag <code>env</code>. Retiens la distinction <strong>définition</strong> (la règle, réutilisable) vs <strong>attribution</strong> (l&#39;application à une portée). Et surtout <strong>RBAC ≠ Policy</strong> : RBAC = <strong>qui peut faire</strong> ; Policy = <strong>ce qui est autorisé</strong>. ⚠️ Les <code>effect</code> courants : <strong>deny</strong> (bloque), <strong>audit</strong> (signale sans bloquer), <strong>append/modify</strong> (corrige — ex. ajoute le tag manquant). Une <strong>policy définie à l&#39;abonnement s&#39;hérite</strong> sur tous les groupes de ressources dessous.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles <strong>two</strong> resources — <code>policyDefinitions</code> (the rule) and <code>policyAssignments</code> (its application) — with no error. Your policy <strong>denies</strong> (<code>effect: deny</code>) any resource without an <code>env</code> tag. Remember the distinction <strong>definition</strong> (the rule, reusable) vs <strong>assignment</strong> (applying it to a scope). And above all <strong>RBAC ≠ Policy</strong>: RBAC = <strong>who can do</strong>; Policy = <strong>what is allowed</strong>. ⚠️ Common <code>effect</code>s: <strong>deny</strong> (blocks), <strong>audit</strong> (flags without blocking), <strong>append/modify</strong> (fixes — e.g. adds the missing tag). A <strong>policy defined at the subscription inherits</strong> onto all resource groups below.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser un <strong>verrou</strong> et maîtriser les <strong>portées</strong> — protéger et gouverner.</p>
+<p><strong>🤔 Protéger et situer.</strong> Un <strong>verrou</strong> empêche une action dangereuse : <code>CanNotDelete</code> (modifiable, pas supprimable) ou <code>ReadOnly</code>. Et tout — rôles, policies — s&#39;assigne à une <strong>portée</strong> dans la hiérarchie ; plus la portée est haute, plus l&#39;effet est large (héritage).</p>
+<p>La config du verrou (Bicep) et la grille des portées :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set a <strong>lock</strong> and master <strong>scopes</strong> — protect and govern.</p>
+<p><strong>🤔 Protect and locate.</strong> A <strong>lock</strong> prevents a dangerous action: <code>CanNotDelete</code> (modifiable, not deletable) or <code>ReadOnly</code>. And everything — roles, policies — is assigned to a <strong>scope</strong> in the hierarchy; the higher the scope, the broader the effect (inheritance).</p>
+<p>The lock config (Bicep) and the scope grid:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// verrou.bicep — empêcher la suppression du groupe de ressources
+targetScope = &#39;resourceGroup&#39;
+
+resource verrou &#39;Microsoft.Authorization/locks@2020-05-01&#39; = {
+  name: &#39;ne-pas-supprimer&#39;
+  properties: {
+    level: &#39;CanNotDelete&#39;
+    notes: &#39;Groupe critique — suppression interdite&#39;
+  }
+}</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>PORTÉES / SCOPES (de la plus large à la plus étroite / broad -&gt; narrow)
+  Groupe d&#39;administration   gouverne plusieurs abonnements (héritage max)
+  Abonnement                unité de facturation ; rôles/policies larges
+  Groupe de ressources      un cycle de vie applicatif
+  Ressource                 une VM, un compte… (portée la plus fine)
+  =&gt; un rôle/une policy à un niveau S&#39;HÉRITE vers le bas</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build verrou.bicep</code> compile la ressource <code>Microsoft.Authorization/locks</code> sans erreur (verrou <code>CanNotDelete</code>). Tu sais <strong>protéger</strong> une ressource critique. Et tu maîtrises les <strong>portées</strong> : assigner un rôle à l&#39;<strong>abonnement</strong> le fait hériter à <strong>tous</strong> les groupes dessous — pratique pour un accès large, dangereux si trop permissif. Règle d&#39;or : <strong>assigne à la portée la plus étroite</strong> qui répond au besoin. ⚠️ Un verrou l&#39;emporte même sur les <strong>Propriétaires</strong> : pour supprimer une ressource verrouillée, il faut d&#39;abord <strong>retirer le verrou</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build verrou.bicep</code> compiles the <code>Microsoft.Authorization/locks</code> resource with no error (a <code>CanNotDelete</code> lock). You know how to <strong>protect</strong> a critical resource. And you master <strong>scopes</strong>: assigning a role at the <strong>subscription</strong> makes it inherit to <strong>all</strong> groups below — handy for broad access, dangerous if too permissive. Golden rule: <strong>assign at the narrowest scope</strong> that meets the need. ⚠️ A lock overrides even <strong>Owners</strong>: to delete a locked resource, you must first <strong>remove the lock</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime les identités et groupes créés en live sur miniblue. Les artefacts Bicep (rôles, policies, verrous) n&#39;ont pas été déployés — ils restaient à valider.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the identities and groups created live on miniblue. The Bicep artifacts (roles, policies, locks) weren&#39;t deployed — they were to be validated.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Live (miniblue) : identité + groupes / identity + groups
+azlocal identity delete --name id-app --resource-group rg-gouvernance
+azlocal group delete --name rg-gouvernance
+
+# Tags (Terraform) : détruire le groupe taggé / destroy the tagged group
+terraform destroy -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>identity delete</code> et <code>group delete</code> renvoient <code>Deleted</code> ; <code>terraform destroy</code> retire <code>rg-tags</code>. Ton labo est rangé. Tu maîtrises maintenant l&#39;identité et la gouvernance au niveau AZ-104 : les <strong>identités</strong> (dont les identités managées, live), le <strong>RBAC</strong> (principal → rôle → portée), le <strong>rôle personnalisé</strong> au moindre privilège, les <strong>policies</strong> (RBAC ≠ Policy), les <strong>tags</strong> et les <strong>verrous</strong>, et les <strong>portées</strong> avec héritage. La suite du track : le <strong>projet d&#39;entreprise</strong> AZ-104 (une infra complète, déployée en live), puis <strong>passer en réel</strong> et l&#39;examen.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>identity delete</code> and <code>group delete</code> return <code>Deleted</code>; <code>terraform destroy</code> removes <code>rg-tags</code>. Your lab is tidy. You now master identity and governance at AZ-104 level: <strong>identities</strong> (including live managed identities), <strong>RBAC</strong> (principal → role → scope), the least-privilege <strong>custom role</strong>, <strong>policies</strong> (RBAC ≠ Policy), <strong>tags</strong> and <strong>locks</strong>, and <strong>scopes</strong> with inheritance. The track continues: the AZ-104 <strong>enterprise project</strong> (a full infra, deployed live), then <strong>going real</strong> and the exam.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Confondre RBAC et Policy.</strong> RBAC = <strong>qui peut faire</strong> (autorisation d&#39;un principal). Policy = <strong>ce qui est autorisé</strong> sur les ressources (conformité). Deux mécanismes complémentaires, pas interchangeables.</p>
+<p><strong>2. Donner Propriétaire « par confort ».</strong> C&#39;est l&#39;anti-moindre-privilège. Attribue le rôle <strong>le plus étroit</strong> (souvent Contributeur ou un rôle spécialisé), à la <strong>portée la plus étroite</strong>.</p>
+<p><strong>3. Attribuer des rôles à des utilisateurs un par un.</strong> Utilise des <strong>groupes</strong> : on gère l&#39;appartenance, pas des dizaines d&#39;attributions. Plus simple, plus sûr.</p>
+<p><strong>4. Mot de passe pour un workload.</strong> Préfère une <strong>identité managée</strong> — pas de secret à stocker ni à faire tourner.</p>
+<p><strong>5. Oublier l&#39;héritage des portées.</strong> Un rôle à l&#39;abonnement descend sur <strong>tout</strong>. Assigner trop haut = donner trop.</p>
+<p><strong>6. Croire qu&#39;un rôle personnalisé donne des droits.</strong> Non : il faut l&#39;<strong>attribuer</strong>. Définition ≠ attribution.</p>
+<p><strong>7. Attendre que miniblue applique RBAC/policies.</strong> L&#39;émulateur ne les provisionne pas (API rôles 404). On les <strong>valide</strong> en Bicep ; on les <strong>déploie</strong> sur un vrai compte.</p>
+</div>
+<div data-lang="en"><p><strong>1. Confusing RBAC and Policy.</strong> RBAC = <strong>who can do</strong> (a principal&#39;s authorization). Policy = <strong>what is allowed</strong> on resources (compliance). Two complementary mechanisms, not interchangeable.</p>
+<p><strong>2. Granting Owner &quot;for convenience&quot;.</strong> It&#39;s the anti-least-privilege. Assign the <strong>narrowest</strong> role (often Contributor or a specialized role), at the <strong>narrowest scope</strong>.</p>
+<p><strong>3. Assigning roles to users one by one.</strong> Use <strong>groups</strong>: you manage membership, not dozens of assignments. Simpler, safer.</p>
+<p><strong>4. A password for a workload.</strong> Prefer a <strong>managed identity</strong> — no secret to store or rotate.</p>
+<p><strong>5. Forgetting scope inheritance.</strong> A role at the subscription flows down onto <strong>everything</strong>. Assigning too high = granting too much.</p>
+<p><strong>6. Thinking a custom role grants rights.</strong> No: you must <strong>assign</strong> it. Definition ≠ assignment.</p>
+<p><strong>7. Expecting miniblue to enforce RBAC/policies.</strong> The emulator doesn&#39;t provision them (roles API 404). You <strong>validate</strong> them in Bicep; you <strong>deploy</strong> them on a real account.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu cites les <strong>4 types d&#39;identités</strong> et crées une <strong>identité managée</strong> (live).</li><li>Tu poses des <strong>tags</strong> en live et expliques leur double usage.</li><li>Tu écris une <strong>attribution de rôle</strong> (Bicep) : principal → rôle → portée.</li><li>Tu écris un <strong>rôle personnalisé</strong> au moindre privilège (Bicep).</li><li>Tu écris une <strong>policy</strong> (Bicep) et la distingues du RBAC.</li><li>Tu décris un <strong>verrou</strong> et expliques les <strong>portées</strong> &amp; l&#39;héritage.</li><li>Tu appliques le <strong>moindre privilège</strong>.</li></ul>
+<p>Sept cases = tu tiens l&#39;identité &amp; la gouvernance au niveau AZ-104. La suite : le <strong>projet d&#39;entreprise</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You name the <strong>4 identity types</strong> and create a <strong>managed identity</strong> (live).</li><li>You set <strong>tags</strong> live and explain their dual use.</li><li>You write a <strong>role assignment</strong> (Bicep): principal → role → scope.</li><li>You write a <strong>custom role</strong> at least privilege (Bicep).</li><li>You write a <strong>policy</strong> (Bicep) and distinguish it from RBAC.</li><li>You describe a <strong>lock</strong> and explain <strong>scopes</strong> &amp; inheritance.</li><li>You apply <strong>least privilege</strong>.</li></ul>
+<p>Seven boxes = you hold identity &amp; governance at AZ-104 level. Next up: the <strong>enterprise project</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-104 continue :</p>
+<ol><li><strong>Azure — projet d&#39;entreprise</strong> : une infrastructure complète (réseau, stockage, calcul, identité, gouvernance) décrite en IaC et déployée en live contre miniblue — le livrable de CV.</li><li>Puis <strong>passer en réel</strong> (vrai compte, déploiement, garde-fous de coût) et la <strong>certification AZ-104</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-104 track continues:</p>
+<ol><li><strong>Azure — enterprise project</strong>: a complete infrastructure (networking, storage, compute, identity, governance) described in IaC and deployed live against miniblue — the CV deliverable.</li><li>Then <strong>going real</strong> (real account, deployment, cost guardrails) and the <strong>AZ-104 certification</strong>.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire identité &amp; gouvernance Azure.</p>
+</div>
+<div data-lang="en"><p>Azure identity &amp; governance cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Live (miniblue) : identité managée + tags / managed identity + tags
+azlocal identity create --name id-app --resource-group rg-gouvernance
+azlocal identity list --resource-group rg-gouvernance
+terraform apply -auto-approve      # groupe avec tags / group with tags
+
+# IaC (Bicep, hors-ligne) / IaC (Bicep, offline)
+bicep build rbac.bicep --stdout        # attribution de rôle (principal -&gt; rôle -&gt; portée)
+bicep build role-perso.bicep --stdout  # rôle personnalisé (actions, assignableScopes)
+bicep build policy.bicep --stdout      # policy (deny/audit) — portée abonnement
+bicep build verrou.bicep --stdout      # verrou CanNotDelete / ReadOnly</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>RBAC   = qui peut faire (principal + rôle + portée)
+Policy = ce qui est autorisé (deny/audit/append) sur les ressources
+Rôles  : Propriétaire &gt; Contributeur &gt; Lecteur (+ rôles spécialisés / personnalisés)
+Portées: groupe d&#39;administration &gt; abonnement &gt; groupe de ressources &gt; ressource (héritage vers le bas)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/entra/fundamentals/whatis">Microsoft Entra ID</a> — identités, groupes, principaux.</li><li><a href="https://learn.microsoft.com/azure/role-based-access-control/overview">RBAC Azure</a> — rôles, attributions, portées.</li><li><a href="https://learn.microsoft.com/azure/role-based-access-control/built-in-roles">Rôles intégrés Azure</a> — le catalogue.</li><li><a href="https://learn.microsoft.com/azure/governance/policy/overview">Azure Policy</a> — imposer la conformité.</li><li><a href="https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources">Verrous de ressources</a> — protéger de la suppression.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/entra/fundamentals/whatis">Microsoft Entra ID</a> — identities, groups, principals.</li><li><a href="https://learn.microsoft.com/azure/role-based-access-control/overview">Azure RBAC</a> — roles, assignments, scopes.</li><li><a href="https://learn.microsoft.com/azure/role-based-access-control/built-in-roles">Azure built-in roles</a> — the catalog.</li><li><a href="https://learn.microsoft.com/azure/governance/policy/overview">Azure Policy</a> — enforce compliance.</li><li><a href="https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources">Resource locks</a> — protect from deletion.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal identity create</code> : connexion refusée.</strong> miniblue ne tourne pas. Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+<p><strong><code>bicep build rbac.bicep</code> : <code>principalId</code> manquant.</strong> Le paramètre est requis ; passe-le au déploiement (<code>--parameters principalId=...</code>) ou donne-lui une valeur par défaut pour la simple compilation.</p>
+<p><strong><code>bicep build policy.bicep</code> : erreur de portée (BCP135).</strong> Les <code>policyDefinitions</code> s&#39;écrivent à la portée <strong>abonnement</strong> (<code>targetScope = &#39;subscription&#39;</code>), pas groupe de ressources. Sépare-les des ressources de portée groupe.</p>
+<p><strong><code>terraform apply</code> (tags) : erreur de certificat.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> avant de lancer Terraform.</p>
+<p><strong>Mon attribution/policy « ne fait rien » sur miniblue.</strong> Normal : l&#39;émulateur ne provisionne pas ces API (rôles 404). On les <strong>valide</strong> en Bicep ici ; l&#39;effet réel est sur un vrai compte.</p>
+<p><strong>Une suppression échoue à cause d&#39;un verrou.</strong> Retire d&#39;abord le verrou (<code>CanNotDelete</code>) puis supprime. Le verrou l&#39;emporte même sur les Propriétaires.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal identity create</code>: connection refused.</strong> miniblue isn&#39;t running. Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+<p><strong><code>bicep build rbac.bicep</code>: missing <code>principalId</code>.</strong> The param is required; pass it at deployment (<code>--parameters principalId=...</code>) or give it a default for plain compilation.</p>
+<p><strong><code>bicep build policy.bicep</code>: scope error (BCP135).</strong> <code>policyDefinitions</code> are written at <strong>subscription</strong> scope (<code>targetScope = &#39;subscription&#39;</code>), not resource group. Separate them from resource-group-scoped resources.</p>
+<p><strong><code>terraform apply</code> (tags): certificate error.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> before running Terraform.</p>
+<p><strong>My assignment/policy &quot;does nothing&quot; on miniblue.</strong> Normal: the emulator doesn&#39;t provision these APIs (roles 404). We <strong>validate</strong> them in Bicep here; the real effect is on a real account.</p>
+<p><strong>A deletion fails because of a lock.</strong> Remove the lock (<code>CanNotDelete</code>) first, then delete. The lock overrides even Owners.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
