@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — connectivité hybride (AZ-700) : peering, VPN, ExpressRoute — jiha.tech</title>
+  <title data-lang="en">Azure — hybrid connectivity (AZ-700): peering, VPN, ExpressRoute — jiha.tech</title>
+  <meta name="description" content="&quot;Relier les réseaux pour l&#39;AZ-700, en local et pour de vrai : le peering de VNets (vérification du non-chevauchement + modèle de gateway transit hub-spoke), la passerelle VPN site-to-site écrite et validée en Bicep, un moteur de décision exécutable qui choisit la bonne connectivité (peering / peering global / VPN / ExpressRoute) selon le besoin, ExpressRoute (lien privé dédié) vs VPN, et la propagation des routes par BGP sur la connexion. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Connecting networks for AZ-700, locally and for real: VNet peering (non-overlap check + hub-spoke gateway transit model), the site-to-site VPN gateway written and validated in Bicep, a runnable decision engine choosing the right connectivity (peering / global peering / VPN / ExpressRoute) by need, ExpressRoute (private dedicated link) vs VPN, and route propagation by BGP over the connection. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — connectivité hybride (AZ-700) : peering, VPN, ExpressRoute">
+  <meta property="og:description" content="&quot;Relier les réseaux pour l&#39;AZ-700, en local et pour de vrai : le peering de VNets (vérification du non-chevauchement + modèle de gateway transit hub-spoke), la passerelle VPN site-to-site écrite et validée en Bicep, un moteur de décision exécutable qui choisit la bonne connectivité (peering / peering global / VPN / ExpressRoute) selon le besoin, ExpressRoute (lien privé dédié) vs VPN, et la propagation des routes par BGP sur la connexion. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-reseau-hybride/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-reseau-hybride/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-reseau-hybride">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-reseau-hybride</div>
+    <div class="prompt" data-lang="en">~/guides/azure-reseau-hybride</div>
+    <h1 data-lang="fr">Azure — connectivité hybride (AZ-700) : peering, VPN, ExpressRoute</h1>
+    <h1 data-lang="en">Azure — hybrid connectivity (AZ-700): peering, VPN, ExpressRoute</h1>
+    <p class="tagline" data-lang="fr">relier les VNets et le datacenter — le bon lien pour chaque besoin.</p>
+    <p class="tagline" data-lang="en">connect VNets and the datacenter — the right link for each need.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un VNet isolé est rare : en entreprise, il faut <strong>relier</strong> — des VNets entre eux, et Azure au <strong>datacenter</strong> ou aux sites distants. L&#39;<strong>AZ-700</strong> attend que tu saches choisir et concevoir la <strong>bonne connectivité</strong> : <strong>peering</strong> de VNets, <strong>VPN site-to-site</strong>, <strong>ExpressRoute</strong>. Le mauvais choix coûte cher (débit, latence, sécurité) ; le bon rend le réseau <strong>hybride</strong> fluide.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on <strong>relie deux VNets par peering</strong> (avec la vérification du <strong>non-chevauchement</strong> et le modèle de <strong>gateway transit</strong> hub-spoke), on écrit et <strong>valide</strong> une <strong>passerelle VPN site-to-site</strong> en <strong>Bicep</strong>, on <strong>exécute</strong> un <strong>moteur de décision</strong> qui choisit la connectivité (<strong>peering</strong> / peering <strong>global</strong> / <strong>VPN</strong> / <strong>ExpressRoute</strong>) selon le besoin, on compare <strong>ExpressRoute</strong> (lien privé dédié) et <strong>VPN</strong>, et on voit la <strong>propagation des routes par BGP</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises l&#39;adressage et le routage (guides précédents) et tu veux <strong>connecter</strong> les réseaux.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas les fondations réseau → fais les guides AZ-700 précédents.</li><li>Tu veux la <strong>distribution</strong> applicative (load balancer, Front Door) → c&#39;est le <strong>guide suivant</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>An isolated VNet is rare: in the enterprise, you must <strong>connect</strong> — VNets to each other, and Azure to the <strong>datacenter</strong> or remote sites. <strong>AZ-700</strong> expects you to choose and design the <strong>right connectivity</strong>: VNet <strong>peering</strong>, <strong>site-to-site VPN</strong>, <strong>ExpressRoute</strong>. The wrong choice is costly (throughput, latency, security); the right one makes the <strong>hybrid</strong> network smooth.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we <strong>connect two VNets by peering</strong> (with the <strong>non-overlap</strong> check and the hub-spoke <strong>gateway transit</strong> model), we write and <strong>validate</strong> a <strong>site-to-site VPN gateway</strong> in <strong>Bicep</strong>, we <strong>run</strong> a <strong>decision engine</strong> that picks the connectivity (<strong>peering</strong> / <strong>global</strong> peering / <strong>VPN</strong> / <strong>ExpressRoute</strong>) by need, we compare <strong>ExpressRoute</strong> (private dedicated link) and <strong>VPN</strong>, and we see <strong>route propagation by BGP</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you master addressing and routing (previous guides) and want to <strong>connect</strong> networks.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You lack the network foundations → do the previous AZ-700 guides.</li><li>You want application <strong>delivery</strong> (load balancer, Front Door) → that&#39;s the <strong>next guide</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Relier</strong> deux VNets par <strong>peering</strong> (et vérifier le non-chevauchement).</li><li>Comprendre le <strong>gateway transit</strong> (un spoke utilise la passerelle du hub).</li><li>Écrire une <strong>passerelle VPN site-to-site</strong> et la <strong>valider</strong> en Bicep.</li><li><strong>Choisir</strong> la bonne connectivité selon le besoin (moteur de décision).</li><li>Comparer <strong>VPN site-to-site</strong> et <strong>ExpressRoute</strong>.</li><li>Comprendre la <strong>propagation des routes par BGP</strong> sur une connexion.</li><li>Distinguer <strong>peering</strong>, <strong>peering global</strong>, <strong>VPN</strong> et <strong>ExpressRoute</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Connect</strong> two VNets by <strong>peering</strong> (and check non-overlap).</li><li>Understand <strong>gateway transit</strong> (a spoke uses the hub&#39;s gateway).</li><li>Write a <strong>site-to-site VPN gateway</strong> and <strong>validate</strong> it in Bicep.</li><li><strong>Choose</strong> the right connectivity by need (decision engine).</li><li>Compare <strong>site-to-site VPN</strong> and <strong>ExpressRoute</strong>.</li><li>Understand <strong>route propagation by BGP</strong> over a connection.</li><li>Distinguish <strong>peering</strong>, <strong>global peering</strong>, <strong>VPN</strong> and <strong>ExpressRoute</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Azure — réseau fondamentaux / routage (AZ-700)</strong>.</li><li>Le <strong>lab local</strong> : <strong>Bicep CLI</strong> (<code>az bicep install</code> ou binaire), <strong>Python 3</strong> (module <code>ipaddress</code>), <strong>miniblue</strong> optionnel.</li><li><strong>Aucun compte cloud</strong> : peering/décision en local, passerelle VPN validée en Bicep.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — network fundamentals / routing (AZ-700)</strong> guides.</li><li>The <strong>local lab</strong>: <strong>Bicep CLI</strong> (<code>az bicep install</code> or binary), <strong>Python 3</strong> (<code>ipaddress</code> module), <strong>miniblue</strong> optional.</li><li><strong>No cloud account</strong>: peering/decision locally, VPN gateway validated in Bicep.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-reseau-routage/">
+    <span class="num">83</span>
+    <span class="title-line" data-lang="fr">Azure — routage réseau (AZ-700) : routes système, UDR, tunneling forcé</span>
+    <span class="title-line" data-lang="en">Azure — network routing (AZ-700): system routes, UDR, forced tunneling</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le peering de VNets.</strong> Relier <strong>deux VNets</strong> directement : le trafic circule en <strong>privé</strong> (backbone Microsoft), à <strong>faible latence</strong>, sans passerelle. Deux variantes : <strong>régional</strong> (même région) et <strong>global</strong> (régions différentes). La contrainte <strong>absolue</strong> (vue au guide fondamentaux) : les <strong>espaces d&#39;adressage ne doivent pas se chevaucher</strong>. Le peering est <strong>non transitif</strong> : si A↔B et B↔C, A <strong>n&#39;atteint pas</strong> C automatiquement — d&#39;où la topologie <strong>hub-and-spoke</strong> avec des artifices (gateway transit, routes).</p>
+<p><strong>Le gateway transit.</strong> Dans un hub-and-spoke, seule la <strong>passerelle</strong> vit dans le <strong>hub</strong> (une par VNet, coûteuse). Grâce au <strong>gateway transit</strong>, un <strong>spoke</strong> peut <strong>utiliser la passerelle du hub</strong> (via le peering) pour atteindre l&#39;<strong>on-premises</strong> ou un autre réseau — sans sa propre passerelle. On mutualise : une passerelle au hub, tous les spokes en profitent.</p>
+<p><strong>Le VPN site-to-site.</strong> Relier ton <strong>datacenter</strong> (on-prem) à Azure par un <strong>tunnel IPsec chiffré</strong> <strong>via Internet</strong>. Côté Azure : une <strong>passerelle VPN</strong> (dans le <code>GatewaySubnet</code>) ; côté on-prem : un équipement VPN. On décrit aussi une <strong>passerelle de réseau local</strong> (l&#39;IP publique + les plages de l&#39;on-prem) et une <strong>connexion</strong>. Avantage : <strong>rapide</strong> à monter, pas cher. Limite : passe par <strong>Internet</strong> (débit et latence <strong>variables</strong>).</p>
+<p><strong>ExpressRoute.</strong> Un <strong>lien privé dédié</strong> entre ton on-prem et Azure, <strong>sans passer par Internet</strong> (via un fournisseur). Avantages : <strong>débit garanti</strong> (jusqu&#39;à des dizaines de Gbps), <strong>latence faible et stable</strong>, <strong>SLA</strong>, plus <strong>sûr</strong> (trafic isolé). Coût et délai de mise en place <strong>supérieurs</strong>. Le choix pour les charges <strong>critiques</strong> ou à <strong>fort débit</strong>.</p>
+<p><strong>Le choix de connectivité.</strong> La question centrale de l&#39;AZ-700 : <strong>quel lien pour quel besoin</strong> ? VNet↔VNet même région → <strong>peering</strong> ; VNet↔VNet multi-région → <strong>peering global</strong> ; on-prem↔Azure rapide/pas cher → <strong>VPN S2S</strong> ; on-prem↔Azure critique/gros débit → <strong>ExpressRoute</strong>. Un tableau de décision évite les erreurs coûteuses.</p>
+<p><strong>BGP &amp; propagation des routes.</strong> Sur une connexion (VPN ou ExpressRoute), <strong>BGP</strong> échange <strong>dynamiquement</strong> les routes : Azure <strong>annonce</strong> ses plages, l&#39;on-prem annonce les siennes. Les routes <strong>apprises</strong> (BGP) apparaissent dans les <strong>routes effectives</strong> (guide routage) — pas besoin de tout déclarer à la main. C&#39;est ce qui rend l&#39;hybride <strong>dynamique</strong>.</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>peering</strong> (non-chevauchement + <strong>gateway transit</strong>) est un <strong>modèle exécutable</strong> en Python — de <strong>vraies</strong> vérifications. La <strong>passerelle VPN</strong> (+ IP publique) s&#39;écrit et se <strong>compile en ARM</strong> avec <strong>Bicep</strong> (validation ; miniblue ne l&#39;émule pas). Le <strong>choix de connectivité</strong> est un <strong>moteur de décision</strong> exécutable. <strong>ExpressRoute</strong> et <strong>BGP</strong> se <strong>raisonnent</strong>. Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>VNet peering.</strong> Connecting <strong>two VNets</strong> directly: traffic flows <strong>privately</strong> (Microsoft backbone), at <strong>low latency</strong>, with no gateway. Two variants: <strong>regional</strong> (same region) and <strong>global</strong> (different regions). The <strong>absolute</strong> constraint (seen in the fundamentals guide): <strong>address spaces must not overlap</strong>. Peering is <strong>non-transitive</strong>: if A↔B and B↔C, A does <strong>not</strong> reach C automatically — hence the <strong>hub-and-spoke</strong> topology with tricks (gateway transit, routes).</p>
+<p><strong>Gateway transit.</strong> In a hub-and-spoke, only the <strong>gateway</strong> lives in the <strong>hub</strong> (one per VNet, costly). With <strong>gateway transit</strong>, a <strong>spoke</strong> can <strong>use the hub&#39;s gateway</strong> (via peering) to reach <strong>on-premises</strong> or another network — without its own gateway. You share: one gateway at the hub, all spokes benefit.</p>
+<p><strong>Site-to-site VPN.</strong> Connecting your <strong>datacenter</strong> (on-prem) to Azure via an <strong>encrypted IPsec tunnel</strong> <strong>over the Internet</strong>. On the Azure side: a <strong>VPN gateway</strong> (in the <code>GatewaySubnet</code>); on-prem: a VPN device. You also describe a <strong>local network gateway</strong> (the public IP + on-prem ranges) and a <strong>connection</strong>. Pro: <strong>fast</strong> to set up, cheap. Con: goes over <strong>the Internet</strong> (<strong>variable</strong> throughput and latency).</p>
+<p><strong>ExpressRoute.</strong> A <strong>private dedicated link</strong> between your on-prem and Azure, <strong>without going through the Internet</strong> (via a provider). Pros: <strong>guaranteed throughput</strong> (up to tens of Gbps), <strong>low, stable latency</strong>, <strong>SLA</strong>, more <strong>secure</strong> (isolated traffic). Higher <strong>cost</strong> and setup time. The choice for <strong>critical</strong> or <strong>high-throughput</strong> workloads.</p>
+<p><strong>The connectivity choice.</strong> AZ-700&#39;s central question: <strong>which link for which need</strong>? VNet↔VNet same region → <strong>peering</strong>; VNet↔VNet multi-region → <strong>global peering</strong>; on-prem↔Azure fast/cheap → <strong>S2S VPN</strong>; on-prem↔Azure critical/high-throughput → <strong>ExpressRoute</strong>. A decision table avoids costly mistakes.</p>
+<p><strong>BGP &amp; route propagation.</strong> Over a connection (VPN or ExpressRoute), <strong>BGP</strong> exchanges routes <strong>dynamically</strong>: Azure <strong>advertises</strong> its ranges, on-prem advertises its own. <strong>Learned</strong> routes (BGP) appear in the <strong>effective routes</strong> (routing guide) — no need to declare everything by hand. That&#39;s what makes hybrid <strong>dynamic</strong>.</p>
+<p><strong>What&#39;s live here.</strong> <strong>Peering</strong> (non-overlap + <strong>gateway transit</strong>) is a <strong>runnable model</strong> in Python — <strong>real</strong> checks. The <strong>VPN gateway</strong> (+ public IP) is written and <strong>compiled to ARM</strong> with <strong>Bicep</strong> (validation; miniblue doesn&#39;t emulate it). The <strong>connectivity choice</strong> is a runnable <strong>decision engine</strong>. <strong>ExpressRoute</strong> and <strong>BGP</strong> are <strong>reasoned</strong>. All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-reseau-hybride-connexions">
+  <p>[schema "azure-reseau-hybride-connexions" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La connectivité hybride : des VNets reliés par PEERING (privé, faible latence, non transitif, plages non chevauchantes) en HUB-AND-SPOKE ; le hub porte la PASSERELLE VPN, les spokes l&#39;empruntent (GATEWAY TRANSIT). Vers l&#39;on-prem : VPN SITE-TO-SITE (tunnel IPsec via Internet, rapide/pas cher) ou EXPRESSROUTE (lien privé dédié, débit garanti, SLA). BGP propage les routes dynamiquement. Le bon lien selon le besoin.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Hybrid connectivity: VNets linked by PEERING (private, low latency, non-transitive, non-overlapping ranges) in HUB-AND-SPOKE; the hub holds the VPN GATEWAY, spokes borrow it (GATEWAY TRANSIT). To on-prem: SITE-TO-SITE VPN (IPsec tunnel over the Internet, fast/cheap) or EXPRESSROUTE (private dedicated link, guaranteed throughput, SLA). BGP propagates routes dynamically. The right link by need.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Relier deux VNets par peering</strong> — et vérifier le non-chevauchement.</p>
+<p><strong>🤔 Connecter en privé.</strong> Le peering relie deux VNets <strong>directement</strong> (trafic privé, faible latence). Condition : plages <strong>non chevauchantes</strong>. On modélise un hub et deux spokes et on vérifie la compatibilité.</p>
+<p>Vérifie la compatibilité de peering :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Connect two VNets by peering</strong> — and check non-overlap.</p>
+<p><strong>🤔 Connect privately.</strong> Peering connects two VNets <strong>directly</strong> (private traffic, low latency). Condition: <strong>non-overlapping</strong> ranges. We model a hub and two spokes and check compatibility.</p>
+<p>Check peering compatibility:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p hybride &amp;&amp; cd hybride
+cat &gt; peering.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+hub    = {&quot;nom&quot;: &quot;vnet-hub&quot;, &quot;plage&quot;: &quot;10.0.0.0/16&quot;, &quot;a_passerelle&quot;: True}
+spokes = [
+    {&quot;nom&quot;: &quot;spoke-prod&quot;, &quot;plage&quot;: &quot;10.1.0.0/16&quot;},
+    {&quot;nom&quot;: &quot;spoke-dev&quot;,  &quot;plage&quot;: &quot;10.2.0.0/16&quot;},
+    {&quot;nom&quot;: &quot;spoke-faux&quot;, &quot;plage&quot;: &quot;10.0.7.0/24&quot;},   # chevauche le hub
+]
+h = ipaddress.ip_network(hub[&quot;plage&quot;])
+print(f&quot;HUB {hub[&#39;nom&#39;]} ({hub[&#39;plage&#39;]})&quot;)
+for s in spokes:
+    net = ipaddress.ip_network(s[&quot;plage&quot;])
+    ok = not net.overlaps(h)
+    print(f&quot;  {s[&#39;nom&#39;]:12} {s[&#39;plage&#39;]:13} -&gt; {&#39;✅ peering OK&#39; if ok else &#39;❌ chevauche le hub (peering impossible)&#39;}&quot;)
+PY
+python3 peering.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre <code>spoke-prod 10.1.0.0/16 -&gt; ✅ peering OK</code>, <code>spoke-dev 10.2.0.0/16 -&gt; ✅ peering OK</code>, mais <code>spoke-faux 10.0.7.0/24 -&gt; ❌ chevauche le hub (peering impossible)</code>. Le peering relie chaque spoke au hub <strong>en privé</strong> — à condition que les plages <strong>ne se chevauchent pas</strong>. Rappel clé : le peering est <strong>non transitif</strong> — <code>spoke-prod</code> peut joindre le hub, mais <strong>pas</strong> <code>spoke-dev</code> directement (il faut le hub comme relais). C&#39;est pourquoi le hub <strong>centralise</strong> les services partagés. Un de ces services : la <strong>passerelle</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>spoke-prod 10.1.0.0/16 -&gt; ✅ peering OK</code>, <code>spoke-dev 10.2.0.0/16 -&gt; ✅ peering OK</code>, but <code>spoke-faux 10.0.7.0/24 -&gt; ❌ chevauche le hub (peering impossible)</code>. Peering connects each spoke to the hub <strong>privately</strong> — provided ranges <strong>don&#39;t overlap</strong>. Key reminder: peering is <strong>non-transitive</strong> — <code>spoke-prod</code> can reach the hub, but <strong>not</strong> <code>spoke-dev</code> directly (the hub relays). That&#39;s why the hub <strong>centralizes</strong> shared services. One of those services: the <strong>gateway</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>gateway transit</strong> — un spoke utilise la passerelle du hub.</p>
+<p><strong>🤔 Une passerelle, mutualisée.</strong> Une passerelle est <strong>coûteuse</strong> et <strong>une seule par VNet</strong>. Avec le <strong>gateway transit</strong>, les spokes <strong>empruntent</strong> la passerelle du <strong>hub</strong> (via le peering) pour atteindre l&#39;on-prem. On modélise ce transit.</p>
+<p>Modélise le gateway transit :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>gateway transit</strong> — a spoke uses the hub&#39;s gateway.</p>
+<p><strong>🤔 One gateway, shared.</strong> A gateway is <strong>costly</strong> and <strong>one per VNet</strong>. With <strong>gateway transit</strong>, spokes <strong>borrow</strong> the <strong>hub&#39;s</strong> gateway (via peering) to reach on-prem. We model this transit.</p>
+<p>Model gateway transit:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; transit.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+hub    = {&quot;nom&quot;: &quot;vnet-hub&quot;, &quot;plage&quot;: &quot;10.0.0.0/16&quot;, &quot;a_passerelle&quot;: True}
+spokes = [{&quot;nom&quot;: &quot;spoke-prod&quot;, &quot;plage&quot;: &quot;10.1.0.0/16&quot;}, {&quot;nom&quot;: &quot;spoke-dev&quot;, &quot;plage&quot;: &quot;10.2.0.0/16&quot;}]
+h = ipaddress.ip_network(hub[&quot;plage&quot;])
+print(f&quot;HUB {hub[&#39;nom&#39;]} — passerelle VPN : {&#39;oui&#39; if hub[&#39;a_passerelle&#39;] else &#39;non&#39;}&quot;)
+for s in spokes:
+    if ipaddress.ip_network(s[&quot;plage&quot;]).overlaps(h):
+        print(f&quot;  {s[&#39;nom&#39;]:12} ❌ chevauche le hub&quot;); continue
+    transit = &quot;emprunte la passerelle du hub (gateway transit) -&gt; atteint l&#39;on-prem&quot; if hub[&quot;a_passerelle&quot;] else &quot;pas de passerelle disponible&quot;
+    print(f&quot;  {s[&#39;nom&#39;]:12} ✅ peere au hub ; {transit}&quot;)
+PY
+python3 transit.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie confirme <code>HUB vnet-hub — passerelle VPN : oui</code>, puis pour chaque spoke : <code>✅ peere au hub ; emprunte la passerelle du hub (gateway transit) -&gt; atteint l&#39;on-prem</code>. Sans gateway transit, <strong>chaque</strong> spoke aurait besoin de <strong>sa propre</strong> passerelle (coûteux, complexe). Avec, <strong>une seule</strong> passerelle (au hub) sert <strong>tous</strong> les spokes. C&#39;est <strong>l&#39;</strong> intérêt majeur du hub-and-spoke pour l&#39;hybride : mutualiser la connectivité on-prem. Reste à décrire cette <strong>passerelle VPN</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output confirms <code>HUB vnet-hub — passerelle VPN : oui</code>, then for each spoke: <code>✅ peere au hub ; emprunte la passerelle du hub (gateway transit) -&gt; atteint l&#39;on-prem</code>. Without gateway transit, <strong>each</strong> spoke would need <strong>its own</strong> gateway (costly, complex). With it, <strong>one</strong> gateway (at the hub) serves <strong>all</strong> spokes. That&#39;s <strong>the</strong> major benefit of hub-and-spoke for hybrid: sharing on-prem connectivity. Now to describe that <strong>VPN gateway</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong>passerelle VPN site-to-site</strong> et la <strong>valider</strong> en Bicep.</p>
+<p><strong>🤔 Le pont vers l&#39;on-prem.</strong> Une <strong>passerelle VPN</strong> (dans le <code>GatewaySubnet</code>) monte un <strong>tunnel IPsec</strong> vers ton datacenter. Elle a besoin d&#39;une <strong>IP publique</strong>. On l&#39;écrit en Bicep et on la <strong>compile</strong>.</p>
+<p>Écris la passerelle VPN en Bicep et valide-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>site-to-site VPN gateway</strong> and <strong>validate</strong> it in Bicep.</p>
+<p><strong>🤔 The bridge to on-prem.</strong> A <strong>VPN gateway</strong> (in the <code>GatewaySubnet</code>) sets up an <strong>IPsec tunnel</strong> to your datacenter. It needs a <strong>public IP</strong>. We write it in Bicep and <strong>compile</strong> it.</p>
+<p>Write the VPN gateway in Bicep and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; vpngw.bicep &lt;&lt;&#39;BICEP&#39;
+param location string = resourceGroup().location
+
+resource pip &#39;Microsoft.Network/publicIPAddresses@2023-05-01&#39; = {
+  name: &#39;pip-vpngw&#39;
+  location: location
+  sku: { name: &#39;Standard&#39; }
+  properties: { publicIPAllocationMethod: &#39;Static&#39; }
+}
+
+resource vpngw &#39;Microsoft.Network/virtualNetworkGateways@2023-05-01&#39; = {
+  name: &#39;vpn-gw&#39;
+  location: location
+  properties: {
+    gatewayType: &#39;Vpn&#39;
+    vpnType: &#39;RouteBased&#39;
+    sku: { name: &#39;VpnGw1&#39;, tier: &#39;VpnGw1&#39; }
+    ipConfigurations: [
+      {
+        name: &#39;default&#39;
+        properties: {
+          privateIPAllocationMethod: &#39;Dynamic&#39;
+          publicIPAddress: { id: pip.id }
+          subnet: { id: resourceId(&#39;Microsoft.Network/virtualNetworks/subnets&#39;, &#39;vnet-hub&#39;, &#39;GatewaySubnet&#39;) }
+        }
+      }
+    ]
+  }
+}
+BICEP
+
+bicep build vpngw.bicep --stdout 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;VPN gateway -&gt; ARM OK, ressources:&#39;, [r[&#39;type&#39;].split(&#39;/&#39;)[-1] for r in d[&#39;resources&#39;]])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>VPN gateway -&gt; ARM OK, ressources: [&#39;publicIPAddresses&#39;, &#39;virtualNetworkGateways&#39;]</code>. La passerelle est <strong>valide</strong> : type <code>Vpn</code>, <code>RouteBased</code> (compatible BGP), SKU <code>VpnGw1</code>, une <strong>IP publique</strong>, dans le <code>GatewaySubnet</code>. C&#39;est le <strong>côté Azure</strong> du tunnel. Il manque, côté configuration, la <strong>passerelle de réseau local</strong> (l&#39;IP publique + les plages de ton on-prem) et la <strong>connexion</strong> (qui relie les deux, avec la clé partagée). ⚠️ miniblue n&#39;exécute pas les passerelles : on les <strong>valide</strong> en Bicep. Reste <strong>la</strong> question : quel lien choisir ?</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>VPN gateway -&gt; ARM OK, ressources: [&#39;publicIPAddresses&#39;, &#39;virtualNetworkGateways&#39;]</code>. The gateway is <strong>valid</strong>: type <code>Vpn</code>, <code>RouteBased</code> (BGP-compatible), SKU <code>VpnGw1</code>, a <strong>public IP</strong>, in the <code>GatewaySubnet</code>. That&#39;s the <strong>Azure side</strong> of the tunnel. Configuration-wise, still missing: the <strong>local network gateway</strong> (your on-prem&#39;s public IP + ranges) and the <strong>connection</strong> (linking both, with the shared key). ⚠️ miniblue doesn&#39;t execute gateways: we <strong>validate</strong> them in Bicep. Now <strong>the</strong> question: which link to choose?</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> la bonne connectivité — le moteur de décision.</p>
+<p><strong>🤔 Le bon lien pour le bon besoin.</strong> VNet↔VNet, on-prem, débit garanti… chaque besoin a <strong>sa</strong> réponse. On écrit un <strong>moteur de décision</strong> qui recommande peering, peering global, VPN ou ExpressRoute.</p>
+<p>Écris le moteur de décision et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> the right connectivity — the decision engine.</p>
+<p><strong>🤔 The right link for the right need.</strong> VNet↔VNet, on-prem, guaranteed throughput… each need has <strong>its</strong> answer. We write a <strong>decision engine</strong> that recommends peering, global peering, VPN or ExpressRoute.</p>
+<p>Write the decision engine and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; connectivite.py &lt;&lt;&#39;PY&#39;
+def choisir(b):
+    if b[&quot;vnet_a_vnet&quot;] and b[&quot;meme_region&quot;]:
+        return &quot;VNet Peering&quot;, &quot;faible latence, trafic prive, pas de passerelle&quot;
+    if b[&quot;vnet_a_vnet&quot;]:
+        return &quot;VNet Peering global&quot;, &quot;peering entre regions differentes&quot;
+    if b[&quot;on_prem&quot;] and b[&quot;debit_garanti&quot;]:
+        return &quot;ExpressRoute&quot;, &quot;lien prive dedie, SLA, gros debit (pas via Internet)&quot;
+    if b[&quot;on_prem&quot;]:
+        return &quot;VPN Site-to-Site&quot;, &quot;tunnel IPsec chiffre via Internet (rapide/pas cher)&quot;
+    return &quot;Aucune connexion requise&quot;, &quot;&quot;
+
+cas = [
+    {&quot;nom&quot;:&quot;2 spokes meme region&quot;,  &quot;vnet_a_vnet&quot;:True,  &quot;meme_region&quot;:True,  &quot;on_prem&quot;:False, &quot;debit_garanti&quot;:False},
+    {&quot;nom&quot;:&quot;2 VNets multi-region&quot;,  &quot;vnet_a_vnet&quot;:True,  &quot;meme_region&quot;:False, &quot;on_prem&quot;:False, &quot;debit_garanti&quot;:False},
+    {&quot;nom&quot;:&quot;datacenter -&gt; Azure&quot;,   &quot;vnet_a_vnet&quot;:False, &quot;meme_region&quot;:False, &quot;on_prem&quot;:True,  &quot;debit_garanti&quot;:False},
+    {&quot;nom&quot;:&quot;DC critique gros debit&quot;,&quot;vnet_a_vnet&quot;:False, &quot;meme_region&quot;:False, &quot;on_prem&quot;:True,  &quot;debit_garanti&quot;:True},
+]
+for c in cas:
+    sol, pourquoi = choisir(c)
+    print(f&quot;{c[&#39;nom&#39;]:24} -&gt; {sol:20} ({pourquoi})&quot;)
+PY
+python3 connectivite.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le moteur recommande : <code>2 spokes meme region -&gt; VNet Peering</code>, <code>2 VNets multi-region -&gt; VNet Peering global</code>, <code>datacenter -&gt; Azure -&gt; VPN Site-to-Site</code>, <code>DC critique gros debit -&gt; ExpressRoute</code>. Chaque besoin trouve <strong>son</strong> lien : le <strong>peering</strong> pour relier des VNets (privé, rapide), le <strong>VPN S2S</strong> pour un datacenter (via Internet, rapide à monter), l&#39;<strong>ExpressRoute</strong> pour du <strong>critique/gros débit</strong> (privé dédié, SLA). Ce <strong>tableau de décision</strong> est exactement ce que l&#39;AZ-700 teste — et ce qui évite un choix coûteux. On approfondit <strong>VPN vs ExpressRoute</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the engine recommends: <code>2 spokes meme region -&gt; VNet Peering</code>, <code>2 VNets multi-region -&gt; VNet Peering global</code>, <code>datacenter -&gt; Azure -&gt; VPN Site-to-Site</code>, <code>DC critique gros debit -&gt; ExpressRoute</code>. Each need finds <strong>its</strong> link: <strong>peering</strong> to connect VNets (private, fast), <strong>S2S VPN</strong> for a datacenter (over the Internet, fast to set up), <strong>ExpressRoute</strong> for <strong>critical/high-throughput</strong> (private dedicated, SLA). This <strong>decision table</strong> is exactly what AZ-700 tests — and what avoids a costly choice. Let&#39;s dig into <strong>VPN vs ExpressRoute</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comparer <strong>VPN site-to-site</strong> et <strong>ExpressRoute</strong>.</p>
+<p><strong>🤔 Deux ponts, deux profils.</strong> Le VPN passe par <strong>Internet</strong> (chiffré, variable) ; ExpressRoute est un <strong>lien privé dédié</strong> (garanti, cher). On tabule leurs différences sur les axes qui comptent.</p>
+<p>Compare les deux options :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Compare <strong>site-to-site VPN</strong> and <strong>ExpressRoute</strong>.</p>
+<p><strong>🤔 Two bridges, two profiles.</strong> VPN goes over <strong>the Internet</strong> (encrypted, variable); ExpressRoute is a <strong>private dedicated link</strong> (guaranteed, expensive). We tabulate their differences on the axes that matter.</p>
+<p>Compare the two options:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 &lt;&lt;&#39;PY&#39;
+axes = [&quot;Chemin&quot;, &quot;Debit&quot;, &quot;Latence&quot;, &quot;SLA&quot;, &quot;Cout&quot;, &quot;Delai de mise en place&quot;]
+vpn  = [&quot;Internet (IPsec)&quot;, &quot;jusqu&#39;a ~1-10 Gbps&quot;, &quot;variable&quot;, &quot;moyen&quot;, &quot;faible&quot;, &quot;rapide (heures)&quot;]
+er   = [&quot;prive dedie (provider)&quot;, &quot;jusqu&#39;a ~100 Gbps&quot;, &quot;faible et stable&quot;, &quot;eleve&quot;, &quot;eleve&quot;, &quot;long (semaines)&quot;]
+print(f&quot;{&#39;Axe&#39;:24} {&#39;VPN Site-to-Site&#39;:24} {&#39;ExpressRoute&#39;:24}&quot;)
+for a, v, e in zip(axes, vpn, er):
+    print(f&quot;{a:24} {v:24} {e:24}&quot;)
+print(&quot;\n-&gt; VPN : rapide/pas cher, bon pour debuter ou charges non critiques.&quot;)
+print(&quot;-&gt; ExpressRoute : critique, gros debit, latence stable, conformite.&quot;)
+PY</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le tableau oppose les deux ponts axe par axe : le <strong>VPN</strong> passe par <strong>Internet</strong> (débit ~1-10 Gbps, latence <strong>variable</strong>, coût <strong>faible</strong>, mise en place en <strong>heures</strong>) ; <strong>ExpressRoute</strong> est un <strong>lien privé dédié</strong> (jusqu&#39;à ~100 Gbps, latence <strong>faible et stable</strong>, <strong>SLA élevé</strong>, coût <strong>élevé</strong>, mise en place en <strong>semaines</strong>). Le VPN est parfait pour <strong>débuter</strong> ou pour des charges <strong>non critiques</strong> ; ExpressRoute s&#39;impose pour le <strong>critique</strong>, le <strong>gros débit</strong> et les exigences de <strong>conformité</strong>. Beaucoup d&#39;entreprises font les <strong>deux</strong> (ExpressRoute + VPN de secours). Ces liens transportent des routes : voyons <strong>BGP</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table contrasts the two bridges axis by axis: <strong>VPN</strong> goes over <strong>the Internet</strong> (throughput ~1-10 Gbps, <strong>variable</strong> latency, <strong>low</strong> cost, setup in <strong>hours</strong>); <strong>ExpressRoute</strong> is a <strong>private dedicated link</strong> (up to ~100 Gbps, <strong>low, stable</strong> latency, <strong>high SLA</strong>, <strong>high</strong> cost, setup in <strong>weeks</strong>). VPN is perfect to <strong>start</strong> or for <strong>non-critical</strong> workloads; ExpressRoute wins for <strong>critical</strong>, <strong>high-throughput</strong> and <strong>compliance</strong> requirements. Many enterprises run <strong>both</strong> (ExpressRoute + backup VPN). These links carry routes: let&#39;s see <strong>BGP</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>propagation des routes par BGP</strong>.</p>
+<p><strong>🤔 Des routes dynamiques.</strong> Sur une connexion, <strong>BGP</strong> échange les routes <strong>automatiquement</strong> : Azure annonce ses plages, l&#39;on-prem les siennes. Ces routes <strong>apprises</strong> rejoignent les <strong>routes effectives</strong>. On modélise l&#39;échange.</p>
+<p>Modélise la propagation BGP :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>route propagation by BGP</strong>.</p>
+<p><strong>🤔 Dynamic routes.</strong> Over a connection, <strong>BGP</strong> exchanges routes <strong>automatically</strong>: Azure advertises its ranges, on-prem its own. These <strong>learned</strong> routes join the <strong>effective routes</strong>. We model the exchange.</p>
+<p>Model BGP propagation:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; bgp.py &lt;&lt;&#39;PY&#39;
+# BGP : chaque cote ANNONCE ses plages ; l&#39;autre les APPREND (routes effectives)
+azure_annonce   = [&quot;10.0.0.0/16&quot;, &quot;10.1.0.0/16&quot;]      # hub + spoke
+onprem_annonce  = [&quot;192.168.0.0/16&quot;, &quot;172.16.0.0/12&quot;] # datacenter
+
+print(&quot;Azure annonce a l&#39;on-prem :&quot;, azure_annonce)
+print(&quot;On-prem annonce a Azure   :&quot;, onprem_annonce)
+print(&quot;--- routes apprises (BGP) cote Azure ---&quot;)
+for plage in onprem_annonce:
+    print(f&quot;  {plage:16} -&gt; next hop: passerelle VPN (source BGP)&quot;)
+print(&quot;-&gt; pas de route statique a declarer : BGP propage automatiquement.&quot;)
+PY
+python3 bgp.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre qu&#39;<strong>Azure annonce</strong> <code>[&#39;10.0.0.0/16&#39;, &#39;10.1.0.0/16&#39;]</code> et l&#39;<strong>on-prem annonce</strong> <code>[&#39;192.168.0.0/16&#39;, &#39;172.16.0.0/12&#39;]</code>, puis les <strong>routes apprises côté Azure</strong> : <code>192.168.0.0/16 -&gt; passerelle VPN (source BGP)</code> et <code>172.16.0.0/12 -&gt; passerelle VPN (source BGP)</code>. Grâce à <strong>BGP</strong>, aucune route <strong>statique</strong> à maintenir : chaque côté <strong>annonce</strong> ses plages, l&#39;autre les <strong>apprend</strong> — et elles apparaissent comme routes <strong>effectives</strong> (source <strong>BGP</strong>, guide routage). Si l&#39;on-prem ajoute un sous-réseau, Azure l&#39;<strong>apprend</strong> automatiquement. C&#39;est ce qui rend l&#39;hybride <strong>dynamique et maintenable</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <strong>Azure advertises</strong> <code>[&#39;10.0.0.0/16&#39;, &#39;10.1.0.0/16&#39;]</code> and <strong>on-prem advertises</strong> <code>[&#39;192.168.0.0/16&#39;, &#39;172.16.0.0/12&#39;]</code>, then the <strong>learned routes on the Azure side</strong>: <code>192.168.0.0/16 -&gt; passerelle VPN (source BGP)</code> and <code>172.16.0.0/12 -&gt; passerelle VPN (source BGP)</code>. Thanks to <strong>BGP</strong>, no <strong>static</strong> route to maintain: each side <strong>advertises</strong> its ranges, the other <strong>learns</strong> them — and they show up as <strong>effective</strong> routes (source <strong>BGP</strong>, routing guide). If on-prem adds a subnet, Azure <strong>learns</strong> it automatically. That&#39;s what makes hybrid <strong>dynamic and maintainable</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>connectivité hybride</strong> et récapituler.</p>
+<p><strong>🤔 Relier, de bout en bout.</strong> On récapitule les options — peering, gateway transit, VPN, ExpressRoute, BGP — et <strong>quand</strong> utiliser chacune.</p>
+<p>Récapitule la connectivité :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble <strong>hybrid connectivity</strong> and recap.</p>
+<p><strong>🤔 Connect, end to end.</strong> We recap the options — peering, gateway transit, VPN, ExpressRoute, BGP — and <strong>when</strong> to use each.</p>
+<p>Recap the connectivity:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Connectivite hybride (AZ-700) / hybrid connectivity ===&quot;
+printf &quot;%-20s %s\n&quot; &quot;VNet Peering&quot;     &quot;VNet&lt;-&gt;VNet, prive, faible latence, NON transitif&quot;
+printf &quot;%-20s %s\n&quot; &quot;Peering global&quot;   &quot;VNet&lt;-&gt;VNet entre regions differentes&quot;
+printf &quot;%-20s %s\n&quot; &quot;Gateway transit&quot;  &quot;les spokes empruntent la passerelle du hub&quot;
+printf &quot;%-20s %s\n&quot; &quot;VPN Site-to-Site&quot; &quot;on-prem&lt;-&gt;Azure via Internet (IPsec, rapide/pas cher)&quot;
+printf &quot;%-20s %s\n&quot; &quot;ExpressRoute&quot;     &quot;on-prem&lt;-&gt;Azure prive dedie (garanti, SLA, critique)&quot;
+printf &quot;%-20s %s\n&quot; &quot;BGP&quot;              &quot;propagation dynamique des routes sur la connexion&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>six briques</strong> de la connectivité hybride. Tu tiens le pilier <strong>connectivité</strong> de l&#39;AZ-700 : relier des VNets (<strong>peering</strong>, régional/global, non transitif), mutualiser la passerelle (<strong>gateway transit</strong>), monter un pont vers l&#39;on-prem (<strong>VPN S2S</strong> ou <strong>ExpressRoute</strong> selon le besoin), et propager les routes (<strong>BGP</strong>). Ton réseau n&#39;est plus une île : il est <strong>hybride</strong>, connecté aux autres réseaux et au datacenter. La suite du track AZ-700 : la <strong>distribution</strong> applicative — équilibrage de charge, Application Gateway, Front Door, Traffic Manager.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>six building blocks</strong> of hybrid connectivity. You hold the <strong>connectivity</strong> pillar of AZ-700: connecting VNets (<strong>peering</strong>, regional/global, non-transitive), sharing the gateway (<strong>gateway transit</strong>), building a bridge to on-prem (<strong>S2S VPN</strong> or <strong>ExpressRoute</strong> by need), and propagating routes (<strong>BGP</strong>). Your network is no longer an island: it&#39;s <strong>hybrid</strong>, connected to other networks and the datacenter. Next in the AZ-700 track: application <strong>delivery</strong> — load balancing, Application Gateway, Front Door, Traffic Manager.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Peering avec plages qui se chevauchent.</strong> Impossible. Les espaces d&#39;adressage doivent être <strong>disjoints</strong> (planifie globalement, guide fondamentaux).</p>
+<p><strong>2. Croire le peering transitif.</strong> A↔B et B↔C ne donne <strong>pas</strong> A↔C. Utilise le <strong>hub</strong> comme relais (routes + gateway transit).</p>
+<p><strong>3. Une passerelle par spoke.</strong> Coûteux et complexe. Mets <strong>une</strong> passerelle au hub et active le <strong>gateway transit</strong>.</p>
+<p><strong>4. VPN pour du critique/gros débit.</strong> Le VPN passe par Internet (variable). Pour le <strong>critique</strong>, choisis <strong>ExpressRoute</strong> (dédié, SLA).</p>
+<p><strong>5. ExpressRoute pour un besoin simple.</strong> Cher et long à monter. Pour débuter ou du non-critique, le <strong>VPN S2S</strong> suffit.</p>
+<p><strong>6. Routes statiques partout.</strong> Fastidieux et fragile. Utilise <strong>BGP</strong> : les routes se <strong>propagent</strong> automatiquement.</p>
+<p><strong>7. Oublier le <code>GatewaySubnet</code>.</strong> La passerelle VPN <strong>exige</strong> un sous-réseau nommé <code>GatewaySubnet</code> (<code>/27</code>+). Réserve-le dans le plan d&#39;adressage.</p>
+</div>
+<div data-lang="en"><p><strong>1. Peering with overlapping ranges.</strong> Impossible. Address spaces must be <strong>disjoint</strong> (plan globally, fundamentals guide).</p>
+<p><strong>2. Thinking peering is transitive.</strong> A↔B and B↔C does <strong>not</strong> give A↔C. Use the <strong>hub</strong> as a relay (routes + gateway transit).</p>
+<p><strong>3. One gateway per spoke.</strong> Costly and complex. Put <strong>one</strong> gateway at the hub and enable <strong>gateway transit</strong>.</p>
+<p><strong>4. VPN for critical/high-throughput.</strong> VPN goes over the Internet (variable). For <strong>critical</strong>, choose <strong>ExpressRoute</strong> (dedicated, SLA).</p>
+<p><strong>5. ExpressRoute for a simple need.</strong> Expensive and slow to set up. To start or for non-critical, <strong>S2S VPN</strong> suffices.</p>
+<p><strong>6. Static routes everywhere.</strong> Tedious and fragile. Use <strong>BGP</strong>: routes <strong>propagate</strong> automatically.</p>
+<p><strong>7. Forgetting the <code>GatewaySubnet</code>.</strong> The VPN gateway <strong>requires</strong> a subnet named <code>GatewaySubnet</code> (<code>/27</code>+). Reserve it in the address plan.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>relies</strong> deux VNets par <strong>peering</strong> et vérifies le non-chevauchement.</li><li>Tu expliques le <strong>gateway transit</strong> (spoke → passerelle du hub).</li><li>Tu écris une <strong>passerelle VPN</strong> et la <strong>valides</strong> en Bicep.</li><li>Tu <strong>choisis</strong> la bonne connectivité (peering / global / VPN / ExpressRoute).</li><li>Tu compares <strong>VPN</strong> et <strong>ExpressRoute</strong> sur les axes clés.</li><li>Tu comprends la <strong>propagation des routes par BGP</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>connect</strong> two VNets by <strong>peering</strong> and check non-overlap.</li><li>You explain <strong>gateway transit</strong> (spoke → hub&#39;s gateway).</li><li>You write a <strong>VPN gateway</strong> and <strong>validate</strong> it in Bicep.</li><li>You <strong>choose</strong> the right connectivity (peering / global / VPN / ExpressRoute).</li><li>You compare <strong>VPN</strong> and <strong>ExpressRoute</strong> on the key axes.</li><li>You understand <strong>route propagation by BGP</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — distribution applicative (AZ-700)</em> — équilibrage de charge, App Gateway, Front Door, Traffic Manager.</li><li><strong>Réviser :</strong> <em>Azure — routage réseau (AZ-700)</em> pour les routes effectives (BGP).</li><li><strong>S&#39;entraîner :</strong> ajoute un cas « site distant multiple » au moteur de décision, et un 3e spoke avec gateway transit.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — application delivery (AZ-700)</em> — load balancing, App Gateway, Front Door, Traffic Manager.</li><li><strong>Review:</strong> <em>Azure — network routing (AZ-700)</em> for effective routes (BGP).</li><li><strong>Practice:</strong> add a &quot;multiple remote sites&quot; case to the decision engine, and a 3rd spoke with gateway transit.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Le bon lien selon le besoin</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>VNet &lt;-&gt; VNet, meme region      -&gt; VNet Peering
+VNet &lt;-&gt; VNet, regions diff.    -&gt; VNet Peering global
+on-prem &lt;-&gt; Azure, rapide/cheap -&gt; VPN Site-to-Site (IPsec via Internet)
+on-prem &lt;-&gt; Azure, critique     -&gt; ExpressRoute (prive dedie, SLA)</code></pre>
+<p><strong>Peering — a retenir</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- prive, faible latence, backbone Microsoft
+- plages NON chevauchantes (obligatoire)
+- NON transitif (A&lt;-&gt;B, B&lt;-&gt;C =/=&gt; A&lt;-&gt;C)
+- gateway transit : les spokes empruntent la passerelle du hub</code></pre>
+<p><strong>VPN vs ExpressRoute</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>              VPN S2S            ExpressRoute
+Chemin        Internet (IPsec)   prive dedie (provider)
+Debit         ~1-10 Gbps         jusqu&#39;a ~100 Gbps
+Latence       variable           faible et stable
+Cout/delai    faible / heures    eleve / semaines</code></pre>
+<p><strong>Passerelle VPN (Bicep)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>publicIPAddresses + virtualNetworkGateways (gatewayType: Vpn, RouteBased, GatewaySubnet)
++ localNetworkGateways (on-prem) + connections (cle partagee) ; BGP pour les routes</code></pre>
+</div>
+<div data-lang="en"><p><strong>The right link by need</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>VNet &lt;-&gt; VNet, same region      -&gt; VNet Peering
+VNet &lt;-&gt; VNet, diff. regions    -&gt; VNet Peering global
+on-prem &lt;-&gt; Azure, fast/cheap   -&gt; Site-to-Site VPN (IPsec over Internet)
+on-prem &lt;-&gt; Azure, critical     -&gt; ExpressRoute (private dedicated, SLA)</code></pre>
+<p><strong>Peering — remember</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- private, low latency, Microsoft backbone
+- NON-overlapping ranges (mandatory)
+- NON-transitive (A&lt;-&gt;B, B&lt;-&gt;C =/=&gt; A&lt;-&gt;C)
+- gateway transit: spokes borrow the hub&#39;s gateway</code></pre>
+<p><strong>VPN vs ExpressRoute</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>              S2S VPN            ExpressRoute
+Path          Internet (IPsec)   private dedicated (provider)
+Throughput    ~1-10 Gbps         up to ~100 Gbps
+Latency       variable           low and stable
+Cost/setup    low / hours        high / weeks</code></pre>
+<p><strong>VPN gateway (Bicep)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>publicIPAddresses + virtualNetworkGateways (gatewayType: Vpn, RouteBased, GatewaySubnet)
++ localNetworkGateways (on-prem) + connections (shared key); BGP for routes</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>VNet peering</strong> : régional, global, non-transitivité, gateway transit — Microsoft Learn.</li><li><strong>Passerelle VPN</strong> : site-to-site, SKU, RouteBased/PolicyBased — Microsoft Learn.</li><li><strong>ExpressRoute</strong> : circuits, peering, SLA, fournisseurs — Microsoft Learn (AZ-700).</li><li><strong>BGP dans Azure</strong> : propagation des routes, ASN — Microsoft Learn.</li><li><strong>Hub-and-spoke hybride</strong> : topologie de référence — Cloud Adoption Framework.</li><li><strong>Bicep</strong> : <code>virtualNetworkGateways</code>, <code>connections</code>, <code>localNetworkGateways</code> — Microsoft Learn.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>VNet peering</strong>: regional, global, non-transitivity, gateway transit — Microsoft Learn.</li><li><strong>VPN gateway</strong>: site-to-site, SKUs, RouteBased/PolicyBased — Microsoft Learn.</li><li><strong>ExpressRoute</strong>: circuits, peerings, SLA, providers — Microsoft Learn (AZ-700).</li><li><strong>BGP in Azure</strong>: route propagation, ASN — Microsoft Learn.</li><li><strong>Hybrid hub-and-spoke</strong>: reference topology — Cloud Adoption Framework.</li><li><strong>Bicep</strong>: <code>virtualNetworkGateways</code>, <code>connections</code>, <code>localNetworkGateways</code> — Microsoft Learn.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>bicep : command not found</code> (step-03).</strong> <code>az bicep install</code>, ou installe le binaire autonome (releases GitHub <code>Azure/bicep</code>).</p>
+<p><strong>Le peering échoue (en vrai Azure).</strong> Les espaces d&#39;adressage se <strong>chevauchent</strong>. Vérifie avec <code>overlaps</code> (step-01) : les plages doivent être <strong>disjointes</strong>.</p>
+<p><strong>Le spoke n&#39;atteint pas l&#39;on-prem.</strong> Vérifie le <strong>gateway transit</strong> (activé sur le peering hub→spoke) et que le hub a bien une <strong>passerelle</strong>. Sans transit, le spoke ne « voit » pas la passerelle.</p>
+<p><strong>Deux spokes ne se parlent pas.</strong> Le peering est <strong>non transitif</strong>. Il faut une route via le <strong>hub</strong> (UDR + une NVA/pare-feu dans le hub), ou un peering <strong>direct</strong> spoke↔spoke.</p>
+<p><strong>Quel SKU de passerelle VPN ?</strong> <code>VpnGw1</code> à <code>VpnGw5</code> : plus le numéro est élevé, plus le <strong>débit</strong> et le nombre de tunnels augmentent (et le coût). <code>Basic</code> est déconseillé (limité, pas de BGP).</p>
+<p><strong>Les passerelles ne se déploient pas en local.</strong> miniblue ne les émule pas. On <strong>valide</strong> en <strong>Bicep</strong> et on <strong>raisonne</strong> la connectivité ; l&#39;exécution vise du vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong><code>bicep: command not found</code> (step-03).</strong> <code>az bicep install</code>, or install the standalone binary (GitHub <code>Azure/bicep</code> releases).</p>
+<p><strong>Peering fails (in real Azure).</strong> The address spaces <strong>overlap</strong>. Check with <code>overlaps</code> (step-01): ranges must be <strong>disjoint</strong>.</p>
+<p><strong>The spoke doesn&#39;t reach on-prem.</strong> Check <strong>gateway transit</strong> (enabled on the hub→spoke peering) and that the hub actually has a <strong>gateway</strong>. Without transit, the spoke doesn&#39;t &quot;see&quot; the gateway.</p>
+<p><strong>Two spokes can&#39;t talk.</strong> Peering is <strong>non-transitive</strong>. You need a route via the <strong>hub</strong> (UDR + an NVA/firewall in the hub), or a <strong>direct</strong> spoke↔spoke peering.</p>
+<p><strong>Which VPN gateway SKU?</strong> <code>VpnGw1</code> to <code>VpnGw5</code>: the higher the number, the more <strong>throughput</strong> and tunnels (and cost). <code>Basic</code> is discouraged (limited, no BGP).</p>
+<p><strong>Gateways won&#39;t deploy locally.</strong> miniblue doesn&#39;t emulate them. We <strong>validate</strong> in <strong>Bicep</strong> and <strong>reason</strong> about connectivity; execution targets real Azure.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
