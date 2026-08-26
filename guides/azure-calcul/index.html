@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — calcul (AZ-104) : machines virtuelles, disques, mise à l&#39;échelle — jiha.tech</title>
+  <title data-lang="en">Azure — compute (AZ-104): virtual machines, disks, scaling — jiha.tech</title>
+  <meta name="description" content="Le calcul Azure pour l&#39;AZ-104, en local : crée une VRAIE machine virtuelle sur miniblue (adossée à un conteneur, état « running »), décris l&#39;infrastructure complète en Bicep (VNet, carte réseau, disque, VM — validée hors-ligne), et un scale set avec autoscale. Disques managés, tailles de VM, groupes à haute disponibilité vs zones, et le point coût crucial (arrêté vs libéré) vus en concept. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure compute for AZ-104, locally: create a REAL virtual machine on miniblue (container-backed, &#39;running&#39; state), describe the full infrastructure in Bicep (VNet, NIC, disk, VM — validated offline), and a scale set with autoscale. Managed disks, VM sizes, availability sets vs zones, and the crucial cost point (stopped vs deallocated) seen as concept. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — calcul (AZ-104) : machines virtuelles, disques, mise à l&#39;échelle">
+  <meta property="og:description" content="Le calcul Azure pour l&#39;AZ-104, en local : crée une VRAIE machine virtuelle sur miniblue (adossée à un conteneur, état « running »), décris l&#39;infrastructure complète en Bicep (VNet, carte réseau, disque, VM — validée hors-ligne), et un scale set avec autoscale. Disques managés, tailles de VM, groupes à haute disponibilité vs zones, et le point coût crucial (arrêté vs libéré) vus en concept. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-calcul/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-calcul/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-calcul">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-calcul</div>
+    <div class="prompt" data-lang="en">~/guides/azure-calcul</div>
+    <h1 data-lang="fr">Azure — calcul (AZ-104) : machines virtuelles, disques, mise à l&#39;échelle</h1>
+    <h1 data-lang="en">Azure — compute (AZ-104): virtual machines, disks, scaling</h1>
+    <p class="tagline" data-lang="fr">VM live sur miniblue, IaC en Bicep, haute dispo &amp; coût.</p>
+    <p class="tagline" data-lang="en">live VM on miniblue, IaC in Bicep, high availability &amp; cost.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Le <strong>calcul</strong> — les <strong>machines virtuelles</strong> en tête — est le cœur historique du cloud et un gros domaine de l&#39;examen <strong>AZ-104</strong>. Une VM, c&#39;est un serveur à la demande : tu choisis sa <strong>taille</strong> (CPU/RAM), son <strong>image</strong> (OS), ses <strong>disques</strong>, son <strong>réseau</strong>, et tu la fais tourner. L&#39;administrateur doit savoir la <strong>créer</strong>, la <strong>dimensionner</strong>, la <strong>rendre hautement disponible</strong> et — crucial — <strong>maîtriser son coût</strong>.</p>
+<p>Grâce à <strong>miniblue</strong>, tu vas créer une <strong>vraie VM en local</strong> : miniblue l&#39;adosse à un <strong>conteneur Docker</strong> réel, avec un état <code>running</code>. Puis tu décriras l&#39;<strong>infrastructure complète</strong> — réseau, carte réseau, disque, VM — en <strong>Bicep</strong> (validée hors-ligne), ainsi qu&#39;un <strong>scale set</strong> avec <strong>autoscale</strong>. Les notions clés d&#39;examen — <strong>disques managés</strong>, <strong>tailles de VM</strong>, <strong>groupes à haute disponibilité vs zones</strong>, et surtout le point <strong>coût</strong> (VM <em>arrêtée</em> vs <em>libérée</em>) — sont ancrées en concept.</p>
+<p>C&#39;est le troisième guide de profondeur du track <strong>AZ-104</strong>, après le réseau et le stockage. On y consolide l&#39;idée que l&#39;infrastructure se <strong>décrit</strong> (Bicep) autant qu&#39;elle se <strong>pilote</strong> (CLI).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>Azure fondamentaux</em> et <em>réseau</em> (une VM vit dans un réseau) et tu veux le calcul en pratique.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas fait le <strong>réseau</strong> → fais-le d&#39;abord (VNet, sous-réseau, NSG — une VM s&#39;y branche).</li><li>Tu cherches du <strong>serverless</strong> (Functions) ou des <strong>conteneurs</strong> managés → on les évoque, mais le cœur ici, c&#39;est la <strong>VM</strong> (IaaS).</li></ul>
+</div>
+<div data-lang="en"><p><strong>Compute</strong> — <strong>virtual machines</strong> foremost — is the cloud&#39;s historical core and a big <strong>AZ-104</strong> exam domain. A VM is an on-demand server: you choose its <strong>size</strong> (CPU/RAM), its <strong>image</strong> (OS), its <strong>disks</strong>, its <strong>network</strong>, and run it. The administrator must know how to <strong>create</strong> it, <strong>size</strong> it, make it <strong>highly available</strong> and — crucially — <strong>control its cost</strong>.</p>
+<p>Thanks to <strong>miniblue</strong>, you&#39;ll create a <strong>real VM locally</strong>: miniblue backs it with an actual <strong>Docker container</strong>, in a <code>running</code> state. Then you&#39;ll describe the <strong>full infrastructure</strong> — network, NIC, disk, VM — in <strong>Bicep</strong> (validated offline), plus a <strong>scale set</strong> with <strong>autoscale</strong>. The key exam notions — <strong>managed disks</strong>, <strong>VM sizes</strong>, <strong>availability sets vs zones</strong>, and above all the <strong>cost</strong> point (VM <em>stopped</em> vs <em>deallocated</em>) — are anchored in concept.</p>
+<p>This is the third depth guide of the <strong>AZ-104</strong> track, after networking and storage. We consolidate the idea that infrastructure is <strong>described</strong> (Bicep) as much as <strong>driven</strong> (CLI).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>Azure fundamentals</em> and <em>networking</em> (a VM lives in a network) and want compute in practice.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You haven&#39;t done <strong>networking</strong> → do it first (VNet, subnet, NSG — a VM plugs into it).</li><li>You want <strong>serverless</strong> (Functions) or managed <strong>containers</strong> → we mention them, but the core here is the <strong>VM</strong> (IaaS).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer une <strong>machine virtuelle</strong> en local (miniblue, adossée à un conteneur).</li><li>Décrire l&#39;<strong>infrastructure d&#39;une VM</strong> en Bicep (VNet, NIC, disque, VM).</li><li>Choisir une <strong>taille de VM</strong> (familles B/D/E/F…) selon le besoin.</li><li>Choisir un <strong>type de disque managé</strong> (Standard HDD/SSD, Premium SSD, Ultra).</li><li>Distinguer <strong>groupes à haute disponibilité</strong> et <strong>zones de disponibilité</strong>.</li><li>Décrire un <strong>scale set</strong> avec <strong>autoscale</strong> (Bicep).</li><li>Expliquer les <strong>états d&#39;alimentation</strong> et leur <strong>coût</strong> (arrêtée vs libérée).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create a <strong>virtual machine</strong> locally (miniblue, container-backed).</li><li>Describe a <strong>VM&#39;s infrastructure</strong> in Bicep (VNet, NIC, disk, VM).</li><li>Choose a <strong>VM size</strong> (B/D/E/F… families) by need.</li><li>Choose a <strong>managed disk type</strong> (Standard HDD/SSD, Premium SSD, Ultra).</li><li>Distinguish <strong>availability sets</strong> and <strong>availability zones</strong>.</li><li>Describe a <strong>scale set</strong> with <strong>autoscale</strong> (Bicep).</li><li>Explain the <strong>power states</strong> and their <strong>cost</strong> (stopped vs deallocated).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Azure fondamentaux</strong> et <strong>Azure réseau</strong> terminés.</li><li><strong>miniblue</strong> qui tourne (<code>azlocal health</code> répond). Pour que la VM s&#39;adosse à un vrai conteneur, <strong>Docker</strong> doit être disponible au démarrage de miniblue (sinon la VM est modélisée sans conteneur — le reste marche).</li><li><strong>Bicep</strong> installé, et une <strong>clé SSH</strong> (<code>ssh-keygen -t rsa</code>) pour les templates de VM.</li><li>Rappel : le calcul est du <strong>plan de contrôle</strong> (miniblue) ; on décrit l&#39;IaC en <strong>Bicep</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure fundamentals</strong> and <strong>Azure networking</strong> guides done.</li><li><strong>miniblue</strong> running (<code>azlocal health</code> answers). For the VM to back onto a real container, <strong>Docker</strong> must be available when miniblue starts (otherwise the VM is modeled without a container — the rest works).</li><li><strong>Bicep</strong> installed, and an <strong>SSH key</strong> (<code>ssh-keygen -t rsa</code>) for the VM templates.</li><li>Reminder: compute is <strong>control plane</strong> (miniblue); we describe the IaC in <strong>Bicep</strong>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-fondamentaux/">
+    <span class="num">58</span>
+    <span class="title-line" data-lang="fr">Azure — fondamentaux : le labo local (miniblue) et le modèle Azure</span>
+    <span class="title-line" data-lang="en">Azure — fundamentals: the local lab (miniblue) and the Azure model</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../azure-reseau/">
+    <span class="num">59</span>
+    <span class="title-line" data-lang="fr">Azure — réseau (AZ-104) : VNet, sous-réseaux, NSG, en Terraform live</span>
+    <span class="title-line" data-lang="en">Azure — networking (AZ-104): VNet, subnets, NSG, live in Terraform</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Machine virtuelle (VM).</strong> Un serveur à la demande. Ses ingrédients : une <strong>taille</strong> (combien de CPU/RAM, ex. <code>Standard_B1s</code>), une <strong>image</strong> (l&#39;OS : Ubuntu, Windows Server…), un ou plusieurs <strong>disques managés</strong>, et une <strong>carte réseau</strong> (NIC) branchée à un sous-réseau. On la pilote (démarrer, arrêter, redimensionner) ou on la <strong>décrit</strong> en IaC.</p>
+<p><strong>Tailles &amp; familles de VM.</strong> Les tailles sont groupées par <strong>famille</strong> selon l&#39;usage : <strong>B</strong> (économique, « burstable » — dev/test), <strong>D</strong> (usage général), <strong>E</strong> (mémoire — bases de données), <strong>F</strong> (calcul — CPU intensif), <strong>N</strong> (GPU). Choisir la bonne famille/taille, c&#39;est équilibrer <strong>performance</strong> et <strong>coût</strong>.</p>
+<p><strong>Disques managés.</strong> Azure gère le stockage du disque pour toi. Quatre types, du moins au plus performant : <strong>Standard HDD</strong> (économique, froid), <strong>Standard SSD</strong> (équilibré), <strong>Premium SSD</strong> (production, faible latence), <strong>Ultra Disk</strong> (charges extrêmes). Une VM a un <strong>disque OS</strong> et peut avoir des <strong>disques de données</strong>.</p>
+<p><strong>Haute disponibilité.</strong> Une VM <strong>seule</strong> n&#39;a pas de SLA élevé. Deux mécanismes : les <strong>groupes à haute disponibilité</strong> (availability sets — répartissent les VMs sur des <strong>domaines de panne</strong> et de <strong>mise à jour</strong> dans un datacenter, contre les pannes matérielles et les maintenances) ; les <strong>zones de disponibilité</strong> (availability zones — répartissent les VMs sur des <strong>datacenters séparés</strong> d&#39;une région, contre une panne de datacenter). Zones &gt; sets en niveau de protection.</p>
+<p><strong>Scale sets &amp; autoscale.</strong> Un <strong>groupe identique</strong> (Virtual Machine Scale Set) gère un <strong>troupeau</strong> de VMs identiques, et l&#39;<strong>autoscale</strong> ajuste leur <strong>nombre</strong> selon une métrique (ex. « +1 VM si CPU &gt; 75 % »). C&#39;est l&#39;<strong>élasticité</strong> : payer pour ce dont on a besoin, quand on en a besoin.</p>
+<p><strong>États d&#39;alimentation &amp; coût (LE point d&#39;examen).</strong> Une VM peut être <strong>en cours d&#39;exécution</strong> (Running — facturée), <strong>arrêtée</strong> (Stopped — le système est éteint mais la VM <strong>occupe encore</strong> son matériel : <strong>toujours facturée</strong>), ou <strong>arrêtée (libérée)</strong> (Stopped-Deallocated — le matériel est <strong>rendu</strong> : <strong>plus de coût de calcul</strong>, seuls les disques restent facturés). ⚠️ Pour <strong>ne plus payer</strong> le calcul, il faut <strong>libérer</strong> (deallocate), pas seulement « arrêter » depuis l&#39;OS. Question d&#39;examen classique.</p>
+<p><strong>Autres options de calcul.</strong> Au-delà de la VM (IaaS), Azure offre des <strong>conteneurs</strong> (Container Instances, Container Apps), le <strong>serverless</strong> (Functions) et le <strong>PaaS web</strong> (App Service). On choisit selon le besoin — la VM quand on veut le <strong>contrôle total</strong> de l&#39;OS.</p>
+</div>
+<div data-lang="en"><p><strong>Virtual machine (VM).</strong> An on-demand server. Its ingredients: a <strong>size</strong> (how much CPU/RAM, e.g. <code>Standard_B1s</code>), an <strong>image</strong> (the OS: Ubuntu, Windows Server…), one or more <strong>managed disks</strong>, and a <strong>network card</strong> (NIC) plugged into a subnet. You drive it (start, stop, resize) or <strong>describe</strong> it in IaC.</p>
+<p><strong>VM sizes &amp; families.</strong> Sizes are grouped by <strong>family</strong> by use: <strong>B</strong> (economical, &quot;burstable&quot; — dev/test), <strong>D</strong> (general purpose), <strong>E</strong> (memory — databases), <strong>F</strong> (compute — CPU-intensive), <strong>N</strong> (GPU). Choosing the right family/size balances <strong>performance</strong> and <strong>cost</strong>.</p>
+<p><strong>Managed disks.</strong> Azure manages the disk storage for you. Four types, from least to most performant: <strong>Standard HDD</strong> (economical, cold), <strong>Standard SSD</strong> (balanced), <strong>Premium SSD</strong> (production, low latency), <strong>Ultra Disk</strong> (extreme workloads). A VM has an <strong>OS disk</strong> and can have <strong>data disks</strong>.</p>
+<p><strong>High availability.</strong> A <strong>single</strong> VM has no high SLA. Two mechanisms: <strong>availability sets</strong> (spread VMs across <strong>fault domains</strong> and <strong>update domains</strong> in a datacenter, against hardware failures and maintenance); <strong>availability zones</strong> (spread VMs across <strong>separate datacenters</strong> in a region, against a datacenter outage). Zones &gt; sets in protection level.</p>
+<p><strong>Scale sets &amp; autoscale.</strong> A <strong>scale set</strong> (Virtual Machine Scale Set) manages a <strong>herd</strong> of identical VMs, and <strong>autoscale</strong> adjusts their <strong>number</strong> by a metric (e.g. &quot;+1 VM if CPU &gt; 75%&quot;). It&#39;s <strong>elasticity</strong>: pay for what you need, when you need it.</p>
+<p><strong>Power states &amp; cost (THE exam point).</strong> A VM can be <strong>running</strong> (billed), <strong>stopped</strong> (the system is off but the VM <strong>still holds</strong> its hardware: <strong>still billed</strong>), or <strong>stopped (deallocated)</strong> (the hardware is <strong>released</strong>: <strong>no more compute cost</strong>, only the disks remain billed). ⚠️ To <strong>stop paying</strong> for compute, you must <strong>deallocate</strong>, not just &quot;shut down&quot; from the OS. Classic exam question.</p>
+<p><strong>Other compute options.</strong> Beyond the VM (IaaS), Azure offers <strong>containers</strong> (Container Instances, Container Apps), <strong>serverless</strong> (Functions) and web <strong>PaaS</strong> (App Service). You choose by need — the VM when you want <strong>full control</strong> of the OS.</p>
+</div>
+
+<figure class="schema" id="figure-azure-calcul-vm">
+  <p>[schema "azure-calcul-vm" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;anatomie d&#39;une VM : une taille (CPU/RAM) + une image (OS) + un disque OS managé (± disques de données) + une carte réseau branchée à un sous-réseau. Haute dispo : plusieurs VMs en groupe à haute disponibilité (domaines de panne/màj) ou en zones ; élasticité : un scale set + autoscale. Coût : Running et Stopped facturés ; seul Deallocated arrête le coût de calcul.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A VM&#39;s anatomy: a size (CPU/RAM) + an image (OS) + a managed OS disk (± data disks) + a NIC plugged into a subnet. High availability: several VMs in an availability set (fault/update domains) or in zones; elasticity: a scale set + autoscale. Cost: Running and Stopped are billed; only Deallocated stops the compute cost.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>vraie VM</strong> en local — adossée à un conteneur, live sur miniblue.</p>
+<p><strong>🤔 Un serveur à la demande.</strong> On crée un groupe de ressources, puis une VM avec une <strong>taille</strong> et une <strong>image</strong>. miniblue l&#39;adosse à un <strong>conteneur Docker</strong> : elle est réellement <code>running</code>. On l&#39;inspecte.</p>
+<p>Crée et inspecte la VM :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>real VM</strong> locally — container-backed, live on miniblue.</p>
+<p><strong>🤔 An on-demand server.</strong> We create a resource group, then a VM with a <strong>size</strong> and an <strong>image</strong>. miniblue backs it with a <strong>Docker container</strong>: it&#39;s really <code>running</code>. We inspect it.</p>
+<p>Create and inspect the VM:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Groupe + VM (miniblue) / group + VM (miniblue)
+azlocal group create --name rg-calcul --location westeurope
+azlocal vm create --name vm-web --resource-group rg-calcul --image UbuntuLTS --size Standard_B1s
+
+# Inspecter / inspect
+azlocal vm show --name vm-web --resource-group rg-calcul
+azlocal vm list --resource-group rg-calcul</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>vm create</code> renvoie un objet ARM <code>Microsoft.Compute/virtualMachines</code> avec <code>&quot;provisioningState&quot;: &quot;Succeeded&quot;</code>, la taille <code>Standard_B1s</code>, et (si Docker est dispo) un bloc <code>miniblue</code> indiquant <code>&quot;powerState&quot;: &quot;running&quot;</code> et un <code>containerName</code>. <code>vm show</code> confirme la VM et son état <code>running</code>. <code>vm list</code> la liste. Tu viens de créer une <strong>VM qui tourne réellement</strong> en local. ⚠️ La taille (<code>Standard_B1s</code>) fixe CPU/RAM ; l&#39;image (<code>UbuntuLTS</code>) l&#39;OS. En réel, il faut aussi un <strong>réseau</strong> (VNet/sous-réseau/NIC) — c&#39;est ce qu&#39;on décrit proprement en Bicep à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>vm create</code> returns an ARM <code>Microsoft.Compute/virtualMachines</code> object with <code>&quot;provisioningState&quot;: &quot;Succeeded&quot;</code>, the <code>Standard_B1s</code> size, and (if Docker is available) a <code>miniblue</code> block showing <code>&quot;powerState&quot;: &quot;running&quot;</code> and a <code>containerName</code>. <code>vm show</code> confirms the VM and its <code>running</code> state. <code>vm list</code> lists it. You just created a <strong>VM that really runs</strong> locally. ⚠️ The size (<code>Standard_B1s</code>) sets CPU/RAM; the image (<code>UbuntuLTS</code>) the OS. For real, you also need a <strong>network</strong> (VNet/subnet/NIC) — which we describe cleanly in Bicep next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire l&#39;<strong>infrastructure complète d&#39;une VM</strong> en Bicep — validée hors-ligne.</p>
+<p><strong>🤔 La VM ne vit pas seule.</strong> Une VM réelle a besoin d&#39;un <strong>réseau virtuel</strong>, d&#39;un <strong>sous-réseau</strong>, d&#39;une <strong>carte réseau</strong> et d&#39;un <strong>disque OS</strong>. On décrit <strong>tout</strong> en Bicep, de façon reproductible, et on <strong>valide</strong> hors-ligne. C&#39;est l&#39;IaC d&#39;une VM prête pour la production.</p>
+<p>Crée <code>vm.bicep</code> puis compile-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe a <strong>VM&#39;s full infrastructure</strong> in Bicep — validated offline.</p>
+<p><strong>🤔 The VM doesn&#39;t live alone.</strong> A real VM needs a <strong>virtual network</strong>, a <strong>subnet</strong>, a <strong>NIC</strong> and an <strong>OS disk</strong>. We describe <strong>everything</strong> in Bicep, reproducibly, and <strong>validate</strong> it offline. It&#39;s the IaC of a production-ready VM.</p>
+<p>Create <code>vm.bicep</code> then compile it:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// vm.bicep — VNet + sous-réseau + NIC + disque OS + VM Linux
+param location string = resourceGroup().location
+param adminUsername string = &#39;azureadmin&#39;
+@secure()
+param adminPublicKey string   // ta clé SSH publique (ssh-keygen -t rsa)
+
+resource vnet &#39;Microsoft.Network/virtualNetworks@2023-09-01&#39; = {
+  name: &#39;vnet-app&#39;
+  location: location
+  properties: {
+    addressSpace: { addressPrefixes: [ &#39;10.0.0.0/16&#39; ] }
+    subnets: [
+      { name: &#39;snet-web&#39;, properties: { addressPrefix: &#39;10.0.1.0/24&#39; } }
+    ]
+  }
+}
+
+resource nic &#39;Microsoft.Network/networkInterfaces@2023-09-01&#39; = {
+  name: &#39;nic-web&#39;
+  location: location
+  properties: {
+    ipConfigurations: [
+      {
+        name: &#39;ipcfg&#39;
+        properties: {
+          subnet: { id: vnet.properties.subnets[0].id }
+          privateIPAllocationMethod: &#39;Dynamic&#39;
+        }
+      }
+    ]
+  }
+}
+
+resource vm &#39;Microsoft.Compute/virtualMachines@2023-09-01&#39; = {
+  name: &#39;vm-web&#39;
+  location: location
+  properties: {
+    hardwareProfile: { vmSize: &#39;Standard_B1s&#39; }
+    osProfile: {
+      computerName: &#39;vm-web&#39;
+      adminUsername: adminUsername
+      linuxConfiguration: {
+        disablePasswordAuthentication: true
+        ssh: {
+          publicKeys: [
+            { path: &#39;/home/${adminUsername}/.ssh/authorized_keys&#39;, keyData: adminPublicKey }
+          ]
+        }
+      }
+    }
+    storageProfile: {
+      imageReference: {
+        publisher: &#39;Canonical&#39;
+        offer: &#39;0001-com-ubuntu-server-jammy&#39;
+        sku: &#39;22_04-lts&#39;
+        version: &#39;latest&#39;
+      }
+      osDisk: {
+        createOption: &#39;FromImage&#39;
+        managedDisk: { storageAccountType: &#39;Standard_LRS&#39; }
+      }
+    }
+    networkProfile: {
+      networkInterfaces: [ { id: nic.id } ]
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build vm.bicep --stdout | head -n 25</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> affiche l&#39;ARM JSON compilé — <strong>trois</strong> ressources : <code>Microsoft.Network/virtualNetworks</code>, <code>Microsoft.Network/networkInterfaces</code>, <code>Microsoft.Compute/virtualMachines</code> — et <strong>aucune erreur</strong>. Tu as décrit une VM <strong>complète et reproductible</strong> (réseau, NIC, disque OS chiffré côté Azure, authentification par <strong>clé SSH</strong> et non par mot de passe — bonne pratique). ⚠️ <strong>Note émulateur :</strong> la <strong>carte réseau</strong> et la VM via le provider Terraform ne se <strong>déploient pas</strong> entièrement sur miniblue (l&#39;API NIC renvoie 404) — mais la <strong>création directe</strong> de VM par <code>azlocal</code> marche (étape 1), et ce <strong>Bicep valide la forme</strong> exacte du vrai Azure. Le <strong>déploiement réel</strong> (<code>az deployment</code>) viendra au guide <em>passer en réel</em>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> prints the compiled ARM JSON — <strong>three</strong> resources: <code>Microsoft.Network/virtualNetworks</code>, <code>Microsoft.Network/networkInterfaces</code>, <code>Microsoft.Compute/virtualMachines</code> — and <strong>no error</strong>. You described a <strong>complete, reproducible</strong> VM (network, NIC, OS disk, <strong>SSH key</strong> authentication rather than a password — good practice). ⚠️ <strong>Emulator note:</strong> the <strong>NIC</strong> and VM via the Terraform provider don&#39;t fully <strong>deploy</strong> on miniblue (the NIC API returns 404) — but <strong>direct</strong> VM creation via <code>azlocal</code> works (step 1), and this <strong>Bicep validates the exact shape</strong> of real Azure. <strong>Real deployment</strong> (<code>az deployment</code>) comes in the <em>going real</em> guide.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Choisir la <strong>taille</strong> de VM et le <strong>type de disque</strong> — la décision de dimensionnement.</p>
+<p><strong>🤔 Équilibrer perf et coût.</strong> Deux choix structurants : la <strong>famille/taille</strong> de VM (combien de CPU/RAM) et le <strong>type de disque managé</strong> (quelle vitesse). Trop petit = lenteur ; trop grand = gaspillage. L&#39;examen te donne un profil de charge et attend le bon dimensionnement.</p>
+<p>Les grilles à graver :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Choose the VM <strong>size</strong> and the <strong>disk type</strong> — the sizing decision.</p>
+<p><strong>🤔 Balance performance and cost.</strong> Two structuring choices: the VM <strong>family/size</strong> (how much CPU/RAM) and the <strong>managed disk type</strong> (what speed). Too small = slow; too big = waste. The exam gives a load profile and expects the right sizing.</p>
+<p>The grids to engrave:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>FAMILLES DE VM / VM FAMILIES
+  B   burstable, économique / dev-test, charges intermittentes
+  D   usage général / general purpose (web, petites bases)
+  E   optimisé mémoire / memory (bases de données, caches)
+  F   optimisé calcul / compute (traitement CPU intensif)
+  N   GPU (IA, rendu / AI, rendering)
+
+DISQUES MANAGÉS / MANAGED DISKS (du - au + rapide/cher)
+  Standard HDD   économique, froid / cheap, cold, sauvegardes
+  Standard SSD   équilibré / balanced, prod légère
+  Premium SSD    production, faible latence / low latency
+  Ultra Disk     charges extrêmes / extreme IOPS (bases critiques)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>dimensionner</strong>. Serveur web léger → <strong>B/D</strong> + <strong>Standard SSD</strong> ; base de données en prod → <strong>E</strong> + <strong>Premium SSD</strong> ; batch CPU → <strong>F</strong> ; IA → <strong>N</strong> + Ultra si besoin. Retiens : dans <code>vm.bicep</code>, ces choix sont <strong>deux lignes</strong> — <code>hardwareProfile.vmSize</code> et <code>osDisk.managedDisk.storageAccountType</code>. Tu peux aussi <strong>redimensionner</strong> une VM existante (elle redémarre). ⚠️ Le <strong>type de disque</strong> se change VM éteinte ; certaines tailles exigent des disques Premium (<code>_s</code> dans le nom, ex. <code>Standard_D2s_v5</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>size</strong>. Light web server → <strong>B/D</strong> + <strong>Standard SSD</strong>; production database → <strong>E</strong> + <strong>Premium SSD</strong>; CPU batch → <strong>F</strong>; AI → <strong>N</strong> + Ultra if needed. Remember: in <code>vm.bicep</code>, these choices are <strong>two lines</strong> — <code>hardwareProfile.vmSize</code> and <code>osDisk.managedDisk.storageAccountType</code>. You can also <strong>resize</strong> an existing VM (it reboots). ⚠️ The <strong>disk type</strong> is changed with the VM off; some sizes require Premium disks (<code>_s</code> in the name, e.g. <code>Standard_D2s_v5</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assurer la <strong>haute disponibilité</strong> et l&#39;<strong>élasticité</strong> — groupes/zones + scale set.</p>
+<p><strong>🤔 Ne pas dépendre d&#39;une seule VM.</strong> Pour survivre à une panne : répartir sur des <strong>domaines de panne</strong> (availability set) ou des <strong>datacenters</strong> (zones). Pour absorber la charge : un <strong>scale set</strong> qui ajoute/retire des VMs automatiquement (<strong>autoscale</strong>). On décrit un scale set avec autoscale en Bicep.</p>
+<p>Crée <code>vmss.bicep</code> (extrait clé) et compile-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Ensure <strong>high availability</strong> and <strong>elasticity</strong> — sets/zones + scale set.</p>
+<p><strong>🤔 Don&#39;t depend on a single VM.</strong> To survive a failure: spread across <strong>fault domains</strong> (availability set) or <strong>datacenters</strong> (zones). To absorb load: a <strong>scale set</strong> that adds/removes VMs automatically (<strong>autoscale</strong>). We describe a scale set with autoscale in Bicep.</p>
+<p>Create <code>vmss.bicep</code> (key excerpt) and compile it:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// vmss.bicep — scale set + autoscale (complet)
+param location string = resourceGroup().location
+param adminUsername string = &#39;azureadmin&#39;
+@secure()
+param adminPublicKey string
+
+resource vnet &#39;Microsoft.Network/virtualNetworks@2023-09-01&#39; = {
+  name: &#39;vnet-vmss&#39;
+  location: location
+  properties: {
+    addressSpace: { addressPrefixes: [ &#39;10.0.0.0/16&#39; ] }
+    subnets: [
+      { name: &#39;snet-vmss&#39;, properties: { addressPrefix: &#39;10.0.1.0/24&#39; } }
+    ]
+  }
+}
+
+resource vmss &#39;Microsoft.Compute/virtualMachineScaleSets@2023-09-01&#39; = {
+  name: &#39;vmss-web&#39;
+  location: location
+  sku: {
+    name: &#39;Standard_B1s&#39;
+    tier: &#39;Standard&#39;
+    capacity: 2                 // 2 VMs au démarrage / 2 VMs to start
+  }
+  properties: {
+    upgradePolicy: { mode: &#39;Automatic&#39; }
+    virtualMachineProfile: {
+      osProfile: {
+        computerNamePrefix: &#39;web&#39;
+        adminUsername: adminUsername
+        linuxConfiguration: {
+          disablePasswordAuthentication: true
+          ssh: {
+            publicKeys: [
+              { path: &#39;/home/${adminUsername}/.ssh/authorized_keys&#39;, keyData: adminPublicKey }
+            ]
+          }
+        }
+      }
+      storageProfile: {
+        imageReference: {
+          publisher: &#39;Canonical&#39;
+          offer: &#39;0001-com-ubuntu-server-jammy&#39;
+          sku: &#39;22_04-lts&#39;
+          version: &#39;latest&#39;
+        }
+        osDisk: {
+          createOption: &#39;FromImage&#39;
+          managedDisk: { storageAccountType: &#39;Standard_LRS&#39; }
+        }
+      }
+      networkProfile: {
+        networkInterfaceConfigurations: [
+          {
+            name: &#39;nic-vmss&#39;
+            properties: {
+              primary: true
+              ipConfigurations: [
+                {
+                  name: &#39;ipcfg&#39;
+                  properties: { subnet: { id: vnet.properties.subnets[0].id } }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+resource autoscale &#39;Microsoft.Insights/autoscaleSettings@2022-10-01&#39; = {
+  name: &#39;autoscale-web&#39;
+  location: location
+  properties: {
+    targetResourceUri: vmss.id
+    enabled: true
+    profiles: [
+      {
+        name: &#39;cpu-based&#39;
+        capacity: { minimum: &#39;2&#39;, maximum: &#39;10&#39;, default: &#39;2&#39; }
+        rules: [
+          {
+            metricTrigger: {
+              metricName: &#39;Percentage CPU&#39;
+              metricResourceUri: vmss.id
+              timeGrain: &#39;PT1M&#39;
+              statistic: &#39;Average&#39;
+              timeWindow: &#39;PT5M&#39;
+              timeAggregation: &#39;Average&#39;
+              operator: &#39;GreaterThan&#39;
+              threshold: 75
+            }
+            scaleAction: { direction: &#39;Increase&#39;, type: &#39;ChangeCount&#39;, value: &#39;1&#39;, cooldown: &#39;PT5M&#39; }
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build vmss.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile le scale set (<code>virtualMachineScaleSets</code>) <strong>et</strong> la règle d&#39;autoscale (<code>autoscaleSettings</code>) sans erreur. Ta règle : démarrer à <strong>2</strong> VMs, ajouter <strong>+1</strong> quand le CPU dépasse <strong>75 %</strong>, jusqu&#39;à <strong>10</strong>. C&#39;est l&#39;<strong>élasticité</strong> décrite en code. Retiens la distinction : <strong>groupe à haute disponibilité</strong> (fault/update domains, dans un datacenter) vs <strong>zones</strong> (datacenters séparés) vs <strong>scale set</strong> (nombre variable de VMs identiques). ⚠️ Availability set et zones protègent de la <strong>panne</strong> ; le scale set gère la <strong>charge</strong> — ce sont des réponses à des problèmes <strong>différents</strong> (souvent combinés).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles the scale set (<code>virtualMachineScaleSets</code>) <strong>and</strong> the autoscale rule (<code>autoscaleSettings</code>) with no error. Your rule: start at <strong>2</strong> VMs, add <strong>+1</strong> when CPU exceeds <strong>75%</strong>, up to <strong>10</strong>. That&#39;s <strong>elasticity</strong> described in code. Remember the distinction: <strong>availability set</strong> (fault/update domains, in a datacenter) vs <strong>zones</strong> (separate datacenters) vs <strong>scale set</strong> (variable number of identical VMs). ⚠️ Availability sets and zones protect from <strong>failure</strong>; the scale set handles <strong>load</strong> — they answer <strong>different</strong> problems (often combined).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>états d&#39;alimentation</strong> et leur <strong>coût</strong> — le point d&#39;examen crucial.</p>
+<p><strong>🤔 « Arrêter » ne suffit pas.</strong> Beaucoup croient qu&#39;éteindre une VM stoppe la facture. Faux : une VM <strong>arrêtée</strong> (depuis l&#39;OS) <strong>occupe encore</strong> son matériel réservé → <strong>toujours facturée</strong>. Pour <strong>arrêter le coût de calcul</strong>, il faut la <strong>libérer</strong> (deallocate) : Azure <strong>rend</strong> le matériel. Seuls les <strong>disques</strong> restent facturés.</p>
+<p>Observe l&#39;état de ta VM (miniblue) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>power states</strong> and their <strong>cost</strong> — the crucial exam point.</p>
+<p><strong>🤔 &quot;Stopping&quot; isn&#39;t enough.</strong> Many think shutting a VM down stops the bill. Wrong: a <strong>stopped</strong> VM (from the OS) <strong>still holds</strong> its reserved hardware → <strong>still billed</strong>. To <strong>stop the compute cost</strong>, you must <strong>deallocate</strong> it: Azure <strong>releases</strong> the hardware. Only the <strong>disks</strong> remain billed.</p>
+<p>Observe your VM&#39;s state (miniblue):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># L&#39;état de la VM — lis le champ properties.miniblue.powerState dans la sortie JSON
+# the VM state — read the properties.miniblue.powerState field in the JSON output
+azlocal vm show --name vm-web --resource-group rg-calcul</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>ÉTATS &amp; COÛT / STATES &amp; COST
+  Running                 en cours     -&gt; facturé (calcul + disques)
+  Stopped                 arrêté (OS)  -&gt; ENCORE facturé (matériel réservé)
+  Stopped (deallocated)   libéré       -&gt; plus de coût de CALCUL (disques seuls facturés)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans la sortie de <code>vm show</code>, le champ <code>properties.miniblue.powerState</code> vaut <code>running</code> sur ta VM locale (⚠️ <code>azlocal</code> renvoie le <strong>JSON complet</strong> — il ne filtre pas via <code>--query</code> comme le vrai <code>az</code> ; repère le champ à l&#39;œil ou avec un outil comme <code>jq</code>). Surtout, tu retiens la grille de <strong>coût</strong> : <strong>Running</strong> et <strong>Stopped</strong> sont <strong>facturés</strong> (le second occupe encore le matériel) ; seul <strong>Stopped-Deallocated</strong> arrête le coût de <strong>calcul</strong>. ⚠️ <strong>Piège d&#39;examen n°1 du domaine calcul :</strong> pour cesser de payer une VM, <strong>libère-la</strong> (<code>deallocate</code>), ne te contente pas de l&#39;« arrêter » depuis l&#39;intérieur de l&#39;OS. Sur un vrai compte, c&#39;est la différence entre une facture nulle et une facture surprise. (Les transitions d&#39;alimentation complètes se pilotent sur un vrai compte / miniblue avec Docker ; l&#39;essentiel ici est le <strong>modèle de coût</strong>.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in the <code>vm show</code> output, the <code>properties.miniblue.powerState</code> field is <code>running</code> on your local VM (⚠️ <code>azlocal</code> returns the <strong>full JSON</strong> — it doesn&#39;t filter via <code>--query</code> like real <code>az</code>; spot the field by eye or with a tool like <code>jq</code>). Above all, you remember the <strong>cost</strong> grid: <strong>Running</strong> and <strong>Stopped</strong> are <strong>billed</strong> (the latter still holds the hardware); only <strong>Stopped-Deallocated</strong> stops the <strong>compute</strong> cost. ⚠️ <strong>The compute domain&#39;s #1 exam trap:</strong> to stop paying for a VM, <strong>deallocate</strong> it (<code>deallocate</code>), don&#39;t just &quot;stop&quot; it from inside the OS. On a real account, it&#39;s the difference between a zero bill and a surprise bill. (Full power transitions are driven on a real account / miniblue with Docker; the key here is the <strong>cost model</strong>.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> la bonne option de calcul — la décision d&#39;architecte.</p>
+<p><strong>🤔 La VM n&#39;est pas toujours la réponse.</strong> Pour un contrôle total de l&#39;OS → <strong>VM</strong> (IaaS). Pour un conteneur ponctuel → <strong>Container Instances</strong> ; pour des microservices conteneurisés → <strong>Container Apps</strong> ; pour une appli web/API managée → <strong>App Service</strong> (PaaS) ; pour de l&#39;événementiel → <strong>Functions</strong> (serverless). Moins tu gères l&#39;infra, plus tu te concentres sur le code.</p>
+<p>Récapitule la grille :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> the right compute option — the architect&#39;s decision.</p>
+<p><strong>🤔 The VM isn&#39;t always the answer.</strong> For full OS control → <strong>VM</strong> (IaaS). For a one-off container → <strong>Container Instances</strong>; for containerized microservices → <strong>Container Apps</strong>; for a managed web app/API → <strong>App Service</strong> (PaaS); for event-driven → <strong>Functions</strong> (serverless). The less infra you manage, the more you focus on code.</p>
+<p>Recap the grid:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>OPTION                     QUAND / WHEN
+  VM (IaaS)                contrôle total de l&#39;OS, legacy, besoins spécifiques
+  Scale set                même chose, mais élastique (nombre variable)
+  Container Instances      un conteneur isolé, tâche ponctuelle
+  Container Apps           microservices conteneurisés, scale-to-zero
+  App Service (PaaS)       appli web / API managée, sans gérer l&#39;OS
+  Functions (serverless)   code déclenché par événement, payé à l&#39;exécution</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>choisir</strong>. « Migrer un vieux serveur Windows » → <strong>VM</strong> ; « site web scalable sans gérer l&#39;OS » → <strong>App Service</strong> ou <strong>scale set</strong> ; « tâche batch conteneurisée » → <strong>Container Instances</strong> ; « traiter des messages » → <strong>Functions</strong>. C&#39;est exactement le type d&#39;arbitrage que l&#39;AZ-104 (et l&#39;AZ-305 architecte) attend. ⚠️ Règle : prends le service <strong>le plus managé</strong> qui répond au besoin — tu réduis la charge d&#39;exploitation et souvent le coût.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>choose</strong>. &quot;Migrate an old Windows server&quot; → <strong>VM</strong>; &quot;scalable website without managing the OS&quot; → <strong>App Service</strong> or <strong>scale set</strong>; &quot;containerized batch task&quot; → <strong>Container Instances</strong>; &quot;process messages&quot; → <strong>Functions</strong>. It&#39;s exactly the kind of tradeoff AZ-104 (and AZ-305 architect) expects. ⚠️ Rule: take the <strong>most managed</strong> service that meets the need — you reduce operational load and often cost.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime la VM et son groupe de ressources. Réflexe <strong>créer → utiliser → nettoyer</strong>.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the VM and its resource group. <strong>Create → use → clean up</strong> reflex.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Supprimer la VM, puis le groupe (et tout ce qu&#39;il contient)
+azlocal vm delete --name vm-web --resource-group rg-calcul
+azlocal group delete --name rg-calcul</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>vm delete</code> renvoie <code>Deleted</code> (et libère le conteneur adossé), et <code>group delete</code> renvoie <code>Deleted</code> — le groupe et tout ce qu&#39;il contenait partent ensemble. <code>azlocal vm list --resource-group rg-calcul</code> ne renverrait plus rien. Ton labo est rangé. Tu maîtrises désormais le calcul Azure au niveau AZ-104 : créer une VM, décrire son infra en Bicep, la dimensionner, la rendre hautement disponible et élastique, et surtout <strong>maîtriser son coût</strong>. La suite du track : l&#39;<strong>identité &amp; la gouvernance</strong> (Entra ID, RBAC, policies), puis le <strong>projet d&#39;entreprise</strong> AZ-104.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>vm delete</code> returns <code>Deleted</code> (and releases the backing container), and <code>group delete</code> returns <code>Deleted</code> — the group and everything it held go together. <code>azlocal vm list --resource-group rg-calcul</code> would return nothing anymore. Your lab is tidy. You now master Azure compute at AZ-104 level: create a VM, describe its infra in Bicep, size it, make it highly available and elastic, and above all <strong>control its cost</strong>. The track continues: <strong>identity &amp; governance</strong> (Entra ID, RBAC, policies), then the AZ-104 <strong>enterprise project</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire qu&#39;« arrêter » stoppe la facture.</strong> Une VM arrêtée (OS) occupe encore le matériel → toujours facturée. <strong>Libère</strong> (deallocate) pour cesser le coût de calcul.</p>
+<p><strong>2. Sur- ou sous-dimensionner.</strong> Trop petit → lenteur ; trop grand → gaspillage. Choisis la <strong>famille</strong> (B/D/E/F/N) selon la charge, quitte à redimensionner ensuite.</p>
+<p><strong>3. Une seule VM pour un service critique.</strong> Pas de haute dispo. Utilise un <strong>groupe à haute disponibilité</strong>, des <strong>zones</strong>, ou un <strong>scale set</strong>.</p>
+<p><strong>4. Confondre availability set, zones et scale set.</strong> Set/zones = <strong>résilience</strong> (panne) ; scale set = <strong>élasticité</strong> (charge). Problèmes différents.</p>
+<p><strong>5. Mot de passe au lieu de clé SSH (Linux).</strong> Préfère l&#39;<strong>authentification par clé</strong> (<code>disablePasswordAuthentication: true</code>) — plus sûr.</p>
+<p><strong>6. Mauvais type de disque.</strong> Base de données prod sur Standard HDD → lenteur. Premium SSD (ou Ultra) pour la faible latence ; HDD pour l&#39;archivage.</p>
+<p><strong>7. Attendre le déploiement Terraform complet d&#39;une VM sur miniblue.</strong> L&#39;API carte réseau renvoie 404 sur l&#39;émulateur. Crée la VM via <strong>azlocal</strong> (live) et <strong>valide</strong> l&#39;infra en <strong>Bicep</strong> ; le déploiement réel se fait sur un compte.</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking &quot;stop&quot; ends the bill.</strong> A stopped (OS) VM still holds the hardware → still billed. <strong>Deallocate</strong> to stop the compute cost.</p>
+<p><strong>2. Over- or under-sizing.</strong> Too small → slow; too big → waste. Choose the <strong>family</strong> (B/D/E/F/N) by load, resizing later if needed.</p>
+<p><strong>3. A single VM for a critical service.</strong> No high availability. Use an <strong>availability set</strong>, <strong>zones</strong>, or a <strong>scale set</strong>.</p>
+<p><strong>4. Confusing availability set, zones and scale set.</strong> Set/zones = <strong>resilience</strong> (failure); scale set = <strong>elasticity</strong> (load). Different problems.</p>
+<p><strong>5. Password instead of SSH key (Linux).</strong> Prefer <strong>key authentication</strong> (<code>disablePasswordAuthentication: true</code>) — safer.</p>
+<p><strong>6. Wrong disk type.</strong> A production database on Standard HDD → slow. Premium SSD (or Ultra) for low latency; HDD for archival.</p>
+<p><strong>7. Expecting full Terraform VM deployment on miniblue.</strong> The NIC API returns 404 on the emulator. Create the VM via <strong>azlocal</strong> (live) and <strong>validate</strong> the infra in <strong>Bicep</strong>; real deployment is on an account.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées une <strong>VM</strong> live (<code>azlocal vm create</code>) et la vois <code>running</code>.</li><li>Tu <strong>compiles</strong> l&#39;infra VM en Bicep (VNet + NIC + disque + VM).</li><li>Tu choisis une <strong>famille de VM</strong> et un <strong>type de disque</strong> pour un scénario.</li><li>Tu distingues <strong>groupe à haute disponibilité</strong>, <strong>zones</strong> et <strong>scale set</strong>.</li><li>Tu <strong>compiles</strong> un scale set + autoscale en Bicep.</li><li>Tu expliques le coût : <strong>arrêtée</strong> (facturée) vs <strong>libérée</strong> (calcul non facturé).</li><li>Tu choisis VM / App Service / Container / Functions selon le besoin.</li></ul>
+<p>Sept cases = tu tiens le calcul Azure au niveau AZ-104. La suite : <strong>identité &amp; gouvernance</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a <strong>VM</strong> live (<code>azlocal vm create</code>) and see it <code>running</code>.</li><li>You <strong>compile</strong> the VM infra in Bicep (VNet + NIC + disk + VM).</li><li>You choose a <strong>VM family</strong> and a <strong>disk type</strong> for a scenario.</li><li>You distinguish <strong>availability set</strong>, <strong>zones</strong> and <strong>scale set</strong>.</li><li>You <strong>compile</strong> a scale set + autoscale in Bicep.</li><li>You explain the cost: <strong>stopped</strong> (billed) vs <strong>deallocated</strong> (compute not billed).</li><li>You choose VM / App Service / Container / Functions by need.</li></ul>
+<p>Seven boxes = you hold Azure compute at AZ-104 level. Next up: <strong>identity &amp; governance</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-104 continue :</p>
+<ol><li><strong>Azure — identité &amp; gouvernance</strong> : Entra ID (utilisateurs, groupes), RBAC (rôles, attributions), policies, tags, verrous — le contrôle d&#39;accès et la conformité.</li><li>Plus loin : le <strong>projet d&#39;entreprise</strong> AZ-104 (une infra complète déployée en live) et <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-104 track continues:</p>
+<ol><li><strong>Azure — identity &amp; governance</strong>: Entra ID (users, groups), RBAC (roles, assignments), policies, tags, locks — access control and compliance.</li><li>Further along: the AZ-104 <strong>enterprise project</strong> (a full infra deployed live) and <strong>going real</strong>.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire calcul Azure.</p>
+</div>
+<div data-lang="en"><p>Azure compute cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># VM live (miniblue) / live VM (miniblue)
+azlocal group create --name rg-calcul --location westeurope
+azlocal vm create --name vm-web --resource-group rg-calcul --image UbuntuLTS --size Standard_B1s
+azlocal vm show --name vm-web --resource-group rg-calcul   # champ properties.miniblue.powerState
+azlocal vm list --resource-group rg-calcul
+azlocal vm delete --name vm-web --resource-group rg-calcul
+
+# IaC (Bicep, hors-ligne) / IaC (Bicep, offline)
+bicep build vm.bicep --stdout          # VNet + NIC + disque + VM
+bicep build vmss.bicep --stdout        # scale set + autoscale</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Tailles : B(éco) D(général) E(mémoire) F(calcul) N(GPU)
+Disques : Standard HDD &lt; Standard SSD &lt; Premium SSD &lt; Ultra
+Coût    : Running/Stopped facturés ; seul Deallocated arrête le calcul
+Haute dispo : availability set (fault/update domains) &lt; zones ; scale set = élasticité</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/virtual-machines/overview">Machines virtuelles Azure</a> — tailles, images, cycle de vie.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/managed-disks-overview">Disques managés</a> — types, performances.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/availability">Zones &amp; groupes à haute disponibilité</a> — la résilience.</li><li><a href="https://learn.microsoft.com/azure/virtual-machine-scale-sets/overview">Virtual Machine Scale Sets</a> — élasticité, autoscale.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/states-billing">États et facturation d&#39;une VM</a> — arrêtée vs libérée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/virtual-machines/overview">Azure virtual machines</a> — sizes, images, lifecycle.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/managed-disks-overview">Managed disks</a> — types, performance.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/availability">Zones &amp; availability sets</a> — resilience.</li><li><a href="https://learn.microsoft.com/azure/virtual-machine-scale-sets/overview">Virtual Machine Scale Sets</a> — elasticity, autoscale.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/states-billing">VM states and billing</a> — stopped vs deallocated.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal vm create</code> : connexion refusée.</strong> miniblue ne tourne pas. Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+<p><strong><code>azlocal vm stop/start</code> : <code>DockerUnavailable</code>.</strong> Les transitions d&#39;alimentation exigent le backend Docker : démarre Docker <strong>puis</strong> relance miniblue. La création/lecture/suppression de VM, elles, ne l&#39;exigent pas.</p>
+<p><strong><code>bicep build vm.bicep</code> : erreur sur <code>adminPublicKey</code>.</strong> Le paramètre <code>@secure()</code> doit recevoir une <strong>vraie</strong> clé SSH publique (<code>ssh-keygen -t rsa</code>, puis le contenu de <code>~/.ssh/id_rsa.pub</code>). Une chaîne factice est rejetée à la validation.</p>
+<p><strong><code>terraform apply</code> d&#39;une VM échoue (NIC 404).</strong> Attendu sur miniblue : l&#39;API carte réseau n&#39;est pas émulée. Utilise <code>azlocal vm</code> pour le live et Bicep pour valider l&#39;IaC.</p>
+<p><strong>Ma VM coûte alors que je l&#39;ai « arrêtée ».</strong> Tu l&#39;as arrêtée depuis l&#39;OS, pas <strong>libérée</strong>. Sur un vrai compte, <code>deallocate</code> la VM pour cesser le coût de calcul.</p>
+<p><strong>Quelle taille choisir ?</strong> Pars petit (B/D), mesure, puis redimensionne. Le redimensionnement redémarre la VM mais conserve les disques.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal vm create</code>: connection refused.</strong> miniblue isn&#39;t running. Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+<p><strong><code>azlocal vm stop/start</code>: <code>DockerUnavailable</code>.</strong> Power transitions require the Docker backend: start Docker <strong>then</strong> restart miniblue. VM create/read/delete don&#39;t require it.</p>
+<p><strong><code>bicep build vm.bicep</code>: error on <code>adminPublicKey</code>.</strong> The <code>@secure()</code> param must receive a <strong>real</strong> SSH public key (<code>ssh-keygen -t rsa</code>, then the content of <code>~/.ssh/id_rsa.pub</code>). A dummy string is rejected at validation.</p>
+<p><strong><code>terraform apply</code> of a VM fails (NIC 404).</strong> Expected on miniblue: the NIC API isn&#39;t emulated. Use <code>azlocal vm</code> for live and Bicep to validate the IaC.</p>
+<p><strong>My VM costs money though I &quot;stopped&quot; it.</strong> You stopped it from the OS, not <strong>deallocated</strong> it. On a real account, <code>deallocate</code> the VM to stop the compute cost.</p>
+<p><strong>Which size to choose?</strong> Start small (B/D), measure, then resize. Resizing reboots the VM but keeps the disks.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
