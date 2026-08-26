@@ -208,6 +208,16 @@ resource "azurerm_network_security_group" "app" {
 }
 TF
 
+# Ignorer les artefacts (état/plan/verrou de provider) — jamais versionnés
+cat > .gitignore <<'GI'
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/tfplan
+*.tfstate
+*.tfstate.*
+smoke.js
+GI
+
 git add -A && git commit -qm "chore: échafaudage du projet DevOps"
 
 # Branche de fonctionnalité + fusion façon PR / feature branch + PR-style merge
@@ -353,7 +363,7 @@ provider "azurerm" {
   subscription_id            = "00000000-0000-0000-0000-000000000000"
   tenant_id                  = "00000000-0000-0000-0000-000000000001"
   client_id                  = "miniblue"
-  client_secret              = "miniblue"
+  client_secret              = "miniblue" # pragma: allowlist secret (identifiant factice de l'émulateur)
   environment                = "public"
 }
 TF
@@ -567,11 +577,11 @@ git add -A && git commit -qm "docs: fiche CV du projet DevOps" && git log --onel
 ```
 
 :::lang fr
-**✅ Vérification :** tu vois `DORA — déploiements taggés: 1`, `Destroy complete!` (lab nettoyé), et la **fiche CV** créée puis commitée. **Félicitations — tu as terminé le track AZ-400 !** Tu tiens un **projet complet** : dépôt versionné, chaîne de livraison **sécurisée** (secrets, IaC), **automatisée** (CI/CD), **déployée pour de vrai** (émulateur) derrière une **porte**, et **supervisée** (smoke test, DORA). Mets `CV.md` en avant, publie le dépôt, et parle de **chaque maillon** en entretien. Toute la partie **AZ-400** de ton parcours Azure est bouclée — cap sur l'**AZ-500** (sécurité) et l'**AZ-700** (réseau).
+**✅ Vérification :** tu vois `DORA — déploiements taggés: 1`, `Destroy complete!` (lab nettoyé), et la **fiche CV** créée puis commitée — le hook affiche `✅ Aucun secret détecté` : la porte de sécurité **re-vérifie** ce commit et **passe**, car le `.gitignore` (step-01) exclut les artefacts Terraform et le `# pragma: allowlist secret` marque l'identifiant **factice** de l'émulateur. La boucle est **cohérente** : même le dernier commit respecte la porte. **Félicitations — tu as terminé le track AZ-400 !** Tu tiens un **projet complet** : dépôt versionné, chaîne de livraison **sécurisée** (secrets, IaC), **automatisée** (CI/CD), **déployée pour de vrai** (émulateur) derrière une **porte**, et **supervisée** (smoke test, DORA). Mets `CV.md` en avant, publie le dépôt, et parle de **chaque maillon** en entretien. Toute la partie **AZ-400** de ton parcours Azure est bouclée — cap sur l'**AZ-500** (sécurité) et l'**AZ-700** (réseau).
 :::
 
 :::lang en
-**✅ Check:** you see `DORA — déploiements taggés: 1`, `Destroy complete!` (lab cleaned), and the **CV sheet** created then committed. **Congratulations — you finished the AZ-400 track!** You hold a **complete project**: versioned repo, a **secured** delivery chain (secrets, IaC), **automated** (CI/CD), **deployed for real** (emulator) behind a **gate**, and **monitored** (smoke test, DORA). Feature `CV.md`, publish the repo, and speak to **every link** in an interview. The whole **AZ-400** part of your Azure path is complete — onward to **AZ-500** (security) and **AZ-700** (networking).
+**✅ Check:** you see `DORA — déploiements taggés: 1`, `Destroy complete!` (lab cleaned), and the **CV sheet** created then committed — the hook prints `✅ Aucun secret détecté`: the security gate **re-checks** this commit and **passes**, because the `.gitignore` (step-01) excludes the Terraform artifacts and the `# pragma: allowlist secret` marks the emulator's **dummy** credential. The loop is **consistent**: even the last commit respects the gate. **Congratulations — you finished the AZ-400 track!** You hold a **complete project**: versioned repo, a **secured** delivery chain (secrets, IaC), **automated** (CI/CD), **deployed for real** (emulator) behind a **gate**, and **monitored** (smoke test, DORA). Feature `CV.md`, publish the repo, and speak to **every link** in an interview. The whole **AZ-400** part of your Azure path is complete — onward to **AZ-500** (security) and **AZ-700** (networking).
 :::
 
 ## pitfalls
@@ -742,6 +752,8 @@ python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/livraison.yml'
 **`npm ci` échoue : verrou manquant.** Lance `npm install --package-lock-only` puis versionne `package-lock.json` (fait au step-03).
 
 **La pipeline YAML ne parse pas.** Vérifie l'indentation (pas de tabulations), et que chaque `with:` est en **bloc** (clés sur des lignes séparées). Valide avec le one-liner Python du cheatsheet.
+
+**Le commit du step-07 est bloqué par le hook.** C'est la porte qui fait son travail : `git add -A` a tenté d'ajouter un **artefact** Terraform (`.terraform.lock.hcl` — hachages à forte entropie) ou l'identifiant **factice** de l'émulateur (`client_secret = "miniblue"`). La parade est **dans le guide** : le `.gitignore` du step-01 exclut les artefacts, et le `# pragma: allowlist secret` du step-04 marque l'identifiant factice. Vérifie que ces deux éléments sont bien en place.
 
 **`terraform destroy` laisse des ressources.** Relance-le depuis `infra/` avec le bon `SSL_CERT_FILE`. En dernier recours, `azlocal reset` remet l'émulateur à zéro.
 :::

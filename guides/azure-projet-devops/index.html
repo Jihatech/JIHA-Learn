@@ -281,6 +281,16 @@ resource &quot;azurerm_network_security_group&quot; &quot;app&quot; {
 }
 TF
 
+# Ignorer les artefacts (état/plan/verrou de provider) — jamais versionnés
+cat &gt; .gitignore &lt;&lt;&#39;GI&#39;
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/tfplan
+*.tfstate
+*.tfstate.*
+smoke.js
+GI
+
 git add -A &amp;&amp; git commit -qm &quot;chore: échafaudage du projet DevOps&quot;
 
 # Branche de fonctionnalité + fusion façon PR / feature branch + PR-style merge
@@ -393,7 +403,7 @@ provider &quot;azurerm&quot; {
   subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
   tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
   client_id                  = &quot;miniblue&quot;
-  client_secret              = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot; # pragma: allowlist secret (identifiant factice de l&#39;émulateur)
   environment                = &quot;public&quot;
 }
 TF
@@ -571,9 +581,9 @@ detect-secrets, checkov, Node.js. Aligné AZ-400.
 MD
 echo &quot;--- fiche CV créée / CV sheet created ---&quot;; head -3 CV.md
 git add -A &amp;&amp; git commit -qm &quot;docs: fiche CV du projet DevOps&quot; &amp;&amp; git log --oneline | head -1</code></pre>
-<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>DORA — déploiements taggés: 1</code>, <code>Destroy complete!</code> (lab nettoyé), et la <strong>fiche CV</strong> créée puis commitée. <strong>Félicitations — tu as terminé le track AZ-400 !</strong> Tu tiens un <strong>projet complet</strong> : dépôt versionné, chaîne de livraison <strong>sécurisée</strong> (secrets, IaC), <strong>automatisée</strong> (CI/CD), <strong>déployée pour de vrai</strong> (émulateur) derrière une <strong>porte</strong>, et <strong>supervisée</strong> (smoke test, DORA). Mets <code>CV.md</code> en avant, publie le dépôt, et parle de <strong>chaque maillon</strong> en entretien. Toute la partie <strong>AZ-400</strong> de ton parcours Azure est bouclée — cap sur l&#39;<strong>AZ-500</strong> (sécurité) et l&#39;<strong>AZ-700</strong> (réseau).</p>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>DORA — déploiements taggés: 1</code>, <code>Destroy complete!</code> (lab nettoyé), et la <strong>fiche CV</strong> créée puis commitée — le hook affiche <code>✅ Aucun secret détecté</code> : la porte de sécurité <strong>re-vérifie</strong> ce commit et <strong>passe</strong>, car le <code>.gitignore</code> (step-01) exclut les artefacts Terraform et le <code># pragma: allowlist secret</code> marque l&#39;identifiant <strong>factice</strong> de l&#39;émulateur. La boucle est <strong>cohérente</strong> : même le dernier commit respecte la porte. <strong>Félicitations — tu as terminé le track AZ-400 !</strong> Tu tiens un <strong>projet complet</strong> : dépôt versionné, chaîne de livraison <strong>sécurisée</strong> (secrets, IaC), <strong>automatisée</strong> (CI/CD), <strong>déployée pour de vrai</strong> (émulateur) derrière une <strong>porte</strong>, et <strong>supervisée</strong> (smoke test, DORA). Mets <code>CV.md</code> en avant, publie le dépôt, et parle de <strong>chaque maillon</strong> en entretien. Toute la partie <strong>AZ-400</strong> de ton parcours Azure est bouclée — cap sur l&#39;<strong>AZ-500</strong> (sécurité) et l&#39;<strong>AZ-700</strong> (réseau).</p>
 </div>
-<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>DORA — déploiements taggés: 1</code>, <code>Destroy complete!</code> (lab cleaned), and the <strong>CV sheet</strong> created then committed. <strong>Congratulations — you finished the AZ-400 track!</strong> You hold a <strong>complete project</strong>: versioned repo, a <strong>secured</strong> delivery chain (secrets, IaC), <strong>automated</strong> (CI/CD), <strong>deployed for real</strong> (emulator) behind a <strong>gate</strong>, and <strong>monitored</strong> (smoke test, DORA). Feature <code>CV.md</code>, publish the repo, and speak to <strong>every link</strong> in an interview. The whole <strong>AZ-400</strong> part of your Azure path is complete — onward to <strong>AZ-500</strong> (security) and <strong>AZ-700</strong> (networking).</p>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>DORA — déploiements taggés: 1</code>, <code>Destroy complete!</code> (lab cleaned), and the <strong>CV sheet</strong> created then committed — the hook prints <code>✅ Aucun secret détecté</code>: the security gate <strong>re-checks</strong> this commit and <strong>passes</strong>, because the <code>.gitignore</code> (step-01) excludes the Terraform artifacts and the <code># pragma: allowlist secret</code> marks the emulator&#39;s <strong>dummy</strong> credential. The loop is <strong>consistent</strong>: even the last commit respects the gate. <strong>Congratulations — you finished the AZ-400 track!</strong> You hold a <strong>complete project</strong>: versioned repo, a <strong>secured</strong> delivery chain (secrets, IaC), <strong>automated</strong> (CI/CD), <strong>deployed for real</strong> (emulator) behind a <strong>gate</strong>, and <strong>monitored</strong> (smoke test, DORA). Feature <code>CV.md</code>, publish the repo, and speak to <strong>every link</strong> in an interview. The whole <strong>AZ-400</strong> part of your Azure path is complete — onward to <strong>AZ-500</strong> (security) and <strong>AZ-700</strong> (networking).</p>
 </div>
 
 </div>
@@ -688,6 +698,7 @@ git add -A &amp;&amp; git commit -qm &quot;docs: fiche CV du projet DevOps&quot;
 <p><strong><code>azlocal : commande introuvable</code>.</strong> Ajoute son dossier au <code>PATH</code> (ex. <code>/usr/local/bin</code>) ou appelle-le par chemin complet. Sans lui, le pipe vers <code>python3</code> masque l&#39;erreur en <code>JSONDecodeError</code>.</p>
 <p><strong><code>npm ci</code> échoue : verrou manquant.</strong> Lance <code>npm install --package-lock-only</code> puis versionne <code>package-lock.json</code> (fait au step-03).</p>
 <p><strong>La pipeline YAML ne parse pas.</strong> Vérifie l&#39;indentation (pas de tabulations), et que chaque <code>with:</code> est en <strong>bloc</strong> (clés sur des lignes séparées). Valide avec le one-liner Python du cheatsheet.</p>
+<p><strong>Le commit du step-07 est bloqué par le hook.</strong> C&#39;est la porte qui fait son travail : <code>git add -A</code> a tenté d&#39;ajouter un <strong>artefact</strong> Terraform (<code>.terraform.lock.hcl</code> — hachages à forte entropie) ou l&#39;identifiant <strong>factice</strong> de l&#39;émulateur (<code>client_secret = &quot;miniblue&quot;</code>). La parade est <strong>dans le guide</strong> : le <code>.gitignore</code> du step-01 exclut les artefacts, et le <code># pragma: allowlist secret</code> du step-04 marque l&#39;identifiant factice. Vérifie que ces deux éléments sont bien en place.</p>
 <p><strong><code>terraform destroy</code> laisse des ressources.</strong> Relance-le depuis <code>infra/</code> avec le bon <code>SSL_CERT_FILE</code>. En dernier recours, <code>azlocal reset</code> remet l&#39;émulateur à zéro.</p>
 </div>
 <div data-lang="en"><p><strong>The hook doesn&#39;t block the secret.</strong> Check it&#39;s <strong>executable</strong> (<code>chmod +x .git/hooks/pre-commit</code>) and that <code>detect-secrets</code> is <strong>installed</strong> (otherwise the <strong>fail-closed</strong> hook blocks with <code>⛔ detect-secrets introuvable</code>, which is the intended behavior).</p>
