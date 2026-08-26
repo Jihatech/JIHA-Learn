@@ -338,7 +338,39 @@ jobs:
 ```
 
 ```bash
-# Valider la structure du YAML en local / validate the YAML structure locally
+# 1) Crée le dossier et le fichier (recopie le YAML ci-dessus) / create the folder and file (paste the YAML above)
+mkdir -p .github/workflows
+cat > .github/workflows/ci.yml <<'YAML'
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  valider:
+    name: Valider l'infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer Bicep
+        run: az bicep install
+      - name: Compiler les templates Bicep
+        run: |
+          for f in infra/*.bicep; do az bicep build --file "$f" --stdout > /dev/null; done
+      - name: Vérifier le format Terraform
+        run: terraform fmt -check -recursive infra/
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: valider
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lancer les tests
+        run: echo "Exécuter la suite de tests ici"
+YAML
+
+# 2) Valide la structure du YAML en local / validate the YAML structure locally
 python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/ci.yml')); print('jobs:', list(d['jobs'].keys()))"
 ```
 
@@ -462,9 +494,8 @@ Version it:
 :::
 
 ```bash
-cd demo-git
-mkdir -p .github/workflows
-# (copie ton ci.yml dans .github/workflows/) / (copy your ci.yml into .github/workflows/)
+# Tu es toujours dans demo-git ; le fichier .github/workflows/ci.yml existe déjà (step-04).
+# You're still in demo-git; .github/workflows/ci.yml already exists (step-04).
 git add .github/workflows/ci.yml
 git commit -m "ci: ajout de la pipeline de validation"
 git log --oneline
