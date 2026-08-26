@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — stockage (AZ-104) : comptes, Blob, niveaux d&#39;accès, SAS — jiha.tech</title>
+  <title data-lang="en">Azure — storage (AZ-104): accounts, Blob, access tiers, SAS — jiha.tech</title>
+  <meta name="description" content="Le stockage Azure pour l&#39;AZ-104, en local : crée un compte de stockage (plan de contrôle live sur miniblue), manipule des conteneurs Blob, des niveaux d&#39;accès (public/privé) et des niveaux de stockage (chaud/froid) sur Azurite (plan de données live), génère un jeton SAS à privilège limité, et décris une règle de cycle de vie en Bicep (transition froid→archive, suppression). Redondance (LRS/ZRS/GRS) et choix de niveau vus en concept. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure storage for AZ-104, locally: create a storage account (live control plane on miniblue), handle Blob containers, access levels (public/private) and storage tiers (hot/cool) on Azurite (live data plane), generate a least-privilege SAS token, and describe a lifecycle rule in Bicep (cool→archive transition, deletion). Redundancy (LRS/ZRS/GRS) and tier choice seen as concept. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — stockage (AZ-104) : comptes, Blob, niveaux d&#39;accès, SAS">
+  <meta property="og:description" content="Le stockage Azure pour l&#39;AZ-104, en local : crée un compte de stockage (plan de contrôle live sur miniblue), manipule des conteneurs Blob, des niveaux d&#39;accès (public/privé) et des niveaux de stockage (chaud/froid) sur Azurite (plan de données live), génère un jeton SAS à privilège limité, et décris une règle de cycle de vie en Bicep (transition froid→archive, suppression). Redondance (LRS/ZRS/GRS) et choix de niveau vus en concept. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-stockage/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-stockage/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-stockage">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-stockage</div>
+    <div class="prompt" data-lang="en">~/guides/azure-stockage</div>
+    <h1 data-lang="fr">Azure — stockage (AZ-104) : comptes, Blob, niveaux d&#39;accès, SAS</h1>
+    <h1 data-lang="en">Azure — storage (AZ-104): accounts, Blob, access tiers, SAS</h1>
+    <p class="tagline" data-lang="fr">compte de stockage, conteneurs, niveaux chaud/froid, SAS, cycle de vie.</p>
+    <p class="tagline" data-lang="en">storage account, containers, hot/cool tiers, SAS, lifecycle.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Le <strong>stockage</strong> est l&#39;un des services les plus utilisés d&#39;Azure — et un domaine central de l&#39;examen <strong>AZ-104</strong>. Presque tout finit dans un <strong>compte de stockage</strong> : fichiers, images, sauvegardes, journaux, disques de VM, files de messages. Savoir <strong>créer</strong> un compte, choisir sa <strong>redondance</strong>, ranger des objets dans des <strong>conteneurs Blob</strong>, régler les <strong>niveaux d&#39;accès</strong> et de <strong>stockage</strong>, générer des <strong>jetons SAS</strong> sûrs et automatiser le <strong>cycle de vie</strong> : c&#39;est le quotidien de l&#39;administrateur.</p>
+<p>Tu vas travailler sur <strong>les deux plans</strong> (revois le guide <em>fondamentaux</em>) : le <strong>plan de contrôle</strong> — créer et configurer le <strong>compte de stockage</strong> — est <strong>live sur miniblue</strong> ; le <strong>plan de données</strong> — conteneurs, blobs, niveaux, SAS — est <strong>live sur Azurite</strong> (l&#39;émulateur de stockage officiel, qui couvre richement le Blob). Tu créeras un compte, y organiseras des conteneurs, joueras avec les <strong>niveaux chaud/froid</strong>, généreras un <strong>SAS</strong> à privilège limité, et décriras une <strong>règle de cycle de vie</strong> en <strong>Bicep</strong>. Redondance et choix de niveau sont ancrés en concept — le cœur des questions d&#39;examen.</p>
+<p>C&#39;est le deuxième guide de profondeur du track <strong>AZ-104</strong>, après le réseau. On y consolide le réflexe <strong>plan de contrôle vs plan de données</strong>, essentiel pour comprendre Azure.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>Azure fondamentaux</em> (miniblue + Azurite montés) et tu veux le stockage en pratique.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Ton labo n&#39;est pas monté → refais <em>Azure fondamentaux</em>.</li><li>Tu cherches une base de données (SQL, Cosmos) → le stockage Blob, c&#39;est de l&#39;<strong>objet</strong> ; les bases viennent plus loin dans le track.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Storage</strong> is one of Azure&#39;s most-used services — and a core domain of the <strong>AZ-104</strong> exam. Almost everything ends up in a <strong>storage account</strong>: files, images, backups, logs, VM disks, message queues. Knowing how to <strong>create</strong> an account, choose its <strong>redundancy</strong>, organize objects in <strong>Blob containers</strong>, set <strong>access</strong> and <strong>storage tiers</strong>, generate safe <strong>SAS tokens</strong> and automate the <strong>lifecycle</strong>: it&#39;s the administrator&#39;s daily work.</p>
+<p>You&#39;ll work on <strong>both planes</strong> (revisit the <em>fundamentals</em> guide): the <strong>control plane</strong> — creating and configuring the <strong>storage account</strong> — is <strong>live on miniblue</strong>; the <strong>data plane</strong> — containers, blobs, tiers, SAS — is <strong>live on Azurite</strong> (the official storage emulator, which covers Blob richly). You&#39;ll create an account, organize containers in it, play with <strong>hot/cool tiers</strong>, generate a least-privilege <strong>SAS</strong>, and describe a <strong>lifecycle rule</strong> in <strong>Bicep</strong>. Redundancy and tier choice are anchored in concept — the heart of the exam questions.</p>
+<p>This is the second depth guide of the <strong>AZ-104</strong> track, after networking. We consolidate the <strong>control plane vs data plane</strong> reflex here, essential to understanding Azure.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>Azure fundamentals</em> (miniblue + Azurite set up) and want storage in practice.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>Your lab isn&#39;t set up → redo <em>Azure fundamentals</em>.</li><li>You want a database (SQL, Cosmos) → Blob storage is <strong>object</strong> storage; databases come later in the track.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer un <strong>compte de stockage</strong> et choisir sa <strong>redondance</strong> (LRS/ZRS/GRS).</li><li>Distinguer <strong>plan de contrôle</strong> (le compte) et <strong>plan de données</strong> (les blobs).</li><li>Créer des <strong>conteneurs</strong> et régler leur <strong>niveau d&#39;accès</strong> (privé/public).</li><li>Téléverser des blobs et choisir un <strong>niveau de stockage</strong> (chaud/froid).</li><li>Générer un <strong>jeton SAS</strong> à privilège et durée limités.</li><li>Comparer <strong>SAS</strong> et <strong>clés de compte</strong> (sécurité).</li><li>Décrire une <strong>règle de cycle de vie</strong> en Bicep (transition, suppression).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create a <strong>storage account</strong> and choose its <strong>redundancy</strong> (LRS/ZRS/GRS).</li><li>Distinguish <strong>control plane</strong> (the account) and <strong>data plane</strong> (the blobs).</li><li>Create <strong>containers</strong> and set their <strong>access level</strong> (private/public).</li><li>Upload blobs and choose a <strong>storage tier</strong> (hot/cool).</li><li>Generate a <strong>SAS token</strong> with limited privilege and duration.</li><li>Compare <strong>SAS</strong> and <strong>account keys</strong> (security).</li><li>Describe a <strong>lifecycle rule</strong> in Bicep (transition, deletion).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure fondamentaux</strong> terminé, avec <strong>miniblue</strong> ET <strong>Azurite</strong> qui tournent.</li><li>La <strong>chaîne de connexion</strong> Azurite exportée : <code>export AZURE_STORAGE_CONNECTION_STRING=&quot;...devstoreaccount1...&quot;</code> (voir <em>fondamentaux</em>).</li><li><strong>Bicep</strong> installé (pour la règle de cycle de vie).</li><li>Rappel : miniblue = plan de contrôle (le compte) ; Azurite = plan de données (les blobs).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure fundamentals</strong> guide done, with <strong>miniblue</strong> AND <strong>Azurite</strong> running.</li><li>The Azurite <strong>connection string</strong> exported: <code>export AZURE_STORAGE_CONNECTION_STRING=&quot;...devstoreaccount1...&quot;</code> (see <em>fundamentals</em>).</li><li><strong>Bicep</strong> installed (for the lifecycle rule).</li><li>Reminder: miniblue = control plane (the account); Azurite = data plane (the blobs).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-fondamentaux/">
+    <span class="num">58</span>
+    <span class="title-line" data-lang="fr">Azure — fondamentaux : le labo local (miniblue) et le modèle Azure</span>
+    <span class="title-line" data-lang="en">Azure — fundamentals: the local lab (miniblue) and the Azure model</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Compte de stockage.</strong> Le conteneur de plus haut niveau du stockage Azure (nom <strong>mondialement unique</strong>). Il offre plusieurs services : <strong>Blob</strong> (objets), <strong>File</strong> (partages SMB), <strong>Queue</strong> (messages), <strong>Table</strong> (NoSQL clé-valeur). On choisit à la création : le <strong>type</strong> (<code>StorageV2</code>, le standard moderne), la <strong>performance</strong> (Standard sur disque, Premium sur SSD), et la <strong>redondance</strong>.</p>
+<p><strong>Redondance.</strong> Combien de copies, et où : <strong>LRS</strong> (3 copies dans un datacenter — le moins cher), <strong>ZRS</strong> (3 copies dans 3 zones d&#39;une région — résiste à une panne de zone), <strong>GRS</strong> (LRS + réplication asynchrone vers une <strong>région</strong> distante — résiste à un sinistre régional), <strong>RA-GRS</strong> (GRS avec <strong>lecture</strong> sur la copie distante). Plus on protège, plus ça coûte. Choisir la bonne redondance selon la criticité est un point d&#39;examen classique.</p>
+<p><strong>Conteneurs &amp; blobs.</strong> Dans le service Blob, un <strong>conteneur</strong> regroupe des <strong>blobs</strong> (objets). Trois types de blobs : <strong>block</strong> (fichiers, le plus courant), <strong>append</strong> (journaux), <strong>page</strong> (disques de VM). Le modèle est <strong>plat</strong> : <code>logs/2026/app.log</code> est <strong>une clé</strong>.</p>
+<p><strong>Niveau d&#39;accès (public/privé).</strong> Un conteneur a un <strong>niveau d&#39;accès</strong> : <strong>privé</strong> (par défaut — rien n&#39;est public), <strong>blob</strong> (les blobs sont lisibles anonymement, pas la liste), <strong>conteneur</strong> (blobs + liste publics). ⚠️ En production, on garde <strong>privé</strong> et on expose via <strong>SAS</strong> — jamais de conteneur public par accident.</p>
+<p><strong>Niveaux de stockage (chaud/froid/archive).</strong> Chaque blob a un <strong>niveau</strong> selon la fréquence d&#39;accès : <strong>Hot</strong> (accès fréquent), <strong>Cool</strong> (peu accédé, ≥ 30 j), <strong>Cold</strong> (rarement, ≥ 90 j), <strong>Archive</strong> (archivage, récupération lente et payante). Plus c&#39;est froid, moins le <strong>stockage</strong> coûte, mais plus la <strong>récupération</strong> est chère/lente — le même compromis que sur S3/GCS.</p>
+<p><strong>SAS &amp; clés de compte.</strong> Deux façons de déléguer l&#39;accès aux données : les <strong>clés de compte</strong> (2 clés toutes-puissantes — à protéger comme des mots de passe root, à faire tourner) ; et le <strong>SAS</strong> (Shared Access Signature — un jeton <strong>à privilège limité</strong> : telles permissions, tel blob/conteneur, telle <strong>période de validité</strong>). Règle d&#39;or : <strong>SAS à portée minimale</strong>, jamais les clés de compte dans une appli cliente.</p>
+<p><strong>Cycle de vie (lifecycle).</strong> Des <strong>règles automatiques</strong> sur le compte : « après 30 j, passe en Cool », « après 90 j, en Archive », « après 365 j, supprime ». On automatise l&#39;optimisation du coût. On la décrit en <strong>Bicep</strong> (ressource <code>managementPolicies</code>).</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>compte</strong> se crée sur <strong>miniblue</strong> (plan de contrôle). Les <strong>conteneurs, blobs, niveaux d&#39;accès et de stockage, SAS</strong> sont <strong>live sur Azurite</strong> (plan de données). Le <strong>cycle de vie</strong> se <strong>décrit et valide en Bicep</strong> (l&#39;appliquer réellement demande un vrai compte — guide <em>passer en réel</em>). Redondance et choix de niveau = concept d&#39;examen.</p>
+</div>
+<div data-lang="en"><p><strong>Storage account.</strong> Azure storage&#39;s top-level container (globally <strong>unique</strong> name). It offers several services: <strong>Blob</strong> (objects), <strong>File</strong> (SMB shares), <strong>Queue</strong> (messages), <strong>Table</strong> (key-value NoSQL). You choose at creation: the <strong>type</strong> (<code>StorageV2</code>, the modern standard), the <strong>performance</strong> (Standard on disk, Premium on SSD), and the <strong>redundancy</strong>.</p>
+<p><strong>Redundancy.</strong> How many copies, and where: <strong>LRS</strong> (3 copies in one datacenter — cheapest), <strong>ZRS</strong> (3 copies across 3 zones of a region — survives a zone outage), <strong>GRS</strong> (LRS + async replication to a distant <strong>region</strong> — survives a regional disaster), <strong>RA-GRS</strong> (GRS with <strong>read</strong> access on the distant copy). The more you protect, the more it costs. Choosing the right redundancy by criticality is a classic exam point.</p>
+<p><strong>Containers &amp; blobs.</strong> In the Blob service, a <strong>container</strong> groups <strong>blobs</strong> (objects). Three blob types: <strong>block</strong> (files, most common), <strong>append</strong> (logs), <strong>page</strong> (VM disks). The model is <strong>flat</strong>: <code>logs/2026/app.log</code> is <strong>one key</strong>.</p>
+<p><strong>Access level (public/private).</strong> A container has an <strong>access level</strong>: <strong>private</strong> (default — nothing public), <strong>blob</strong> (blobs readable anonymously, not the listing), <strong>container</strong> (blobs + listing public). ⚠️ In production, keep it <strong>private</strong> and expose via <strong>SAS</strong> — never an accidentally public container.</p>
+<p><strong>Storage tiers (hot/cool/archive).</strong> Each blob has a <strong>tier</strong> by access frequency: <strong>Hot</strong> (frequent access), <strong>Cool</strong> (rarely accessed, ≥ 30 d), <strong>Cold</strong> (rare, ≥ 90 d), <strong>Archive</strong> (archival, slow and paid retrieval). The colder, the less <strong>storage</strong> costs, but the more <strong>retrieval</strong> costs/is slow — the same tradeoff as S3/GCS.</p>
+<p><strong>SAS &amp; account keys.</strong> Two ways to delegate data access: <strong>account keys</strong> (2 all-powerful keys — protect like root passwords, rotate them); and <strong>SAS</strong> (Shared Access Signature — a <strong>least-privilege</strong> token: these permissions, this blob/container, this <strong>validity window</strong>). Golden rule: <strong>minimal-scope SAS</strong>, never account keys in a client app.</p>
+<p><strong>Lifecycle.</strong> <strong>Automatic rules</strong> on the account: &quot;after 30 d, move to Cool&quot;, &quot;after 90 d, to Archive&quot;, &quot;after 365 d, delete&quot;. You automate cost optimization. You describe it in <strong>Bicep</strong> (<code>managementPolicies</code> resource).</p>
+<p><strong>What&#39;s live here.</strong> The <strong>account</strong> is created on <strong>miniblue</strong> (control plane). The <strong>containers, blobs, access and storage tiers, SAS</strong> are <strong>live on Azurite</strong> (data plane). The <strong>lifecycle</strong> is <strong>described and validated in Bicep</strong> (actually applying it needs a real account — <em>going real</em> guide). Redundancy and tier choice = exam concept.</p>
+</div>
+
+<figure class="schema" id="figure-azure-stockage-plans">
+  <p>[schema "azure-stockage-plans" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Les deux plans du stockage Azure : le COMPTE de stockage (redondance LRS/ZRS/GRS, type, performance) vit sur le plan de contrôle (miniblue) ; dedans, le service Blob organise des CONTENEURS et des BLOBS avec niveaux d&#39;accès (privé/public) et de stockage (chaud/froid/archive), exposés par SAS — sur le plan de données (Azurite). Le cycle de vie (transition, suppression) est décrit en Bicep.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The two planes of Azure storage: the storage ACCOUNT (redundancy LRS/ZRS/GRS, type, performance) lives on the control plane (miniblue); inside, the Blob service organizes CONTAINERS and BLOBS with access (private/public) and storage (hot/cool/archive) tiers, exposed via SAS — on the data plane (Azurite). The lifecycle (transition, deletion) is described in Bicep.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>compte de stockage</strong> — le plan de contrôle, live sur miniblue.</p>
+<p><strong>🤔 Le conteneur de plus haut niveau.</strong> On crée d&#39;abord un <strong>groupe de ressources</strong>, puis le <strong>compte de stockage</strong> dedans. C&#39;est une opération de <strong>plan de contrôle</strong> (ARM) → miniblue. Le compte porte le <strong>type</strong> et (en réel) la <strong>redondance</strong>.</p>
+<p>Crée le groupe et le compte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>storage account</strong> — the control plane, live on miniblue.</p>
+<p><strong>🤔 The top-level container.</strong> We first create a <strong>resource group</strong>, then the <strong>storage account</strong> inside it. It&#39;s a <strong>control-plane</strong> operation (ARM) → miniblue. The account carries the <strong>type</strong> and (for real) the <strong>redundancy</strong>.</p>
+<p>Create the group and the account:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Groupe de ressources + compte de stockage (miniblue, plan de contrôle)
+azlocal group create --name rg-stockage --location westeurope
+azlocal storage account create --name stlabo2026 --resource-group rg-stockage</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>storage account create</code> renvoie un objet ARM avec <code>&quot;name&quot;: &quot;stlabo2026&quot;</code>, <code>&quot;kind&quot;: &quot;StorageV2&quot;</code> et un <code>id</code> sous <code>rg-stockage</code>. Le <strong>compte existe</strong> côté plan de contrôle. Retiens qu&#39;à la création d&#39;un vrai compte, tu choisis aussi la <strong>performance</strong> (Standard/Premium) et la <strong>redondance</strong> (LRS/ZRS/GRS — étape 6). ⚠️ Le <strong>nom</strong> est <strong>mondialement unique</strong> et en <strong>minuscules/chiffres</strong> uniquement (3–24 caractères). Pour le <strong>plan de données</strong> (les blobs), on passe à <strong>Azurite</strong> à l&#39;étape suivante — c&#39;est l&#39;émulateur qui couvre richement le Blob.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>storage account create</code> returns an ARM object with <code>&quot;name&quot;: &quot;stlabo2026&quot;</code>, <code>&quot;kind&quot;: &quot;StorageV2&quot;</code> and an <code>id</code> under <code>rg-stockage</code>. The <strong>account exists</strong> on the control-plane side. Remember that when creating a real account, you also choose the <strong>performance</strong> (Standard/Premium) and <strong>redundancy</strong> (LRS/ZRS/GRS — step 6). ⚠️ The <strong>name</strong> is <strong>globally unique</strong> and <strong>lowercase/digits</strong> only (3–24 chars). For the <strong>data plane</strong> (the blobs), we switch to <strong>Azurite</strong> next — the emulator that richly covers Blob.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer des <strong>conteneurs</strong> et régler leur <strong>niveau d&#39;accès</strong> — plan de données, live sur Azurite.</p>
+<p><strong>🤔 Ranger et sécuriser.</strong> Un <strong>conteneur</strong> regroupe des blobs. Son <strong>niveau d&#39;accès</strong> décide de la visibilité anonyme : <strong>privé</strong> par défaut (recommandé). On crée un conteneur privé et on y dépose des blobs (via la chaîne de connexion Azurite).</p>
+<p>Crée un conteneur privé et des blobs :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create <strong>containers</strong> and set their <strong>access level</strong> — data plane, live on Azurite.</p>
+<p><strong>🤔 Organize and secure.</strong> A <strong>container</strong> groups blobs. Its <strong>access level</strong> decides anonymous visibility: <strong>private</strong> by default (recommended). We create a private container and drop blobs in it (via the Azurite connection string).</p>
+<p>Create a private container and blobs:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># La chaîne de connexion Azurite est déjà exportée (fondamentaux)
+# Conteneur PRIVÉ (aucun accès anonyme) / PRIVATE container (no anonymous access)
+az storage container create --name documents --public-access off \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+
+# Déposer des blobs / drop blobs
+echo &quot;rapport Q1&quot; &gt; q1.txt
+az storage blob upload --container-name documents --name rapports/q1.txt \
+  --file q1.txt --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+az storage blob list --container-name documents \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot; --output table</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>container create --public-access off</code> renvoie <code>&quot;created&quot;: true</code> (conteneur <strong>privé</strong>). L&#39;<code>upload</code> réussit, <code>blob list</code> affiche <code>rapports/q1.txt</code>. Ton conteneur est privé : <strong>aucun</strong> accès anonyme — c&#39;est le bon réglage par défaut. ⚠️ Les trois niveaux : <strong>off/privé</strong> (rien de public), <strong>blob</strong> (blobs lisibles anonymement), <strong>container</strong> (blobs + liste publics). En prod, on reste <strong>privé</strong> et on délègue par <strong>SAS</strong> (étape 4). Un conteneur public par erreur = fuite de données classique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>container create --public-access off</code> returns <code>&quot;created&quot;: true</code> (a <strong>private</strong> container). The <code>upload</code> succeeds, <code>blob list</code> shows <code>rapports/q1.txt</code>. Your container is private: <strong>no</strong> anonymous access — the right default. ⚠️ The three levels: <strong>off/private</strong> (nothing public), <strong>blob</strong> (blobs anonymously readable), <strong>container</strong> (blobs + listing public). In prod, keep it <strong>private</strong> and delegate via <strong>SAS</strong> (step 4). An accidentally public container = classic data leak.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Choisir un <strong>niveau de stockage</strong> (chaud/froid) par blob — live sur Azurite.</p>
+<p><strong>🤔 Le domaine coût.</strong> Chaque blob a un <strong>niveau</strong> selon sa fréquence d&#39;accès. Un fichier consulté souvent → <strong>Hot</strong> ; une sauvegarde rarement lue → <strong>Cool</strong> (stockage moins cher, récupération un peu plus chère). On dépose un blob directement en <strong>Cool</strong> et on vérifie son niveau.</p>
+<p>Téléverse en Cool et vérifie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Choose a <strong>storage tier</strong> (hot/cool) per blob — live on Azurite.</p>
+<p><strong>🤔 The cost domain.</strong> Each blob has a <strong>tier</strong> by access frequency. A frequently-read file → <strong>Hot</strong>; a rarely-read backup → <strong>Cool</strong> (cheaper storage, slightly pricier retrieval). We upload a blob directly to <strong>Cool</strong> and check its tier.</p>
+<p>Upload to Cool and verify:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Déposer un blob directement en niveau Cool / upload a blob directly to Cool tier
+echo &quot;sauvegarde ancienne&quot; &gt; vieux.txt
+az storage blob upload --container-name documents --name archives/vieux.txt \
+  --file vieux.txt --tier Cool \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+
+# Vérifier le niveau du blob / check the blob tier
+az storage blob show --container-name documents --name archives/vieux.txt \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot; \
+  --query &quot;properties.blobTier&quot; --output tsv</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> l&#39;upload réussit et <code>blob show ... --query &quot;properties.blobTier&quot;</code> renvoie <strong><code>Cool</code></strong>. Tu viens de placer un objet dans un niveau moins cher au stockage. Retiens le compromis : <strong>Hot</strong> (accès fréquent, stockage cher), <strong>Cool</strong> (≥ 30 j, moins cher au stockage), <strong>Cold</strong> (≥ 90 j), <strong>Archive</strong> (archivage, récupération lente et payante). ⚠️ <strong>Note émulateur :</strong> Azurite gère <strong>Hot/Cool</strong> ; le niveau <strong>Archive</strong> (avec sa réhydratation lente) est un concept d&#39;examen mais n&#39;est pas pleinement émulé — sur un vrai compte, remonter d&#39;Archive prend des <strong>heures</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the upload succeeds and <code>blob show ... --query &quot;properties.blobTier&quot;</code> returns <strong><code>Cool</code></strong>. You just placed an object in a cheaper storage tier. Remember the tradeoff: <strong>Hot</strong> (frequent access, expensive storage), <strong>Cool</strong> (≥ 30 d, cheaper storage), <strong>Cold</strong> (≥ 90 d), <strong>Archive</strong> (archival, slow and paid retrieval). ⚠️ <strong>Emulator note:</strong> Azurite handles <strong>Hot/Cool</strong>; the <strong>Archive</strong> tier (with its slow rehydration) is an exam concept but isn&#39;t fully emulated — on a real account, coming back from Archive takes <strong>hours</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer un <strong>jeton SAS</strong> à privilège limité — live sur Azurite.</p>
+<p><strong>🤔 Déléguer sans donner les clés.</strong> Pour laisser quelqu&#39;un lire <strong>un</strong> blob pendant <strong>un temps limité</strong>, on ne donne <strong>pas</strong> la clé de compte (toute-puissante) : on génère un <strong>SAS</strong> — un jeton signé, restreint à des permissions (<code>r</code> = lecture), une cible (ce blob) et une <strong>expiration</strong>. C&#39;est <strong>le</strong> réflexe de sécurité du stockage.</p>
+<p>Génère un SAS en lecture, expirant à une date donnée :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate a least-privilege <strong>SAS token</strong> — live on Azurite.</p>
+<p><strong>🤔 Delegate without handing over the keys.</strong> To let someone read <strong>one</strong> blob for <strong>a limited time</strong>, you do <strong>not</strong> hand over the account key (all-powerful): you generate a <strong>SAS</strong> — a signed token, restricted to permissions (<code>r</code> = read), a target (this blob) and an <strong>expiry</strong>. It&#39;s <strong>the</strong> storage security reflex.</p>
+<p>Generate a read SAS, expiring at a given date:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Générer un SAS en LECTURE seule sur un blob, avec expiration
+# Generate a READ-only SAS on a blob, with an expiry
+az storage blob generate-sas --container-name documents --name rapports/q1.txt \
+  --permissions r --expiry 2030-01-01 \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot; --output tsv</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la commande renvoie une <strong>chaîne SAS</strong> de la forme <code>se=2030-01-01&amp;sp=r&amp;sv=...&amp;sr=b&amp;sig=...</code> : <code>sp=r</code> (permission <strong>lecture</strong> seule), <code>sr=b</code> (portée <strong>blob</strong>), <code>se=</code> (expiration), <code>sig=</code> (signature). Ce jeton, ajouté à l&#39;URL du blob, donne un accès <strong>exactement</strong> limité à ce que tu as défini. ⚠️ Compare avec les <strong>clés de compte</strong> (2 clés toutes-puissantes, à faire tourner régulièrement) : le SAS est <strong>à privilège minimal</strong> et <strong>expirable</strong> — on le préfère <strong>toujours</strong> pour un accès délégué. Ne mets <strong>jamais</strong> une clé de compte dans une appli cliente ou un dépôt Git.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the command returns a <strong>SAS string</strong> like <code>se=2030-01-01&amp;sp=r&amp;sv=...&amp;sr=b&amp;sig=...</code>: <code>sp=r</code> (<strong>read</strong>-only permission), <code>sr=b</code> (<strong>blob</strong> scope), <code>se=</code> (expiry), <code>sig=</code> (signature). This token, appended to the blob&#39;s URL, grants access <strong>exactly</strong> limited to what you defined. ⚠️ Compare with <strong>account keys</strong> (2 all-powerful keys, to rotate regularly): the SAS is <strong>least-privilege</strong> and <strong>expirable</strong> — you <strong>always</strong> prefer it for delegated access. <strong>Never</strong> put an account key in a client app or a Git repo.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire une <strong>règle de cycle de vie</strong> en Bicep — validation hors-ligne.</p>
+<p><strong>🤔 Automatiser le coût.</strong> Plutôt que de retiérer les blobs à la main, on écrit une <strong>règle de cycle de vie</strong> : « passe en Cool à 30 j, en Archive à 90 j, supprime à 365 j ». C&#39;est une ressource <code>managementPolicies</code> du compte, qu&#39;on <strong>décrit en Bicep</strong> et qu&#39;on <strong>compile/valide</strong>.</p>
+<p>Crée <code>cycle.bicep</code> puis compile-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe a <strong>lifecycle rule</strong> in Bicep — offline validation.</p>
+<p><strong>🤔 Automate cost.</strong> Rather than re-tiering blobs by hand, you write a <strong>lifecycle rule</strong>: &quot;move to Cool at 30 d, Archive at 90 d, delete at 365 d&quot;. It&#39;s a <code>managementPolicies</code> resource on the account, which you <strong>describe in Bicep</strong> and <strong>compile/validate</strong>.</p>
+<p>Create <code>cycle.bicep</code> then compile it:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// cycle.bicep — compte de stockage + règle de cycle de vie
+param location string = &#39;westeurope&#39;
+param storageName string = &#39;stcycle${uniqueString(resourceGroup().id)}&#39;
+
+resource sa &#39;Microsoft.Storage/storageAccounts@2023-01-01&#39; = {
+  name: storageName
+  location: location
+  sku: { name: &#39;Standard_LRS&#39; }
+  kind: &#39;StorageV2&#39;
+  properties: {
+    accessTier: &#39;Hot&#39;
+    minimumTlsVersion: &#39;TLS1_2&#39;
+    allowBlobPublicAccess: false
+  }
+}
+
+resource cycleVie &#39;Microsoft.Storage/storageAccounts/managementPolicies@2023-01-01&#39; = {
+  parent: sa
+  name: &#39;default&#39;
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: &#39;refroidir-puis-supprimer&#39;
+          enabled: true
+          type: &#39;Lifecycle&#39;
+          definition: {
+            filters: { blobTypes: [ &#39;blockBlob&#39; ] }
+            actions: {
+              baseBlob: {
+                tierToCool: { daysAfterModificationGreaterThan: 30 }
+                tierToArchive: { daysAfterModificationGreaterThan: 90 }
+                delete: { daysAfterModificationGreaterThan: 365 }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build cycle.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> affiche l&#39;ARM JSON compilé — <strong>deux</strong> ressources : <code>Microsoft.Storage/storageAccounts</code> et <code>Microsoft.Storage/storageAccounts/managementPolicies</code> — et <strong>aucune erreur</strong>. Ta règle (Cool à 30 j, Archive à 90 j, suppression à 365 j) est <strong>valide</strong> contre le schéma Azure. Tu automatises l&#39;optimisation du coût, de façon versionnée. ⚠️ <code>bicep build</code> <strong>valide la forme</strong> ; <strong>appliquer</strong> réellement la règle demande un vrai compte (<code>az deployment</code>) — au guide <em>passer en réel</em>. La <strong>logique</strong> (refroidir puis supprimer selon l&#39;âge) est identique en réel.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> prints the compiled ARM JSON — <strong>two</strong> resources: <code>Microsoft.Storage/storageAccounts</code> and <code>Microsoft.Storage/storageAccounts/managementPolicies</code> — and <strong>no error</strong>. Your rule (Cool at 30 d, Archive at 90 d, delete at 365 d) is <strong>valid</strong> against the Azure schema. You automate cost optimization, versioned. ⚠️ <code>bicep build</code> <strong>validates the shape</strong>; actually <strong>applying</strong> the rule needs a real account (<code>az deployment</code>) — in the <em>going real</em> guide. The <strong>logic</strong> (cool then delete by age) is identical for real.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> la redondance et le niveau — la décision d&#39;administrateur.</p>
+<p><strong>🤔 La grille de choix (cœur de l&#39;AZ-104).</strong> Deux décisions à la création/gestion d&#39;un compte : la <strong>redondance</strong> (combien de copies, où) et le <strong>niveau</strong> (fréquence d&#39;accès). L&#39;examen te donne un scénario et attend le bon choix.</p>
+<p>Récapitule les grilles :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> redundancy and tier — the administrator&#39;s decision.</p>
+<p><strong>🤔 The choice grid (AZ-104 core).</strong> Two decisions when creating/managing an account: <strong>redundancy</strong> (how many copies, where) and <strong>tier</strong> (access frequency). The exam gives a scenario and expects the right choice.</p>
+<p>Recap the grids:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>REDONDANCE / REDUNDANCY
+  LRS     3 copies, 1 datacenter          le moins cher / cheapest ; perte si sinistre datacenter
+  ZRS     3 copies, 3 zones d&#39;une région  résiste à une panne de zone / zone-outage resilient
+  GRS     LRS + région distante (async)   résiste à un sinistre régional / region-disaster resilient
+  RA-GRS  GRS + lecture sur la copie dist. lecture même si la région primaire tombe
+
+NIVEAU DE STOCKAGE / STORAGE TIER (par accès / by access)
+  Hot      accès fréquent / frequent      stockage cher, accès bon marché
+  Cool     ≥ 30 jours                      stockage moins cher, accès plus cher
+  Cold     ≥ 90 jours                      encore moins cher
+  Archive  archivage / archival           le moins cher au stockage ; récupération LENTE (heures) et payante</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>choisir</strong>. Redondance : données jetables → <strong>LRS</strong> ; haute dispo intra-région → <strong>ZRS</strong> ; reprise après sinistre régional → <strong>GRS/RA-GRS</strong>. Niveau : actif → <strong>Hot</strong> ; sauvegarde mensuelle → <strong>Cool</strong> ; archive légale 7 ans → <strong>Archive</strong>. C&#39;est <strong>exactement</strong> le type de question de l&#39;AZ-104 (« quel compte/niveau pour ce besoin ? »). ⚠️ Le niveau se change <strong>par blob</strong> (ou par règle de cycle de vie) ; la redondance se choisit <strong>au compte</strong> (et certaines transitions, ex. vers ZRS, imposent une migration).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>choose</strong>. Redundancy: throwaway data → <strong>LRS</strong>; intra-region high availability → <strong>ZRS</strong>; regional disaster recovery → <strong>GRS/RA-GRS</strong>. Tier: active → <strong>Hot</strong>; monthly backup → <strong>Cool</strong>; 7-year legal archive → <strong>Archive</strong>. It&#39;s <strong>exactly</strong> the kind of AZ-104 question (&quot;which account/tier for this need?&quot;). ⚠️ The tier is changed <strong>per blob</strong> (or by lifecycle rule); redundancy is chosen <strong>at the account</strong> (and some transitions, e.g. to ZRS, require a migration).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer ton stockage.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime le conteneur (plan de données, Azurite) et le groupe de ressources avec son compte (plan de contrôle, miniblue). Réflexe <strong>créer → utiliser → nettoyer</strong>.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up your storage.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the container (data plane, Azurite) and the resource group with its account (control plane, miniblue). <strong>Create → use → clean up</strong> reflex.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Plan de données : supprimer le conteneur (Azurite) / delete the container (Azurite)
+az storage container delete --name documents \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+
+# Plan de contrôle : supprimer le groupe + son compte (miniblue) / delete the group + account (miniblue)
+azlocal group delete --name rg-stockage</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>container delete</code> renvoie <code>&quot;deleted&quot;: true</code>. <code>group delete</code> renvoie <code>Deleted</code> — le groupe <strong>et</strong> le compte de stockage qu&#39;il contenait partent ensemble. Ton stockage est rangé. Tu maîtrises désormais les deux plans du stockage Azure : le <strong>compte</strong> (contrôle) et les <strong>blobs</strong> (données), avec niveaux d&#39;accès, niveaux de stockage, SAS et cycle de vie. La suite du track AZ-104 : le <strong>calcul</strong> (machines virtuelles) et l&#39;<strong>identité &amp; gouvernance</strong> (RBAC, policies).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>container delete</code> returns <code>&quot;deleted&quot;: true</code>. <code>group delete</code> returns <code>Deleted</code> — the group <strong>and</strong> the storage account it held go together. Your storage is tidy. You now master both planes of Azure storage: the <strong>account</strong> (control) and the <strong>blobs</strong> (data), with access levels, storage tiers, SAS and lifecycle. The AZ-104 track continues: <strong>compute</strong> (virtual machines) and <strong>identity &amp; governance</strong> (RBAC, policies).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Conteneur public par erreur.</strong> Le niveau d&#39;accès <strong>blob</strong>/<strong>container</strong> rend les données lisibles anonymement. En prod, garde <strong>privé</strong> et délègue par SAS. Une fuite classique.</p>
+<p><strong>2. Distribuer une clé de compte.</strong> Les clés sont <strong>toutes-puissantes</strong>. Ne les mets jamais dans une appli/un dépôt. Pour déléguer, un <strong>SAS</strong> à portée minimale.</p>
+<p><strong>3. SAS trop large ou sans expiration.</strong> Un SAS <code>rwdl</code> sans expiry, c&#39;est presque une clé. Donne le <strong>minimum</strong> de permissions et une <strong>expiration</strong> courte.</p>
+<p><strong>4. Choisir Archive pour des données actives.</strong> Archive est bon marché au stockage mais la récupération prend des <strong>heures</strong> et se paie. Pour de l&#39;accès régulier, c&#39;est un contresens.</p>
+<p><strong>5. Confondre niveau d&#39;accès et niveau de stockage.</strong> Le <strong>niveau d&#39;accès</strong> = visibilité (privé/public). Le <strong>niveau de stockage</strong> = coût/fréquence (Hot/Cool/Archive). Deux réglages distincts.</p>
+<p><strong>6. Croire que GRS protège d&#39;une suppression.</strong> GRS réplique — y compris une <strong>suppression</strong>. Contre l&#39;erreur humaine, il faut <strong>soft delete</strong>/<strong>versioning</strong>, pas la redondance.</p>
+<p><strong>7. Nom de compte invalide.</strong> 3–24 caractères, <strong>minuscules et chiffres</strong> uniquement, <strong>mondialement unique</strong>. Pas de tiret, pas de majuscule.</p>
+</div>
+<div data-lang="en"><p><strong>1. Accidentally public container.</strong> The <strong>blob</strong>/<strong>container</strong> access level makes data anonymously readable. In prod, keep it <strong>private</strong> and delegate via SAS. A classic leak.</p>
+<p><strong>2. Handing out an account key.</strong> Keys are <strong>all-powerful</strong>. Never put them in an app/repo. To delegate, a minimal-scope <strong>SAS</strong>.</p>
+<p><strong>3. SAS too broad or with no expiry.</strong> An <code>rwdl</code> SAS with no expiry is almost a key. Give the <strong>minimum</strong> permissions and a <strong>short</strong> expiry.</p>
+<p><strong>4. Choosing Archive for active data.</strong> Archive is cheap to store but retrieval takes <strong>hours</strong> and costs money. For regular access, it&#39;s a mistake.</p>
+<p><strong>5. Confusing access level and storage tier.</strong> The <strong>access level</strong> = visibility (private/public). The <strong>storage tier</strong> = cost/frequency (Hot/Cool/Archive). Two distinct settings.</p>
+<p><strong>6. Thinking GRS protects from deletion.</strong> GRS replicates — including a <strong>deletion</strong>. Against human error, you need <strong>soft delete</strong>/<strong>versioning</strong>, not redundancy.</p>
+<p><strong>7. Invalid account name.</strong> 3–24 chars, <strong>lowercase and digits</strong> only, <strong>globally unique</strong>. No dash, no uppercase.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un <strong>compte de stockage</strong> (miniblue) dans un groupe.</li><li>Tu crées un conteneur <strong>privé</strong> et y déposes des blobs (Azurite).</li><li>Tu téléverses un blob en <strong>Cool</strong> et vérifies son niveau.</li><li>Tu génères un <strong>SAS</strong> en lecture, avec expiration.</li><li>Tu expliques <strong>SAS vs clés de compte</strong>.</li><li>Tu <strong>compiles</strong> une règle de <strong>cycle de vie</strong> en Bicep.</li><li>Tu choisis la <strong>redondance</strong> (LRS/ZRS/GRS) et le <strong>niveau</strong> selon un scénario.</li></ul>
+<p>Sept cases = tu tiens le stockage Azure au niveau AZ-104. La suite : le <strong>calcul</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a <strong>storage account</strong> (miniblue) in a group.</li><li>You create a <strong>private</strong> container and drop blobs in it (Azurite).</li><li>You upload a blob to <strong>Cool</strong> and check its tier.</li><li>You generate a read <strong>SAS</strong>, with an expiry.</li><li>You explain <strong>SAS vs account keys</strong>.</li><li>You <strong>compile</strong> a <strong>lifecycle</strong> rule in Bicep.</li><li>You choose the <strong>redundancy</strong> (LRS/ZRS/GRS) and <strong>tier</strong> by scenario.</li></ul>
+<p>Seven boxes = you hold Azure storage at AZ-104 level. Next up: <strong>compute</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-104 continue :</p>
+<ol><li><strong>Azure — calcul</strong> : machines virtuelles, disques, mise à l&#39;échelle, conteneurs — déployés en live contre miniblue (Terraform) + Bicep.</li><li>Plus loin : <strong>identité &amp; gouvernance</strong> (Entra ID, RBAC, policies), le <strong>projet d&#39;entreprise</strong> AZ-104 et <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-104 track continues:</p>
+<ol><li><strong>Azure — compute</strong>: virtual machines, disks, scaling, containers — deployed live against miniblue (Terraform) + Bicep.</li><li>Further along: <strong>identity &amp; governance</strong> (Entra ID, RBAC, policies), the AZ-104 <strong>enterprise project</strong> and <strong>going real</strong>.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire stockage Azure.</p>
+</div>
+<div data-lang="en"><p>Azure storage cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Plan de contrôle : compte (miniblue) / control plane: account (miniblue)
+azlocal group create --name rg-stockage --location westeurope
+azlocal storage account create --name stlabo2026 --resource-group rg-stockage
+
+# Plan de données : conteneurs &amp; blobs (Azurite) / data plane: containers &amp; blobs (Azurite)
+az storage container create --name documents --public-access off --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+az storage blob upload --container-name documents --name cle --file f.txt --tier Cool --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+az storage blob show --container-name documents --name cle --query &quot;properties.blobTier&quot; -o tsv --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+az storage blob generate-sas --container-name documents --name cle --permissions r --expiry 2030-01-01 -o tsv --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+
+# Cycle de vie (Bicep, hors-ligne) / lifecycle (Bicep, offline)
+bicep build cycle.bicep --stdout
+
+# Grilles : redondance LRS&lt;ZRS&lt;GRS&lt;RA-GRS ; niveau Hot&gt;Cool&gt;Cold&gt;Archive</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/storage/common/storage-account-overview">Comptes de stockage Azure</a> — types, redondance.</li><li><a href="https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview">Niveaux d&#39;accès Blob</a> — Hot/Cool/Cold/Archive.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-sas-overview">Signatures d&#39;accès partagé (SAS)</a> — délégation sûre.</li><li><a href="https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-overview">Gestion du cycle de vie</a> — règles automatiques.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-use-azurite">Azurite — l&#39;émulateur de stockage</a> — le plan de données local.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/storage/common/storage-account-overview">Azure storage accounts</a> — types, redundancy.</li><li><a href="https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview">Blob access tiers</a> — Hot/Cool/Cold/Archive.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-sas-overview">Shared access signatures (SAS)</a> — safe delegation.</li><li><a href="https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-overview">Lifecycle management</a> — automatic rules.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-use-azurite">Azurite — the storage emulator</a> — the local data plane.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>az storage</code> : erreur de connexion.</strong> Azurite ne tourne pas, ou <code>AZURE_STORAGE_CONNECTION_STRING</code> n&#39;est pas exporté dans <strong>ce</strong> shell. Relance Azurite, ré-exporte la variable.</p>
+<p><strong><code>azlocal storage account create</code> : connexion refusée.</strong> miniblue ne tourne pas (<code>localhost:4566</code>). Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+<p><strong><code>--tier Archive</code> échoue sur Azurite.</strong> L&#39;émulateur gère Hot/Cool ; Archive (et sa réhydratation) est un concept — teste-le sur un vrai compte.</p>
+<p><strong>Le SAS ne donne pas accès.</strong> Vérifie les permissions (<code>--permissions</code>), l&#39;expiration (<code>--expiry</code> dans le futur) et que tu vises le bon blob/conteneur. Un SAS expiré ou trop restreint refuse l&#39;accès.</p>
+<p><strong><code>bicep build</code> : erreur de schéma sur <code>managementPolicies</code>.</strong> La structure <code>policy.rules[].definition.actions</code> doit correspondre au schéma ; compare aux exemples de la doc « lifecycle management ».</p>
+<p><strong><code>The API version ... is not supported by Azurite</code>.</strong> Ta CLI est plus récente qu&#39;Azurite. Mets Azurite à jour (<code>npm install -g azurite@latest</code>) ou lance-le avec <code>--skipApiVersionCheck</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>az storage</code>: connection error.</strong> Azurite isn&#39;t running, or <code>AZURE_STORAGE_CONNECTION_STRING</code> isn&#39;t exported in <strong>this</strong> shell. Restart Azurite, re-export the variable.</p>
+<p><strong><code>azlocal storage account create</code>: connection refused.</strong> miniblue isn&#39;t running (<code>localhost:4566</code>). Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+<p><strong><code>--tier Archive</code> fails on Azurite.</strong> The emulator handles Hot/Cool; Archive (and its rehydration) is a concept — test it on a real account.</p>
+<p><strong>The SAS doesn&#39;t grant access.</strong> Check the permissions (<code>--permissions</code>), the expiry (<code>--expiry</code> in the future) and that you target the right blob/container. An expired or too-restricted SAS denies access.</p>
+<p><strong><code>bicep build</code>: schema error on <code>managementPolicies</code>.</strong> The <code>policy.rules[].definition.actions</code> structure must match the schema; compare with the &quot;lifecycle management&quot; docs examples.</p>
+<p><strong><code>The API version ... is not supported by Azurite</code>.</strong> Your CLI is newer than Azurite. Update Azurite (<code>npm install -g azurite@latest</code>) or start it with <code>--skipApiVersionCheck</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
