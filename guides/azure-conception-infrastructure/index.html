@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — conception d&#39;infrastructure (AZ-305) : compute &amp; réseau — jiha.tech</title>
+  <title data-lang="en">Azure — infrastructure design (AZ-305): compute &amp; networking — jiha.tech</title>
+  <meta name="description" content="La conception d&#39;infrastructure Azure pour l&#39;AZ-305 : choisir le compute et le réseau. On déploie EN LOCAL sur miniblue les options conteneurs (AKS, Container Apps, ACI, registre ACR), on décrit App Service et un équilibreur de charge (Load Balancer) en Bicep, et on conçoit la distribution mondiale (Front Door, Application Gateway + WAF, Traffic Manager). Puis on grave les grilles de choix compute et équilibrage, et les approches de migration. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure infrastructure design for AZ-305: choosing compute and networking. We deploy LOCALLY on miniblue the container options (AKS, Container Apps, ACI, ACR registry), describe App Service and a load balancer (Load Balancer) in Bicep, and design global distribution (Front Door, Application Gateway + WAF, Traffic Manager). Then we engrave the compute and load-balancing choice grids, and migration approaches. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — conception d&#39;infrastructure (AZ-305) : compute &amp; réseau">
+  <meta property="og:description" content="La conception d&#39;infrastructure Azure pour l&#39;AZ-305 : choisir le compute et le réseau. On déploie EN LOCAL sur miniblue les options conteneurs (AKS, Container Apps, ACI, registre ACR), on décrit App Service et un équilibreur de charge (Load Balancer) en Bicep, et on conçoit la distribution mondiale (Front Door, Application Gateway + WAF, Traffic Manager). Puis on grave les grilles de choix compute et équilibrage, et les approches de migration. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-conception-infrastructure/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-conception-infrastructure/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-conception-infrastructure">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-conception-infrastructure</div>
+    <div class="prompt" data-lang="en">~/guides/azure-conception-infrastructure</div>
+    <h1 data-lang="fr">Azure — conception d&#39;infrastructure (AZ-305) : compute &amp; réseau</h1>
+    <h1 data-lang="en">Azure — infrastructure design (AZ-305): compute &amp; networking</h1>
+    <p class="tagline" data-lang="fr">conteneurs, App Service, équilibrage, distribution mondiale.</p>
+    <p class="tagline" data-lang="en">containers, App Service, load balancing, global distribution.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Après les données et la continuité, voici la <strong>conception d&#39;infrastructure</strong> — le plus gros domaine de l&#39;examen <strong>AZ-305</strong> : quel <strong>compute</strong> (machines, conteneurs, serverless) et quel <strong>réseau</strong> (équilibrage, distribution mondiale) pour héberger et exposer une application ? C&#39;est le cœur du métier d&#39;architecte d&#39;infrastructure.</p>
+<p>Ce guide couvre les deux. Côté <strong>compute</strong>, on déploie <strong>en local</strong> sur miniblue tout le spectre des conteneurs — <strong>AKS</strong> (Kubernetes managé), <strong>Container Apps</strong> (conteneurs serverless), <strong>ACI</strong> (conteneur ponctuel) et le <strong>registre ACR</strong> — et on décrit <strong>App Service</strong> (PaaS web) en Bicep. Côté <strong>réseau</strong>, on décrit un <strong>équilibreur de charge</strong> (Load Balancer) en Bicep, et on conçoit la <strong>distribution mondiale</strong> : <strong>Front Door</strong> (global, L7, CDN, WAF), <strong>Application Gateway</strong> (régional, L7, WAF), <strong>Traffic Manager</strong> (DNS). Enfin, on grave les <strong>grilles de choix</strong> (compute ; équilibrage) et les <strong>approches de migration</strong> que l&#39;AZ-305 teste.</p>
+<p>C&#39;est le quatrième guide du track <strong>AZ-305</strong>. L&#39;architecte d&#39;infrastructure ne code pas l&#39;appli — il <strong>choisit et assemble</strong> les briques qui la font tourner, tenir la charge et rester joignable partout.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>architecture (WAF)</em> et tu veux concevoir compute et réseau.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur les VM/réseau → fais l&#39;<em>AZ-104</em> d&#39;abord.</li><li>Tu veux administrer un cluster Kubernetes → ici c&#39;est le <strong>choix</strong> et l&#39;<strong>architecture</strong>, pas l&#39;exploitation fine d&#39;AKS.</li></ul>
+</div>
+<div data-lang="en"><p>After data and continuity, here&#39;s <strong>infrastructure design</strong> — the biggest <strong>AZ-305</strong> exam domain: which <strong>compute</strong> (machines, containers, serverless) and which <strong>networking</strong> (load balancing, global distribution) to host and expose an application? It&#39;s the core of the infrastructure architect&#39;s job.</p>
+<p>This guide covers both. On the <strong>compute</strong> side, we deploy <strong>locally</strong> on miniblue the whole container spectrum — <strong>AKS</strong> (managed Kubernetes), <strong>Container Apps</strong> (serverless containers), <strong>ACI</strong> (one-off container) and the <strong>ACR registry</strong> — and describe <strong>App Service</strong> (web PaaS) in Bicep. On the <strong>networking</strong> side, we describe a <strong>load balancer</strong> (Load Balancer) in Bicep, and design <strong>global distribution</strong>: <strong>Front Door</strong> (global, L7, CDN, WAF), <strong>Application Gateway</strong> (regional, L7, WAF), <strong>Traffic Manager</strong> (DNS). Finally, we engrave the <strong>choice grids</strong> (compute; load balancing) and the <strong>migration approaches</strong> the AZ-305 tests.</p>
+<p>This is the fourth guide of the <strong>AZ-305</strong> track. The infrastructure architect doesn&#39;t code the app — they <strong>choose and assemble</strong> the blocks that make it run, handle load, and stay reachable everywhere.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>architecture (WAF)</em> and want to design compute and networking.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to VMs/networking → do <em>AZ-104</em> first.</li><li>You want to administer a Kubernetes cluster → here it&#39;s the <strong>choice</strong> and <strong>architecture</strong>, not fine AKS operations.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Situer le <strong>spectre du compute</strong> (VM → App Service → conteneurs → serverless).</li><li>Déployer les options <strong>conteneurs</strong> (AKS, Container Apps, ACI) et un <strong>registre</strong> (ACR).</li><li>Décrire <strong>App Service</strong> en Bicep.</li><li>Décrire un <strong>équilibreur de charge</strong> (Load Balancer) en Bicep.</li><li>Distinguer <strong>L4 vs L7</strong>, <strong>régional vs global</strong>.</li><li>Concevoir la <strong>distribution mondiale</strong> (Front Door, App Gateway, Traffic Manager).</li><li>Choisir <strong>compute</strong> et <strong>équilibrage</strong> par grille, et connaître les <strong>migrations</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Place the <strong>compute spectrum</strong> (VM → App Service → containers → serverless).</li><li>Deploy the <strong>container</strong> options (AKS, Container Apps, ACI) and a <strong>registry</strong> (ACR).</li><li>Describe <strong>App Service</strong> in Bicep.</li><li>Describe a <strong>load balancer</strong> (Load Balancer) in Bicep.</li><li>Distinguish <strong>L4 vs L7</strong>, <strong>regional vs global</strong>.</li><li>Design <strong>global distribution</strong> (Front Door, App Gateway, Traffic Manager).</li><li>Choose <strong>compute</strong> and <strong>load balancing</strong> by grid, and know the <strong>migrations</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure architecture (WAF)</strong> terminé, et <strong>miniblue</strong> qui tourne.</li><li><strong>Bicep</strong> installé.</li><li>Rappel : les services (conteneurs, registre) se créent via <code>azlocal</code> (live) ; App Service et l&#39;équilibrage se décrivent en <strong>Bicep</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure architecture (WAF)</strong> guide done, and <strong>miniblue</strong> running.</li><li><strong>Bicep</strong> installed.</li><li>Reminder: services (containers, registry) are created via <code>azlocal</code> (live); App Service and load balancing are described in <strong>Bicep</strong>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-architecture-well-architected/">
+    <span class="num">65</span>
+    <span class="title-line" data-lang="fr">Azure — architecture (AZ-305) : le Well-Architected Framework en pratique</span>
+    <span class="title-line" data-lang="en">Azure — architecture (AZ-305): the Well-Architected Framework in practice</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le spectre du compute.</strong> Du plus « tu gères » au plus « managé » : <strong>VM</strong> (IaaS — tu gères l&#39;OS) → <strong>App Service</strong> (PaaS — tu déposes ton code) → <strong>Container Apps</strong> / <strong>AKS</strong> (conteneurs) → <strong>Functions</strong> (serverless — tu déposes une fonction). Plus tu montes dans le spectre, moins tu gères l&#39;infrastructure, plus tu te concentres sur le code — mais moins tu as de contrôle bas niveau. L&#39;architecte place le curseur selon le besoin.</p>
+<p><strong>Les conteneurs.</strong> Un <strong>conteneur</strong> empaquète une appli et ses dépendances. Trois façons de les exécuter sur Azure : <strong>ACI (Container Instances)</strong> — un conteneur isolé, ponctuel (tâche batch, test) ; <strong>Container Apps</strong> — conteneurs <strong>serverless</strong> avec scale-to-zero et montée en charge automatique (microservices modernes, la voie recommandée pour beaucoup de cas) ; <strong>AKS (Azure Kubernetes Service)</strong> — Kubernetes <strong>managé</strong>, contrôle total de l&#39;orchestration (grandes plateformes, besoins avancés). Les images vivent dans un <strong>registre ACR (Azure Container Registry)</strong>.</p>
+<p><strong>App Service (PaaS web).</strong> Héberge des applis <strong>web/API</strong> sans gérer l&#39;OS : déploiement continu, mise à l&#39;échelle intégrée (scale up/out), slots de déploiement (blue-green), certificats. Idéal pour une appli web classique à trafic soutenu — le compromis productivité/contrôle.</p>
+<p><strong>L&#39;équilibrage de charge.</strong> Répartir le trafic sur plusieurs instances. Deux niveaux : <strong>L4</strong> (transport, IP/port) → <strong>Azure Load Balancer</strong> (rapide, régional, TCP/UDP) ; <strong>L7</strong> (applicatif, HTTP, URL/en-têtes) → <strong>Application Gateway</strong> (régional, avec <strong>WAF</strong> — pare-feu applicatif). Deux portées : <strong>régional</strong> (dans une région) vs <strong>global</strong> (mondial).</p>
+<p><strong>La distribution mondiale.</strong> Pour servir des utilisateurs partout et basculer entre régions : <strong>Front Door</strong> (global, L7, avec CDN + WAF — le point d&#39;entrée mondial moderne) ; <strong>Traffic Manager</strong> (répartition par <strong>DNS</strong>, global, oriente vers la région la plus proche/saine) ; <strong>Application Gateway</strong> (L7 régional, souvent <strong>derrière</strong> Front Door). On combine : Front Door (global) → App Gateway (régional, WAF) → backend.</p>
+<p><strong>La migration.</strong> Faire venir des workloads existants : <strong>lift-and-shift</strong> (rehost — déplacer tel quel en VM, rapide) ; <strong>replatform</strong> (adapter légèrement — passer sur App Service/conteneurs) ; <strong>refactor/rearchitect</strong> (moderniser — microservices, serverless). Plus on modernise, plus on gagne en agilité/coût, mais plus l&#39;effort monte. Outils : <strong>Azure Migrate</strong>.</p>
+<p><strong>Ce qui est live ici.</strong> Les <strong>conteneurs</strong> (AKS, Container Apps, ACI) et le <strong>registre ACR</strong> se déploient en live sur miniblue via <code>azlocal</code>. <strong>App Service</strong> et l&#39;<strong>équilibreur de charge</strong> se décrivent et <strong>valident en Bicep</strong>. La distribution mondiale (Front Door, Traffic Manager) est vue en <strong>concept + décision</strong> — le cœur de l&#39;AZ-305.</p>
+</div>
+<div data-lang="en"><p><strong>The compute spectrum.</strong> From most &quot;you manage&quot; to most &quot;managed&quot;: <strong>VM</strong> (IaaS — you manage the OS) → <strong>App Service</strong> (PaaS — you drop your code) → <strong>Container Apps</strong> / <strong>AKS</strong> (containers) → <strong>Functions</strong> (serverless — you drop a function). The higher you go, the less infrastructure you manage, the more you focus on code — but the less low-level control you have. The architect sets the cursor by the need.</p>
+<p><strong>Containers.</strong> A <strong>container</strong> packages an app and its dependencies. Three ways to run them on Azure: <strong>ACI (Container Instances)</strong> — an isolated, one-off container (batch task, test); <strong>Container Apps</strong> — <strong>serverless</strong> containers with scale-to-zero and automatic scaling (modern microservices, the recommended path for many cases); <strong>AKS (Azure Kubernetes Service)</strong> — <strong>managed</strong> Kubernetes, full orchestration control (large platforms, advanced needs). Images live in an <strong>ACR (Azure Container Registry)</strong> registry.</p>
+<p><strong>App Service (web PaaS).</strong> Hosts <strong>web/API</strong> apps without managing the OS: continuous deployment, built-in scaling (up/out), deployment slots (blue-green), certificates. Ideal for a classic web app with sustained traffic — the productivity/control tradeoff.</p>
+<p><strong>Load balancing.</strong> Spreading traffic across several instances. Two levels: <strong>L4</strong> (transport, IP/port) → <strong>Azure Load Balancer</strong> (fast, regional, TCP/UDP); <strong>L7</strong> (application, HTTP, URL/headers) → <strong>Application Gateway</strong> (regional, with <strong>WAF</strong> — application firewall). Two scopes: <strong>regional</strong> (within a region) vs <strong>global</strong> (worldwide).</p>
+<p><strong>Global distribution.</strong> To serve users everywhere and fail over between regions: <strong>Front Door</strong> (global, L7, with CDN + WAF — the modern global entry point); <strong>Traffic Manager</strong> (<strong>DNS</strong>-based routing, global, directs to the nearest/healthiest region); <strong>Application Gateway</strong> (regional L7, often <strong>behind</strong> Front Door). You combine: Front Door (global) → App Gateway (regional, WAF) → backend.</p>
+<p><strong>Migration.</strong> Bringing in existing workloads: <strong>lift-and-shift</strong> (rehost — move as-is to a VM, fast); <strong>replatform</strong> (adapt lightly — move to App Service/containers); <strong>refactor/rearchitect</strong> (modernize — microservices, serverless). The more you modernize, the more agility/cost you gain, but the more effort rises. Tools: <strong>Azure Migrate</strong>.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>containers</strong> (AKS, Container Apps, ACI) and the <strong>ACR registry</strong> deploy live on miniblue via <code>azlocal</code>. <strong>App Service</strong> and the <strong>load balancer</strong> are described and <strong>validated in Bicep</strong>. Global distribution (Front Door, Traffic Manager) is seen as <strong>concept + decision</strong> — the AZ-305 core.</p>
+</div>
+
+<figure class="schema" id="figure-azure-infra-compute-reseau">
+  <p>[schema "azure-infra-compute-reseau" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Concevoir l&#39;infrastructure : le spectre COMPUTE (VM → App Service → Container Apps/AKS/ACI → Functions, du plus géré au plus serverless, images dans ACR) ; l&#39;ÉQUILIBRAGE (Load Balancer L4, Application Gateway L7+WAF) et la DISTRIBUTION mondiale (Front Door global + CDN + WAF, Traffic Manager DNS). On assemble : Front Door → App Gateway → compute.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Designing infrastructure: the COMPUTE spectrum (VM → App Service → Container Apps/AKS/ACI → Functions, from most managed to most serverless, images in ACR); LOAD BALANCING (Load Balancer L4, Application Gateway L7+WAF) and global DISTRIBUTION (Front Door global + CDN + WAF, Traffic Manager DNS). We assemble: Front Door → App Gateway → compute.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer les options <strong>conteneurs</strong> — AKS, Container Apps, ACI, en live.</p>
+<p><strong>🤔 Trois façons d&#39;exécuter un conteneur.</strong> Selon le besoin : <strong>ACI</strong> pour un conteneur <strong>ponctuel</strong> (une tâche), <strong>Container Apps</strong> pour des <strong>microservices serverless</strong> (scale-to-zero, la voie moderne), <strong>AKS</strong> pour un <strong>Kubernetes managé</strong> (contrôle total, grandes plateformes). On les crée pour comparer.</p>
+<p>Crée les trois :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>container</strong> options — AKS, Container Apps, ACI, live.</p>
+<p><strong>🤔 Three ways to run a container.</strong> By need: <strong>ACI</strong> for a <strong>one-off</strong> container (a task), <strong>Container Apps</strong> for <strong>serverless microservices</strong> (scale-to-zero, the modern path), <strong>AKS</strong> for <strong>managed Kubernetes</strong> (full control, large platforms). We create them to compare.</p>
+<p>Create the three:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-infra --location westeurope
+
+azlocal aci create          --name aci-tache    --resource-group rg-infra   # conteneur ponctuel
+azlocal containerapp create --name ca-microsvc  --resource-group rg-infra   # serverless
+azlocal aks create          --name aks-platforme --resource-group rg-infra  # Kubernetes managé</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les trois créations renvoient des objets ARM <code>Succeeded</code> : <code>aci-tache</code>, <code>ca-microsvc</code>, <code>aks-platforme</code>. Tu tiens le <strong>spectre conteneur</strong>. Retiens le <strong>choix</strong> : tâche batch isolée → <strong>ACI</strong> (le plus simple) ; microservices web à charge variable → <strong>Container Apps</strong> (serverless, scale-to-zero, sans gérer Kubernetes) ; besoin d&#39;orchestration avancée, multi-équipes, portabilité Kubernetes → <strong>AKS</strong> (le plus puissant, mais le plus à gérer). ⚠️ Règle : prends <strong>Container Apps</strong> par défaut pour des microservices modernes ; ne passe à <strong>AKS</strong> que si tu as <strong>vraiment</strong> besoin du contrôle Kubernetes — sinon tu paies une complexité inutile.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the three creations return <code>Succeeded</code> ARM objects: <code>aci-tache</code>, <code>ca-microsvc</code>, <code>aks-platforme</code>. You hold the <strong>container spectrum</strong>. Remember the <strong>choice</strong>: isolated batch task → <strong>ACI</strong> (the simplest); web microservices with variable load → <strong>Container Apps</strong> (serverless, scale-to-zero, no Kubernetes to manage); need for advanced orchestration, multi-team, Kubernetes portability → <strong>AKS</strong> (the most powerful, but the most to manage). ⚠️ Rule: take <strong>Container Apps</strong> by default for modern microservices; move to <strong>AKS</strong> only if you <strong>truly</strong> need Kubernetes control — else you pay for needless complexity.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer un <strong>registre de conteneurs</strong> (ACR) — le stockage des images, en live.</p>
+<p><strong>🤔 Où vivent les images.</strong> Un conteneur s&#39;exécute à partir d&#39;une <strong>image</strong>. En entreprise, les images privées vivent dans un <strong>registre ACR (Azure Container Registry)</strong> : on y <strong>pousse</strong> (push) les images construites, et AKS/Container Apps/ACI les <strong>tirent</strong> (pull) pour s&#39;exécuter. C&#39;est la brique centrale d&#39;une plateforme conteneurisée.</p>
+<p>Crée le registre :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy a <strong>container registry</strong> (ACR) — image storage, live.</p>
+<p><strong>🤔 Where images live.</strong> A container runs from an <strong>image</strong>. In a company, private images live in an <strong>ACR (Azure Container Registry)</strong>: you <strong>push</strong> built images there, and AKS/Container Apps/ACI <strong>pull</strong> them to run. It&#39;s the central block of a containerized platform.</p>
+<p>Create the registry:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal acr create --name registreentreprise --resource-group rg-infra
+azlocal acr list --resource-group rg-infra</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>acr create</code> renvoie un registre <code>registreentreprise</code> <code>Succeeded</code>, listé par <code>acr list</code>. Ta plateforme conteneurisée est complète : un <strong>registre</strong> (ACR) pour les images, et des <strong>exécuteurs</strong> (ACI/Container Apps/AKS) pour les faire tourner. Retiens le <strong>flux</strong> : construire l&#39;image → <strong>push</strong> vers ACR → l&#39;exécuteur <strong>pull</strong> et lance. ⚠️ Sécurité : l&#39;accès à l&#39;ACR se fait par <strong>identité managée</strong> (pas de mot de passe), avec le rôle <strong>AcrPull</strong> pour les exécuteurs — le moindre privilège appliqué aux conteneurs.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>acr create</code> returns a <code>Succeeded</code> <code>registreentreprise</code> registry, listed by <code>acr list</code>. Your containerized platform is complete: a <strong>registry</strong> (ACR) for images, and <strong>runners</strong> (ACI/Container Apps/AKS) to run them. Remember the <strong>flow</strong>: build the image → <strong>push</strong> to ACR → the runner <strong>pulls</strong> and launches. ⚠️ Security: ACR access uses a <strong>managed identity</strong> (no password), with the <strong>AcrPull</strong> role for the runners — least privilege applied to containers.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire <strong>App Service</strong> — le PaaS web, en Bicep.</p>
+<p><strong>🤔 Héberger sans gérer l&#39;OS.</strong> Pour une appli <strong>web/API</strong> classique, App Service offre le meilleur compromis : tu déposes le code, Azure gère l&#39;OS, le scaling, les certificats. On décrit un <strong>plan</strong> (les ressources) et une <strong>application</strong> dessus.</p>
+<p>Crée <code>appservice.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe <strong>App Service</strong> — web PaaS, in Bicep.</p>
+<p><strong>🤔 Host without managing the OS.</strong> For a classic <strong>web/API</strong> app, App Service offers the best tradeoff: you drop the code, Azure manages the OS, scaling, certificates. We describe a <strong>plan</strong> (the resources) and an <strong>app</strong> on it.</p>
+<p>Create <code>appservice.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// appservice.bicep — plan App Service + application web
+param location string = resourceGroup().location
+param nomApp string = &#39;web-${uniqueString(resourceGroup().id)}&#39;
+
+resource plan &#39;Microsoft.Web/serverfarms@2023-01-01&#39; = {
+  name: &#39;plan-web&#39;
+  location: location
+  sku: { name: &#39;P1v3&#39;, tier: &#39;PremiumV3&#39; }   // Production, scale-out
+  properties: { reserved: true }              // Linux
+}
+
+resource app &#39;Microsoft.Web/sites@2023-01-01&#39; = {
+  name: nomApp
+  location: location
+  properties: {
+    serverFarmId: plan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: &#39;NODE|20-lts&#39;
+      minTlsVersion: &#39;1.2&#39;
+      ftpsState: &#39;Disabled&#39;
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build appservice.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile <strong>deux</strong> ressources — <code>serverfarms</code> (le plan) et <code>sites</code> (l&#39;app) — sans erreur, avec <code>httpsOnly</code> et <code>minTlsVersion: 1.2</code>. Tu as un hébergement <strong>PaaS</strong> prêt. Retiens la structure : le <strong>plan</strong> (App Service Plan) définit la capacité et le coût (SKU) et peut porter <strong>plusieurs</strong> apps ; le <strong>site</strong> est l&#39;appli. Fonctionnalités clés : <strong>slots de déploiement</strong> (blue-green sans coupure), <strong>scale-out</strong> automatique, <strong>certificats</strong> managés. ⚠️ <strong>Choix compute :</strong> App Service pour une appli web <strong>à trafic soutenu</strong> (coût fixe prévisible) ; <strong>Functions/Container Apps</strong> pour de l&#39;événementiel/pics (payé à l&#39;usage).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles <strong>two</strong> resources — <code>serverfarms</code> (the plan) and <code>sites</code> (the app) — with no error, with <code>httpsOnly</code> and <code>minTlsVersion: 1.2</code>. You have <strong>PaaS</strong> hosting ready. Remember the structure: the <strong>plan</strong> (App Service Plan) defines capacity and cost (SKU) and can host <strong>several</strong> apps; the <strong>site</strong> is the app. Key features: <strong>deployment slots</strong> (blue-green with no downtime), automatic <strong>scale-out</strong>, managed <strong>certificates</strong>. ⚠️ <strong>Compute choice:</strong> App Service for a <strong>sustained-traffic</strong> web app (predictable fixed cost); <strong>Functions/Container Apps</strong> for event-driven/spiky (pay-per-use).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire un <strong>équilibreur de charge</strong> (Load Balancer) — répartir le trafic, en Bicep.</p>
+<p><strong>🤔 Répartir et sonder.</strong> Un <strong>Load Balancer</strong> (L4) distribue le trafic entrant sur un <strong>pool</strong> d&#39;instances backend, en s&#39;appuyant sur une <strong>sonde</strong> de santé (ne router que vers les instances saines). On décrit une IP publique frontale, un pool, une sonde et une règle.</p>
+<p>Crée <code>equilibrage.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe a <strong>load balancer</strong> (Load Balancer) — spread traffic, in Bicep.</p>
+<p><strong>🤔 Spread and probe.</strong> A <strong>Load Balancer</strong> (L4) distributes incoming traffic across a <strong>pool</strong> of backend instances, relying on a health <strong>probe</strong> (route only to healthy instances). We describe a frontend public IP, a pool, a probe and a rule.</p>
+<p>Create <code>equilibrage.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// equilibrage.bicep — Load Balancer public (L4) avec sonde de santé
+param location string = resourceGroup().location
+
+resource pip &#39;Microsoft.Network/publicIPAddresses@2023-09-01&#39; = {
+  name: &#39;pip-lb&#39;
+  location: location
+  sku: { name: &#39;Standard&#39; }
+  properties: { publicIPAllocationMethod: &#39;Static&#39; }
+}
+
+resource lb &#39;Microsoft.Network/loadBalancers@2023-09-01&#39; = {
+  name: &#39;lb-web&#39;
+  location: location
+  sku: { name: &#39;Standard&#39; }
+  properties: {
+    frontendIPConfigurations: [
+      { name: &#39;frontend&#39;, properties: { publicIPAddress: { id: pip.id } } }
+    ]
+    backendAddressPools: [ { name: &#39;pool-web&#39; } ]
+    probes: [
+      {
+        name: &#39;sonde-https&#39;
+        properties: { protocol: &#39;Tcp&#39;, port: 443, intervalInSeconds: 15, numberOfProbes: 2 }
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: &#39;regle-https&#39;
+        properties: {
+          frontendIPConfiguration: { id: resourceId(&#39;Microsoft.Network/loadBalancers/frontendIPConfigurations&#39;, &#39;lb-web&#39;, &#39;frontend&#39;) }
+          backendAddressPool:       { id: resourceId(&#39;Microsoft.Network/loadBalancers/backendAddressPools&#39;, &#39;lb-web&#39;, &#39;pool-web&#39;) }
+          probe:                    { id: resourceId(&#39;Microsoft.Network/loadBalancers/probes&#39;, &#39;lb-web&#39;, &#39;sonde-https&#39;) }
+          protocol: &#39;Tcp&#39;
+          frontendPort: 443
+          backendPort: 443
+        }
+      }
+    ]
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build equilibrage.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile l&#39;<strong>IP publique</strong> et le <strong>Load Balancer</strong> (frontend + pool + sonde + règle) sans erreur. Tu as un répartiteur L4 fonctionnel. Retiens la mécanique : le trafic arrive sur l&#39;<strong>IP frontale</strong>, la <strong>règle</strong> le distribue vers le <strong>pool</strong> backend, la <strong>sonde</strong> exclut les instances malsaines. ⚠️ <strong>L4 vs L7 :</strong> le <strong>Load Balancer</strong> (L4) route par IP/port (rapide, tout protocole TCP/UDP) ; pour router par <strong>URL/chemin/en-tête</strong> ou ajouter un <strong>pare-feu applicatif (WAF)</strong>, il faut <strong>Application Gateway</strong> (L7) — voir la grille (étape 6).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles the <strong>public IP</strong> and the <strong>Load Balancer</strong> (frontend + pool + probe + rule) with no error. You have a working L4 balancer. Remember the mechanics: traffic arrives on the <strong>frontend IP</strong>, the <strong>rule</strong> distributes it to the backend <strong>pool</strong>, the <strong>probe</strong> excludes unhealthy instances. ⚠️ <strong>L4 vs L7:</strong> the <strong>Load Balancer</strong> (L4) routes by IP/port (fast, any TCP/UDP protocol); to route by <strong>URL/path/header</strong> or add an <strong>application firewall (WAF)</strong>, you need <strong>Application Gateway</strong> (L7) — see the grid (step 6).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir la <strong>distribution mondiale</strong> — servir et protéger partout.</p>
+<p><strong>🤔 Au-delà d&#39;une région.</strong> Pour des utilisateurs mondiaux et une résilience inter-région, on met un <strong>point d&#39;entrée global</strong> devant les backends régionaux. Trois services (concept) : <strong>Front Door</strong> (global, L7, CDN + WAF — le point d&#39;entrée moderne), <strong>Traffic Manager</strong> (routage par <strong>DNS</strong>, oriente vers la région la plus proche/saine), <strong>Application Gateway</strong> (L7 régional + WAF, souvent <strong>derrière</strong> Front Door).</p>
+<p>L&#39;assemblage type (concept) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design <strong>global distribution</strong> — serve and protect everywhere.</p>
+<p><strong>🤔 Beyond one region.</strong> For global users and cross-region resilience, you put a <strong>global entry point</strong> in front of the regional backends. Three services (concept): <strong>Front Door</strong> (global, L7, CDN + WAF — the modern entry point), <strong>Traffic Manager</strong> (<strong>DNS</strong> routing, directs to the nearest/healthiest region), <strong>Application Gateway</strong> (regional L7 + WAF, often <strong>behind</strong> Front Door).</p>
+<p>The typical assembly (concept):</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>DISTRIBUTION MONDIALE / GLOBAL DISTRIBUTION (assemblage type / typical assembly)
+
+  Utilisateurs mondiaux
+        |
+   [ Front Door ]        global, L7, CDN + WAF, bascule inter-région
+        |
+   [ App Gateway ]       régional, L7, WAF, routage par URL/chemin
+        |
+   [ Load Balancer ]     régional, L4, répartition sur les instances
+        |
+   [ compute : App Service / Container Apps / AKS / VM ]
+
+  Traffic Manager = alternative/complément par DNS (oriente vers une région)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>assembler</strong> une entrée mondiale : <strong>Front Door</strong> (global) devant des <strong>App Gateway</strong> régionaux (L7 + WAF) devant le compute. Tu distingues les rôles : <strong>Front Door</strong> = mondial + CDN + bascule de région ; <strong>App Gateway</strong> = L7 régional + WAF + routage applicatif ; <strong>Load Balancer</strong> = L4 régional ; <strong>Traffic Manager</strong> = orientation par DNS. ⚠️ Ne les confonds pas à l&#39;examen : <strong>global</strong> (Front Door, Traffic Manager) vs <strong>régional</strong> (App Gateway, Load Balancer) ; <strong>L7</strong> (Front Door, App Gateway — comprend HTTP/URL) vs <strong>L4</strong> (Load Balancer — IP/port). Le <strong>WAF</strong> est sur Front Door <strong>ou</strong> App Gateway.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>assemble</strong> a global entry: <strong>Front Door</strong> (global) in front of regional <strong>App Gateways</strong> (L7 + WAF) in front of compute. You distinguish the roles: <strong>Front Door</strong> = global + CDN + region failover; <strong>App Gateway</strong> = regional L7 + WAF + application routing; <strong>Load Balancer</strong> = regional L4; <strong>Traffic Manager</strong> = DNS routing. ⚠️ Don&#39;t confuse them on the exam: <strong>global</strong> (Front Door, Traffic Manager) vs <strong>regional</strong> (App Gateway, Load Balancer); <strong>L7</strong> (Front Door, App Gateway — understand HTTP/URL) vs <strong>L4</strong> (Load Balancer — IP/port). The <strong>WAF</strong> is on Front Door <strong>or</strong> App Gateway.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Graver les <strong>grilles</strong> (compute, équilibrage) et les <strong>migrations</strong> — le cœur de l&#39;AZ-305.</p>
+<p><strong>🤔 Décider vite.</strong> Deux grilles de choix et les approches de migration.</p>
+<p>Les grilles :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Engrave the <strong>grids</strong> (compute, load balancing) and the <strong>migrations</strong> — the AZ-305 core.</p>
+<p><strong>🤔 Decide fast.</strong> Two choice grids and the migration approaches.</p>
+<p>The grids:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>COMPUTE
+  Contrôle total OS / legacy          -&gt; VM (IaaS)
+  Appli web/API à trafic soutenu      -&gt; App Service (PaaS)
+  Microservices conteneurs serverless -&gt; Container Apps
+  Kubernetes, contrôle, multi-équipes -&gt; AKS
+  Conteneur ponctuel / tâche          -&gt; ACI
+  Événementiel / pics, payé à l&#39;usage -&gt; Functions (serverless)
+
+ÉQUILIBRAGE / LOAD BALANCING
+  L4, IP/port, régional               -&gt; Azure Load Balancer
+  L7, URL/en-têtes, WAF, régional     -&gt; Application Gateway
+  L7 global, CDN, WAF, multi-région   -&gt; Front Door
+  Routage par DNS, global             -&gt; Traffic Manager
+
+MIGRATION (du - au + d&#39;effort / least-&gt;most effort)
+  Rehost (lift-and-shift)  déplacer tel quel en VM (rapide)
+  Replatform               adapter -&gt; App Service / conteneurs
+  Refactor/Rearchitect     moderniser -&gt; microservices / serverless</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> face à un scénario, tu <strong>choisis</strong> : « API web à fort trafic » → <strong>App Service</strong> ; « microservices élastiques » → <strong>Container Apps</strong> ; « plateforme Kubernetes multi-équipes » → <strong>AKS</strong> ; « router par chemin d&#39;URL avec WAF » → <strong>Application Gateway</strong> ; « point d&#39;entrée mondial + CDN » → <strong>Front Door</strong> ; « migrer vite un vieux serveur » → <strong>rehost (VM)</strong> puis moderniser plus tard. C&#39;est <strong>exactement</strong> le format AZ-305. ⚠️ Justifie par le <strong>besoin</strong> (contrôle vs productivité, régional vs global, L4 vs L7, effort de migration) et le <strong>pilier WAF</strong> dominant — le <strong>pourquoi</strong>, pas seulement le service.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> faced with a scenario, you <strong>choose</strong>: &quot;high-traffic web API&quot; → <strong>App Service</strong>; &quot;elastic microservices&quot; → <strong>Container Apps</strong>; &quot;multi-team Kubernetes platform&quot; → <strong>AKS</strong>; &quot;route by URL path with WAF&quot; → <strong>Application Gateway</strong>; &quot;global entry point + CDN&quot; → <strong>Front Door</strong>; &quot;migrate an old server fast&quot; → <strong>rehost (VM)</strong> then modernize later. It&#39;s <strong>exactly</strong> the AZ-305 format. ⚠️ Justify by the <strong>need</strong> (control vs productivity, regional vs global, L4 vs L7, migration effort) and the dominant <strong>WAF pillar</strong> — the <strong>why</strong>, not just the service.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime le groupe et tous les services conteneurs.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the group and all container services.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group delete --name rg-infra</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>group delete</code> renvoie <code>Deleted</code> — AKS, Container Apps, ACI et le registre ACR partent avec le groupe. Ton labo est rangé. Tu maîtrises maintenant la <strong>conception d&#39;infrastructure</strong> au niveau AZ-305 : le spectre <strong>compute</strong> (des VM aux serverless, conteneurs et registre), l&#39;<strong>équilibrage</strong> (L4/L7, régional/global) et la <strong>distribution mondiale</strong> (Front Door, App Gateway, Traffic Manager), plus les <strong>migrations</strong>. La suite du track : le <strong>projet d&#39;architecte</strong> — assembler une solution Well-Architected complète.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>group delete</code> returns <code>Deleted</code> — AKS, Container Apps, ACI and the ACR registry go with the group. Your lab is tidy. You now master <strong>infrastructure design</strong> at AZ-305 level: the <strong>compute</strong> spectrum (from VMs to serverless, containers and registry), <strong>load balancing</strong> (L4/L7, regional/global) and <strong>global distribution</strong> (Front Door, App Gateway, Traffic Manager), plus <strong>migrations</strong>. The track continues: the <strong>architect project</strong> — assembling a complete Well-Architected solution.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Prendre AKS par réflexe.</strong> Kubernetes est puissant mais lourd à gérer. Pour des microservices, <strong>Container Apps</strong> suffit souvent — n&#39;ajoute AKS que si tu as besoin du contrôle Kubernetes.</p>
+<p><strong>2. Confondre L4 et L7.</strong> Load Balancer (L4) route par IP/port ; App Gateway (L7) route par URL/en-tête et porte le WAF. Choisis selon le <strong>type de routage</strong>.</p>
+<p><strong>3. Confondre régional et global.</strong> App Gateway/Load Balancer = <strong>régional</strong> ; Front Door/Traffic Manager = <strong>global</strong>. Pour du multi-région, il faut un service <strong>global</strong> devant.</p>
+<p><strong>4. Oublier le WAF.</strong> Une appli web exposée sans <strong>pare-feu applicatif</strong> (sur Front Door ou App Gateway) est vulnérable. Le WAF est une décision d&#39;architecture.</p>
+<p><strong>5. VM par habitude.</strong> Migrer « tel quel » en VM (rehost) est rapide mais rate les gains du PaaS/serverless. Prévois la <strong>modernisation</strong> ensuite.</p>
+<p><strong>6. Registre public pour des images privées.</strong> Les images d&#39;entreprise vont dans un <strong>ACR</strong> privé, accédé par <strong>identité managée</strong> (AcrPull), pas un registre public.</p>
+<p><strong>7. Choisir sans justifier.</strong> L&#39;AZ-305 veut le <strong>pourquoi</strong> (contrôle, portée, routage, effort), pas seulement le nom du service.</p>
+</div>
+<div data-lang="en"><p><strong>1. Reaching for AKS by reflex.</strong> Kubernetes is powerful but heavy to manage. For microservices, <strong>Container Apps</strong> is often enough — add AKS only if you need Kubernetes control.</p>
+<p><strong>2. Confusing L4 and L7.</strong> Load Balancer (L4) routes by IP/port; App Gateway (L7) routes by URL/header and carries the WAF. Choose by the <strong>routing type</strong>.</p>
+<p><strong>3. Confusing regional and global.</strong> App Gateway/Load Balancer = <strong>regional</strong>; Front Door/Traffic Manager = <strong>global</strong>. For multi-region, you need a <strong>global</strong> service in front.</p>
+<p><strong>4. Forgetting the WAF.</strong> A web app exposed without an <strong>application firewall</strong> (on Front Door or App Gateway) is vulnerable. The WAF is an architecture decision.</p>
+<p><strong>5. VM by habit.</strong> Migrating &quot;as-is&quot; to a VM (rehost) is fast but misses the PaaS/serverless gains. Plan the <strong>modernization</strong> next.</p>
+<p><strong>6. Public registry for private images.</strong> Enterprise images go in a private <strong>ACR</strong>, accessed by <strong>managed identity</strong> (AcrPull), not a public registry.</p>
+<p><strong>7. Choosing without justifying.</strong> AZ-305 wants the <strong>why</strong> (control, scope, routing, effort), not just the service name.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu situes le <strong>spectre compute</strong> (VM → App Service → conteneurs → serverless).</li><li>Tu déploies <strong>AKS, Container Apps, ACI</strong> et un <strong>registre ACR</strong> (live).</li><li>Tu décris <strong>App Service</strong> en Bicep.</li><li>Tu décris un <strong>Load Balancer</strong> en Bicep.</li><li>Tu distingues <strong>L4/L7</strong> et <strong>régional/global</strong>.</li><li>Tu conçois la <strong>distribution mondiale</strong> (Front Door, App Gateway, Traffic Manager).</li><li>Tu choisis <strong>compute</strong> et <strong>équilibrage</strong> par grille et connais les migrations.</li></ul>
+<p>Sept cases = tu tiens la conception d&#39;infrastructure AZ-305. La suite : le <strong>projet d&#39;architecte</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You place the <strong>compute spectrum</strong> (VM → App Service → containers → serverless).</li><li>You deploy <strong>AKS, Container Apps, ACI</strong> and an <strong>ACR registry</strong> (live).</li><li>You describe <strong>App Service</strong> in Bicep.</li><li>You describe a <strong>Load Balancer</strong> in Bicep.</li><li>You distinguish <strong>L4/L7</strong> and <strong>regional/global</strong>.</li><li>You design <strong>global distribution</strong> (Front Door, App Gateway, Traffic Manager).</li><li>You choose <strong>compute</strong> and <strong>load balancing</strong> by grid and know the migrations.</li></ul>
+<p>Seven boxes = you hold AZ-305 infrastructure design. Next up: the <strong>architect project</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-305 se termine bientôt :</p>
+<ol><li><strong>Azure — projet d&#39;architecte</strong> : assembler une solution complète Well-Architected (compute, données, réseau, continuité, gouvernance) et la justifier pilier par pilier — le livrable de CV.</li><li>Puis l&#39;examen <strong>AZ-305</strong>, et la suite du parcours : <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (sécurité), <strong>AZ-700</strong> (réseau).</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-305 track is nearing its end:</p>
+<ol><li><strong>Azure — architect project</strong>: assemble a complete Well-Architected solution (compute, data, networking, continuity, governance) and justify it pillar by pillar — the CV deliverable.</li><li>Then the <strong>AZ-305</strong> exam, and the rest of the path: <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (security), <strong>AZ-700</strong> (networking).</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire conception d&#39;infrastructure Azure.</p>
+</div>
+<div data-lang="en"><p>Azure infrastructure design cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Conteneurs &amp; registre (azlocal, live) / containers &amp; registry
+azlocal aci create          --name aci-tache     --resource-group rg-infra
+azlocal containerapp create --name ca-microsvc   --resource-group rg-infra
+azlocal aks create          --name aks-platforme --resource-group rg-infra
+azlocal acr create          --name registreentreprise --resource-group rg-infra
+
+# App Service &amp; équilibrage (Bicep, validé) / App Service &amp; load balancing
+bicep build appservice.bicep --stdout    # plan + site (PaaS web)
+bicep build equilibrage.bicep --stdout   # Load Balancer L4 + IP + sonde + règle</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Compute : VM(contrôle) &lt; App Service(web PaaS) &lt; Container Apps(serverless) / AKS(k8s) ; ACI(ponctuel) ; Functions(événementiel)
+Équilibrage : Load Balancer(L4 régional) · App Gateway(L7+WAF régional) · Front Door(L7 global+CDN+WAF) · Traffic Manager(DNS global)
+Migration : Rehost &lt; Replatform &lt; Refactor</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree">Choisir un service de calcul</a> — l&#39;arbre de décision.</li><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/load-balancing-overview">Choisir un équilibreur de charge</a> — LB/AppGW/Front Door/TM.</li><li><a href="https://learn.microsoft.com/azure/aks/">Azure Kubernetes Service</a> — Kubernetes managé.</li><li><a href="https://learn.microsoft.com/azure/container-apps/overview">Azure Container Apps</a> — conteneurs serverless.</li><li><a href="https://learn.microsoft.com/azure/migrate/migrate-services-overview">Azure Migrate</a> — la migration.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree">Choose a compute service</a> — the decision tree.</li><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/load-balancing-overview">Choose a load balancer</a> — LB/AppGW/Front Door/TM.</li><li><a href="https://learn.microsoft.com/azure/aks/">Azure Kubernetes Service</a> — managed Kubernetes.</li><li><a href="https://learn.microsoft.com/azure/container-apps/overview">Azure Container Apps</a> — serverless containers.</li><li><a href="https://learn.microsoft.com/azure/migrate/migrate-services-overview">Azure Migrate</a> — migration.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal aks/containerapp/aci/acr create</code> : connexion refusée.</strong> miniblue ne tourne pas. Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+<p><strong>« resource group not found ».</strong> Crée d&#39;abord <code>rg-infra</code> (<code>azlocal group create</code>), puis les services.</p>
+<p><strong><code>bicep build equilibrage.bicep</code> : erreur <code>resourceId</code>.</strong> Les références internes du Load Balancer (<code>frontendIPConfigurations</code>, <code>backendAddressPools</code>, <code>probes</code>) se construisent avec <code>resourceId(&#39;type&#39;, &#39;nom-lb&#39;, &#39;nom-sous-ressource&#39;)</code> — vérifie les noms.</p>
+<p><strong>AKS ou Container Apps ?</strong> Besoin de Kubernetes (contrôle, portabilité, multi-équipes) → <strong>AKS</strong>. Microservices sans gérer Kubernetes → <strong>Container Apps</strong> (par défaut moderne).</p>
+<p><strong>L4 ou L7 ?</strong> Router par IP/port → <strong>Load Balancer</strong> (L4). Router par URL/en-tête ou WAF → <strong>Application Gateway</strong> (L7).</p>
+<p><strong>Régional ou global ?</strong> Dans une région → App Gateway/Load Balancer. Multi-région/mondial → <strong>Front Door</strong> (ou Traffic Manager par DNS).</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal aks/containerapp/aci/acr create</code>: connection refused.</strong> miniblue isn&#39;t running. Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+<p><strong>&quot;resource group not found&quot;.</strong> Create <code>rg-infra</code> first (<code>azlocal group create</code>), then the services.</p>
+<p><strong><code>bicep build equilibrage.bicep</code>: <code>resourceId</code> error.</strong> The Load Balancer&#39;s internal references (<code>frontendIPConfigurations</code>, <code>backendAddressPools</code>, <code>probes</code>) are built with <code>resourceId(&#39;type&#39;, &#39;lb-name&#39;, &#39;sub-resource-name&#39;)</code> — check the names.</p>
+<p><strong>AKS or Container Apps?</strong> Need Kubernetes (control, portability, multi-team) → <strong>AKS</strong>. Microservices without managing Kubernetes → <strong>Container Apps</strong> (modern default).</p>
+<p><strong>L4 or L7?</strong> Route by IP/port → <strong>Load Balancer</strong> (L4). Route by URL/header or WAF → <strong>Application Gateway</strong> (L7).</p>
+<p><strong>Regional or global?</strong> Within a region → App Gateway/Load Balancer. Multi-region/global → <strong>Front Door</strong> (or Traffic Manager by DNS).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
