@@ -196,7 +196,7 @@ export SSL_CERT_FILE=~/.miniblue/cert.pem
 :::lang fr
 **Objectif.** Déployer le **socle réseau** — sécurité & fiabilité, en live.
 
-**🤔 La fondation.** On déploie le VNet segmenté (web/app/data) en Terraform paramétré. Crée `infra/providers.tf` (le bloc provider `azurerm` → miniblue, cf. guide *réseau*) et `infra/main.tf`, **puis** applique.
+**🤔 La fondation.** On déploie le VNet segmenté (web/app/data) en Terraform paramétré. Crée `infra/providers.tf` (le bloc provider `azurerm` → miniblue, cf. guide *réseau*) et `infra/main.tf`, **puis** applique. ⚠️ Copie le fichier `providers.tf` **en entier**, y compris le bloc `terraform { required_providers { azurerm = { ... version = "~> 3.0" } } }` : cette **épingle de version est indispensable**, car les arguments de ciblage miniblue (`skip_provider_registration`, `metadata_host`) ont été retirés du provider azurerm v4+.
 
 Crée les fichiers, puis déploie :
 :::
@@ -204,7 +204,7 @@ Crée les fichiers, puis déploie :
 :::lang en
 **Goal.** Deploy the **network foundation** — security & reliability, live.
 
-**🤔 The foundation.** We deploy the segmented VNet (web/app/data) in parameterized Terraform. Create `infra/providers.tf` (the `azurerm` provider block → miniblue, see the *networking* guide) and `infra/main.tf`, **then** apply.
+**🤔 The foundation.** We deploy the segmented VNet (web/app/data) in parameterized Terraform. Create `infra/providers.tf` (the `azurerm` provider block → miniblue, see the *networking* guide) and `infra/main.tf`, **then** apply. ⚠️ Copy the `providers.tf` file **in full**, including the `terraform { required_providers { azurerm = { ... version = "~> 3.0" } } }` block: this **version pin is essential**, because miniblue's targeting arguments (`skip_provider_registration`, `metadata_host`) were removed from the azurerm v4+ provider.
 
 Create the files, then deploy:
 :::
@@ -475,11 +475,11 @@ cd ~/solution-waf/infra && terraform destroy -auto-approve
 ```
 
 :::lang fr
-**✅ Vérification :** `group delete` renvoie `Deleted` (Container App, SQL, Redis partent), et `terraform destroy` retire le socle réseau (`Destroy complete!`). Ta solution est entièrement démontée. **Tu tiens ton projet de CV AZ-305** : une solution Well-Architected complète, conçue, déployée/validée en local, et **justifiée pilier par pilier**. 🎓 Tu as terminé le track **AZ-305 — Architecte de solutions**. La suite du parcours Azure : **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
+**✅ Vérification :** `group delete` renvoie `Deleted` : comme le **groupe de ressources emporte tout** ce qu'il contient (charges azlocal **et** le réseau géré par Terraform), il ne reste plus rien côté émulateur. `terraform destroy` **réconcilie alors son état** et affiche `Destroy complete! Resources: 0 destroyed` (le groupe étant déjà supprimé) — c'est normal. Vérifie avec `azlocal group list` (`{"value": []}`). Ta solution est entièrement démontée. **Tu tiens ton projet de CV AZ-305** : une solution Well-Architected complète, conçue, déployée/validée en local, et **justifiée pilier par pilier**. 🎓 Tu as terminé le track **AZ-305 — Architecte de solutions**. La suite du parcours Azure : **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
 :::
 
 :::lang en
-**✅ Check:** `group delete` returns `Deleted` (Container App, SQL, Redis go), and `terraform destroy` removes the network foundation (`Destroy complete!`). Your solution is fully torn down. **You hold your AZ-305 CV project**: a complete Well-Architected solution, designed, deployed/validated locally, and **justified pillar by pillar**. 🎓 You've finished the **AZ-305 — Solutions Architect** track. The rest of the Azure path: **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
+**✅ Check:** `group delete` returns `Deleted`: since the **resource group takes everything** it holds (azlocal workloads **and** the Terraform-managed network), nothing remains on the emulator. `terraform destroy` **then reconciles its state** and shows `Destroy complete! Resources: 0 destroyed` (the group is already gone) — that's expected. Verify with `azlocal group list` (`{"value": []}`). Your solution is fully torn down. **You hold your AZ-305 CV project**: a complete Well-Architected solution, designed, deployed/validated locally, and **justified pillar by pillar**. 🎓 You've finished the **AZ-305 — Solutions Architect** track. The rest of the Azure path: **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
 :::
 
 ## pitfalls
