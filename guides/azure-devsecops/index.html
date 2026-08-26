@@ -277,12 +277,18 @@ detect-secrets scan config.py \
 
 cat &gt; .git/hooks/pre-commit &lt;&lt;&#39;HOOK&#39;
 #!/bin/sh
-# Refuse tout fichier indexé contenant un secret / reject any staged file containing a secret
+# Un contrôle de sécurité doit ÉCHOUER FERMÉ / a security control must FAIL CLOSED.
+# Si l&#39;outil manque, on bloque (on ne laisse pas passer par défaut).
+if ! command -v detect-secrets &gt;/dev/null 2&gt;&amp;1; then
+  echo &quot;⛔ detect-secrets introuvable — commit bloqué par sécurité (installe-le / ajoute-le au PATH).&quot;
+  exit 1
+fi
 for f in $(git diff --cached --name-only); do
   [ -f &quot;$f&quot; ] || continue
-  N=$(detect-secrets scan &quot;$f&quot; 2&gt;/dev/null | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(sum(len(v) for v in d[&#39;results&#39;].values()))&quot;)
-  if [ &quot;$N&quot; -gt 0 ]; then
-    echo &quot;❌ SECRET détecté dans $f — commit bloqué (utilise Key Vault, pas de secret en dur).&quot;
+  N=$(detect-secrets scan &quot;$f&quot; 2&gt;/dev/null | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(sum(len(v) for v in d[&#39;results&#39;].values()))&quot; 2&gt;/dev/null)
+  [ -z &quot;$N&quot; ] &amp;&amp; N=-1   # scan échoué -&gt; traiter comme suspect / failed scan -&gt; treat as suspect
+  if [ &quot;$N&quot; -ne 0 ]; then
+    echo &quot;❌ SECRET détecté (ou scan impossible) dans $f — commit bloqué (utilise Key Vault, pas de secret en dur).&quot;
     exit 1
   fi
 done
@@ -502,7 +508,7 @@ echo &quot;Chaîne d&#39;approvisionnement sécurisée = pin par SHA + scan deps
   <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
   <h2 data-lang="fr">Pièges connus</h2>
   <h2 data-lang="en">Known pitfalls</h2>
-<div data-lang="fr"><p><strong>1. Détecter sans prévenir.</strong> Trouver un secret <strong>après</strong> commit = déjà fuité (l&#39;historique le garde). Mets un <strong>hook pre-commit</strong> (ou un check CI <strong>bloquant</strong>).</p>
+<div data-lang="fr"><p><strong>1. Détecter sans prévenir — et échouer « ouvert ».</strong> Trouver un secret <strong>après</strong> commit = déjà fuité (l&#39;historique le garde). Mets un <strong>hook pre-commit</strong> (ou un check CI <strong>bloquant</strong>). Et surtout, un contrôle de sécurité doit <strong>échouer fermé</strong> : si l&#39;outil manque ou le scan plante, <strong>bloque</strong> (ne laisse <strong>pas</strong> passer par défaut) — un hook qui « laisse passer » en cas d&#39;erreur est pire qu&#39;inutile.</p>
 <p><strong>2. Secret « chiffré » dans le repo.</strong> Un secret encodé/base64 <strong>reste</strong> un secret. Le seul bon endroit est un <strong>coffre</strong> (Key Vault), pas le dépôt.</p>
 <p><strong>3. Confondre <code>validate</code> et sécurité.</strong> <code>terraform validate</code> ne vérifie que la syntaxe. La sécurité de l&#39;infra, c&#39;est <strong>checkov</strong> (ou tfsec/trivy).</p>
 <p><strong>4. Skipper les règles pour « passer ».</strong> <code># checkov:skip</code> sans justification = fausse sécurité. Corrige, ou assume explicitement (avec raison).</p>
@@ -510,7 +516,7 @@ echo &quot;Chaîne d&#39;approvisionnement sécurisée = pin par SHA + scan deps
 <p><strong>6. Token de workflow trop permissif.</strong> Par défaut, un workflow peut avoir des droits d&#39;écriture. Déclare <code>permissions: contents: read</code> et n&#39;élargis <strong>qu&#39;au besoin</strong>.</p>
 <p><strong>7. Ignorer les dépendances.</strong> Le code peut être parfait et <strong>hériter</strong> d&#39;une CVE d&#39;une lib. Scanne (<code>npm audit</code>, <code>pip-audit</code>, Dependabot) et fixe un <strong>seuil</strong>.</p>
 </div>
-<div data-lang="en"><p><strong>1. Detect without prevent.</strong> Finding a secret <strong>after</strong> commit = already leaked (history keeps it). Add a <strong>pre-commit hook</strong> (or a <strong>blocking</strong> CI check).</p>
+<div data-lang="en"><p><strong>1. Detect without prevent — and failing &quot;open&quot;.</strong> Finding a secret <strong>after</strong> commit = already leaked (history keeps it). Add a <strong>pre-commit hook</strong> (or a <strong>blocking</strong> CI check). And crucially, a security control must <strong>fail closed</strong>: if the tool is missing or the scan crashes, <strong>block</strong> (do <strong>not</strong> let it through by default) — a hook that &quot;lets it through&quot; on error is worse than useless.</p>
 <p><strong>2. An &quot;encrypted&quot; secret in the repo.</strong> An encoded/base64 secret <strong>is still</strong> a secret. The only right place is a <strong>vault</strong> (Key Vault), not the repo.</p>
 <p><strong>3. Confusing <code>validate</code> with security.</strong> <code>terraform validate</code> only checks syntax. Infra security is <strong>checkov</strong> (or tfsec/trivy).</p>
 <p><strong>4. Skipping rules to &quot;pass&quot;.</strong> <code># checkov:skip</code> without justification = fake security. Fix it, or explicitly own it (with a reason).</p>
@@ -552,7 +558,8 @@ echo &quot;Chaîne d&#39;approvisionnement sécurisée = pin par SHA + scan deps
 <div data-lang="fr"><p><strong>Secrets</strong></p>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install detect-secrets                  # installe le scanner
 detect-secrets scan FICHIER                 # scanne un fichier / dossier (--all-files)
-# hook : .git/hooks/pre-commit -&gt; detect-secrets scan sur les fichiers indexés, exit 1 si trouvé</code></pre>
+# hook : .git/hooks/pre-commit -&gt; scan des fichiers indexés, exit 1 si trouvé
+#        FAIL CLOSED : si l&#39;outil manque ou le scan échoue -&gt; bloquer (ne jamais laisser passer)</code></pre>
 <p><strong>Coffre (Key Vault, live sur miniblue)</strong></p>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal keyvault secret set  --vault V --name N --value &quot;…&quot;   # déposer
 azlocal keyvault secret list --vault V                        # lister
@@ -572,7 +579,8 @@ checkov -d infra --compact --quiet          # sortie condensée (gate de CI)</co
 <div data-lang="en"><p><strong>Secrets</strong></p>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install detect-secrets                  # install the scanner
 detect-secrets scan FILE                    # scan a file / folder (--all-files)
-# hook: .git/hooks/pre-commit -&gt; detect-secrets scan on staged files, exit 1 if found</code></pre>
+# hook: .git/hooks/pre-commit -&gt; scan staged files, exit 1 if found
+#       FAIL CLOSED: if the tool is missing or the scan fails -&gt; block (never let it through)</code></pre>
 <p><strong>Vault (Key Vault, live on miniblue)</strong></p>
 <pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal keyvault secret set  --vault V --name N --value &quot;…&quot;   # deposit
 azlocal keyvault secret list --vault V                        # list

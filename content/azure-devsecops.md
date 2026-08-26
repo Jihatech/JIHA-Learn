@@ -215,12 +215,18 @@ git init -q && git config user.email you@example.com && git config user.name stu
 
 cat > .git/hooks/pre-commit <<'HOOK'
 #!/bin/sh
-# Refuse tout fichier indexé contenant un secret / reject any staged file containing a secret
+# Un contrôle de sécurité doit ÉCHOUER FERMÉ / a security control must FAIL CLOSED.
+# Si l'outil manque, on bloque (on ne laisse pas passer par défaut).
+if ! command -v detect-secrets >/dev/null 2>&1; then
+  echo "⛔ detect-secrets introuvable — commit bloqué par sécurité (installe-le / ajoute-le au PATH)."
+  exit 1
+fi
 for f in $(git diff --cached --name-only); do
   [ -f "$f" ] || continue
-  N=$(detect-secrets scan "$f" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(len(v) for v in d['results'].values()))")
-  if [ "$N" -gt 0 ]; then
-    echo "❌ SECRET détecté dans $f — commit bloqué (utilise Key Vault, pas de secret en dur)."
+  N=$(detect-secrets scan "$f" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(len(v) for v in d['results'].values()))" 2>/dev/null)
+  [ -z "$N" ] && N=-1   # scan échoué -> traiter comme suspect / failed scan -> treat as suspect
+  if [ "$N" -ne 0 ]; then
+    echo "❌ SECRET détecté (ou scan impossible) dans $f — commit bloqué (utilise Key Vault, pas de secret en dur)."
     exit 1
   fi
 done
@@ -495,7 +501,7 @@ echo "Chaîne d'approvisionnement sécurisée = pin par SHA + scan deps + SBOM +
 ## pitfalls
 
 :::lang fr
-**1. Détecter sans prévenir.** Trouver un secret **après** commit = déjà fuité (l'historique le garde). Mets un **hook pre-commit** (ou un check CI **bloquant**).
+**1. Détecter sans prévenir — et échouer « ouvert ».** Trouver un secret **après** commit = déjà fuité (l'historique le garde). Mets un **hook pre-commit** (ou un check CI **bloquant**). Et surtout, un contrôle de sécurité doit **échouer fermé** : si l'outil manque ou le scan plante, **bloque** (ne laisse **pas** passer par défaut) — un hook qui « laisse passer » en cas d'erreur est pire qu'inutile.
 
 **2. Secret « chiffré » dans le repo.** Un secret encodé/base64 **reste** un secret. Le seul bon endroit est un **coffre** (Key Vault), pas le dépôt.
 
@@ -511,7 +517,7 @@ echo "Chaîne d'approvisionnement sécurisée = pin par SHA + scan deps + SBOM +
 :::
 
 :::lang en
-**1. Detect without prevent.** Finding a secret **after** commit = already leaked (history keeps it). Add a **pre-commit hook** (or a **blocking** CI check).
+**1. Detect without prevent — and failing "open".** Finding a secret **after** commit = already leaked (history keeps it). Add a **pre-commit hook** (or a **blocking** CI check). And crucially, a security control must **fail closed**: if the tool is missing or the scan crashes, **block** (do **not** let it through by default) — a hook that "lets it through" on error is worse than useless.
 
 **2. An "encrypted" secret in the repo.** An encoded/base64 secret **is still** a secret. The only right place is a **vault** (Key Vault), not the repo.
 
@@ -572,7 +578,8 @@ You've succeeded if:
 ```bash
 pip install detect-secrets                  # installe le scanner
 detect-secrets scan FICHIER                 # scanne un fichier / dossier (--all-files)
-# hook : .git/hooks/pre-commit -> detect-secrets scan sur les fichiers indexés, exit 1 si trouvé
+# hook : .git/hooks/pre-commit -> scan des fichiers indexés, exit 1 si trouvé
+#        FAIL CLOSED : si l'outil manque ou le scan échoue -> bloquer (ne jamais laisser passer)
 ```
 
 **Coffre (Key Vault, live sur miniblue)**
@@ -609,7 +616,8 @@ checkov -d infra --compact --quiet          # sortie condensée (gate de CI)
 ```bash
 pip install detect-secrets                  # install the scanner
 detect-secrets scan FILE                    # scan a file / folder (--all-files)
-# hook: .git/hooks/pre-commit -> detect-secrets scan on staged files, exit 1 if found
+# hook: .git/hooks/pre-commit -> scan staged files, exit 1 if found
+#       FAIL CLOSED: if the tool is missing or the scan fails -> block (never let it through)
 ```
 
 **Vault (Key Vault, live on miniblue)**
