@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — conception des données (AZ-305) : SQL, Cosmos, cache — jiha.tech</title>
+  <title data-lang="en">Azure — data design (AZ-305): SQL, Cosmos, cache — jiha.tech</title>
+  <meta name="description" content="La conception des données Azure pour l&#39;AZ-305 : choisir et concevoir le bon stockage. On déploie EN LOCAL sur miniblue une base relationnelle (Azure SQL serveur + base), du NoSQL (documents Cosmos DB), du relationnel open-source (PostgreSQL) et un cache Redis ; on décrit en Bicep un compte Cosmos avec niveau de cohérence, clé de partition et débit autoscale (RU/s). Puis on grave les décisions d&#39;architecte : relationnel vs NoSQL, cohérence vs latence, partitionnement, quand mettre un cache. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure data design for AZ-305: choosing and designing the right storage. We deploy LOCALLY on miniblue a relational database (Azure SQL server + database), NoSQL (Cosmos DB documents), open-source relational (PostgreSQL) and a Redis cache; we describe in Bicep a Cosmos account with consistency level, partition key and autoscale throughput (RU/s). Then we engrave the architect decisions: relational vs NoSQL, consistency vs latency, partitioning, when to add a cache. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — conception des données (AZ-305) : SQL, Cosmos, cache">
+  <meta property="og:description" content="La conception des données Azure pour l&#39;AZ-305 : choisir et concevoir le bon stockage. On déploie EN LOCAL sur miniblue une base relationnelle (Azure SQL serveur + base), du NoSQL (documents Cosmos DB), du relationnel open-source (PostgreSQL) et un cache Redis ; on décrit en Bicep un compte Cosmos avec niveau de cohérence, clé de partition et débit autoscale (RU/s). Puis on grave les décisions d&#39;architecte : relationnel vs NoSQL, cohérence vs latence, partitionnement, quand mettre un cache. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-conception-donnees/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-conception-donnees/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-conception-donnees">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-conception-donnees</div>
+    <div class="prompt" data-lang="en">~/guides/azure-conception-donnees</div>
+    <h1 data-lang="fr">Azure — conception des données (AZ-305) : SQL, Cosmos, cache</h1>
+    <h1 data-lang="en">Azure — data design (AZ-305): SQL, Cosmos, cache</h1>
+    <p class="tagline" data-lang="fr">relationnel, NoSQL, cohérence, partitionnement, cache.</p>
+    <p class="tagline" data-lang="en">relational, NoSQL, consistency, partitioning, cache.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>« Quelle base pour ce besoin ? » — c&#39;est la question la plus fréquente de l&#39;examen <strong>AZ-305</strong>, et l&#39;une des plus lourdes de conséquences en production. Choisir <strong>Azure SQL</strong> quand il fallait <strong>Cosmos DB</strong> (ou l&#39;inverse) se paie en refonte, en coût et en performance. Ce guide fait de toi un architecte des données : tu apprends à <strong>choisir</strong>, à <strong>concevoir</strong> et à <strong>régler</strong> le stockage Azure.</p>
+<p>On travaille <strong>en pratique</strong> sur miniblue : tu déploies une base <strong>relationnelle</strong> (Azure SQL, serveur + base), du <strong>NoSQL</strong> (documents <strong>Cosmos DB</strong>), une base <strong>relationnelle open-source</strong> (<strong>PostgreSQL</strong>) et un <strong>cache Redis</strong> — tous <strong>en live</strong>. Puis tu décris en <strong>Bicep</strong> un compte Cosmos avec ses <strong>décisions d&#39;architecte</strong> : le <strong>niveau de cohérence</strong> (le compromis cohérence ↔ latence), la <strong>clé de partition</strong> (la distribution/échelle) et le <strong>débit autoscale</strong> (RU/s, l&#39;élasticité et le coût). Enfin, tu graves les <strong>grilles de choix</strong> et les <strong>concepts</strong> (cohérence, partitionnement) que l&#39;AZ-305 teste sans relâche.</p>
+<p>C&#39;est le deuxième guide du track <strong>AZ-305</strong>, après le Well-Architected Framework. La donnée est le cœur de toute architecture — la concevoir juste, c&#39;est la moitié du travail d&#39;architecte.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait le guide <em>architecture (WAF)</em> et tu veux la conception des données en profondeur.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur le stockage → revois <em>AZ-104 stockage</em> d&#39;abord (comptes, Blob).</li><li>Tu cherches l&#39;administration d&#39;une base (sauvegarde, tuning) → ici c&#39;est le <strong>choix</strong> et la <strong>conception</strong>, pas l&#39;exploitation fine.</li></ul>
+</div>
+<div data-lang="en"><p>&quot;Which database for this need?&quot; — it&#39;s the AZ-305 exam&#39;s most frequent question, and one of the most consequential in production. Choosing <strong>Azure SQL</strong> when you needed <strong>Cosmos DB</strong> (or vice versa) is paid for in rewrites, cost and performance. This guide makes you a data architect: you learn to <strong>choose</strong>, <strong>design</strong> and <strong>tune</strong> Azure storage.</p>
+<p>We work <strong>hands-on</strong> on miniblue: you deploy a <strong>relational</strong> database (Azure SQL, server + database), <strong>NoSQL</strong> (<strong>Cosmos DB</strong> documents), an <strong>open-source relational</strong> database (<strong>PostgreSQL</strong>) and a <strong>Redis cache</strong> — all <strong>live</strong>. Then you describe in <strong>Bicep</strong> a Cosmos account with its <strong>architect decisions</strong>: the <strong>consistency level</strong> (the consistency ↔ latency tradeoff), the <strong>partition key</strong> (distribution/scale) and the <strong>autoscale throughput</strong> (RU/s, elasticity and cost). Finally, you engrave the <strong>choice grids</strong> and <strong>concepts</strong> (consistency, partitioning) the AZ-305 tests relentlessly.</p>
+<p>This is the second guide of the <strong>AZ-305</strong> track, after the Well-Architected Framework. Data is the heart of any architecture — designing it right is half the architect&#39;s job.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done the <em>architecture (WAF)</em> guide and want data design in depth.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to storage → review <em>AZ-104 storage</em> first (accounts, Blob).</li><li>You want database administration (backup, tuning) → here it&#39;s the <strong>choice</strong> and <strong>design</strong>, not fine operations.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Choisir entre <strong>relationnel</strong>, <strong>NoSQL</strong>, <strong>objet</strong> et <strong>cache</strong> selon la donnée.</li><li>Déployer une base <strong>Azure SQL</strong> (serveur + base) et une base <strong>PostgreSQL</strong>.</li><li>Créer et interroger des <strong>documents Cosmos DB</strong> (NoSQL).</li><li>Expliquer les <strong>niveaux de cohérence</strong> (fort → éventuel) et leur compromis.</li><li>Choisir une <strong>clé de partition</strong> et comprendre les <strong>RU/s</strong>.</li><li>Mettre un <strong>cache Redis</strong> (cache-aside) devant une base.</li><li>Décrire un compte Cosmos complet en <strong>Bicep</strong> (cohérence, partition, autoscale).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Choose between <strong>relational</strong>, <strong>NoSQL</strong>, <strong>object</strong> and <strong>cache</strong> by the data.</li><li>Deploy an <strong>Azure SQL</strong> database (server + database) and a <strong>PostgreSQL</strong> database.</li><li>Create and query <strong>Cosmos DB documents</strong> (NoSQL).</li><li>Explain the <strong>consistency levels</strong> (strong → eventual) and their tradeoff.</li><li>Choose a <strong>partition key</strong> and understand <strong>RU/s</strong>.</li><li>Put a <strong>Redis cache</strong> (cache-aside) in front of a database.</li><li>Describe a full Cosmos account in <strong>Bicep</strong> (consistency, partition, autoscale).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure architecture (WAF)</strong> terminé.</li><li><strong>miniblue</strong> qui tourne (<code>azlocal health</code>), <strong>Bicep</strong> installé.</li><li>Rappel : les services de données se créent via <code>azlocal</code> (live) ; les configs avancées (cohérence, partition) se décrivent en <strong>Bicep</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure architecture (WAF)</strong> guide done.</li><li><strong>miniblue</strong> running (<code>azlocal health</code>), <strong>Bicep</strong> installed.</li><li>Reminder: data services are created via <code>azlocal</code> (live); advanced configs (consistency, partition) are described in <strong>Bicep</strong>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-architecture-well-architected/">
+    <span class="num">65</span>
+    <span class="title-line" data-lang="fr">Azure — architecture (AZ-305) : le Well-Architected Framework en pratique</span>
+    <span class="title-line" data-lang="en">Azure — architecture (AZ-305): the Well-Architected Framework in practice</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Les familles de stockage.</strong> GCP, AWS, Azure : même logique, un service par <strong>forme de donnée</strong>. <strong>Relationnel</strong> (tables, schéma fort, transactions ACID, jointures) → <strong>Azure SQL</strong>, <strong>PostgreSQL</strong>, <strong>MySQL</strong>. <strong>NoSQL</strong> (documents/clé-valeur, schéma souple, échelle massive) → <strong>Cosmos DB</strong>. <strong>Objet</strong> (fichiers non structurés) → <strong>Blob Storage</strong>. <strong>Cache</strong> (mémoire ultra-rapide) → <strong>Azure Cache for Redis</strong>. <strong>Analytique</strong> (entrepôt, requêtes massives) → <strong>Synapse / Fabric</strong>. Choisir, c&#39;est partir de la <strong>donnée</strong> et des <strong>besoins</strong> (cohérence, latence, échelle, coût).</p>
+<p><strong>Azure SQL — les options.</strong> Trois formes : <strong>Single Database</strong> (une base isolée, la plus courante), <strong>Elastic Pool</strong> (plusieurs bases partageant des ressources, économique pour des charges variables), <strong>Managed Instance</strong> (compatibilité quasi-totale avec SQL Server on-premises, pour la migration). Tarification : <strong>DTU</strong> (unités groupées, simple) ou <strong>vCore</strong> (CPU/mémoire séparés, flexible, réservations possibles).</p>
+<p><strong>Cosmos DB — le NoSQL mondial.</strong> Base NoSQL managée, distribution <strong>multi-région</strong>, faible latence garantie par SLA. Plusieurs <strong>API</strong> (Core/SQL pour documents, MongoDB, Cassandra, Gremlin, Table). Trois notions d&#39;architecte :</p>
+<ul><li><strong>Niveaux de cohérence.</strong> Le compromis <strong>cohérence ↔ latence/dispo</strong>, du plus fort au plus faible : <strong>Strong</strong> (linéarisable, lecture toujours à jour, plus lent), <strong>Bounded Staleness</strong> (retard borné), <strong>Session</strong> (cohérent pour une session — <strong>le défaut</strong>, bon équilibre), <strong>Consistent Prefix</strong> (ordre respecté), <strong>Eventual</strong> (le plus rapide/disponible, peut lire une valeur ancienne). L&#39;architecte choisit selon le besoin.</li><li><strong>Clé de partition.</strong> Cosmos distribue les données par <strong>partitions logiques</strong> selon une <strong>clé</strong> (<code>/clientId</code>, <code>/region</code>…). Une <strong>bonne</strong> clé répartit uniformément la charge (cardinalité élevée, accès équilibrés) ; une <strong>mauvaise</strong> crée un « hot partition ». <strong>Décision structurante et difficile à changer.</strong></li><li><strong>RU/s (Request Units).</strong> Le débit se mesure en <strong>unités de requête par seconde</strong> — l&#39;unité de coût/performance de Cosmos. On provisionne un débit (fixe ou <strong>autoscale</strong>, qui ajuste entre un min et un max). Trop peu → throttling ; trop → gaspillage.</li></ul>
+<p><strong>Le cache.</strong> Un <strong>cache Redis</strong> en mémoire, placé <strong>devant</strong> la base, sert les données chaudes en &lt; 1 ms et décharge la base. Pattern <strong>cache-aside</strong> : l&#39;appli regarde le cache ; si absent (miss), elle lit la base et <strong>remplit</strong> le cache. Attention à l&#39;<strong>invalidation</strong> (garder le cache cohérent avec la base) — « le plus dur en informatique ».</p>
+<p><strong>Migration.</strong> Faire venir des données existantes : <strong>Azure Database Migration Service</strong>, la <strong>réplication</strong>, ou l&#39;export/import. Managed Instance facilite la migration SQL Server. C&#39;est un thème AZ-305 (concevoir la <strong>transition</strong>).</p>
+<p><strong>Ce qui est live ici.</strong> SQL (serveur + base), PostgreSQL, documents Cosmos et cache Redis sont <strong>déployés en live</strong> sur miniblue via <code>azlocal</code>. Les <strong>réglages fins</strong> de Cosmos (cohérence, partition, autoscale) se décrivent et <strong>valident en Bicep</strong> — la forme exacte du vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong>The storage families.</strong> GCP, AWS, Azure: same logic, one service per <strong>data shape</strong>. <strong>Relational</strong> (tables, strong schema, ACID transactions, joins) → <strong>Azure SQL</strong>, <strong>PostgreSQL</strong>, <strong>MySQL</strong>. <strong>NoSQL</strong> (documents/key-value, flexible schema, massive scale) → <strong>Cosmos DB</strong>. <strong>Object</strong> (unstructured files) → <strong>Blob Storage</strong>. <strong>Cache</strong> (ultra-fast memory) → <strong>Azure Cache for Redis</strong>. <strong>Analytics</strong> (warehouse, massive queries) → <strong>Synapse / Fabric</strong>. Choosing means starting from the <strong>data</strong> and the <strong>requirements</strong> (consistency, latency, scale, cost).</p>
+<p><strong>Azure SQL — the options.</strong> Three forms: <strong>Single Database</strong> (an isolated database, the most common), <strong>Elastic Pool</strong> (several databases sharing resources, economical for variable loads), <strong>Managed Instance</strong> (near-full compatibility with on-premises SQL Server, for migration). Pricing: <strong>DTU</strong> (bundled units, simple) or <strong>vCore</strong> (separate CPU/memory, flexible, reservations possible).</p>
+<p><strong>Cosmos DB — global NoSQL.</strong> Managed NoSQL database, <strong>multi-region</strong> distribution, SLA-guaranteed low latency. Several <strong>APIs</strong> (Core/SQL for documents, MongoDB, Cassandra, Gremlin, Table). Three architect notions:</p>
+<ul><li><strong>Consistency levels.</strong> The <strong>consistency ↔ latency/availability</strong> tradeoff, from strongest to weakest: <strong>Strong</strong> (linearizable, reads always current, slower), <strong>Bounded Staleness</strong> (bounded lag), <strong>Session</strong> (consistent within a session — <strong>the default</strong>, good balance), <strong>Consistent Prefix</strong> (order preserved), <strong>Eventual</strong> (fastest/most available, may read a stale value). The architect chooses by the need.</li><li><strong>Partition key.</strong> Cosmos distributes data into <strong>logical partitions</strong> by a <strong>key</strong> (<code>/clientId</code>, <code>/region</code>…). A <strong>good</strong> key spreads load evenly (high cardinality, balanced access); a <strong>bad</strong> one creates a &quot;hot partition&quot;. <strong>A structuring decision, hard to change.</strong></li><li><strong>RU/s (Request Units).</strong> Throughput is measured in <strong>request units per second</strong> — Cosmos&#39;s cost/performance unit. You provision throughput (fixed or <strong>autoscale</strong>, which adjusts between a min and a max). Too little → throttling; too much → waste.</li></ul>
+<p><strong>The cache.</strong> A Redis <strong>cache</strong> in memory, placed <strong>in front of</strong> the database, serves hot data in &lt; 1 ms and offloads the database. <strong>Cache-aside</strong> pattern: the app checks the cache; on a miss, it reads the database and <strong>fills</strong> the cache. Watch <strong>invalidation</strong> (keeping the cache consistent with the database) — &quot;the hardest thing in computing&quot;.</p>
+<p><strong>Migration.</strong> Bringing in existing data: <strong>Azure Database Migration Service</strong>, <strong>replication</strong>, or export/import. Managed Instance eases SQL Server migration. It&#39;s an AZ-305 theme (designing the <strong>transition</strong>).</p>
+<p><strong>What&#39;s live here.</strong> SQL (server + database), PostgreSQL, Cosmos documents and Redis cache are <strong>deployed live</strong> on miniblue via <code>azlocal</code>. Cosmos&#39;s <strong>fine settings</strong> (consistency, partition, autoscale) are described and <strong>validated in Bicep</strong> — the exact shape of real Azure.</p>
+</div>
+
+<figure class="schema" id="figure-azure-donnees-choix">
+  <p>[schema "azure-donnees-choix" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Choisir le stockage de données Azure : relationnel/ACID/jointures → Azure SQL / PostgreSQL / MySQL ; NoSQL mondial/faible latence → Cosmos DB (niveau de cohérence, clé de partition, RU/s) ; objets/fichiers → Blob ; lecture ultra-rapide → cache Redis devant la base ; analytique → Synapse. Le bon service selon la forme de la donnée et les besoins.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Choosing Azure data storage: relational/ACID/joins → Azure SQL / PostgreSQL / MySQL; global NoSQL/low latency → Cosmos DB (consistency level, partition key, RU/s); objects/files → Blob; ultra-fast reads → Redis cache in front of the database; analytics → Synapse. The right service by the data&#39;s shape and requirements.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer une base <strong>relationnelle Azure SQL</strong> — serveur + base, en live.</p>
+<p><strong>🤔 Le relationnel, valeur sûre.</strong> Pour des données <strong>structurées</strong> avec des <strong>relations</strong> et des <strong>transactions</strong> (commandes, comptes, stocks), le relationnel s&#39;impose : schéma fort, <strong>ACID</strong>, jointures, SQL. On crée un <strong>serveur</strong> logique puis une <strong>base</strong> dessus.</p>
+<p>Crée le serveur et la base :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy a <strong>relational Azure SQL</strong> database — server + database, live.</p>
+<p><strong>🤔 Relational, a safe bet.</strong> For <strong>structured</strong> data with <strong>relations</strong> and <strong>transactions</strong> (orders, accounts, inventory), relational wins: strong schema, <strong>ACID</strong>, joins, SQL. We create a logical <strong>server</strong> then a <strong>database</strong> on it.</p>
+<p>Create the server and the database:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-data --location westeurope
+
+# Serveur SQL logique + base / logical SQL server + database
+azlocal sql server create --name sqlsrv-archi --resource-group rg-data
+azlocal sql database create --server sqlsrv-archi --name commandesdb --resource-group rg-data
+azlocal sql database list --server sqlsrv-archi --resource-group rg-data</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sql server create</code> renvoie un serveur <code>Ready</code> (version 12.0), <code>sql database create</code> une base <code>commandesdb</code> <code>Succeeded</code>, et <code>database list</code> la montre. Tu as une base <strong>relationnelle</strong> prête pour des données transactionnelles. Retiens les <strong>options</strong> (à choisir en réel) : <strong>Single Database</strong> (isolée, courant), <strong>Elastic Pool</strong> (mutualisée, coût variable), <strong>Managed Instance</strong> (compatibilité SQL Server, migration). Et la <strong>tarification</strong> : <strong>DTU</strong> (simple) ou <strong>vCore</strong> (flexible). ⚠️ Le <strong>serveur</strong> SQL est un conteneur logique (endpoint + admin), la <strong>base</strong> est la donnée — deux objets distincts.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sql server create</code> returns a <code>Ready</code> server (version 12.0), <code>sql database create</code> a <code>Succeeded</code> <code>commandesdb</code> database, and <code>database list</code> shows it. You have a <strong>relational</strong> database ready for transactional data. Remember the <strong>options</strong> (to choose for real): <strong>Single Database</strong> (isolated, common), <strong>Elastic Pool</strong> (shared, variable cost), <strong>Managed Instance</strong> (SQL Server compatibility, migration). And the <strong>pricing</strong>: <strong>DTU</strong> (simple) or <strong>vCore</strong> (flexible). ⚠️ The SQL <strong>server</strong> is a logical container (endpoint + admin), the <strong>database</strong> is the data — two distinct objects.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer et interroger des <strong>documents Cosmos DB</strong> — le NoSQL, en live.</p>
+<p><strong>🤔 Le NoSQL, pour l&#39;échelle et la souplesse.</strong> Pour des données <strong>semi-structurées</strong> (profils, catalogues, événements) à <strong>grande échelle</strong> et <strong>faible latence mondiale</strong>, on choisit <strong>Cosmos DB</strong> : pas de schéma fixe, distribution multi-région. On crée des <strong>documents</strong> dans une <strong>base</strong> et un <strong>conteneur</strong> (collection).</p>
+<p>Crée et liste des documents :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create and query <strong>Cosmos DB documents</strong> — NoSQL, live.</p>
+<p><strong>🤔 NoSQL, for scale and flexibility.</strong> For <strong>semi-structured</strong> data (profiles, catalogs, events) at <strong>large scale</strong> and <strong>low global latency</strong>, you choose <strong>Cosmos DB</strong>: no fixed schema, multi-region distribution. We create <strong>documents</strong> in a <strong>database</strong> and a <strong>container</strong> (collection).</p>
+<p>Create and list documents:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer des documents (data plane) / create documents (data plane)
+azlocal cosmosdb doc create --account cosmos-archi --database appdb \
+  --collection commandes --id cmd-1001 --resource-group rg-data
+azlocal cosmosdb doc create --account cosmos-archi --database appdb \
+  --collection commandes --id cmd-1002 --resource-group rg-data
+
+# Lister les documents / list the documents
+azlocal cosmosdb doc list --account cosmos-archi --database appdb \
+  --collection commandes --resource-group rg-data</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> chaque <code>doc create</code> renvoie l&#39;<code>id</code> du document (<code>cmd-1001</code>, <code>cmd-1002</code>), et <code>doc list</code> renvoie un objet <code>Documents</code> contenant les deux. Tu viens de stocker du <strong>NoSQL</strong> — sans schéma déclaré, chaque document pouvant avoir sa propre forme. C&#39;est la souplesse de Cosmos. ⚠️ <strong>Décisions d&#39;architecte à venir</strong> (étape 5) : le <strong>niveau de cohérence</strong> (à quel point les lectures sont à jour), la <strong>clé de partition</strong> (comment les données se distribuent) et les <strong>RU/s</strong> (le débit provisionné). Ces réglages font ou défont la performance et le coût — on les conçoit en Bicep.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> each <code>doc create</code> returns the document&#39;s <code>id</code> (<code>cmd-1001</code>, <code>cmd-1002</code>), and <code>doc list</code> returns a <code>Documents</code> object containing both. You just stored <strong>NoSQL</strong> — with no declared schema, each document able to have its own shape. That&#39;s Cosmos&#39;s flexibility. ⚠️ <strong>Architect decisions to come</strong> (step 5): the <strong>consistency level</strong> (how up-to-date reads are), the <strong>partition key</strong> (how data distributes) and the <strong>RU/s</strong> (the provisioned throughput). These settings make or break performance and cost — we design them in Bicep.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer <strong>PostgreSQL</strong> — l&#39;option relationnelle open-source, en live.</p>
+<p><strong>🤔 Relationnel, mais lequel ?</strong> Azure propose trois moteurs relationnels managés : <strong>Azure SQL</strong> (moteur Microsoft), <strong>PostgreSQL</strong> et <strong>MySQL</strong> (open-source, « Flexible Server »). Le choix dépend de l&#39;<strong>écosystème</strong> (une appli PostgreSQL existante → PostgreSQL managé) et des fonctionnalités.</p>
+<p>Crée un serveur PostgreSQL :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy <strong>PostgreSQL</strong> — the open-source relational option, live.</p>
+<p><strong>🤔 Relational, but which one?</strong> Azure offers three managed relational engines: <strong>Azure SQL</strong> (Microsoft engine), <strong>PostgreSQL</strong> and <strong>MySQL</strong> (open-source, &quot;Flexible Server&quot;). The choice depends on the <strong>ecosystem</strong> (an existing PostgreSQL app → managed PostgreSQL) and features.</p>
+<p>Create a PostgreSQL server:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal postgres server create --name pg-archi --resource-group rg-data
+azlocal postgres server list --resource-group rg-data</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>postgres server create</code> renvoie un serveur <code>pg-archi</code> <code>Succeeded</code>, listé par <code>server list</code>. Tu offres maintenant les <strong>trois moteurs relationnels</strong> en réflexe. Retiens la grille : <strong>Azure SQL</strong> pour l&#39;écosystème Microsoft/.NET et la compatibilité SQL Server ; <strong>PostgreSQL</strong> pour l&#39;open-source riche (extensions, JSON) ; <strong>MySQL</strong> pour les applis web classiques (LAMP, WordPress). ⚠️ Tous trois sont <strong>managés</strong> (Azure gère patchs, sauvegardes, HA) — l&#39;architecte choisit le <strong>moteur</strong>, pas la gestion du serveur. Le mode <strong>Flexible Server</strong> est le déploiement moderne recommandé (contrôle de la maintenance, zones de dispo).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>postgres server create</code> returns a <code>Succeeded</code> <code>pg-archi</code> server, listed by <code>server list</code>. You now offer the <strong>three relational engines</strong> as a reflex. Remember the grid: <strong>Azure SQL</strong> for the Microsoft/.NET ecosystem and SQL Server compatibility; <strong>PostgreSQL</strong> for rich open-source (extensions, JSON); <strong>MySQL</strong> for classic web apps (LAMP, WordPress). ⚠️ All three are <strong>managed</strong> (Azure handles patches, backups, HA) — the architect chooses the <strong>engine</strong>, not server management. <strong>Flexible Server</strong> mode is the recommended modern deployment (maintenance control, availability zones).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter un <strong>cache Redis</strong> — le pilier performance, en live.</p>
+<p><strong>🤔 Décharger la base.</strong> Une base sous forte charge de <strong>lecture</strong> ralentit et coûte. On met un <strong>cache Redis</strong> <strong>devant</strong> : les données chaudes (un catalogue, une session) sont servies en mémoire. Pattern <strong>cache-aside</strong> : l&#39;appli lit le cache ; si absent, elle lit la base et remplit le cache.</p>
+<p>Crée le cache :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Add a <strong>Redis cache</strong> — the performance pillar, live.</p>
+<p><strong>🤔 Offload the database.</strong> A database under heavy <strong>read</strong> load slows down and costs. You put a <strong>Redis cache</strong> <strong>in front</strong>: hot data (a catalog, a session) is served from memory. <strong>Cache-aside</strong> pattern: the app reads the cache; on a miss, it reads the database and fills the cache.</p>
+<p>Create the cache:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal redis create --name redis-archi --resource-group rg-data
+azlocal redis list --resource-group rg-data</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>redis create</code> renvoie un cache <code>redis-archi</code> <code>Succeeded</code> (Redis 7.x, ports 6379/6380). Ton architecture de données combine désormais <strong>durabilité</strong> (SQL/Cosmos) et <strong>vitesse</strong> (Redis). Analyse WAF : <strong>performance</strong> (lectures chaudes en &lt; 1 ms) et <strong>coût</strong> (moins de charge sur la base = base plus petite). ⚠️ <strong>Le piège du cache : l&#39;invalidation.</strong> Quand la donnée change en base, le cache doit être <strong>mis à jour ou invalidé</strong>, sinon on sert une valeur périmée. Stratégies : expiration (TTL), invalidation à l&#39;écriture (write-through). C&#39;est un vrai sujet de conception.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>redis create</code> returns a <code>Succeeded</code> <code>redis-archi</code> cache (Redis 7.x, ports 6379/6380). Your data architecture now combines <strong>durability</strong> (SQL/Cosmos) and <strong>speed</strong> (Redis). WAF analysis: <strong>performance</strong> (hot reads in &lt; 1 ms) and <strong>cost</strong> (less load on the DB = smaller DB). ⚠️ <strong>The cache trap: invalidation.</strong> When data changes in the DB, the cache must be <strong>updated or invalidated</strong>, else you serve a stale value. Strategies: expiry (TTL), write-through invalidation. It&#39;s a real design topic.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir un compte <strong>Cosmos DB</strong> complet en Bicep — cohérence, partition, autoscale.</p>
+<p><strong>🤔 Les vraies décisions d&#39;architecte.</strong> Créer des documents, c&#39;est facile ; <strong>bien concevoir</strong> le compte, c&#39;est le métier. On décrit en Bicep un compte Cosmos avec ses trois décisions : le <strong>niveau de cohérence</strong> (<code>Session</code>, l&#39;équilibre par défaut), la <strong>clé de partition</strong> (<code>/clientId</code>, pour répartir la charge), et le <strong>débit autoscale</strong> (RU/s, l&#39;élasticité).</p>
+<p>Crée <code>cosmos.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design a full <strong>Cosmos DB</strong> account in Bicep — consistency, partition, autoscale.</p>
+<p><strong>🤔 The real architect decisions.</strong> Creating documents is easy; <strong>designing</strong> the account well is the craft. We describe in Bicep a Cosmos account with its three decisions: the <strong>consistency level</strong> (<code>Session</code>, the default balance), the <strong>partition key</strong> (<code>/clientId</code>, to spread load), and the <strong>autoscale throughput</strong> (RU/s, elasticity).</p>
+<p>Create <code>cosmos.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// cosmos.bicep — compte Cosmos : cohérence + base + conteneur partitionné + autoscale
+param location string = resourceGroup().location
+param nomCompte string = &#39;cosmos${uniqueString(resourceGroup().id)}&#39;
+
+resource compte &#39;Microsoft.DocumentDB/databaseAccounts@2024-05-15&#39; = {
+  name: nomCompte
+  location: location
+  kind: &#39;GlobalDocumentDB&#39;
+  properties: {
+    databaseAccountOfferType: &#39;Standard&#39;
+    consistencyPolicy: {
+      // Strong | BoundedStaleness | Session | ConsistentPrefix | Eventual
+      defaultConsistencyLevel: &#39;Session&#39;
+    }
+    locations: [
+      { locationName: location, failoverPriority: 0 }
+    ]
+  }
+}
+
+resource base &#39;Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15&#39; = {
+  parent: compte
+  name: &#39;appdb&#39;
+  properties: { resource: { id: &#39;appdb&#39; } }
+}
+
+resource conteneur &#39;Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15&#39; = {
+  parent: base
+  name: &#39;commandes&#39;
+  properties: {
+    resource: {
+      id: &#39;commandes&#39;
+      partitionKey: { paths: [ &#39;/clientId&#39; ], kind: &#39;Hash&#39; }   // clé de partition
+    }
+    options: {
+      autoscaleSettings: { maxThroughput: 4000 }               // RU/s autoscale
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build cosmos.bicep --stdout | head -n 25</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile <strong>trois</strong> ressources — <code>databaseAccounts</code>, <code>sqlDatabases</code>, <code>containers</code> — sans erreur. Tu as conçu un compte Cosmos <strong>complet</strong> avec ses trois décisions. Analyse : <strong>cohérence <code>Session</code></strong> (lectures cohérentes pour un utilisateur, bon équilibre latence/cohérence) ; <strong>clé <code>/clientId</code></strong> (les commandes d&#39;un client sur la même partition — accès efficace, mais gare au client géant → hot partition) ; <strong>autoscale 4000 RU/s</strong> (débit élastique, tu paies l&#39;usage réel). ⚠️ La <strong>clé de partition</strong> est le choix le plus <strong>structurant</strong> et le plus <strong>difficile à changer</strong> après coup — pense-la selon les <strong>motifs d&#39;accès</strong> dominants.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles <strong>three</strong> resources — <code>databaseAccounts</code>, <code>sqlDatabases</code>, <code>containers</code> — with no error. You designed a <strong>complete</strong> Cosmos account with its three decisions. Analysis: <strong><code>Session</code> consistency</strong> (consistent reads for one user, good latency/consistency balance); <strong><code>/clientId</code> key</strong> (a client&#39;s orders on the same partition — efficient access, but watch a giant client → hot partition); <strong>autoscale 4000 RU/s</strong> (elastic throughput, you pay actual use). ⚠️ The <strong>partition key</strong> is the most <strong>structuring</strong> choice and the <strong>hardest to change</strong> later — design it by the dominant <strong>access patterns</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Graver les <strong>grilles de choix</strong> et les <strong>concepts</strong> — le cœur de l&#39;AZ-305.</p>
+<p><strong>🤔 Décider vite et juste.</strong> L&#39;examen enchaîne les « quelle base ? » et les questions sur la <strong>cohérence</strong>. On mémorise deux grilles.</p>
+<p>Les grilles :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Engrave the <strong>choice grids</strong> and <strong>concepts</strong> — the AZ-305 core.</p>
+<p><strong>🤔 Decide fast and right.</strong> The exam strings together &quot;which database?&quot; and <strong>consistency</strong> questions. We memorize two grids.</p>
+<p>The grids:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>CHOIX DE STOCKAGE / STORAGE CHOICE
+  Relationnel, ACID, jointures        -&gt; Azure SQL / PostgreSQL / MySQL
+  NoSQL, mondial, faible latence      -&gt; Cosmos DB
+  Objets / fichiers                   -&gt; Blob Storage
+  Lecture ultra-rapide (cache)        -&gt; Azure Cache for Redis (devant la base)
+  Analytique / entrepôt               -&gt; Synapse / Fabric
+
+COHÉRENCE COSMOS / COSMOS CONSISTENCY (fort -&gt; faible / strong -&gt; weak)
+  Strong              lecture toujours à jour ; latence la + haute ; 1 région
+  BoundedStaleness    retard borné (temps/versions) ; multi-région
+  Session (défaut)    cohérent DANS une session ; meilleur équilibre
+  ConsistentPrefix    jamais d&#39;ordre incohérent ; peut être en retard
+  Eventual            le + rapide/disponible ; peut lire une valeur ancienne</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> face à un scénario, tu <strong>choisis</strong> et tu <strong>justifies</strong>. « Commandes/comptes transactionnels » → <strong>Azure SQL</strong> ; « catalogue mondial, faible latence » → <strong>Cosmos DB</strong> (cohérence <strong>Session</strong> ou <strong>Eventual</strong> selon la tolérance) ; « solde bancaire » → cohérence <strong>Strong</strong> ; « fil d&#39;actualité » → <strong>Eventual</strong> (rapide, une lecture légèrement en retard est acceptable). Retiens : <strong>plus la cohérence est forte, plus la latence monte et la disponibilité multi-région baisse</strong> — c&#39;est <strong>le</strong> compromis Cosmos. ⚠️ Justifie toujours par le <strong>besoin métier</strong> (tolère-t-on une lecture légèrement périmée ?), pas par habitude.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> faced with a scenario, you <strong>choose</strong> and <strong>justify</strong>. &quot;Transactional orders/accounts&quot; → <strong>Azure SQL</strong>; &quot;global catalog, low latency&quot; → <strong>Cosmos DB</strong> (<strong>Session</strong> or <strong>Eventual</strong> consistency by tolerance); &quot;bank balance&quot; → <strong>Strong</strong> consistency; &quot;news feed&quot; → <strong>Eventual</strong> (fast, a slightly stale read is acceptable). Remember: <strong>the stronger the consistency, the higher the latency and the lower multi-region availability</strong> — that&#39;s <strong>the</strong> Cosmos tradeoff. ⚠️ Always justify by the <strong>business need</strong> (can we tolerate a slightly stale read?), not by habit.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime le groupe et tous les services de données.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the group and all data services.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group delete --name rg-data</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>group delete</code> renvoie <code>Deleted</code> — le serveur SQL, la base, PostgreSQL, Cosmos et Redis partent avec le groupe. Ton labo est rangé. Tu maîtrises maintenant la <strong>conception des données</strong> au niveau AZ-305 : choisir la famille (relationnel/NoSQL/objet/cache), les moteurs relationnels, et surtout <strong>concevoir Cosmos</strong> (cohérence, clé de partition, RU/s) et le <strong>cache</strong>. La suite du track : la <strong>continuité d&#39;activité</strong> (sauvegarde, reprise après sinistre, haute disponibilité).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>group delete</code> returns <code>Deleted</code> — the SQL server, database, PostgreSQL, Cosmos and Redis go with the group. Your lab is tidy. You now master <strong>data design</strong> at AZ-305 level: choosing the family (relational/NoSQL/object/cache), the relational engines, and above all <strong>designing Cosmos</strong> (consistency, partition key, RU/s) and the <strong>cache</strong>. The track continues: <strong>business continuity</strong> (backup, disaster recovery, high availability).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Mettre du relationnel dans du NoSQL (ou l&#39;inverse).</strong> SQL = relations/jointures/ACID ; Cosmos = documents/échelle. Le mauvais choix = refonte coûteuse.</p>
+<p><strong>2. Choisir Strong « par sécurité ».</strong> La cohérence forte coûte en <strong>latence</strong> et en <strong>disponibilité multi-région</strong>. Beaucoup de cas tolèrent <strong>Session</strong> ou <strong>Eventual</strong> — choisis selon le besoin.</p>
+<p><strong>3. Mauvaise clé de partition.</strong> Une clé à faible cardinalité ou déséquilibrée crée un <strong>hot partition</strong> (une partition saturée). Difficile à corriger après coup — pense les motifs d&#39;accès.</p>
+<p><strong>4. Sous- ou sur-provisionner les RU/s.</strong> Trop peu → throttling (429) ; trop → gaspillage. L&#39;<strong>autoscale</strong> ajuste entre un min et un max — souvent le bon défaut.</p>
+<p><strong>5. Oublier l&#39;invalidation du cache.</strong> Un cache non invalidé sert des données périmées. TTL et/ou write-through selon la fraîcheur requise.</p>
+<p><strong>6. Ignorer les options SQL.</strong> Single Database, Elastic Pool, Managed Instance répondent à des besoins différents (isolation, coût variable, migration). Ne prends pas Single par défaut aveugle.</p>
+<p><strong>7. Choisir sans justifier.</strong> L&#39;AZ-305 veut le <strong>pourquoi</strong> (forme de la donnée, cohérence, échelle, coût), pas seulement le service.</p>
+</div>
+<div data-lang="en"><p><strong>1. Putting relational in NoSQL (or vice versa).</strong> SQL = relations/joins/ACID; Cosmos = documents/scale. The wrong choice = costly rewrite.</p>
+<p><strong>2. Choosing Strong &quot;to be safe&quot;.</strong> Strong consistency costs <strong>latency</strong> and <strong>multi-region availability</strong>. Many cases tolerate <strong>Session</strong> or <strong>Eventual</strong> — choose by the need.</p>
+<p><strong>3. Bad partition key.</strong> A low-cardinality or unbalanced key creates a <strong>hot partition</strong> (a saturated partition). Hard to fix later — design by access patterns.</p>
+<p><strong>4. Under- or over-provisioning RU/s.</strong> Too little → throttling (429); too much → waste. <strong>Autoscale</strong> adjusts between a min and max — often the right default.</p>
+<p><strong>5. Forgetting cache invalidation.</strong> An uninvalidated cache serves stale data. TTL and/or write-through by required freshness.</p>
+<p><strong>6. Ignoring the SQL options.</strong> Single Database, Elastic Pool, Managed Instance meet different needs (isolation, variable cost, migration). Don&#39;t blindly default to Single.</p>
+<p><strong>7. Choosing without justifying.</strong> AZ-305 wants the <strong>why</strong> (data shape, consistency, scale, cost), not just the service.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu choisis relationnel / NoSQL / objet / cache selon la donnée.</li><li>Tu déploies une base <strong>Azure SQL</strong> (serveur + base) et <strong>PostgreSQL</strong>.</li><li>Tu crées et listes des <strong>documents Cosmos</strong>.</li><li>Tu expliques les <strong>niveaux de cohérence</strong> (Strong → Eventual).</li><li>Tu choisis une <strong>clé de partition</strong> et comprends les <strong>RU/s</strong>.</li><li>Tu ajoutes un <strong>cache Redis</strong> et connais le piège de l&#39;invalidation.</li><li>Tu <strong>conçois</strong> un compte Cosmos en Bicep (cohérence, partition, autoscale).</li></ul>
+<p>Sept cases = tu tiens la conception des données AZ-305. La suite : la <strong>continuité d&#39;activité</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You choose relational / NoSQL / object / cache by the data.</li><li>You deploy an <strong>Azure SQL</strong> database (server + database) and <strong>PostgreSQL</strong>.</li><li>You create and list <strong>Cosmos documents</strong>.</li><li>You explain the <strong>consistency levels</strong> (Strong → Eventual).</li><li>You choose a <strong>partition key</strong> and understand <strong>RU/s</strong>.</li><li>You add a <strong>Redis cache</strong> and know the invalidation trap.</li><li>You <strong>design</strong> a Cosmos account in Bicep (consistency, partition, autoscale).</li></ul>
+<p>Seven boxes = you hold AZ-305 data design. Next up: <strong>business continuity</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-305 continue :</p>
+<ol><li><strong>Azure — continuité d&#39;activité</strong> : sauvegarde (Backup), reprise après sinistre (Site Recovery), haute disponibilité (zones, régions, réplication) — concevoir la résilience.</li><li>Plus loin : l&#39;<strong>infrastructure</strong> (compute, réseau avancé), le <strong>projet d&#39;architecte</strong> et l&#39;examen AZ-305.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-305 track continues:</p>
+<ol><li><strong>Azure — business continuity</strong>: backup (Backup), disaster recovery (Site Recovery), high availability (zones, regions, replication) — designing resilience.</li><li>Further along: <strong>infrastructure</strong> (compute, advanced networking), the <strong>architect project</strong> and the AZ-305 exam.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire conception des données Azure.</p>
+</div>
+<div data-lang="en"><p>Azure data design cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Relationnel (azlocal, live) / relational
+azlocal sql server create --name sqlsrv-archi --resource-group rg-data
+azlocal sql database create --server sqlsrv-archi --name commandesdb --resource-group rg-data
+azlocal postgres server create --name pg-archi --resource-group rg-data
+
+# NoSQL (documents Cosmos, live) / NoSQL
+azlocal cosmosdb doc create --account cosmos-archi --database appdb --collection commandes --id cmd-1 --resource-group rg-data
+azlocal cosmosdb doc list   --account cosmos-archi --database appdb --collection commandes --resource-group rg-data
+
+# Cache (live) / cache
+azlocal redis create --name redis-archi --resource-group rg-data
+
+# Conception Cosmos (Bicep, validé) / Cosmos design
+bicep build cosmos.bicep --stdout    # cohérence + clé de partition + autoscale RU/s</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Choix : SQL(relationnel) · Cosmos(NoSQL mondial) · Blob(objets) · Redis(cache) · Synapse(analytique)
+Cohérence Cosmos : Strong &gt; BoundedStaleness &gt; Session(défaut) &gt; ConsistentPrefix &gt; Eventual
+Partition : clé à cardinalité élevée + accès équilibré ; RU/s : autoscale = élastique</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-store-decision-tree">Choisir un magasin de données</a> — l&#39;arbre de décision.</li><li><a href="https://learn.microsoft.com/azure/azure-sql/database/sql-database-paas-overview">Azure SQL — options de déploiement</a> — Single/Pool/MI.</li><li><a href="https://learn.microsoft.com/azure/cosmos-db/consistency-levels">Cosmos DB — niveaux de cohérence</a> — le compromis.</li><li><a href="https://learn.microsoft.com/azure/cosmos-db/partitioning-overview">Cosmos DB — partitionnement</a> — clés et partitions.</li><li><a href="https://learn.microsoft.com/azure/azure-cache-for-redis/cache-overview">Azure Cache for Redis</a> — patterns de cache.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-store-decision-tree">Choose a data store</a> — the decision tree.</li><li><a href="https://learn.microsoft.com/azure/azure-sql/database/sql-database-paas-overview">Azure SQL — deployment options</a> — Single/Pool/MI.</li><li><a href="https://learn.microsoft.com/azure/cosmos-db/consistency-levels">Cosmos DB — consistency levels</a> — the tradeoff.</li><li><a href="https://learn.microsoft.com/azure/cosmos-db/partitioning-overview">Cosmos DB — partitioning</a> — keys and partitions.</li><li><a href="https://learn.microsoft.com/azure/azure-cache-for-redis/cache-overview">Azure Cache for Redis</a> — cache patterns.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal sql database create</code> : « server not found ».</strong> Crée d&#39;abord le <strong>serveur</strong> (<code>sql server create</code>), puis la base (<code>--server &lt;nom&gt;</code>).</p>
+<p><strong><code>azlocal cosmosdb doc</code> : « --collection is required ».</strong> Les documents vivent dans un <strong>compte → base → collection</strong>. Fournis <code>--account</code>, <code>--database</code>, <code>--collection</code> et <code>--id</code>.</p>
+<p><strong><code>bicep build cosmos.bicep</code> : erreur de schéma.</strong> Vérifie les types imbriqués (<code>databaseAccounts/sqlDatabases/containers</code>) et la version d&#39;API ; la <code>partitionKey</code> et <code>autoscaleSettings</code> doivent être aux bons niveaux.</p>
+<p><strong>Quelle cohérence choisir ?</strong> Pars du besoin : donnée critique lue juste après écriture → <strong>Strong/Session</strong> ; flux tolérant au léger retard → <strong>Eventual</strong>. Session est le défaut équilibré.</p>
+<p><strong>Ma clé de partition sature (hot partition).</strong> Choisis une clé à <strong>cardinalité élevée</strong> et à <strong>accès équilibré</strong> (pas <code>/pays</code> si 90 % du trafic est un pays). Difficile à changer après — conçois-la tôt.</p>
+<p><strong><code>azlocal ... create</code> : connexion refusée.</strong> miniblue ne tourne pas. Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal sql database create</code>: &quot;server not found&quot;.</strong> Create the <strong>server</strong> first (<code>sql server create</code>), then the database (<code>--server &lt;name&gt;</code>).</p>
+<p><strong><code>azlocal cosmosdb doc</code>: &quot;--collection is required&quot;.</strong> Documents live in an <strong>account → database → collection</strong>. Provide <code>--account</code>, <code>--database</code>, <code>--collection</code> and <code>--id</code>.</p>
+<p><strong><code>bicep build cosmos.bicep</code>: schema error.</strong> Check the nested types (<code>databaseAccounts/sqlDatabases/containers</code>) and the API version; <code>partitionKey</code> and <code>autoscaleSettings</code> must be at the right levels.</p>
+<p><strong>Which consistency to choose?</strong> Start from the need: critical data read right after a write → <strong>Strong/Session</strong>; a stream tolerant of slight lag → <strong>Eventual</strong>. Session is the balanced default.</p>
+<p><strong>My partition key saturates (hot partition).</strong> Choose a <strong>high-cardinality</strong>, <strong>balanced-access</strong> key (not <code>/country</code> if 90% of traffic is one country). Hard to change later — design it early.</p>
+<p><strong><code>azlocal ... create</code>: connection refused.</strong> miniblue isn&#39;t running. Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
