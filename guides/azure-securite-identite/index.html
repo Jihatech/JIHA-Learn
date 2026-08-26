@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — sécurité de l&#39;identité (AZ-500) : RBAC, accès conditionnel, PIM — jiha.tech</title>
+  <title data-lang="en">Azure — identity security (AZ-500): RBAC, conditional access, PIM — jiha.tech</title>
+  <meta name="description" content="&quot;Sécuriser l&#39;identité pour l&#39;AZ-500, en local et pour de vrai : l&#39;identité managée sans mot de passe (live sur miniblue, principalId réel), le RBAC au moindre privilège écrit et validé en Bicep (attribution du rôle intégré Key Vault Secrets User, portée minimale), un moteur d&#39;accès conditionnel exécutable (vérifier explicitement : MFA pour les rôles privilégiés, emplacement approuvé, appareil conforme), le PIM juste-à-temps modélisé (éligible ≠ actif, activation avec MFA + justification, expiration), le flux Key Vault sans mot de passe, et une revue d&#39;accès qui débusque le sur-privilège. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Securing identity for AZ-500, locally and for real: passwordless managed identity (live on miniblue, real principalId), least-privilege RBAC written and validated in Bicep (assigning the built-in Key Vault Secrets User role, minimal scope), a runnable conditional-access engine (verify explicitly: MFA for privileged roles, approved location, compliant device), just-in-time PIM modeled (eligible ≠ active, activation with MFA + justification, expiry), the passwordless Key Vault flow, and an access review that surfaces over-privilege. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — sécurité de l&#39;identité (AZ-500) : RBAC, accès conditionnel, PIM">
+  <meta property="og:description" content="&quot;Sécuriser l&#39;identité pour l&#39;AZ-500, en local et pour de vrai : l&#39;identité managée sans mot de passe (live sur miniblue, principalId réel), le RBAC au moindre privilège écrit et validé en Bicep (attribution du rôle intégré Key Vault Secrets User, portée minimale), un moteur d&#39;accès conditionnel exécutable (vérifier explicitement : MFA pour les rôles privilégiés, emplacement approuvé, appareil conforme), le PIM juste-à-temps modélisé (éligible ≠ actif, activation avec MFA + justification, expiration), le flux Key Vault sans mot de passe, et une revue d&#39;accès qui débusque le sur-privilège. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-securite-identite/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-securite-identite/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-securite-identite">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-securite-identite</div>
+    <div class="prompt" data-lang="en">~/guides/azure-securite-identite</div>
+    <h1 data-lang="fr">Azure — sécurité de l&#39;identité (AZ-500) : RBAC, accès conditionnel, PIM</h1>
+    <h1 data-lang="en">Azure — identity security (AZ-500): RBAC, conditional access, PIM</h1>
+    <p class="tagline" data-lang="fr">moindre privilège, vérifier explicitement, élévation juste-à-temps.</p>
+    <p class="tagline" data-lang="en">least privilege, verify explicitly, just-in-time elevation.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>« L&#39;identité est le nouveau périmètre. » Dans le cloud, la première ligne de défense n&#39;est plus le pare-feu réseau mais <strong>qui</strong> accède à <strong>quoi</strong>. L&#39;<strong>AZ-500</strong> en fait un pilier majeur : <strong>Entra ID</strong>, <strong>RBAC</strong>, <strong>accès conditionnel</strong>, <strong>PIM</strong>. Ce guide te donne les réflexes du <strong>moindre privilège</strong> et du <strong>Zero Trust</strong> côté identité.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on crée une <strong>identité managée</strong> sans mot de passe (live sur <strong>miniblue</strong>, avec un vrai <strong>principalId</strong>), on écrit et <strong>valide</strong> une attribution <strong>RBAC</strong> au <strong>moindre privilège</strong> en <strong>Bicep</strong> (le rôle intégré <em>Key Vault Secrets User</em>, sur une <strong>portée minimale</strong>). Puis on <strong>exécute</strong> un <strong>moteur d&#39;accès conditionnel</strong> (vérifier explicitement : MFA pour les rôles privilégiés, emplacement approuvé, appareil conforme) et un modèle <strong>PIM</strong> juste-à-temps (<strong>éligible ≠ actif</strong>, activation avec MFA + justification, <strong>expiration</strong>). On relie le tout au <strong>flux Key Vault sans mot de passe</strong>, et on <strong>débusque le sur-privilège</strong> avec une <strong>revue d&#39;accès</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les fondations de sécurité (guide précédent) et tu veux <strong>maîtriser l&#39;identité</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas le modèle mental (CIA, Zero Trust) → fais <em>Azure — sécurité fondamentaux (AZ-500)</em>.</li><li>Tu cherches l&#39;identité <strong>applicative</strong> (OAuth, OIDC dans ton code) → ici c&#39;est l&#39;identité <strong>de la plateforme</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>&quot;Identity is the new perimeter.&quot; In the cloud, the first line of defense is no longer the network firewall but <strong>who</strong> accesses <strong>what</strong>. <strong>AZ-500</strong> makes it a major pillar: <strong>Entra ID</strong>, <strong>RBAC</strong>, <strong>conditional access</strong>, <strong>PIM</strong>. This guide gives you the reflexes of <strong>least privilege</strong> and identity-side <strong>Zero Trust</strong>.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we create a passwordless <strong>managed identity</strong> (live on <strong>miniblue</strong>, with a real <strong>principalId</strong>), we write and <strong>validate</strong> a least-privilege <strong>RBAC</strong> assignment in <strong>Bicep</strong> (the built-in <em>Key Vault Secrets User</em> role, on a <strong>minimal scope</strong>). Then we <strong>run</strong> a <strong>conditional-access engine</strong> (verify explicitly: MFA for privileged roles, approved location, compliant device) and a just-in-time <strong>PIM</strong> model (<strong>eligible ≠ active</strong>, activation with MFA + justification, <strong>expiry</strong>). We tie it to the <strong>passwordless Key Vault flow</strong>, and <strong>surface over-privilege</strong> with an <strong>access review</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you have the security foundations (previous guide) and want to <strong>master identity</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You lack the mental model (CIA, Zero Trust) → do <em>Azure — security fundamentals (AZ-500)</em>.</li><li>You want <strong>application</strong> identity (OAuth, OIDC in your code) → here it&#39;s <strong>platform</strong> identity.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer une <strong>identité managée</strong> et expliquer l&#39;authentification <strong>sans mot de passe</strong>.</li><li>Écrire une attribution <strong>RBAC</strong> au <strong>moindre privilège</strong> (rôle + portée) et la <strong>valider</strong> en Bicep.</li><li>Distinguer les <strong>rôles intégrés</strong> clés (Reader, Contributor, <em>Key Vault Secrets User</em>…).</li><li>Concevoir un <strong>accès conditionnel</strong> (MFA, emplacement, appareil) et l&#39;<strong>exécuter</strong>.</li><li>Modéliser le <strong>PIM</strong> juste-à-temps (<strong>éligible ≠ actif</strong>, MFA, justification, expiration).</li><li>Relier l&#39;identité au <strong>flux Key Vault sans mot de passe</strong>.</li><li>Mener une <strong>revue d&#39;accès</strong> qui <strong>débusque le sur-privilège</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create a <strong>managed identity</strong> and explain <strong>passwordless</strong> authentication.</li><li>Write a least-privilege <strong>RBAC</strong> assignment (role + scope) and <strong>validate</strong> it in Bicep.</li><li>Distinguish the key <strong>built-in roles</strong> (Reader, Contributor, <em>Key Vault Secrets User</em>…).</li><li>Design a <strong>conditional access</strong> policy (MFA, location, device) and <strong>run</strong> it.</li><li>Model <strong>just-in-time PIM</strong> (<strong>eligible ≠ active</strong>, MFA, justification, expiry).</li><li>Tie identity to the <strong>passwordless Key Vault flow</strong>.</li><li>Run an <strong>access review</strong> that <strong>surfaces over-privilege</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — sécurité fondamentaux (AZ-500)</strong> (CIA, Zero Trust, ancres).</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré, <code>azlocal</code> sur le <code>PATH</code>, <strong>Bicep CLI</strong> (<code>az bicep install</code> ou binaire), <strong>Python 3</strong>.</li><li><strong>Aucun compte cloud</strong> : identité managée live, RBAC validé en Bicep, accès conditionnel/PIM exécutés en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — security fundamentals (AZ-500)</strong> guide (CIA, Zero Trust, anchors).</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started, <code>azlocal</code> on <code>PATH</code>, <strong>Bicep CLI</strong> (<code>az bicep install</code> or binary), <strong>Python 3</strong>.</li><li><strong>No cloud account</strong>: managed identity live, RBAC validated in Bicep, conditional access/PIM run locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-securite-fondamentaux/">
+    <span class="num">76</span>
+    <span class="title-line" data-lang="fr">Azure — sécurité fondamentaux (AZ-500) : défense en profondeur, Zero Trust</span>
+    <span class="title-line" data-lang="en">Azure — security fundamentals (AZ-500): defense in depth, Zero Trust</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Entra ID : l&#39;annuaire.</strong> <strong>Microsoft Entra ID</strong> (ex-Azure AD) est l&#39;<strong>annuaire d&#39;identités</strong> d&#39;Azure : utilisateurs, groupes, <strong>principals de service</strong> et <strong>identités managées</strong>. C&#39;est <strong>lui</strong> qui authentifie ; <strong>RBAC</strong> décide ensuite <strong>ce que</strong> l&#39;identité peut faire.</p>
+<p><strong>Identité managée : sans mot de passe.</strong> Une ressource Azure (app, VM, fonction) reçoit une <strong>identité managée</strong>. Elle obtient des <strong>jetons</strong> auprès d&#39;Entra ID <strong>automatiquement</strong> — <strong>aucun</strong> secret stocké. Deux types : <strong>assignée par le système</strong> (liée au cycle de vie de la ressource) et <strong>assignée par l&#39;utilisateur</strong> (autonome, réutilisable). C&#39;est le pilier <strong>machine</strong> du Zero Trust.</p>
+<p><strong>RBAC &amp; moindre privilège.</strong> Le <strong>Role-Based Access Control</strong> attribue un <strong>rôle</strong> à un <strong>principal</strong> (qui) sur une <strong>portée</strong> (où). La règle d&#39;or : le <strong>rôle minimal</strong> sur la <strong>portée minimale</strong>. Anatomie d&#39;une attribution : <em>principal</em> + <em>roleDefinitionId</em> (le rôle) + <em>scope</em> (abonnement / groupe de ressources / ressource). Quelques <strong>rôles intégrés</strong> : <strong>Reader</strong> (lecture seule), <strong>Contributor</strong> (gérer sans donner de droits), <strong>Owner</strong> (tout, y compris les droits — à réserver), <strong>Key Vault Secrets User</strong> (lire les secrets, rien d&#39;autre). Préfère toujours un rôle <strong>intégré étroit</strong> à un rôle large.</p>
+<p><strong>Accès conditionnel : vérifier explicitement.</strong> Une politique d&#39;<strong>accès conditionnel</strong> évalue <strong>chaque</strong> connexion selon des <strong>signaux</strong> — utilisateur, <strong>MFA</strong>, <strong>emplacement</strong>, <strong>conformité de l&#39;appareil</strong>, risque — et <strong>décide</strong> : autoriser, exiger la MFA, ou bloquer. C&#39;est l&#39;application concrète du « vérifier explicitement » : on ne fait pas confiance au mot de passe seul.</p>
+<p><strong>PIM : le juste-à-temps.</strong> Le <strong>Privileged Identity Management</strong> applique le moindre privilège <strong>dans le temps</strong>. Un admin n&#39;est pas <strong>Owner en permanence</strong> : il est <strong>éligible</strong>, et <strong>active</strong> le rôle <strong>quand il en a besoin</strong>, pour une <strong>durée limitée</strong>, avec <strong>MFA</strong> et <strong>justification</strong> (souvent une <strong>approbation</strong>). Passé le délai, le rôle <strong>expire</strong>. On réduit la fenêtre d&#39;attaque : un compte compromis n&#39;a pas de droits privilégiés <strong>actifs</strong> en permanence.</p>
+<p><strong>Revue d&#39;accès : lutter contre l&#39;accumulation.</strong> Les droits <strong>s&#39;accumulent</strong> (projets, remplacements, oublis). Une <strong>revue d&#39;accès</strong> périodique <strong>réexamine</strong> qui a quoi et <strong>retire</strong> l&#39;inutile. Sans elle, le principe du moindre privilège <strong>dérive</strong> avec le temps.</p>
+<p><strong>Ce qui est live ici.</strong> L&#39;<strong>identité managée</strong> se <strong>crée</strong> (live, <code>principalId</code> réel). L&#39;<strong>attribution RBAC</strong> s&#39;écrit et se <strong>compile en ARM</strong> avec <strong>Bicep</strong> (validation offline ; l&#39;exécution vise du vrai Azure — miniblue renvoie 404 sur les attributions). L&#39;<strong>accès conditionnel</strong> et le <strong>PIM</strong> sont des <strong>moteurs exécutables</strong> en Python — de <strong>vraies</strong> décisions, pas des slides. Le <strong>Key Vault</strong> sert de cible concrète (live). Tout s&#39;apprend <strong>sans compte cloud</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Entra ID: the directory.</strong> <strong>Microsoft Entra ID</strong> (formerly Azure AD) is Azure&#39;s <strong>identity directory</strong>: users, groups, <strong>service principals</strong> and <strong>managed identities</strong>. <strong>It</strong> authenticates; <strong>RBAC</strong> then decides <strong>what</strong> the identity can do.</p>
+<p><strong>Managed identity: passwordless.</strong> An Azure resource (app, VM, function) gets a <strong>managed identity</strong>. It obtains <strong>tokens</strong> from Entra ID <strong>automatically</strong> — <strong>no</strong> stored secret. Two types: <strong>system-assigned</strong> (tied to the resource&#39;s lifecycle) and <strong>user-assigned</strong> (standalone, reusable). It&#39;s the <strong>machine</strong> pillar of Zero Trust.</p>
+<p><strong>RBAC &amp; least privilege.</strong> <strong>Role-Based Access Control</strong> assigns a <strong>role</strong> to a <strong>principal</strong> (who) over a <strong>scope</strong> (where). The golden rule: the <strong>minimal role</strong> on the <strong>minimal scope</strong>. Anatomy of an assignment: <em>principal</em> + <em>roleDefinitionId</em> (the role) + <em>scope</em> (subscription / resource group / resource). A few <strong>built-in roles</strong>: <strong>Reader</strong> (read-only), <strong>Contributor</strong> (manage without granting rights), <strong>Owner</strong> (everything, including rights — reserve it), <strong>Key Vault Secrets User</strong> (read secrets, nothing else). Always prefer a <strong>narrow built-in</strong> role over a broad one.</p>
+<p><strong>Conditional access: verify explicitly.</strong> A <strong>conditional access</strong> policy evaluates <strong>every</strong> sign-in against <strong>signals</strong> — user, <strong>MFA</strong>, <strong>location</strong>, <strong>device compliance</strong>, risk — and <strong>decides</strong>: allow, require MFA, or block. It&#39;s the concrete application of &quot;verify explicitly&quot;: you don&#39;t trust the password alone.</p>
+<p><strong>PIM: just-in-time.</strong> <strong>Privileged Identity Management</strong> applies least privilege <strong>over time</strong>. An admin isn&#39;t <strong>Owner permanently</strong>: they&#39;re <strong>eligible</strong>, and <strong>activate</strong> the role <strong>when needed</strong>, for a <strong>limited duration</strong>, with <strong>MFA</strong> and <strong>justification</strong> (often an <strong>approval</strong>). After the window, the role <strong>expires</strong>. You shrink the attack surface: a compromised account has no <strong>active</strong> privileged rights permanently.</p>
+<p><strong>Access review: fighting accumulation.</strong> Rights <strong>accumulate</strong> (projects, cover, oversights). A periodic <strong>access review</strong> <strong>re-examines</strong> who has what and <strong>removes</strong> the unneeded. Without it, least privilege <strong>drifts</strong> over time.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>managed identity</strong> is <strong>created</strong> (live, real <code>principalId</code>). The <strong>RBAC assignment</strong> is written and <strong>compiled to ARM</strong> with <strong>Bicep</strong> (offline validation; execution targets real Azure — miniblue returns 404 on assignments). <strong>Conditional access</strong> and <strong>PIM</strong> are <strong>runnable engines</strong> in Python — <strong>real</strong> decisions, not slides. The <strong>Key Vault</strong> is a concrete target (live). It all learns <strong>without a cloud account</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-securite-identite-flux">
+  <p>[schema "azure-securite-identite-flux" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;identité au moindre privilège : une IDENTITÉ MANAGÉE (sans mot de passe) demande un jeton à ENTRA ID. L&#39;ACCÈS CONDITIONNEL vérifie explicitement (MFA, emplacement, appareil) → autorise/bloque. Le RBAC accorde le rôle MINIMAL (Key Vault Secrets User) sur la portée MINIMALE. Le PIM rend les rôles privilégiés JUSTE-À-TEMPS (éligible → activer avec MFA+justif → expire). Une REVUE D&#39;ACCÈS retire les droits accumulés. Résultat : l&#39;app lit le secret, sans secret.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Least-privilege identity: a MANAGED IDENTITY (passwordless) requests a token from ENTRA ID. CONDITIONAL ACCESS verifies explicitly (MFA, location, device) → allow/block. RBAC grants the MINIMAL role (Key Vault Secrets User) on the MINIMAL scope. PIM makes privileged roles JUST-IN-TIME (eligible → activate with MFA+justification → expires). An ACCESS REVIEW removes accumulated rights. Result: the app reads the secret, with no secret.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer l&#39;<strong>identité managée</strong> — le <strong>qui</strong> sans mot de passe.</p>
+<p><strong>🤔 Une identité, pas un secret.</strong> Avant d&#39;autoriser, il faut une <strong>identité</strong>. On crée une identité managée (assignée par l&#39;utilisateur : autonome, réutilisable) et on note son <strong>principalId</strong> — l&#39;identifiant qu&#39;on autorisera au RBAC.</p>
+<p>Crée l&#39;identité et récupère son principalId :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <strong>managed identity</strong> — the passwordless <strong>who</strong>.</p>
+<p><strong>🤔 An identity, not a secret.</strong> Before authorizing, you need an <strong>identity</strong>. We create a managed identity (user-assigned: standalone, reusable) and note its <strong>principalId</strong> — the id we&#39;ll authorize in RBAC.</p>
+<p>Create the identity and grab its principalId:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-identite --location westeurope &gt;/dev/null 2&gt;&amp;1
+
+azlocal identity create --resource-group rg-identite --name id-app 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); p=d[&#39;properties&#39;]; print(&#39;principalId=&#39; + p[&#39;principalId&#39;])&quot; | tee /tmp/principal.txt</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>principalId=&lt;uuid&gt;</code> (ex. <code>principalId=0ba86f54-…</code>) et l&#39;enregistre dans <code>/tmp/principal.txt</code>. Ce <strong>principalId</strong> est le <strong>sujet</strong> de toutes tes autorisations : c&#39;est <strong>lui</strong> qu&#39;on nomme dans une attribution RBAC. L&#39;identité n&#39;a <strong>encore aucun droit</strong> — par défaut, elle ne peut <strong>rien</strong>. On lui accorde le <strong>strict nécessaire</strong> à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>principalId=&lt;uuid&gt;</code> (e.g. <code>principalId=0ba86f54-…</code>) and saves it to <code>/tmp/principal.txt</code>. This <strong>principalId</strong> is the <strong>subject</strong> of all your authorizations: <strong>it</strong> is what you name in an RBAC assignment. The identity has <strong>no rights yet</strong> — by default, it can do <strong>nothing</strong>. We grant it the <strong>strict minimum</strong> next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Attribuer le <strong>rôle minimal</strong> en <strong>RBAC</strong> — écrit et <strong>validé</strong> en Bicep.</p>
+<p><strong>🤔 Le rôle étroit, la portée étroite.</strong> L&#39;app doit <strong>lire des secrets</strong> — rien d&#39;autre. On lui donne le rôle <strong>intégré</strong> <em>Key Vault Secrets User</em> (lecture des secrets), <strong>pas</strong> Contributor ni Owner. On écrit l&#39;attribution en Bicep et on la <strong>compile</strong> (validation).</p>
+<p>Écris l&#39;attribution RBAC et valide-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assign the <strong>minimal role</strong> in <strong>RBAC</strong> — written and <strong>validated</strong> in Bicep.</p>
+<p><strong>🤔 Narrow role, narrow scope.</strong> The app must <strong>read secrets</strong> — nothing else. We give it the <strong>built-in</strong> <em>Key Vault Secrets User</em> role (read secrets), <strong>not</strong> Contributor or Owner. We write the assignment in Bicep and <strong>compile</strong> it (validation).</p>
+<p>Write the RBAC assignment and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; rbac.bicep &lt;&lt;&#39;BICEP&#39;
+@description(&#39;principalId de l\&#39;identite managee a autoriser&#39;)
+param principalId string
+
+// Role INTEGRE &quot;Key Vault Secrets User&quot; (lecture des secrets seulement) — moindre privilege
+var roleSecretsUser = &#39;4633458b-17de-408a-b874-0445c86b69e6&#39;
+
+resource attribution &#39;Microsoft.Authorization/roleAssignments@2022-04-01&#39; = {
+  name: guid(resourceGroup().id, principalId, roleSecretsUser)
+  properties: {
+    roleDefinitionId: subscriptionResourceId(&#39;Microsoft.Authorization/roleDefinitions&#39;, roleSecretsUser)
+    principalId: principalId
+    principalType: &#39;ServicePrincipal&#39;
+  }
+}
+BICEP
+
+# Compiler/valider en ARM (offline) / compile-validate to ARM (offline)
+bicep build rbac.bicep --stdout 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;RBAC compile -&gt; ARM OK, ressource:&#39;, d[&#39;resources&#39;][0][&#39;type&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>RBAC compile -&gt; ARM OK, ressource: Microsoft.Authorization/roleAssignments</code>. L&#39;attribution est <strong>valide</strong> : elle donne à ton <code>principalId</code> le rôle <strong>Key Vault Secrets User</strong> — <strong>lire les secrets, rien d&#39;autre</strong>. Remarque les trois pièces : le <strong>principal</strong> (qui), le <strong>roleDefinitionId</strong> (quoi — ici un rôle <strong>intégré étroit</strong>), et la <strong>portée</strong> (où — le groupe de ressources). ⚠️ miniblue n&#39;<strong>exécute</strong> pas les attributions (404) : on les <strong>valide</strong> en Bicep et on les <strong>déploie</strong> sur du vrai Azure. Le principe — <strong>rôle minimal, portée minimale</strong> — est le cœur de l&#39;AZ-500.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>RBAC compile -&gt; ARM OK, ressource: Microsoft.Authorization/roleAssignments</code>. The assignment is <strong>valid</strong>: it gives your <code>principalId</code> the <strong>Key Vault Secrets User</strong> role — <strong>read secrets, nothing else</strong>. Note the three pieces: the <strong>principal</strong> (who), the <strong>roleDefinitionId</strong> (what — here a <strong>narrow built-in</strong> role), and the <strong>scope</strong> (where — the resource group). ⚠️ miniblue doesn&#39;t <strong>execute</strong> assignments (404): we <strong>validate</strong> them in Bicep and <strong>deploy</strong> them to real Azure. The principle — <strong>minimal role, minimal scope</strong> — is the heart of AZ-500.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exécuter un <strong>accès conditionnel</strong> — <em>vérifier explicitement</em>.</p>
+<p><strong>🤔 Le mot de passe ne suffit pas.</strong> L&#39;accès conditionnel évalue <strong>chaque</strong> connexion selon des signaux : <strong>MFA</strong> (surtout pour les rôles privilégiés), <strong>emplacement</strong> approuvé, <strong>appareil</strong> conforme. On écrit un <strong>vrai</strong> moteur de décision et on lui soumet des demandes.</p>
+<p>Écris le moteur d&#39;accès conditionnel et évalue :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run <strong>conditional access</strong> — <em>verify explicitly</em>.</p>
+<p><strong>🤔 The password isn&#39;t enough.</strong> Conditional access evaluates <strong>every</strong> sign-in against signals: <strong>MFA</strong> (especially for privileged roles), approved <strong>location</strong>, compliant <strong>device</strong>. We write a <strong>real</strong> decision engine and feed it requests.</p>
+<p>Write the conditional-access engine and evaluate:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; acces.py &lt;&lt;&#39;PY&#39;
+# Acces conditionnel (Zero Trust : verifier explicitement)
+def evaluer(d):
+    raisons = []
+    if d[&quot;role&quot;] in (&quot;Owner&quot;, &quot;Contributor&quot;) and not d[&quot;mfa&quot;]:
+        raisons.append(&quot;MFA requise pour un role privilegie&quot;)
+    if d[&quot;pays&quot;] not in (&quot;FR&quot;, &quot;BE&quot;, &quot;LU&quot;):
+        raisons.append(f&quot;emplacement non approuve ({d[&#39;pays&#39;]})&quot;)
+    if not d[&quot;appareil_conforme&quot;]:
+        raisons.append(&quot;appareil non conforme&quot;)
+    return (&quot;AUTORISE&quot; if not raisons else &quot;BLOQUE&quot;), raisons
+
+demandes = [
+    {&quot;user&quot;: &quot;alice&quot;, &quot;role&quot;: &quot;Reader&quot;,      &quot;mfa&quot;: True,  &quot;pays&quot;: &quot;FR&quot;, &quot;appareil_conforme&quot;: True},
+    {&quot;user&quot;: &quot;bob&quot;,   &quot;role&quot;: &quot;Owner&quot;,       &quot;mfa&quot;: False, &quot;pays&quot;: &quot;FR&quot;, &quot;appareil_conforme&quot;: True},
+    {&quot;user&quot;: &quot;eve&quot;,   &quot;role&quot;: &quot;Contributor&quot;, &quot;mfa&quot;: True,  &quot;pays&quot;: &quot;RU&quot;, &quot;appareil_conforme&quot;: True},
+    {&quot;user&quot;: &quot;dan&quot;,   &quot;role&quot;: &quot;Reader&quot;,      &quot;mfa&quot;: True,  &quot;pays&quot;: &quot;FR&quot;, &quot;appareil_conforme&quot;: False},
+]
+for d in demandes:
+    dec, r = evaluer(d)
+    print(f&quot;{d[&#39;user&#39;]:6} {d[&#39;role&#39;]:12} -&gt; {dec}&quot; + (f&quot;  ({&#39;; &#39;.join(r)})&quot; if r else &quot;&quot;))
+PY
+python3 acces.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le moteur affiche : <code>alice … -&gt; AUTORISE</code>, <code>bob … -&gt; BLOQUE (MFA requise pour un role privilegie)</code>, <code>eve … -&gt; BLOQUE (emplacement non approuve (RU))</code>, <code>dan … -&gt; BLOQUE (appareil non conforme)</code>. Chaque décision <strong>explique</strong> son motif. C&#39;est le « vérifier explicitement » : même avec le bon mot de passe, <strong>bob</strong> (rôle privilégié sans MFA), <strong>eve</strong> (emplacement risqué) et <strong>dan</strong> (appareil non géré) sont <strong>bloqués</strong>. En vrai Azure, ces règles sont des <strong>politiques d&#39;accès conditionnel</strong> Entra ID — même logique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the engine shows: <code>alice … -&gt; AUTORISE</code>, <code>bob … -&gt; BLOQUE (MFA requise pour un role privilegie)</code>, <code>eve … -&gt; BLOQUE (emplacement non approuve (RU))</code>, <code>dan … -&gt; BLOQUE (appareil non conforme)</code>. Each decision <strong>explains</strong> its reason. That&#39;s &quot;verify explicitly&quot;: even with the right password, <strong>bob</strong> (privileged role without MFA), <strong>eve</strong> (risky location) and <strong>dan</strong> (unmanaged device) are <strong>blocked</strong>. In real Azure, these rules are Entra ID <strong>conditional access policies</strong> — same logic.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Modéliser le <strong>PIM</strong> juste-à-temps — <strong>éligible ≠ actif</strong>.</p>
+<p><strong>🤔 Pas de droits privilégiés en permanence.</strong> Avec le PIM, un admin est <strong>éligible</strong> à un rôle mais ne l&#39;<strong>active</strong> qu&#39;au besoin, avec <strong>MFA</strong> et <strong>justification</strong>, pour une <strong>durée limitée</strong> — puis ça <strong>expire</strong>. On modélise ce cycle de vie.</p>
+<p>Modélise l&#39;activation juste-à-temps :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Model <strong>just-in-time PIM</strong> — <strong>eligible ≠ active</strong>.</p>
+<p><strong>🤔 No permanent privileged rights.</strong> With PIM, an admin is <strong>eligible</strong> for a role but only <strong>activates</strong> it when needed, with <strong>MFA</strong> and <strong>justification</strong>, for a <strong>limited duration</strong> — then it <strong>expires</strong>. We model this lifecycle.</p>
+<p>Model the just-in-time activation:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; pim.py &lt;&lt;&#39;PY&#39;
+# PIM : elevation juste-a-temps d&#39;un role privilegie
+class RolePrivilegie:
+    def __init__(self, user, role):
+        self.user, self.role = user, role
+        self.eligible = True     # affecte comme ELIGIBLE, pas actif en permanence
+        self.actif_jusqu_a = 0   # minute de fin d&#39;activation (0 = inactif)
+    def activer(self, maintenant, duree_min, justification, mfa):
+        if not self.eligible:  return &quot;REFUSE : non eligible&quot;
+        if not mfa:            return &quot;REFUSE : MFA obligatoire pour activer&quot;
+        if not justification:  return &quot;REFUSE : justification obligatoire&quot;
+        self.actif_jusqu_a = maintenant + duree_min
+        return f&quot;ACTIVE jusqu&#39;a t+{duree_min}min (justif: {justification})&quot;
+    def est_actif(self, maintenant):
+        return maintenant &lt; self.actif_jusqu_a
+
+r = RolePrivilegie(&quot;alice&quot;, &quot;Owner&quot;)
+print(&quot;Actif a t=0 (avant activation) ?&quot;, r.est_actif(0))
+print(&quot;Tentative sans MFA             -&gt;&quot;, r.activer(0, 60, &quot;incident prod&quot;, mfa=False))
+print(&quot;Activation avec MFA+justif     -&gt;&quot;, r.activer(0, 60, &quot;incident prod&quot;, mfa=True))
+print(&quot;Actif a t=30min ?&quot;, r.est_actif(30))
+print(&quot;Actif a t=90min ?&quot;, r.est_actif(90), &quot;(expire -&gt; de nouveau eligible seulement)&quot;)
+PY
+python3 pim.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre le cycle : <code>Actif a t=0 … ? False</code> (éligible mais <strong>inactif</strong>), <code>Tentative sans MFA -&gt; REFUSE : MFA obligatoire</code>, <code>Activation avec MFA+justif -&gt; ACTIVE jusqu&#39;a t+60min</code>, <code>Actif a t=30min ? True</code>, <code>Actif a t=90min ? False (expire …)</code>. Le rôle privilégié n&#39;est <strong>jamais</strong> actif en permanence : il faut l&#39;<strong>activer</strong> (MFA + justification) et il <strong>expire</strong>. Un compte compromis n&#39;a donc <strong>pas</strong> de droits Owner <strong>actifs</strong> en attente. C&#39;est le moindre privilège <strong>dans le temps</strong> — l&#39;idée-force du PIM.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows the cycle: <code>Actif a t=0 … ? False</code> (eligible but <strong>inactive</strong>), <code>Tentative sans MFA -&gt; REFUSE : MFA obligatoire</code>, <code>Activation avec MFA+justif -&gt; ACTIVE jusqu&#39;a t+60min</code>, <code>Actif a t=30min ? True</code>, <code>Actif a t=90min ? False (expire …)</code>. The privileged role is <strong>never</strong> permanently active: you must <strong>activate</strong> it (MFA + justification) and it <strong>expires</strong>. A compromised account thus has <strong>no</strong> Owner rights <strong>active</strong> and waiting. That&#39;s least privilege <strong>over time</strong> — PIM&#39;s key idea.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Boucler le <strong>flux Key Vault sans mot de passe</strong> — l&#39;identité lit le secret.</p>
+<p><strong>🤔 Le tout, ensemble.</strong> L&#39;identité (step-01) + le rôle <em>Secrets User</em> (step-02) = l&#39;app <strong>lit le secret</strong> <strong>sans</strong> mot de passe. On dépose un secret, on rappelle <strong>qui</strong> est autorisé (le principalId), et on <strong>lit</strong> — comme le ferait l&#39;app via son identité.</p>
+<p>Boucle le flux sans mot de passe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Close the <strong>passwordless Key Vault flow</strong> — the identity reads the secret.</p>
+<p><strong>🤔 Everything, together.</strong> The identity (step-01) + the <em>Secrets User</em> role (step-02) = the app <strong>reads the secret</strong> with <strong>no</strong> password. We deposit a secret, recall <strong>who</strong> is authorized (the principalId), and <strong>read</strong> it — as the app would via its identity.</p>
+<p>Close the passwordless flow:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Le secret vit au coffre / the secret lives in the vault
+azlocal keyvault secret set --vault kv-identite --name api-key --value &quot;cle-api-du-lab&quot; 2&gt;/dev/null &gt;/dev/null
+
+echo &quot;Autorise (principalId) : $(cat /tmp/principal.txt)&quot;
+echo &quot;Role                   : Key Vault Secrets User (lecture seule des secrets)&quot;
+
+# L&#39;app, via son identite managee (sans mot de passe), lit le secret
+azlocal keyvault secret show --vault kv-identite --name api-key 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;Lecture par l identite -&gt; valeur:&#39;, json.load(sys.stdin)[&#39;value&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie rappelle l&#39;<code>Autorise (principalId)</code> et le <code>Role</code>, puis affiche <code>Lecture par l identite -&gt; valeur: cle-api-du-lab</code>. Le <strong>flux complet</strong> : l&#39;app présente son <strong>identité managée</strong> (sans mot de passe), l&#39;accès conditionnel <strong>vérifie</strong> la connexion, le <strong>RBAC</strong> confirme qu&#39;elle a <em>Secrets User</em>, et elle <strong>lit</strong> le secret. <strong>Aucun</strong> mot de passe n&#39;a circulé, <strong>aucun</strong> secret n&#39;était en dur. C&#39;est le Zero Trust côté machine, de bout en bout. ⚠️ En local, c&#39;est <code>azlocal</code> qui lit ; en vrai Azure, c&#39;est l&#39;<strong>identité</strong> qui présente son jeton — mêmes acteurs, même résultat.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output recalls the <code>Autorise (principalId)</code> and the <code>Role</code>, then shows <code>Lecture par l identite -&gt; valeur: cle-api-du-lab</code>. The <strong>full flow</strong>: the app presents its <strong>managed identity</strong> (passwordless), conditional access <strong>verifies</strong> the sign-in, <strong>RBAC</strong> confirms it has <em>Secrets User</em>, and it <strong>reads</strong> the secret. <strong>No</strong> password traveled, <strong>no</strong> secret was hardcoded. That&#39;s machine-side Zero Trust, end to end. ⚠️ Locally it&#39;s <code>azlocal</code> that reads; in real Azure it&#39;s the <strong>identity</strong> presenting its token — same actors, same result.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mener une <strong>revue d&#39;accès</strong> — débusquer le <strong>sur-privilège</strong>.</p>
+<p><strong>🤔 Les droits s&#39;accumulent.</strong> Avec le temps, des identités gardent des rôles trop larges ou inutilisés. Une <strong>revue d&#39;accès</strong> liste les attributions et <strong>signale</strong> ce qui viole le moindre privilège. On écrit un audit qui repère les <strong>Owner</strong> et les rôles <strong>inutilisés</strong>.</p>
+<p>Audite les attributions et débusque le sur-privilège :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run an <strong>access review</strong> — surface <strong>over-privilege</strong>.</p>
+<p><strong>🤔 Rights accumulate.</strong> Over time, identities keep roles that are too broad or unused. An <strong>access review</strong> lists assignments and <strong>flags</strong> what violates least privilege. We write an audit that spots <strong>Owners</strong> and <strong>unused</strong> roles.</p>
+<p>Audit the assignments and surface over-privilege:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; revue.py &lt;&lt;&#39;PY&#39;
+# Revue d&#39;acces : signaler le sur-privilege et les roles dormants
+attributions = [
+    {&quot;principal&quot;: &quot;id-app&quot;,    &quot;role&quot;: &quot;Key Vault Secrets User&quot;, &quot;jours_sans_usage&quot;: 2},
+    {&quot;principal&quot;: &quot;id-batch&quot;,  &quot;role&quot;: &quot;Owner&quot;,                  &quot;jours_sans_usage&quot;: 15},
+    {&quot;principal&quot;: &quot;old-svc&quot;,   &quot;role&quot;: &quot;Contributor&quot;,            &quot;jours_sans_usage&quot;: 210},
+    {&quot;principal&quot;: &quot;id-report&quot;, &quot;role&quot;: &quot;Reader&quot;,                 &quot;jours_sans_usage&quot;: 5},
+]
+print(&quot;Revue d&#39;acces — recommandations :&quot;)
+for a in attributions:
+    alertes = []
+    if a[&quot;role&quot;] == &quot;Owner&quot;:
+        alertes.append(&quot;role Owner (trop large : preferer un role cible + PIM)&quot;)
+    if a[&quot;jours_sans_usage&quot;] &gt; 90:
+        alertes.append(f&quot;inutilise depuis {a[&#39;jours_sans_usage&#39;]} j (a retirer)&quot;)
+    marque = &quot;❌&quot; if alertes else &quot;✅&quot;
+    print(f&quot;  {marque} {a[&#39;principal&#39;]:10} {a[&#39;role&#39;]:22} &quot; + (&quot;; &quot;.join(alertes) if alertes else &quot;conforme&quot;))
+PY
+python3 revue.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> l&#39;audit marque <code>✅</code> <code>id-app</code> (rôle étroit, actif) et <code>id-report</code>, mais <code>❌</code> <code>id-batch</code> (<strong>rôle Owner trop large</strong>) et <code>old-svc</code> (<strong>inutilisé depuis 210 j</strong>). Ce sont <strong>exactement</strong> les deux dérives que traque une revue d&#39;accès : le <strong>sur-privilège</strong> (Owner là où un rôle ciblé + PIM suffirait) et les <strong>droits dormants</strong> (à retirer). En vrai Azure, les <strong>Access Reviews</strong> d&#39;Entra ID automatisent ce cycle (réviseurs, échéances, retrait auto). Le moindre privilège se <strong>maintient</strong>, il ne se décrète pas une fois.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the audit marks <code>✅</code> <code>id-app</code> (narrow role, active) and <code>id-report</code>, but <code>❌</code> <code>id-batch</code> (<strong>Owner role too broad</strong>) and <code>old-svc</code> (<strong>unused for 210 days</strong>). These are <strong>exactly</strong> the two drifts an access review tracks: <strong>over-privilege</strong> (Owner where a targeted role + PIM would do) and <strong>dormant rights</strong> (to remove). In real Azure, Entra ID <strong>Access Reviews</strong> automate this cycle (reviewers, deadlines, auto-removal). Least privilege is <strong>maintained</strong>, not declared once.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>posture d&#39;identité</strong> et nettoyer.</p>
+<p><strong>🤔 La somme des couches identité.</strong> On récapitule ce qui protège l&#39;identité — sans mot de passe, moindre privilège, vérification explicite, juste-à-temps, revue — puis on nettoie le lab.</p>
+<p>Récapitule la posture et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>identity posture</strong> and clean up.</p>
+<p><strong>🤔 The sum of the identity layers.</strong> We recap what protects identity — passwordless, least privilege, explicit verification, just-in-time, review — then clean the lab.</p>
+<p>Recap the posture and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Posture d&#39;identite (Zero Trust) / identity posture ===&quot;
+printf &quot;%-26s %s\n&quot; &quot;Identite managee&quot;       &quot;sans mot de passe (aucun secret stocke)&quot;
+printf &quot;%-26s %s\n&quot; &quot;RBAC moindre privilege&quot; &quot;role minimal (Secrets User) sur portee minimale&quot;
+printf &quot;%-26s %s\n&quot; &quot;Acces conditionnel&quot;     &quot;verifier explicitement (MFA, emplacement, appareil)&quot;
+printf &quot;%-26s %s\n&quot; &quot;PIM juste-a-temps&quot;      &quot;eligible != actif ; activer (MFA+justif) ; expire&quot;
+printf &quot;%-26s %s\n&quot; &quot;Revue d&#39;acces&quot;          &quot;retirer sur-privilege et roles dormants&quot;
+
+# Nettoyer le lab / clean up
+azlocal group delete --name rg-identite &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-identite supprime / deleted&quot;
+rm -f /tmp/principal.txt</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>cinq leviers</strong> de l&#39;identité sécurisée, puis <code>rg-identite supprime</code> nettoie le lab. Tu tiens le pilier <strong>identité</strong> de l&#39;AZ-500 : <em>identité managée</em> (sans mot de passe), <em>RBAC</em> au moindre privilège (validé en Bicep), <em>accès conditionnel</em> (vérifier explicitement), <em>PIM</em> (juste-à-temps) et <em>revue d&#39;accès</em> (contre l&#39;accumulation). Chaque levier réduit la surface d&#39;attaque <strong>avant</strong> qu&#39;un incident n&#39;arrive. La suite du track AZ-500 : la sécurité <strong>réseau</strong> (segmentation, pare-feu, points de terminaison privés), puis les <strong>données</strong> et les <strong>opérations</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>five levers</strong> of secure identity, then <code>rg-identite supprime</code> cleans the lab. You hold the <strong>identity</strong> pillar of AZ-500: <em>managed identity</em> (passwordless), least-privilege <em>RBAC</em> (validated in Bicep), <em>conditional access</em> (verify explicitly), <em>PIM</em> (just-in-time) and <em>access review</em> (against accumulation). Each lever shrinks the attack surface <strong>before</strong> an incident happens. Next in the AZ-500 track: <strong>network</strong> security (segmentation, firewall, private endpoints), then <strong>data</strong> and <strong>operations</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Mot de passe/secret pour l&#39;accès machine.</strong> Une app ne doit <strong>pas</strong> stocker un secret pour s&#39;authentifier. Utilise une <strong>identité managée</strong>.</p>
+<p><strong>2. Owner « pour que ça marche ».</strong> Le rôle le plus large est le <strong>dernier</strong> recours. Choisis un <strong>rôle intégré étroit</strong> (ex. <em>Secrets User</em>) sur la <strong>portée minimale</strong>.</p>
+<p><strong>3. Portée trop large.</strong> Attribuer au niveau <strong>abonnement</strong> ce qui suffirait au <strong>groupe de ressources</strong> (ou à la ressource). Réduis la portée.</p>
+<p><strong>4. Se fier au mot de passe seul.</strong> Sans <strong>accès conditionnel</strong> (MFA, emplacement, appareil), un mot de passe volé suffit. Vérifie <strong>explicitement</strong>.</p>
+<p><strong>5. Rôles privilégiés permanents.</strong> Un Owner « à demeure » est une cible. <strong>PIM</strong> : éligible, activation juste-à-temps, expiration.</p>
+<p><strong>6. Jamais de revue.</strong> Les droits <strong>s&#39;accumulent</strong>. Sans <strong>revue d&#39;accès</strong>, le moindre privilège <strong>dérive</strong>. Révise et retire.</p>
+<p><strong>7. Confondre authentification et autorisation.</strong> <strong>Entra ID</strong> dit <strong>qui</strong> tu es ; <strong>RBAC</strong> dit <strong>ce que</strong> tu peux. Les deux sont nécessaires.</p>
+</div>
+<div data-lang="en"><p><strong>1. Password/secret for machine access.</strong> An app should <strong>not</strong> store a secret to authenticate. Use a <strong>managed identity</strong>.</p>
+<p><strong>2. Owner &quot;to make it work&quot;.</strong> The broadest role is the <strong>last</strong> resort. Choose a <strong>narrow built-in</strong> role (e.g. <em>Secrets User</em>) on the <strong>minimal scope</strong>.</p>
+<p><strong>3. Scope too broad.</strong> Assigning at the <strong>subscription</strong> level what the <strong>resource group</strong> (or resource) would cover. Narrow the scope.</p>
+<p><strong>4. Trusting the password alone.</strong> Without <strong>conditional access</strong> (MFA, location, device), a stolen password is enough. Verify <strong>explicitly</strong>.</p>
+<p><strong>5. Permanent privileged roles.</strong> A standing Owner is a target. <strong>PIM</strong>: eligible, just-in-time activation, expiry.</p>
+<p><strong>6. Never reviewing.</strong> Rights <strong>accumulate</strong>. Without an <strong>access review</strong>, least privilege <strong>drifts</strong>. Review and remove.</p>
+<p><strong>7. Confusing authentication and authorization.</strong> <strong>Entra ID</strong> says <strong>who</strong> you are; <strong>RBAC</strong> says <strong>what</strong> you can do. Both are needed.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu crées une <strong>identité managée</strong> et sais utiliser son <strong>principalId</strong>.</li><li>Tu écris une attribution <strong>RBAC</strong> au <strong>moindre privilège</strong> (rôle intégré + portée) et la <strong>valides</strong>.</li><li>Tu exécutes un <strong>accès conditionnel</strong> qui <strong>bloque</strong> les connexions à risque (MFA, emplacement, appareil).</li><li>Tu modélises le <strong>PIM</strong> : éligible ≠ actif, activation MFA + justification, expiration.</li><li>Tu boucles le <strong>flux Key Vault sans mot de passe</strong>.</li><li>Tu mènes une <strong>revue d&#39;accès</strong> qui débusque <strong>Owner</strong> et <strong>rôles dormants</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You create a <strong>managed identity</strong> and can use its <strong>principalId</strong>.</li><li>You write a least-privilege <strong>RBAC</strong> assignment (built-in role + scope) and <strong>validate</strong> it.</li><li>You run a <strong>conditional access</strong> policy that <strong>blocks</strong> risky sign-ins (MFA, location, device).</li><li>You model <strong>PIM</strong>: eligible ≠ active, MFA + justification activation, expiry.</li><li>You close the <strong>passwordless Key Vault flow</strong>.</li><li>You run an <strong>access review</strong> that surfaces <strong>Owner</strong> and <strong>dormant roles</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — sécurité réseau (AZ-500)</em> — segmentation, pare-feu, points de terminaison privés, DDoS.</li><li><strong>Réviser :</strong> <em>Azure — sécurité fondamentaux (AZ-500)</em> pour le Zero Trust.</li><li><strong>S&#39;entraîner :</strong> ajoute une règle d&#39;accès conditionnel (heure ouvrée) à <code>acces.py</code>, et un niveau d&#39;<strong>approbation</strong> au PIM.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — network security (AZ-500)</em> — segmentation, firewall, private endpoints, DDoS.</li><li><strong>Review:</strong> <em>Azure — security fundamentals (AZ-500)</em> for Zero Trust.</li><li><strong>Practice:</strong> add a conditional-access rule (business hours) to <code>acces.py</code>, and an <strong>approval</strong> step to PIM.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Identité &amp; RBAC</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Identite managee (sans mot de passe)
+azlocal identity create --resource-group RG --name ID   # -&gt; principalId
+
+# RBAC (Bicep) : role INTEGRE etroit + portee minimale
+# roleDefinitionId (exemples) :
+#   Reader                     acdd72a7-3385-48ef-bd42-f606fba81ae7
+#   Contributor                b24988ac-6180-42a0-ab88-20f7382dd24c
+#   Owner                      8e3af657-a8ff-443c-a75c-2fe8c4bcb635  (a eviter)
+#   Key Vault Secrets User     4633458b-17de-408a-b874-0445c86b69e6
+bicep build rbac.bicep --stdout        # valider l&#39;attribution</code></pre>
+<p><strong>Zero Trust — les leviers</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Verifier explicitement  : acces conditionnel (MFA, emplacement, appareil)
+Moindre privilege       : role minimal, portee minimale
+Juste-a-temps (PIM)     : eligible -&gt; activer (MFA+justif) -&gt; expire
+Maintenir               : revue d&#39;acces (retirer sur-privilege / dormant)</code></pre>
+<p><strong>Regles d&#39;or</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- App -&gt; identite managee (jamais de secret pour s&#39;authentifier)
+- Prefere un role INTEGRE etroit a un role large
+- Portee : ressource &lt; groupe &lt; abonnement (choisis la plus petite)
+- Owner = dernier recours, et via PIM juste-a-temps</code></pre>
+</div>
+<div data-lang="en"><p><strong>Identity &amp; RBAC</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Managed identity (passwordless)
+azlocal identity create --resource-group RG --name ID   # -&gt; principalId
+
+# RBAC (Bicep): narrow BUILT-IN role + minimal scope
+# roleDefinitionId (examples):
+#   Reader                     acdd72a7-3385-48ef-bd42-f606fba81ae7
+#   Contributor                b24988ac-6180-42a0-ab88-20f7382dd24c
+#   Owner                      8e3af657-a8ff-443c-a75c-2fe8c4bcb635  (avoid)
+#   Key Vault Secrets User     4633458b-17de-408a-b874-0445c86b69e6
+bicep build rbac.bicep --stdout        # validate the assignment</code></pre>
+<p><strong>Zero Trust — the levers</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Verify explicitly  : conditional access (MFA, location, device)
+Least privilege    : minimal role, minimal scope
+Just-in-time (PIM) : eligible -&gt; activate (MFA+justification) -&gt; expires
+Maintain           : access review (remove over-privilege / dormant)</code></pre>
+<p><strong>Golden rules</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- App -&gt; managed identity (never a secret to authenticate)
+- Prefer a narrow BUILT-IN role over a broad one
+- Scope: resource &lt; group &lt; subscription (pick the smallest)
+- Owner = last resort, and via just-in-time PIM</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Microsoft Entra ID</strong> : identités, principals de service, identités managées — Microsoft Learn.</li><li><strong>Azure RBAC</strong> : rôles intégrés, attributions, portée — learn.microsoft.com/azure/role-based-access-control.</li><li><strong>Accès conditionnel</strong> : signaux, décisions, MFA — Microsoft Learn (AZ-500).</li><li><strong>Privileged Identity Management (PIM)</strong> : rôles éligibles, activation, revues — Microsoft Learn.</li><li><strong>Access Reviews</strong> : campagnes de revue d&#39;accès Entra ID — Microsoft Learn.</li><li><strong>Identités managées &amp; Key Vault</strong> : accès sans mot de passe — Microsoft Learn.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Microsoft Entra ID</strong>: identities, service principals, managed identities — Microsoft Learn.</li><li><strong>Azure RBAC</strong>: built-in roles, assignments, scope — learn.microsoft.com/azure/role-based-access-control.</li><li><strong>Conditional access</strong>: signals, decisions, MFA — Microsoft Learn (AZ-500).</li><li><strong>Privileged Identity Management (PIM)</strong>: eligible roles, activation, reviews — Microsoft Learn.</li><li><strong>Access Reviews</strong>: Entra ID access-review campaigns — Microsoft Learn.</li><li><strong>Managed identities &amp; Key Vault</strong>: passwordless access — Microsoft Learn.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal identity create</code> : <code>--resource-group is required</code>.</strong> Crée d&#39;abord le groupe (<code>azlocal group create --name rg-identite …</code>) et passe <code>--resource-group rg-identite</code>.</p>
+<p><strong><code>bicep : command not found</code>.</strong> <code>az bicep install</code>, ou installe le binaire autonome (releases GitHub <code>Azure/bicep</code>).</p>
+<p><strong>Le RBAC ne se déploie pas en local.</strong> miniblue renvoie 404 sur les attributions de rôles. C&#39;est <strong>attendu</strong> : on <strong>valide</strong> en Bicep (<code>bicep build</code>) et on <strong>déploie</strong> sur du vrai Azure. L&#39;<strong>identité</strong> (principalId), elle, est réelle en local.</p>
+<p><strong><code>/tmp/principal.txt</code> vide (step-05).</strong> Le step-01 doit avoir réussi et écrit le fichier. Relance-le ; vérifie que <code>azlocal identity create</code> renvoie bien un JSON avec <code>properties.principalId</code>.</p>
+<p><strong>Les scripts Python n&#39;affichent rien.</strong> Vérifie l&#39;indentation (pas de tabulations mélangées) et que tu lances <code>python3 fichier.py</code>. Chaque script est autonome.</p>
+<p><strong>Quel roleDefinitionId choisir ?</strong> Pars du <strong>besoin</strong> : lire des secrets → <em>Key Vault Secrets User</em> ; lire des ressources → <em>Reader</em> ; gérer sans déléguer de droits → <em>Contributor</em>. Évite <em>Owner</em> sauf nécessité (et via PIM).</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal identity create</code>: <code>--resource-group is required</code>.</strong> Create the group first (<code>azlocal group create --name rg-identite …</code>) and pass <code>--resource-group rg-identite</code>.</p>
+<p><strong><code>bicep: command not found</code>.</strong> <code>az bicep install</code>, or install the standalone binary (GitHub <code>Azure/bicep</code> releases).</p>
+<p><strong>RBAC won&#39;t deploy locally.</strong> miniblue returns 404 on role assignments. That&#39;s <strong>expected</strong>: we <strong>validate</strong> in Bicep (<code>bicep build</code>) and <strong>deploy</strong> to real Azure. The <strong>identity</strong> (principalId) is real locally.</p>
+<p><strong><code>/tmp/principal.txt</code> empty (step-05).</strong> step-01 must have succeeded and written the file. Re-run it; check that <code>azlocal identity create</code> returns JSON with <code>properties.principalId</code>.</p>
+<p><strong>The Python scripts print nothing.</strong> Check indentation (no mixed tabs) and that you run <code>python3 file.py</code>. Each script is standalone.</p>
+<p><strong>Which roleDefinitionId to pick?</strong> Start from the <strong>need</strong>: read secrets → <em>Key Vault Secrets User</em>; read resources → <em>Reader</em>; manage without delegating rights → <em>Contributor</em>. Avoid <em>Owner</em> unless necessary (and via PIM).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
