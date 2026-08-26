@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — pipelines CI/CD en profondeur (AZ-400) : jobs, matrice, artefacts — jiha.tech</title>
+  <title data-lang="en">Azure — CI/CD pipelines in depth (AZ-400): jobs, matrix, artifacts — jiha.tech</title>
+  <meta name="description" content="&quot;Approfondir les pipelines CI/CD pour l&#39;AZ-400, en local et pour de vrai : une vraie suite de tests exécutée (node --test, vert/rouge, codes de sortie), un build reproductible (npm ci + lockfile), le graphe de jobs (lint → test → paquet avec needs/dependsOn), la stratégie de matrice (tester sur plusieurs versions en parallèle), le cache et surtout les artefacts (produire un rapport de test TAP et un paquet, le transmettre entre étapes). Pipelines GitHub Actions ET Azure Pipelines multi-stages validées localement. Puis le passage CI → CD (environnements &amp; approbations). Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Going deeper on CI/CD pipelines for AZ-400, locally and for real: a real test suite executed (node --test, green/red, exit codes), a reproducible build (npm ci + lockfile), the job graph (lint → test → package with needs/dependsOn), the matrix strategy (test across versions in parallel), caching and above all artifacts (produce a TAP test report and a package, pass it between stages). GitHub Actions AND Azure Pipelines multi-stage pipelines validated locally. Then the CI → CD step (environments &amp; approvals). No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — pipelines CI/CD en profondeur (AZ-400) : jobs, matrice, artefacts">
+  <meta property="og:description" content="&quot;Approfondir les pipelines CI/CD pour l&#39;AZ-400, en local et pour de vrai : une vraie suite de tests exécutée (node --test, vert/rouge, codes de sortie), un build reproductible (npm ci + lockfile), le graphe de jobs (lint → test → paquet avec needs/dependsOn), la stratégie de matrice (tester sur plusieurs versions en parallèle), le cache et surtout les artefacts (produire un rapport de test TAP et un paquet, le transmettre entre étapes). Pipelines GitHub Actions ET Azure Pipelines multi-stages validées localement. Puis le passage CI → CD (environnements &amp; approbations). Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-pipelines-cicd/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-pipelines-cicd/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-pipelines-cicd">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-pipelines-cicd</div>
+    <div class="prompt" data-lang="en">~/guides/azure-pipelines-cicd</div>
+    <h1 data-lang="fr">Azure — pipelines CI/CD en profondeur (AZ-400) : jobs, matrice, artefacts</h1>
+    <h1 data-lang="en">Azure — CI/CD pipelines in depth (AZ-400): jobs, matrix, artifacts</h1>
+    <p class="tagline" data-lang="fr">build reproductible, tests réels, graphe de jobs, artefacts.</p>
+    <p class="tagline" data-lang="en">reproducible build, real tests, job graph, artifacts.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu sais écrire une <strong>première pipeline</strong> (guide précédent). On <strong>approfondit</strong> maintenant ce qui fait une vraie chaîne CI/CD : un <strong>build reproductible</strong>, des <strong>tests qui s&#39;exécutent pour de vrai</strong>, un <strong>graphe de jobs</strong> avec dépendances, une <strong>matrice</strong> pour couvrir plusieurs versions, du <strong>cache</strong>, et surtout des <strong>artefacts</strong> — les fichiers qu&#39;une étape produit et qu&#39;une autre consomme. C&#39;est le cœur de l&#39;examen <strong>AZ-400</strong> côté pipelines.</p>
+<p>Fidèle à la méthode : tout est <strong>local et gratuit</strong>. On prend un petit <strong>module métier</strong> (un panier), on lui écrit de <strong>vrais tests</strong> qu&#39;on <strong>exécute</strong> (<code>node --test</code> — vert, puis rouge quand on casse le code), on rend le build <strong>reproductible</strong> (<code>npm ci</code> + fichier de verrou), puis on décrit la pipeline en YAML — <strong>GitHub Actions</strong> et <strong>Azure Pipelines</strong> multi-stages — qu&#39;on <strong>valide localement</strong>. On produit un <strong>rapport de test</strong> et un <strong>paquet</strong> comme <strong>artefacts</strong>. Enfin, on relie <strong>CI → CD</strong> : les <strong>environnements</strong> et les <strong>approbations</strong>, la porte avant le déploiement.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait le guide <em>DevOps fondamentaux</em> et tu veux des pipelines <strong>robustes</strong>, pas des jouets.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as jamais écrit de pipeline → fais d&#39;abord <em>Azure — DevOps fondamentaux (AZ-400)</em>.</li><li>Tu veux déployer de l&#39;infra depuis la pipeline → c&#39;est le <strong>guide suivant</strong> (IaC dans les pipelines).</li></ul>
+</div>
+<div data-lang="en"><p>You can write a <strong>first pipeline</strong> (previous guide). Now we go <strong>deeper</strong> into what makes a real CI/CD chain: a <strong>reproducible build</strong>, tests that <strong>actually run</strong>, a <strong>job graph</strong> with dependencies, a <strong>matrix</strong> to cover several versions, <strong>caching</strong>, and above all <strong>artifacts</strong> — the files one stage produces and another consumes. This is the heart of the <strong>AZ-400</strong> exam on the pipelines side.</p>
+<p>True to the method: everything is <strong>local and free</strong>. We take a small <strong>business module</strong> (a shopping cart), write it <strong>real tests</strong> we <strong>execute</strong> (<code>node --test</code> — green, then red when we break the code), make the build <strong>reproducible</strong> (<code>npm ci</code> + lockfile), then describe the pipeline in YAML — <strong>GitHub Actions</strong> and multi-stage <strong>Azure Pipelines</strong> — validated <strong>locally</strong>. We produce a <strong>test report</strong> and a <strong>package</strong> as <strong>artifacts</strong>. Finally, we connect <strong>CI → CD</strong>: <strong>environments</strong> and <strong>approvals</strong>, the gate before deployment.</p>
+<p><strong>Who it&#39;s for:</strong> you did the <em>DevOps fundamentals</em> guide and want <strong>robust</strong> pipelines, not toys.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;ve never written a pipeline → do <em>Azure — DevOps fundamentals (AZ-400)</em> first.</li><li>You want to deploy infra from the pipeline → that&#39;s the <strong>next guide</strong> (IaC in pipelines).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Écrire et <strong>exécuter</strong> une vraie suite de tests (<code>node --test</code>) et lire ses <strong>codes de sortie</strong>.</li><li>Rendre un build <strong>reproductible</strong> (<code>npm ci</code> + fichier de verrou).</li><li>Structurer une pipeline en <strong>jobs/stages</strong> avec <strong>dépendances</strong> (<code>needs</code> / <code>dependsOn</code>).</li><li>Utiliser une <strong>matrice</strong> pour tester plusieurs versions <strong>en parallèle</strong>.</li><li>Comprendre le <strong>cache</strong> et produire/consommer des <strong>artefacts</strong>.</li><li>Écrire une pipeline <strong>multi-stages</strong> en GitHub Actions <strong>et</strong> Azure Pipelines.</li><li>Relier <strong>CI → CD</strong> avec <strong>environnements</strong> et <strong>approbations</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Write and <strong>run</strong> a real test suite (<code>node --test</code>) and read its <strong>exit codes</strong>.</li><li>Make a build <strong>reproducible</strong> (<code>npm ci</code> + lockfile).</li><li>Structure a pipeline in <strong>jobs/stages</strong> with <strong>dependencies</strong> (<code>needs</code> / <code>dependsOn</code>).</li><li>Use a <strong>matrix</strong> to test several versions <strong>in parallel</strong>.</li><li>Understand <strong>caching</strong> and produce/consume <strong>artifacts</strong>.</li><li>Write a <strong>multi-stage</strong> pipeline in GitHub Actions <strong>and</strong> Azure Pipelines.</li><li>Connect <strong>CI → CD</strong> with <strong>environments</strong> and <strong>approvals</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — DevOps fondamentaux (AZ-400)</strong> (Git, YAML, première pipeline).</li><li><strong>Node.js</strong> installé (<code>node -v</code> ≥ 18) — le lanceur de tests <code>node --test</code> est intégré, <strong>aucune dépendance</strong>.</li><li><strong>Git</strong> et un <strong>terminal</strong> ; <strong>Python 3</strong> pour valider le YAML (optionnel).</li><li><strong>Aucun compte cloud requis</strong> : tout s&#39;exécute et se valide en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — DevOps fundamentals (AZ-400)</strong> guide (Git, YAML, first pipeline).</li><li><strong>Node.js</strong> installed (<code>node -v</code> ≥ 18) — the <code>node --test</code> runner is built in, <strong>no dependencies</strong>.</li><li><strong>Git</strong> and a <strong>terminal</strong>; <strong>Python 3</strong> to validate YAML (optional).</li><li><strong>No cloud account required</strong>: everything runs and validates locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-devops-fondamentaux/">
+    <span class="num">70</span>
+    <span class="title-line" data-lang="fr">Azure — DevOps fondamentaux (AZ-400) : Git, CI/CD, pipelines</span>
+    <span class="title-line" data-lang="en">Azure — DevOps fundamentals (AZ-400): Git, CI/CD, pipelines</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>CI en profondeur : le build reproductible.</strong> Une pipeline CI n&#39;a de valeur que si elle est <strong>déterministe</strong> : même commit → même résultat. D&#39;où deux règles. (1) <strong>Installer à l&#39;identique</strong> : <code>npm ci</code> lit le <strong>fichier de verrou</strong> (<code>package-lock.json</code>) et installe <strong>exactement</strong> les versions figées (contrairement à <code>npm install</code> qui peut les faire bouger). (2) <strong>Tester vraiment</strong> : les tests <strong>s&#39;exécutent</strong> et renvoient un <strong>code de sortie</strong> — <code>0</code> = succès (pipeline <strong>verte</strong>), non-zéro = échec (pipeline <strong>rouge</strong>). Le code de sortie est le <strong>signal</strong> que lit le runner.</p>
+<p><strong>Jobs, stages, dépendances.</strong> Un <strong>job</strong> est une unité qui tourne sur un <strong>runner</strong> (machine éphémère) ; ses <strong>étapes</strong> s&#39;exécutent en séquence. Plusieurs jobs tournent <strong>en parallèle</strong> par défaut — sauf si on déclare une <strong>dépendance</strong> : <code>needs:</code> (GitHub Actions) ou <code>dependsOn:</code> (Azure Pipelines). Cela dessine un <strong>graphe</strong> : <code>lint</code> → <code>test</code> → <code>paquet</code>. Azure Pipelines ajoute la notion de <strong>stage</strong> (regroupement de jobs, ex. <em>Valider</em> / <em>Tester</em> / <em>Déployer</em>), pratique pour séparer CI et CD.</p>
+<p><strong>La matrice.</strong> Tester sur <strong>plusieurs configurations</strong> sans dupliquer le job : une <strong>matrice</strong> (<code>strategy.matrix</code>) démultiplie un job en autant d&#39;exécutions <strong>parallèles</strong> — par ex. Node <strong>20</strong> et <strong>22</strong>. Une seule définition, N variantes.</p>
+<p><strong>Le cache.</strong> Télécharger les dépendances à chaque exécution est lent. Le <strong>cache</strong> (<code>actions/setup-node</code> avec <code>cache: npm</code>, ou une clé de cache) réutilise les paquets d&#39;une exécution à l&#39;autre. Gain de <strong>temps</strong>, pas de changement de résultat.</p>
+<p><strong>Les artefacts.</strong> Ce qu&#39;une étape <strong>produit</strong> et qu&#39;une autre <strong>consomme</strong> : un binaire, un <code>.tgz</code>, un <strong>rapport de test</strong>. Sur GitHub Actions : <code>upload-artifact</code> / <code>download-artifact</code>. Sur Azure Pipelines : <code>PublishBuildArtifacts</code> / <code>DownloadBuildArtifacts</code>. C&#39;est ainsi qu&#39;un <strong>stage de build</strong> transmet son résultat à un <strong>stage de déploiement</strong> — sans reconstruire.</p>
+<p><strong>CI vs CD, et la porte.</strong> <strong>CI</strong> valide (build + tests). <strong>CD</strong> livre/déploie. Entre les deux, on met souvent une <strong>porte</strong> : un <strong>environnement</strong> (<code>staging</code>, <code>production</code>) protégé par une <strong>approbation</strong> (un humain valide) ou des <strong>checks</strong>. C&#39;est le point de contrôle avant la prod — on l&#39;écrit dans la pipeline, on ne le bricole pas à la main.</p>
+<p><strong>Ce qui est live ici.</strong> Les <strong>tests s&#39;exécutent pour de vrai</strong> (<code>node --test</code>), le <strong>build est reproductible</strong> (<code>npm ci</code>), les <strong>artefacts</strong> sont de <strong>vrais fichiers</strong> produits localement (rapport TAP, paquet <code>.tgz</code>). Les <strong>pipelines</strong> (GitHub Actions, Azure Pipelines) s&#39;écrivent en YAML et se <strong>valident localement</strong> ; leur <strong>exécution</strong> sur des runners demande un compte GitHub/Azure DevOps (gratuit). Les fondamentaux, eux, sont <strong>100 % locaux</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>CI in depth: the reproducible build.</strong> A CI pipeline is only worth it if it&#39;s <strong>deterministic</strong>: same commit → same result. Hence two rules. (1) <strong>Install identically</strong>: <code>npm ci</code> reads the <strong>lockfile</strong> (<code>package-lock.json</code>) and installs the <strong>exact</strong> pinned versions (unlike <code>npm install</code>, which may move them). (2) <strong>Really test</strong>: tests <strong>run</strong> and return an <strong>exit code</strong> — <code>0</code> = success (<strong>green</strong> pipeline), non-zero = failure (<strong>red</strong> pipeline). The exit code is the <strong>signal</strong> the runner reads.</p>
+<p><strong>Jobs, stages, dependencies.</strong> A <strong>job</strong> is a unit running on a <strong>runner</strong> (ephemeral machine); its <strong>steps</strong> run in sequence. Multiple jobs run <strong>in parallel</strong> by default — unless you declare a <strong>dependency</strong>: <code>needs:</code> (GitHub Actions) or <code>dependsOn:</code> (Azure Pipelines). That draws a <strong>graph</strong>: <code>lint</code> → <code>test</code> → <code>package</code>. Azure Pipelines adds the notion of a <strong>stage</strong> (a group of jobs, e.g. <em>Validate</em> / <em>Test</em> / <em>Deploy</em>), handy to separate CI and CD.</p>
+<p><strong>The matrix.</strong> Testing across <strong>several configurations</strong> without duplicating the job: a <strong>matrix</strong> (<code>strategy.matrix</code>) fans a job out into as many <strong>parallel</strong> runs — e.g. Node <strong>20</strong> and <strong>22</strong>. One definition, N variants.</p>
+<p><strong>Caching.</strong> Downloading dependencies on every run is slow. The <strong>cache</strong> (<code>actions/setup-node</code> with <code>cache: npm</code>, or a cache key) reuses packages from one run to the next. Saves <strong>time</strong>, doesn&#39;t change the result.</p>
+<p><strong>Artifacts.</strong> What one stage <strong>produces</strong> and another <strong>consumes</strong>: a binary, a <code>.tgz</code>, a <strong>test report</strong>. On GitHub Actions: <code>upload-artifact</code> / <code>download-artifact</code>. On Azure Pipelines: <code>PublishBuildArtifacts</code> / <code>DownloadBuildArtifacts</code>. That&#39;s how a <strong>build stage</strong> hands its result to a <strong>deploy stage</strong> — without rebuilding.</p>
+<p><strong>CI vs CD, and the gate.</strong> <strong>CI</strong> validates (build + tests). <strong>CD</strong> delivers/deploys. Between them we often place a <strong>gate</strong>: an <strong>environment</strong> (<code>staging</code>, <code>production</code>) protected by an <strong>approval</strong> (a human validates) or <strong>checks</strong>. It&#39;s the control point before prod — you write it into the pipeline, you don&#39;t hand-hack it.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>tests actually run</strong> (<code>node --test</code>), the <strong>build is reproducible</strong> (<code>npm ci</code>), the <strong>artifacts</strong> are <strong>real files</strong> produced locally (TAP report, <code>.tgz</code> package). The <strong>pipelines</strong> (GitHub Actions, Azure Pipelines) are written in YAML and <strong>validated locally</strong>; <strong>running</strong> them on runners needs a GitHub/Azure DevOps account (free). The fundamentals themselves are <strong>100% local</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-pipelines-cicd-graph">
+  <p>[schema "azure-pipelines-cicd-graph" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Une pipeline CI/CD en profondeur : le commit déclenche le STAGE CI (job lint → job test en MATRICE Node 20/22 → job paquet) qui produit des ARTEFACTS (rapport de test, paquet). Le STAGE CD consomme l&#39;artefact et déploie, derrière une PORTE (environnement + approbation). needs/dependsOn dessinent le graphe ; le cache accélère sans changer le résultat.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A CI/CD pipeline in depth: the commit triggers the CI STAGE (lint job → test job in a Node 20/22 MATRIX → package job) which produces ARTIFACTS (test report, package). The CD STAGE consumes the artifact and deploys, behind a GATE (environment + approval). needs/dependsOn draw the graph; the cache speeds things up without changing the result.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Avoir un <strong>module métier</strong> et de <strong>vrais tests</strong> qui <strong>s&#39;exécutent</strong>.</p>
+<p><strong>🤔 Pas de CI sans tests.</strong> Une pipeline qui ne teste rien est une décoration. On écrit un petit module (<code>panier</code>) et trois tests avec le lanceur <strong>intégré</strong> de Node (<code>node --test</code>) — <strong>aucune dépendance</strong> à installer.</p>
+<p>Crée le projet, le module et les tests, puis lance-les :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Have a <strong>business module</strong> and <strong>real tests</strong> that <strong>run</strong>.</p>
+<p><strong>🤔 No CI without tests.</strong> A pipeline that tests nothing is decoration. We write a small module (<code>panier</code>) and three tests with Node&#39;s <strong>built-in</strong> runner (<code>node --test</code>) — <strong>no dependency</strong> to install.</p>
+<p>Create the project, the module and the tests, then run them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ci-projet/src ci-projet/test &amp;&amp; cd ci-projet
+
+cat &gt; package.json &lt;&lt;&#39;JSON&#39;
+{
+  &quot;name&quot;: &quot;panier&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;main&quot;: &quot;src/panier.js&quot;,
+  &quot;scripts&quot;: {
+    &quot;lint&quot;: &quot;node -e \&quot;process.exit(0)\&quot;&quot;,
+    &quot;test&quot;: &quot;node --test&quot;
+  }
+}
+JSON
+
+cat &gt; src/panier.js &lt;&lt;&#39;JS&#39;
+// Le total d&#39;un panier, avec une remise optionnelle.
+function total(articles, remise = 0) {
+  const somme = articles.reduce((acc, a) =&gt; acc + a.prix * a.qte, 0);
+  return Math.round(somme * (1 - remise) * 100) / 100;
+}
+module.exports = { total };
+JS
+
+cat &gt; test/panier.test.js &lt;&lt;&#39;JS&#39;
+const test = require(&quot;node:test&quot;);
+const assert = require(&quot;node:assert&quot;);
+const { total } = require(&quot;../src/panier.js&quot;);
+
+test(&quot;total sans remise&quot;, () =&gt; {
+  assert.strictEqual(total([{ prix: 10, qte: 2 }, { prix: 5, qte: 1 }]), 25);
+});
+test(&quot;total avec remise de 10%&quot;, () =&gt; {
+  assert.strictEqual(total([{ prix: 100, qte: 1 }], 0.1), 90);
+});
+test(&quot;panier vide vaut 0&quot;, () =&gt; {
+  assert.strictEqual(total([]), 0);
+});
+JS
+
+node --test
+echo &quot;code de sortie / exit code: $?&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie se termine par <code># pass 3</code> et <code># fail 0</code>, et le <strong>code de sortie est <code>0</code></strong>. Trois tests <strong>réels</strong> passent. C&#39;est le signal que la CI attend. Ce <code>panier</code> est notre unité à protéger dans toute la suite.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output ends with <code># pass 3</code> and <code># fail 0</code>, and the <strong>exit code is <code>0</code></strong>. Three <strong>real</strong> tests pass. That&#39;s the signal CI waits for. This <code>panier</code> is the unit we&#39;ll protect throughout.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Voir la CI passer au <strong>rouge</strong> — et comprendre le <strong>code de sortie</strong>.</p>
+<p><strong>🤔 Le rouge, c&#39;est le but.</strong> La CI a de la valeur quand elle <strong>échoue</strong> au bon moment. On introduit un <strong>bug</strong>, on relance : le code de sortie devient <strong>non-zéro</strong>, la pipeline serait <strong>rouge</strong>. Puis on répare.</p>
+<p>Casse le calcul, observe, répare :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> See CI go <strong>red</strong> — and understand the <strong>exit code</strong>.</p>
+<p><strong>🤔 Red is the point.</strong> CI is valuable when it <strong>fails</strong> at the right time. We introduce a <strong>bug</strong>, re-run: the exit code becomes <strong>non-zero</strong>, the pipeline would be <strong>red</strong>. Then we fix it.</p>
+<p>Break the calculation, observe, fix:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># On casse la remise (bug volontaire) / break the discount (deliberate bug)
+sed -i &#39;s/1 - remise/1 - remise + 0.5/&#39; src/panier.js
+node --test 2&gt;&amp;1 | grep -E &quot;^# (pass|fail)&quot;
+echo &quot;code de sortie / exit code: ${PIPESTATUS[0]}&quot;
+
+# On répare / fix it back
+sed -i &#39;s/1 - remise + 0.5/1 - remise/&#39; src/panier.js
+node --test 2&gt;&amp;1 | grep -E &quot;^# (pass|fail)&quot;
+echo &quot;code de sortie / exit code: ${PIPESTATUS[0]}&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avec le bug, tu vois <code># fail 2</code> et <strong>code de sortie <code>1</code></strong> (la pipeline serait <strong>rouge</strong>) ; après réparation, <code># fail 0</code> et <strong>code <code>0</code></strong> (<strong>verte</strong>). Retiens : la pipeline ne « lit » pas tes tests, elle lit un <strong>code de sortie</strong>. Toute commande d&#39;un job suit cette règle — un <code>terraform validate</code> ou un <code>az bicep build</code> qui échoue rend le job rouge de la même façon.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> with the bug you see <code># fail 2</code> and <strong>exit code <code>1</code></strong> (the pipeline would be <strong>red</strong>); after the fix, <code># fail 0</code> and <strong>code <code>0</code></strong> (<strong>green</strong>). Remember: the pipeline doesn&#39;t &quot;read&quot; your tests, it reads an <strong>exit code</strong>. Every command in a job follows this rule — a failing <code>terraform validate</code> or <code>az bicep build</code> makes the job red the same way.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Rendre le build <strong>reproductible</strong> avec <code>npm ci</code> et un <strong>fichier de verrou</strong>.</p>
+<p><strong>🤔 Même commit, même install.</strong> <code>npm install</code> peut faire bouger les versions ; <code>npm ci</code> installe <strong>exactement</strong> ce qui est figé dans <code>package-lock.json</code>. C&#39;est la règle d&#39;or d&#39;une CI fiable. On génère le verrou (hors ligne, on n&#39;a aucune dépendance), puis on installe à l&#39;identique.</p>
+<p>Génère le verrou et installe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Make the build <strong>reproducible</strong> with <code>npm ci</code> and a <strong>lockfile</strong>.</p>
+<p><strong>🤔 Same commit, same install.</strong> <code>npm install</code> may move versions; <code>npm ci</code> installs <strong>exactly</strong> what&#39;s frozen in <code>package-lock.json</code>. It&#39;s the golden rule of a reliable CI. We generate the lock (offline — we have no dependency), then install identically.</p>
+<p>Generate the lock and install:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Générer le fichier de verrou / generate the lockfile
+npm install --package-lock-only
+ls -1 package-lock.json
+
+# Installer à l&#39;identique (ce que fait la CI) / install identically (what CI does)
+npm ci
+echo &quot;code de sortie / exit code: $?&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>package-lock.json</code> existe et <code>npm ci</code> se termine avec le <strong>code <code>0</code></strong> (<code>up to date, audited 1 package</code>). Dans une pipeline, <code>npm ci</code> remplace toujours <code>npm install</code> : reproductible et plus rapide. ⚠️ <code>npm ci</code> <strong>exige</strong> le fichier de verrou — versionne-le (<code>git add package-lock.json</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>package-lock.json</code> exists and <code>npm ci</code> ends with <strong>code <code>0</code></strong> (<code>up to date, audited 1 package</code>). In a pipeline, <code>npm ci</code> always replaces <code>npm install</code>: reproducible and faster. ⚠️ <code>npm ci</code> <strong>requires</strong> the lockfile — version it (<code>git add package-lock.json</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Dessiner le <strong>graphe de jobs</strong> : <code>lint</code> → <code>test</code> → <code>paquet</code> avec <code>needs</code>.</p>
+<p><strong>🤔 Ordonner et paralléliser.</strong> Par défaut les jobs sont parallèles. On veut : <code>lint</code> d&#39;abord, <code>test</code> <strong>après</strong> lint, <code>paquet</code> <strong>après</strong> test. <code>needs:</code> crée cette dépendance et le <strong>graphe</strong>. On écrit la pipeline dans <code>.github/workflows/ci.yml</code> et on <strong>valide</strong> sa structure.</p>
+<p>Crée le workflow et valide-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Draw the <strong>job graph</strong>: <code>lint</code> → <code>test</code> → <code>package</code> with <code>needs</code>.</p>
+<p><strong>🤔 Order and parallelize.</strong> By default jobs are parallel. We want: <code>lint</code> first, <code>test</code> <strong>after</strong> lint, <code>package</code> <strong>after</strong> test. <code>needs:</code> creates that dependency and the <strong>graph</strong>. We write the pipeline in <code>.github/workflows/ci.yml</code> and <strong>validate</strong> its structure.</p>
+<p>Create the workflow and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p .github/workflows
+cat &gt; .github/workflows/ci.yml &lt;&lt;&#39;YAML&#39;
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+  paquet:
+    name: Construire l&#39;artefact
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - run: tar -czf panier-dist.tgz src package.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panier-dist
+          path: panier-dist.tgz
+YAML
+
+python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;.github/workflows/ci.yml&#39;)); \
+print(&#39;jobs:&#39;, list(d[&#39;jobs&#39;].keys())); \
+print(&#39;test.needs:&#39;, d[&#39;jobs&#39;][&#39;test&#39;][&#39;needs&#39;]); \
+print(&#39;paquet.needs:&#39;, d[&#39;jobs&#39;][&#39;paquet&#39;][&#39;needs&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>jobs: [&#39;lint&#39;, &#39;test&#39;, &#39;paquet&#39;]</code>, <code>test.needs: lint</code>, <code>paquet.needs: test</code>. Le <strong>graphe</strong> est en place : rien ne teste avant le lint, rien ne s&#39;empaquette avant les tests. <code>cache: npm</code> accélère l&#39;install. On voit déjà la <strong>matrice</strong> (<code>node: [20, 22]</code>) et l&#39;<strong>artefact</strong> (<code>upload-artifact</code>) — on les détaille juste après.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>jobs: [&#39;lint&#39;, &#39;test&#39;, &#39;paquet&#39;]</code>, <code>test.needs: lint</code>, <code>paquet.needs: test</code>. The <strong>graph</strong> is in place: nothing tests before lint, nothing packages before tests. <code>cache: npm</code> speeds up the install. You can already see the <strong>matrix</strong> (<code>node: [20, 22]</code>) and the <strong>artifact</strong> (<code>upload-artifact</code>) — we detail them next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>matrice</strong> — tester <strong>plusieurs versions en parallèle</strong>.</p>
+<p><strong>🤔 Une définition, N exécutions.</strong> Le job <code>test</code> porte <code>strategy.matrix.node: [20, 22]</code>. Le runner le <strong>démultiplie</strong> : deux exécutions parallèles, une par version, chacune avec <code>${{ matrix.node }}</code> injecté. Si le code casse sur Node 20 mais pas 22, la matrice le <strong>révèle</strong>. Localement, on <strong>simule</strong> la matrice en bouclant sur les versions (le concept, sans runner) et on <strong>relit</strong> la définition.</p>
+<p>Simule la matrice et vérifie la définition :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>matrix</strong> — testing <strong>several versions in parallel</strong>.</p>
+<p><strong>🤔 One definition, N runs.</strong> The <code>test</code> job carries <code>strategy.matrix.node: [20, 22]</code>. The runner <strong>fans it out</strong>: two parallel runs, one per version, each with <code>${{ matrix.node }}</code> injected. If code breaks on Node 20 but not 22, the matrix <strong>reveals</strong> it. Locally we <strong>simulate</strong> the matrix by looping over versions (the concept, no runner) and <strong>re-read</strong> the definition.</p>
+<p>Simulate the matrix and check the definition:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Lire les versions de la matrice / read the matrix versions
+python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;.github/workflows/ci.yml&#39;)); \
+print(&#39;matrice / matrix:&#39;, d[&#39;jobs&#39;][&#39;test&#39;][&#39;strategy&#39;][&#39;matrix&#39;][&#39;node&#39;])&quot;
+
+# Simuler chaque variante (ici, une seule version locale, mais la boucle illustre)
+for v in 20 22; do
+  echo &quot;== variante Node $v : lancement des tests ==&quot;
+  node --test 2&gt;&amp;1 | grep -E &quot;^# (pass|fail)&quot;
+done</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>matrice / matrix: [20, 22]</code>, puis les tests passent (<code># pass 3</code>) pour chaque variante simulée. Sur un runner GitHub, ces deux variantes tourneraient <strong>en parallèle</strong> sur de <strong>vraies</strong> images Node 20 et 22. Une matrice évite de dupliquer le job — une ligne, deux (ou dix) configurations.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>matrice / matrix: [20, 22]</code>, then the tests pass (<code># pass 3</code>) for each simulated variant. On a GitHub runner these two variants would run <strong>in parallel</strong> on <strong>real</strong> Node 20 and 22 images. A matrix avoids duplicating the job — one line, two (or ten) configurations.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Produire des <strong>artefacts</strong> : un <strong>rapport de test</strong> et un <strong>paquet</strong>.</p>
+<p><strong>🤔 Ce qu&#39;une étape lègue à la suivante.</strong> Un artefact est un <strong>fichier</strong> produit par un job et récupérable ensuite (téléchargement, ou consommé par un stage de déploiement). On produit deux artefacts <strong>réels</strong> localement : un <strong>rapport de test</strong> au format <strong>TAP</strong> (lisible par machine) et le <strong>paquet</strong> <code>panier-dist.tgz</code>. Dans le YAML, c&#39;est <code>upload-artifact</code> (GitHub) qui les publie.</p>
+<p>Produis les artefacts pour de vrai :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Produce <strong>artifacts</strong>: a <strong>test report</strong> and a <strong>package</strong>.</p>
+<p><strong>🤔 What one stage bequeaths to the next.</strong> An artifact is a <strong>file</strong> produced by a job and retrievable afterwards (download, or consumed by a deploy stage). We produce two <strong>real</strong> artifacts locally: a <strong>test report</strong> in <strong>TAP</strong> format (machine-readable) and the <strong>package</strong> <code>panier-dist.tgz</code>. In YAML, <code>upload-artifact</code> (GitHub) publishes them.</p>
+<p>Produce the artifacts for real:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Rapport de test lisible par machine (format TAP) / machine-readable test report (TAP)
+node --test --test-reporter tap &gt; test-report.tap
+echo &quot;rapport / report: $(head -1 test-report.tap) ($(wc -l &lt; test-report.tap) lignes/lines)&quot;
+
+# Paquet de production (ce que &#39;paquet&#39; construit dans le YAML) / production package
+tar -czf panier-dist.tgz src package.json
+echo &quot;paquet / package:&quot;; ls -lh panier-dist.tgz | awk &#39;{print $5, $9}&#39;
+
+# Vérifier le contenu du paquet / check the package contents
+tar -tzf panier-dist.tgz</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>test-report.tap</code> commence par <code>TAP version 13</code> et le paquet <code>panier-dist.tgz</code> contient <code>src/panier.js</code> et <code>package.json</code>. Ce sont de <strong>vrais artefacts</strong> : dans une pipeline, <code>upload-artifact</code> les attache à l&#39;exécution, et un <strong>stage suivant</strong> peut les <strong>télécharger</strong> sans reconstruire. Un rapport TAP/JUnit permet aussi à la plateforme d&#39;<strong>afficher</strong> les tests (verts/rouges) dans l&#39;UI.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>test-report.tap</code> starts with <code>TAP version 13</code> and the package <code>panier-dist.tgz</code> contains <code>src/panier.js</code> and <code>package.json</code>. These are <strong>real artifacts</strong>: in a pipeline, <code>upload-artifact</code> attaches them to the run, and a <strong>later stage</strong> can <strong>download</strong> them without rebuilding. A TAP/JUnit report also lets the platform <strong>display</strong> tests (green/red) in the UI.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Relier <strong>CI → CD</strong> (environnements &amp; approbations) et écrire l&#39;équivalent <strong>Azure Pipelines</strong> multi-stages ; puis versionner.</p>
+<p><strong>🤔 La porte avant la prod.</strong> Après la CI, le <strong>CD</strong> déploie — mais on met une <strong>porte</strong> : un <strong>environnement</strong> (<code>production</code>) protégé par une <strong>approbation</strong>. La pipeline <strong>s&#39;arrête</strong> et attend un humain. On écrit une pipeline <strong>Azure Pipelines</strong> à trois <strong>stages</strong> (Valider → Tester → Déployer, ce dernier ciblant un <code>environment</code>), on la <strong>valide</strong>, puis on <strong>versionne</strong> tout.</p>
+<p>Écris la pipeline Azure Pipelines, valide, versionne :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Connect <strong>CI → CD</strong> (environments &amp; approvals) and write the multi-stage <strong>Azure Pipelines</strong> equivalent; then version it.</p>
+<p><strong>🤔 The gate before prod.</strong> After CI, <strong>CD</strong> deploys — but we add a <strong>gate</strong>: an <strong>environment</strong> (<code>production</code>) protected by an <strong>approval</strong>. The pipeline <strong>pauses</strong> and waits for a human. We write a three-<strong>stage</strong> <strong>Azure Pipelines</strong> pipeline (Validate → Test → Deploy, the latter targeting an <code>environment</code>), <strong>validate</strong> it, then <strong>version</strong> everything.</p>
+<p>Write the Azure Pipelines pipeline, validate, version:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; azure-pipelines.yml &lt;&lt;&#39;YAML&#39;
+trigger:
+  branches:
+    include: [ main ]
+pool:
+  vmImage: ubuntu-latest
+stages:
+  - stage: Valider
+    jobs:
+      - job: lint
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: &#39;22.x&#39; }
+          - script: npm ci
+          - script: npm run lint
+  - stage: Tester
+    dependsOn: Valider
+    jobs:
+      - job: test
+        strategy:
+          matrix:
+            node20: { nodeVersion: &#39;20.x&#39; }
+            node22: { nodeVersion: &#39;22.x&#39; }
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(nodeVersion) }
+          - script: npm ci
+          - script: npm test
+  - stage: Deployer
+    dependsOn: Tester
+    jobs:
+      - deployment: deploy
+        environment: production   # porte : approbation configurée sur l&#39;environnement
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: echo &quot;Déploiement du paquet vers production&quot;
+YAML
+
+python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;azure-pipelines.yml&#39;)); \
+st=d[&#39;stages&#39;]; \
+print(&#39;stages:&#39;, [s[&#39;stage&#39;] for s in st]); \
+print(&#39;deps:&#39;, {s[&#39;stage&#39;]: s.get(&#39;dependsOn&#39;) for s in st}); \
+print(&#39;environnement / environment:&#39;, st[2][&#39;jobs&#39;][0][&#39;environment&#39;])&quot;
+
+# Versionner CI + CD (pipeline-as-code) / version CI + CD
+git init -q 2&gt;/dev/null; git config user.email you@example.com; git config user.name student
+git add -A &amp;&amp; git commit -qm &quot;ci: pipeline CI/CD (jobs, matrice, artefacts) + CD&quot; &amp;&amp; git log --oneline -1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>stages: [&#39;Valider&#39;, &#39;Tester&#39;, &#39;Deployer&#39;]</code>, <code>deps</code> chaînés (<code>Tester</code>←<code>Valider</code>, <code>Deployer</code>←<code>Tester</code>) et <code>environnement / environment: production</code>. Le stage <code>Deployer</code> est un <strong>deployment job</strong> ciblant l&#39;<strong>environnement</strong> <code>production</code> : dans Azure DevOps, on y attache une <strong>approbation</strong> — la pipeline attendra un humain avant de déployer. Tu tiens une pipeline <strong>multi-stages</strong> complète (CI + CD), versionnée. La suite du track : <strong>l&#39;IaC dans les pipelines</strong> (déployer Bicep/Terraform depuis un stage), puis la <strong>sécurité</strong> (DevSecOps) et la <strong>supervision</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>stages: [&#39;Valider&#39;, &#39;Tester&#39;, &#39;Deployer&#39;]</code>, chained <code>deps</code> (<code>Tester</code>←<code>Valider</code>, <code>Deployer</code>←<code>Tester</code>) and <code>environnement / environment: production</code>. The <code>Deployer</code> stage is a <strong>deployment job</strong> targeting the <code>production</code> <strong>environment</strong>: in Azure DevOps you attach an <strong>approval</strong> to it — the pipeline will wait for a human before deploying. You hold a complete <strong>multi-stage</strong> pipeline (CI + CD), versioned. Next in the track: <strong>IaC in pipelines</strong> (deploy Bicep/Terraform from a stage), then <strong>security</strong> (DevSecOps) and <strong>monitoring</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. <code>npm install</code> en CI.</strong> Il peut faire bouger les versions → builds non reproductibles. Utilise <strong><code>npm ci</code></strong> (exige le fichier de verrou, versionné).</p>
+<p><strong>2. Oublier <code>needs</code> / <code>dependsOn</code>.</strong> Sans dépendance, les jobs tournent <strong>en parallèle</strong> : le paquet peut se construire <strong>avant</strong> que les tests passent. Déclare le graphe.</p>
+<p><strong>3. Croire que la pipeline lit tes tests.</strong> Elle lit un <strong>code de sortie</strong>. Un test qui « affiche » une erreur mais renvoie <code>0</code> laisse la pipeline <strong>verte</strong> à tort. Assure-toi que l&#39;échec <strong>fait échouer</strong> la commande.</p>
+<p><strong>4. Matrice = duplication.</strong> Ne copie pas un job pour chaque version : une <strong>matrice</strong> fait le travail, une seule définition.</p>
+<p><strong>5. Reconstruire au lieu de transmettre.</strong> Le stage de déploiement doit <strong>consommer l&#39;artefact</strong> du stage de build, pas tout recompiler (risque de divergence, et lenteur).</p>
+<p><strong>6. Déployer sans porte.</strong> Un <code>production</code> sans <strong>environnement + approbation</strong> = déploiement non contrôlé. Mets la porte dans la pipeline.</p>
+<p><strong>7. Cache confondu avec artefact.</strong> Le <strong>cache</strong> accélère (dépendances réutilisées) mais n&#39;est <strong>pas</strong> un livrable ; l&#39;<strong>artefact</strong> est le <strong>résultat</strong> transmis/téléchargé. Ne stocke pas un livrable dans le cache.</p>
+</div>
+<div data-lang="en"><p><strong>1. <code>npm install</code> in CI.</strong> It can move versions → non-reproducible builds. Use <strong><code>npm ci</code></strong> (requires the lockfile, versioned).</p>
+<p><strong>2. Forgetting <code>needs</code> / <code>dependsOn</code>.</strong> Without a dependency, jobs run <strong>in parallel</strong>: the package may build <strong>before</strong> tests pass. Declare the graph.</p>
+<p><strong>3. Thinking the pipeline reads your tests.</strong> It reads an <strong>exit code</strong>. A test that &quot;prints&quot; an error but returns <code>0</code> leaves the pipeline <strong>green</strong> wrongly. Make sure failure <strong>fails</strong> the command.</p>
+<p><strong>4. Matrix = duplication.</strong> Don&#39;t copy a job per version: a <strong>matrix</strong> does the job, one definition.</p>
+<p><strong>5. Rebuilding instead of passing on.</strong> The deploy stage should <strong>consume the build stage&#39;s artifact</strong>, not recompile everything (divergence risk, and slowness).</p>
+<p><strong>6. Deploying without a gate.</strong> A <code>production</code> without an <strong>environment + approval</strong> = uncontrolled deployment. Put the gate in the pipeline.</p>
+<p><strong>7. Cache confused with artifact.</strong> The <strong>cache</strong> speeds things up (reused dependencies) but is <strong>not</strong> a deliverable; the <strong>artifact</strong> is the <strong>result</strong> passed on/downloaded. Don&#39;t store a deliverable in the cache.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tes <strong>tests s&#39;exécutent</strong> (<code>node --test</code>) et tu sais lire le <strong>code de sortie</strong> (0/​non-zéro).</li><li>Ton build est <strong>reproductible</strong> (<code>npm ci</code> + <code>package-lock.json</code> versionné).</li><li>Ta pipeline a un <strong>graphe</strong> de jobs (<code>needs</code>/<code>dependsOn</code>) : <code>lint</code> → <code>test</code> → <code>paquet</code>.</li><li>Tu utilises une <strong>matrice</strong> pour couvrir plusieurs versions.</li><li>Tu <strong>produis</strong> et sais <strong>consommer</strong> des <strong>artefacts</strong> (rapport de test, paquet).</li><li>Tu as une pipeline <strong>multi-stages</strong> (GitHub Actions <strong>et</strong> Azure Pipelines) avec une <strong>porte</strong> CD (environnement + approbation), le tout <strong>versionné</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>Your <strong>tests run</strong> (<code>node --test</code>) and you can read the <strong>exit code</strong> (0/​non-zero).</li><li>Your build is <strong>reproducible</strong> (<code>npm ci</code> + versioned <code>package-lock.json</code>).</li><li>Your pipeline has a job <strong>graph</strong> (<code>needs</code>/<code>dependsOn</code>): <code>lint</code> → <code>test</code> → <code>package</code>.</li><li>You use a <strong>matrix</strong> to cover several versions.</li><li>You <strong>produce</strong> and can <strong>consume</strong> <strong>artifacts</strong> (test report, package).</li><li>You have a <strong>multi-stage</strong> pipeline (GitHub Actions <strong>and</strong> Azure Pipelines) with a CD <strong>gate</strong> (environment + approval), all <strong>versioned</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — l&#39;IaC dans les pipelines (AZ-400)</em> — déployer Bicep/Terraform depuis un stage, avec approbations et environnements.</li><li><strong>Réviser :</strong> <em>Azure — DevOps fondamentaux (AZ-400)</em> si le YAML ou Git te manquent.</li><li><strong>S&#39;entraîner :</strong> ajoute un job de <strong>couverture</strong> de tests, ou un artefact <strong>JUnit</strong> affiché dans l&#39;UI.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — IaC in pipelines (AZ-400)</em> — deploy Bicep/Terraform from a stage, with approvals and environments.</li><li><strong>Review:</strong> <em>Azure — DevOps fundamentals (AZ-400)</em> if YAML or Git feel shaky.</li><li><strong>Practice:</strong> add a test <strong>coverage</strong> job, or a <strong>JUnit</strong> artifact displayed in the UI.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Tests &amp; build (local, réel)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>node --test                       # lance les tests ; code 0 = vert, non-zéro = rouge
+node --test --test-reporter tap   # rapport TAP (artefact/UI)
+npm install --package-lock-only   # génère le fichier de verrou
+npm ci                            # install reproductible (exige le verrou)</code></pre>
+<p><strong>Anatomie GitHub Actions</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>on:            déclencheurs (push, pull_request, tag)
+jobs:          unités parallèles (sur un runner)
+  needs:       dépendance entre jobs (graphe)
+strategy.matrix: N variantes parallèles (ex. node: [20, 22])
+cache: npm     réutilise les dépendances (setup-node)
+upload-artifact / download-artifact : produire / consommer un fichier</code></pre>
+<p><strong>Anatomie Azure Pipelines</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>trigger:       déclencheurs
+stages:        regroupent des jobs (ex. Valider/Tester/Deployer)
+  dependsOn:   dépendance entre stages/jobs
+deployment + environment: déploiement + porte (approbation)
+PublishBuildArtifacts / DownloadBuildArtifacts : artefacts</code></pre>
+<p><strong>Valider le YAML sans l&#39;exécuter</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 -c &quot;import yaml; print(list(yaml.safe_load(open(&#39;.github/workflows/ci.yml&#39;))[&#39;jobs&#39;]))&quot;</code></pre>
+</div>
+<div data-lang="en"><p><strong>Tests &amp; build (local, real)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>node --test                       # run tests; code 0 = green, non-zero = red
+node --test --test-reporter tap   # TAP report (artifact/UI)
+npm install --package-lock-only   # generate the lockfile
+npm ci                            # reproducible install (requires the lock)</code></pre>
+<p><strong>GitHub Actions anatomy</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>on:            triggers (push, pull_request, tag)
+jobs:          parallel units (on a runner)
+  needs:       dependency between jobs (graph)
+strategy.matrix: N parallel variants (e.g. node: [20, 22])
+cache: npm     reuse dependencies (setup-node)
+upload-artifact / download-artifact : produce / consume a file</code></pre>
+<p><strong>Azure Pipelines anatomy</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>trigger:       triggers
+stages:        group jobs (e.g. Validate/Test/Deploy)
+  dependsOn:   dependency between stages/jobs
+deployment + environment: deployment + gate (approval)
+PublishBuildArtifacts / DownloadBuildArtifacts : artifacts</code></pre>
+<p><strong>Validate YAML without running it</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 -c &quot;import yaml; print(list(yaml.safe_load(open(&#39;.github/workflows/ci.yml&#39;))[&#39;jobs&#39;]))&quot;</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Node.js — Test runner</strong> : <code>node --test</code>, reporters (TAP, JUnit) — documentation officielle Node.</li><li><strong>GitHub Actions</strong> : jobs, <code>needs</code>, <code>strategy.matrix</code>, <code>cache</code>, artifacts — docs GitHub.</li><li><strong>Azure Pipelines</strong> : stages, <code>dependsOn</code>, deployment jobs, environments &amp; approbations — docs Microsoft Learn (AZ-400).</li><li><strong>npm ci</strong> : install reproductible et fichier de verrou — docs npm.</li><li><strong>Métriques DORA</strong> : lead time, fréquence de déploiement, MTTR, taux d&#39;échec — pour mesurer la CI/CD.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Node.js — Test runner</strong>: <code>node --test</code>, reporters (TAP, JUnit) — official Node docs.</li><li><strong>GitHub Actions</strong>: jobs, <code>needs</code>, <code>strategy.matrix</code>, <code>cache</code>, artifacts — GitHub docs.</li><li><strong>Azure Pipelines</strong>: stages, <code>dependsOn</code>, deployment jobs, environments &amp; approvals — Microsoft Learn docs (AZ-400).</li><li><strong>npm ci</strong>: reproducible install and lockfile — npm docs.</li><li><strong>DORA metrics</strong>: lead time, deployment frequency, MTTR, change-failure rate — to measure CI/CD.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>npm ci</code> échoue : « package-lock.json » manquant.</strong> <code>npm ci</code> <strong>exige</strong> le verrou. Génère-le : <code>npm install --package-lock-only</code>, puis versionne-le (<code>git add package-lock.json</code>).</p>
+<p><strong>Mes tests « passent » mais la pipeline reste rouge.</strong> Vérifie le <strong>code de sortie</strong> : <code>node --test; echo $?</code>. Une commande <strong>avant</strong> les tests (lint, build) peut échouer et arrêter le job. Regarde le <strong>premier</strong> step rouge.</p>
+<p><strong>Ma matrice ne se lance qu&#39;une fois.</strong> <code>strategy.matrix</code> doit être <strong>sous le job</strong>, pas sous <code>steps</code>. Vérifie l&#39;indentation : <code>jobs.&lt;job&gt;.strategy.matrix.&lt;clé&gt;: [ ... ]</code>.</p>
+<p><strong><code>python3 ... yaml</code> : <code>KeyError: &#39;on&#39;</code>.</strong> En YAML 1.1, la clé <code>on:</code> est lue comme le booléen <code>True</code> par PyYAML. C&#39;est <strong>cosmétique</strong> : GitHub Actions la lit correctement. Ne teste pas <code>d[&#39;on&#39;]</code> ; lis <code>d[&#39;jobs&#39;]</code>.</p>
+<p><strong>L&#39;artefact n&#39;apparaît pas dans le stage suivant.</strong> Il faut <strong><code>upload-artifact</code></strong> dans le job producteur <strong>et</strong> <strong><code>download-artifact</code></strong> (même <code>name</code>) dans le consommateur. Sur Azure Pipelines : <code>PublishBuildArtifacts</code> puis <code>DownloadBuildArtifacts</code>.</p>
+<p><strong>Le déploiement ne demande pas d&#39;approbation.</strong> L&#39;approbation s&#39;attache à l&#39;<strong>environnement</strong> (Azure DevOps → Environments → <em>production</em> → Approvals), pas au YAML. Le YAML <strong>cible</strong> l&#39;environnement ; la porte se configure une fois côté plateforme.</p>
+</div>
+<div data-lang="en"><p><strong><code>npm ci</code> fails: &quot;package-lock.json&quot; missing.</strong> <code>npm ci</code> <strong>requires</strong> the lock. Generate it: <code>npm install --package-lock-only</code>, then version it (<code>git add package-lock.json</code>).</p>
+<p><strong>My tests &quot;pass&quot; but the pipeline stays red.</strong> Check the <strong>exit code</strong>: <code>node --test; echo $?</code>. A command <strong>before</strong> the tests (lint, build) may fail and stop the job. Look at the <strong>first</strong> red step.</p>
+<p><strong>My matrix only runs once.</strong> <code>strategy.matrix</code> must be <strong>under the job</strong>, not under <code>steps</code>. Check indentation: <code>jobs.&lt;job&gt;.strategy.matrix.&lt;key&gt;: [ ... ]</code>.</p>
+<p><strong><code>python3 ... yaml</code>: <code>KeyError: &#39;on&#39;</code>.</strong> In YAML 1.1, the <code>on:</code> key is read as the boolean <code>True</code> by PyYAML. It&#39;s <strong>cosmetic</strong>: GitHub Actions reads it fine. Don&#39;t test <code>d[&#39;on&#39;]</code>; read <code>d[&#39;jobs&#39;]</code>.</p>
+<p><strong>The artifact doesn&#39;t show up in the next stage.</strong> You need <strong><code>upload-artifact</code></strong> in the producer job <strong>and</strong> <strong><code>download-artifact</code></strong> (same <code>name</code>) in the consumer. On Azure Pipelines: <code>PublishBuildArtifacts</code> then <code>DownloadBuildArtifacts</code>.</p>
+<p><strong>The deployment doesn&#39;t ask for approval.</strong> The approval attaches to the <strong>environment</strong> (Azure DevOps → Environments → <em>production</em> → Approvals), not the YAML. The YAML <strong>targets</strong> the environment; the gate is configured once on the platform side.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
