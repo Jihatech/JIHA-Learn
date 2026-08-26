@@ -696,6 +696,8 @@ backend "azurerm" { storage_account_name, container_name, key="ENV.tfstate" }
 ## troubleshooting
 
 :::lang fr
+**`azlocal : commande introuvable` (step-04).** Le binaire n'est pas sur ton `PATH`. Il a été construit dans un dossier de PATH lors du lab (`/usr/local/bin/azlocal`, cf. *Azure — fondamentaux*) ; sinon, appelle-le par son chemin complet (ex. `~/bin/azlocal`) ou ajoute son dossier au `PATH`. ⚠️ Comme la commande est suivie d'un `2>/dev/null | python3 …`, un `azlocal` manquant se traduit par une **`JSONDecodeError` sur une entrée vide** (le message d'erreur est masqué) — si tu vois ça, c'est le PATH.
+
 **`terraform plan/apply` : erreur TLS / certificat.** Il faut pointer sur le certificat de miniblue : `export SSL_CERT_FILE=$HOME/.miniblue/cert.pem`. Vérifie aussi que miniblue tourne (port 4567).
 
 **`validate` échoue : « provider not found ».** Lance `terraform init` d'abord. En CI pur validation, `terraform init -backend=false` évite de configurer le backend.
@@ -710,6 +712,8 @@ backend "azurerm" { storage_account_name, container_name, key="ENV.tfstate" }
 :::
 
 :::lang en
+**`azlocal: command not found` (step-04).** The binary isn't on your `PATH`. It was built into a PATH directory during the lab (`/usr/local/bin/azlocal`, see *Azure — fundamentals*); otherwise call it by full path (e.g. `~/bin/azlocal`) or add its folder to `PATH`. ⚠️ Since the command is followed by `2>/dev/null | python3 …`, a missing `azlocal` shows up as a **`JSONDecodeError` on empty input** (the error message is hidden) — if you see that, it's the PATH.
+
 **`terraform plan/apply`: TLS / certificate error.** You must point at miniblue's certificate: `export SSL_CERT_FILE=$HOME/.miniblue/cert.pem`. Also check miniblue is running (port 4567).
 
 **`validate` fails: "provider not found".** Run `terraform init` first. In CI validation-only, `terraform init -backend=false` avoids configuring the backend.
