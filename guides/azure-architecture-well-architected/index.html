@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — architecture (AZ-305) : le Well-Architected Framework en pratique — jiha.tech</title>
+  <title data-lang="en">Azure — architecture (AZ-305): the Well-Architected Framework in practice — jiha.tech</title>
+  <meta name="description" content="L&#39;architecture Azure pour l&#39;AZ-305 : le Well-Architected Framework (fiabilité, sécurité, optimisation des coûts, excellence opérationnelle, performance) appliqué EN PRATIQUE. On conçoit et déploie une architecture multi-tier de référence — fondation réseau segmentée (Terraform live sur miniblue), tier données (SQL + cache Redis), tier compute (Function app + App Service en Bicep) — puis on la JUGE pilier par pilier, et on grave les grilles de choix de service (SQL vs Cosmos vs Storage ; App Service vs AKS vs Functions vs VM). Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure architecture for AZ-305: the Well-Architected Framework (reliability, security, cost optimization, operational excellence, performance) applied IN PRACTICE. We design and deploy a reference multi-tier architecture — segmented network foundation (Terraform live on miniblue), data tier (SQL + Redis cache), compute tier (Function app + App Service in Bicep) — then JUDGE it pillar by pillar, and engrave the service-selection grids (SQL vs Cosmos vs Storage; App Service vs AKS vs Functions vs VM). No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — architecture (AZ-305) : le Well-Architected Framework en pratique">
+  <meta property="og:description" content="L&#39;architecture Azure pour l&#39;AZ-305 : le Well-Architected Framework (fiabilité, sécurité, optimisation des coûts, excellence opérationnelle, performance) appliqué EN PRATIQUE. On conçoit et déploie une architecture multi-tier de référence — fondation réseau segmentée (Terraform live sur miniblue), tier données (SQL + cache Redis), tier compute (Function app + App Service en Bicep) — puis on la JUGE pilier par pilier, et on grave les grilles de choix de service (SQL vs Cosmos vs Storage ; App Service vs AKS vs Functions vs VM). Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-architecture-well-architected/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-architecture-well-architected/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-architecture-well-architected">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-architecture-well-architected</div>
+    <div class="prompt" data-lang="en">~/guides/azure-architecture-well-architected</div>
+    <h1 data-lang="fr">Azure — architecture (AZ-305) : le Well-Architected Framework en pratique</h1>
+    <h1 data-lang="en">Azure — architecture (AZ-305): the Well-Architected Framework in practice</h1>
+    <p class="tagline" data-lang="fr">5 piliers, une architecture multi-tier déployée et jugée.</p>
+    <p class="tagline" data-lang="en">5 pillars, a multi-tier architecture deployed and judged.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Passer d&#39;<strong>administrateur</strong> à <strong>architecte</strong>, c&#39;est changer de question : non plus « comment déployer cette ressource ? » mais « <strong>quelle architecture</strong> répond aux besoins — fiabilité, sécurité, coût, exploitation, performance — et <strong>quels compromis</strong> ? ». C&#39;est le cœur de l&#39;examen <strong>AZ-305</strong> (Designing Azure Infrastructure Solutions). L&#39;outil de l&#39;architecte pour ça : le <strong>Well-Architected Framework (WAF)</strong>, les <strong>5 piliers</strong> avec lesquels Microsoft juge toute architecture.</p>
+<p>Ce guide rend le WAF <strong>concret</strong>. On ne se contente pas de réciter les piliers : on <strong>conçoit et déploie</strong> une <strong>architecture multi-tier de référence</strong> — une fondation <strong>réseau</strong> segmentée (Terraform, live sur miniblue), un <strong>tier données</strong> (une base <strong>SQL</strong> relationnelle + un <strong>cache Redis</strong>), un <strong>tier compute</strong> (une <strong>Function app</strong> serverless + une <strong>App Service</strong> décrite en Bicep) — puis on la <strong>juge pilier par pilier</strong> : fiabilité, sécurité, optimisation des coûts, excellence opérationnelle, performance. Enfin, on grave les <strong>grilles de choix de service</strong> que l&#39;AZ-305 teste sans relâche (quelle base ? quel compute ?).</p>
+<p>C&#39;est le premier guide du track <strong>AZ-305</strong>. Il installe le <strong>réflexe d&#39;architecte</strong> : toute décision se justifie par un pilier et s&#39;assume comme un compromis.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait tout l&#39;<strong>AZ-104</strong> (tu sais déployer) et tu veux apprendre à <strong>concevoir</strong> et <strong>arbitrer</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Il te manque les bases de déploiement → fais l&#39;<strong>AZ-104</strong> d&#39;abord ; ici on assemble et on juge.</li><li>Tu veux une recette unique « la bonne archi » → il n&#39;y en a pas ; l&#39;architecture, c&#39;est <strong>des compromis</strong> selon les besoins.</li></ul>
+</div>
+<div data-lang="en"><p>Going from <strong>administrator</strong> to <strong>architect</strong> means changing the question: no longer &quot;how do I deploy this resource?&quot; but &quot;<strong>which architecture</strong> meets the requirements — reliability, security, cost, operations, performance — and <strong>what tradeoffs</strong>?&quot;. It&#39;s the heart of the <strong>AZ-305</strong> exam (Designing Azure Infrastructure Solutions). The architect&#39;s tool for this: the <strong>Well-Architected Framework (WAF)</strong>, the <strong>5 pillars</strong> Microsoft judges any architecture by.</p>
+<p>This guide makes the WAF <strong>concrete</strong>. We don&#39;t just recite the pillars: we <strong>design and deploy</strong> a <strong>reference multi-tier architecture</strong> — a segmented <strong>network</strong> foundation (Terraform, live on miniblue), a <strong>data tier</strong> (a relational <strong>SQL</strong> database + a <strong>Redis cache</strong>), a <strong>compute tier</strong> (a serverless <strong>Function app</strong> + an <strong>App Service</strong> described in Bicep) — then <strong>judge it pillar by pillar</strong>: reliability, security, cost optimization, operational excellence, performance. Finally, we engrave the <strong>service-selection grids</strong> the AZ-305 tests relentlessly (which database? which compute?).</p>
+<p>This is the first guide of the <strong>AZ-305</strong> track. It installs the <strong>architect reflex</strong>: every decision is justified by a pillar and owned as a tradeoff.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done all of <strong>AZ-104</strong> (you can deploy) and want to learn to <strong>design</strong> and <strong>arbitrate</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You lack deployment basics → do <strong>AZ-104</strong> first; here we assemble and judge.</li><li>You want a single &quot;the right architecture&quot; recipe → there isn&#39;t one; architecture is <strong>tradeoffs</strong> by requirement.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Citer et appliquer les <strong>5 piliers</strong> du Well-Architected Framework.</li><li>Traduire des <strong>besoins</strong> en décisions d&#39;architecture (et compromis).</li><li>Concevoir une <strong>architecture multi-tier</strong> (réseau / données / compute).</li><li>Déployer une <strong>fondation réseau</strong> (live) et un <strong>tier données</strong> (SQL + Redis, live).</li><li>Décrire un <strong>tier compute</strong> (App Service) en Bicep.</li><li><strong>Juger</strong> une architecture pilier par pilier.</li><li>Choisir le bon <strong>service</strong> (base de données ; compute) selon le besoin.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Name and apply the <strong>5 pillars</strong> of the Well-Architected Framework.</li><li>Translate <strong>requirements</strong> into architecture decisions (and tradeoffs).</li><li>Design a <strong>multi-tier architecture</strong> (network / data / compute).</li><li>Deploy a <strong>network foundation</strong> (live) and a <strong>data tier</strong> (SQL + Redis, live).</li><li>Describe a <strong>compute tier</strong> (App Service) in Bicep.</li><li><strong>Judge</strong> an architecture pillar by pillar.</li><li>Choose the right <strong>service</strong> (database; compute) by need.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Tout le track <strong>AZ-104</strong> terminé (surtout le <em>projet d&#39;entreprise</em>).</li><li><strong>miniblue</strong> qui tourne (<code>azlocal health</code>), <strong>Terraform</strong> et <strong>Bicep</strong> installés.</li><li>La confiance du certificat : <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Rappel : réseau → Terraform (live) ; services de données/compute → <code>azlocal</code> (live) ; designs complets → Bicep (validé).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The whole <strong>AZ-104</strong> track done (especially the <em>enterprise project</em>).</li><li><strong>miniblue</strong> running (<code>azlocal health</code>), <strong>Terraform</strong> and <strong>Bicep</strong> installed.</li><li>Certificate trust: <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Reminder: network → Terraform (live); data/compute services → <code>azlocal</code> (live); full designs → Bicep (validated).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-projet-entreprise/">
+    <span class="num">63</span>
+    <span class="title-line" data-lang="fr">Azure — projet d&#39;entreprise (AZ-104) : zone d&#39;atterrissage sécurisée</span>
+    <span class="title-line" data-lang="en">Azure — enterprise project (AZ-104): secure landing zone</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le rôle de l&#39;architecte.</strong> Un administrateur exécute ; un architecte <strong>décide</strong>. Il part de <strong>besoins</strong> (fonctionnels : « une API et une base » ; non-fonctionnels : « 99,9 % de dispo, &lt; 100 ms, budget serré, conforme RGPD ») et conçoit une <strong>architecture</strong> qui les satisfait — en assumant des <strong>compromis</strong> (on ne peut pas tout maximiser à la fois).</p>
+<p><strong>Le Well-Architected Framework (WAF).</strong> Le cadre d&#39;évaluation de Microsoft, <strong>5 piliers</strong> :</p>
+<ul><li><strong>Fiabilité (Reliability).</strong> Résister aux pannes et récupérer : redondance, zones/régions, sauvegardes, reprise après sinistre. « Que se passe-t-il si un composant tombe ? »</li><li><strong>Sécurité (Security).</strong> Protéger données et systèmes : identité (RBAC, moindre privilège), réseau (segmentation, NSG), chiffrement, secrets (Key Vault). « Défense en profondeur. »</li><li><strong>Optimisation des coûts (Cost Optimization).</strong> Payer le juste : dimensionnement, serverless/consommation, niveaux de stockage, arrêt/libération, tags de coût. « Le moins cher qui répond au besoin. »</li><li><strong>Excellence opérationnelle (Operational Excellence).</strong> Exploiter sereinement : IaC, automatisation, surveillance (monitoring), déploiements reproductibles. « Tout en code, tout observé. »</li><li><strong>Efficacité des performances (Performance Efficiency).</strong> Tenir la charge : mise à l&#39;échelle (scale up/out), cache, choix du bon service, régions proches. « Rapide et élastique. »</li></ul>
+<p><strong>Architecture multi-tier.</strong> Le patron de référence : un <strong>tier présentation/compute</strong> (l&#39;appli), un <strong>tier données</strong> (bases, cache), le tout sur une <strong>fondation réseau</strong> segmentée. Séparer les tiers permet de les <strong>sécuriser</strong>, <strong>dimensionner</strong> et <strong>faire évoluer</strong> indépendamment — un principe qui traverse les 5 piliers.</p>
+<p><strong>Choisir la base de données.</strong> Pilier de l&#39;AZ-305. <strong>SQL (Azure SQL / PostgreSQL / MySQL)</strong> : relationnel, transactions ACID, jointures, schéma fort → applications transactionnelles classiques. <strong>Cosmos DB</strong> : NoSQL, distribution mondiale, faible latence, échelle massive → données semi-structurées, multi-région. <strong>Cloud Storage (Blob)</strong> : objets/fichiers non structurés. <strong>Cache Redis</strong> : couche mémoire ultra-rapide <strong>devant</strong> la base (performance). On choisit selon la <strong>forme de la donnée</strong> et les <strong>besoins</strong> (cohérence, latence, échelle).</p>
+<p><strong>Choisir le compute.</strong> L&#39;autre grand arbitrage. <strong>VM</strong> : contrôle total (IaaS). <strong>App Service</strong> : appli web/API managée (PaaS), scale intégré. <strong>Functions</strong> : serverless, événementiel, payé à l&#39;exécution. <strong>AKS / Container Apps</strong> : conteneurs orchestrés, microservices. <strong>Container Instances</strong> : un conteneur ponctuel. Règle : <strong>le plus managé</strong> qui répond au besoin.</p>
+<p><strong>Ce qui est live ici.</strong> La <strong>fondation réseau</strong> (Terraform) et le <strong>tier données/compute</strong> (SQL, Redis, Function app via <code>azlocal</code>) sont <strong>déployés en live</strong> sur miniblue. Le design <strong>App Service</strong> est <strong>validé en Bicep</strong>. Tu construis une <strong>vraie architecture de référence</strong> et tu la <strong>juges</strong> — sans compte ni facture.</p>
+</div>
+<div data-lang="en"><p><strong>The architect&#39;s role.</strong> An administrator executes; an architect <strong>decides</strong>. They start from <strong>requirements</strong> (functional: &quot;an API and a database&quot;; non-functional: &quot;99.9% uptime, &lt; 100 ms, tight budget, GDPR-compliant&quot;) and design an <strong>architecture</strong> that satisfies them — owning the <strong>tradeoffs</strong> (you can&#39;t maximize everything at once).</p>
+<p><strong>The Well-Architected Framework (WAF).</strong> Microsoft&#39;s evaluation framework, <strong>5 pillars</strong>:</p>
+<ul><li><strong>Reliability.</strong> Withstand failures and recover: redundancy, zones/regions, backups, disaster recovery. &quot;What happens if a component fails?&quot;</li><li><strong>Security.</strong> Protect data and systems: identity (RBAC, least privilege), network (segmentation, NSG), encryption, secrets (Key Vault). &quot;Defense in depth.&quot;</li><li><strong>Cost Optimization.</strong> Pay the right amount: sizing, serverless/consumption, storage tiers, stop/deallocate, cost tags. &quot;The cheapest that meets the need.&quot;</li><li><strong>Operational Excellence.</strong> Operate calmly: IaC, automation, monitoring, reproducible deployments. &quot;All in code, all observed.&quot;</li><li><strong>Performance Efficiency.</strong> Handle load: scaling (up/out), cache, the right service, nearby regions. &quot;Fast and elastic.&quot;</li></ul>
+<p><strong>Multi-tier architecture.</strong> The reference pattern: a <strong>presentation/compute tier</strong> (the app), a <strong>data tier</strong> (databases, cache), all on a segmented <strong>network foundation</strong>. Separating tiers lets you <strong>secure</strong>, <strong>size</strong> and <strong>evolve</strong> them independently — a principle that runs through all 5 pillars.</p>
+<p><strong>Choosing the database.</strong> An AZ-305 cornerstone. <strong>SQL (Azure SQL / PostgreSQL / MySQL)</strong>: relational, ACID transactions, joins, strong schema → classic transactional apps. <strong>Cosmos DB</strong>: NoSQL, global distribution, low latency, massive scale → semi-structured, multi-region data. <strong>Cloud Storage (Blob)</strong>: unstructured objects/files. <strong>Redis cache</strong>: an ultra-fast in-memory layer <strong>in front of</strong> the database (performance). You choose by the <strong>shape of the data</strong> and the <strong>requirements</strong> (consistency, latency, scale).</p>
+<p><strong>Choosing compute.</strong> The other big tradeoff. <strong>VM</strong>: full control (IaaS). <strong>App Service</strong>: managed web app/API (PaaS), built-in scaling. <strong>Functions</strong>: serverless, event-driven, pay-per-execution. <strong>AKS / Container Apps</strong>: orchestrated containers, microservices. <strong>Container Instances</strong>: a one-off container. Rule: <strong>the most managed</strong> that meets the need.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>network foundation</strong> (Terraform) and the <strong>data/compute tier</strong> (SQL, Redis, Function app via <code>azlocal</code>) are <strong>deployed live</strong> on miniblue. The <strong>App Service</strong> design is <strong>validated in Bicep</strong>. You build a <strong>real reference architecture</strong> and <strong>judge</strong> it — no account or bill.</p>
+</div>
+
+<figure class="schema" id="figure-azure-waf-architecture">
+  <p>[schema "azure-waf-architecture" manquant]</p>
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;architecture multi-tier de référence, jugée par le Well-Architected Framework : une fondation RÉSEAU segmentée (web/app/data, NSG) ; un tier DONNÉES (SQL relationnel + cache Redis devant) ; un tier COMPUTE (Function app serverless / App Service). Chaque décision est éclairée par un pilier — fiabilité, sécurité, coût, exploitation, performance.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The reference multi-tier architecture, judged by the Well-Architected Framework: a segmented NETWORK foundation (web/app/data, NSG); a DATA tier (relational SQL + Redis cache in front); a COMPUTE tier (serverless Function app / App Service). Each decision is informed by a pillar — reliability, security, cost, operations, performance.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer le <strong>Well-Architected Framework</strong> et la <strong>traduction des besoins</strong>.</p>
+<p><strong>🤔 Des besoins aux piliers.</strong> Un énoncé d&#39;architecte : « Une API de commandes, une base transactionnelle, 99,9 % de dispo, réponses &lt; 100 ms, budget serré. » On <strong>mappe</strong> chaque besoin à un pilier : dispo → <strong>fiabilité</strong> ; données sensibles → <strong>sécurité</strong> ; budget → <strong>coût</strong> ; latence → <strong>performance</strong> ; « maintenable » → <strong>excellence opérationnelle</strong>.</p>
+<p>Grave les 5 piliers et leur question-clé :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>Well-Architected Framework</strong> and <strong>translating requirements</strong>.</p>
+<p><strong>🤔 From requirements to pillars.</strong> An architect&#39;s brief: &quot;An orders API, a transactional database, 99.9% uptime, &lt; 100 ms responses, tight budget.&quot; You <strong>map</strong> each requirement to a pillar: uptime → <strong>reliability</strong>; sensitive data → <strong>security</strong>; budget → <strong>cost</strong>; latency → <strong>performance</strong>; &quot;maintainable&quot; → <strong>operational excellence</strong>.</p>
+<p>Engrave the 5 pillars and their key question:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>WELL-ARCHITECTED FRAMEWORK — 5 PILIERS / 5 PILLARS
+  Fiabilité / Reliability             &quot;et si un composant tombe ?&quot; -&gt; redondance, zones, sauvegarde, DR
+  Sécurité / Security                 &quot;défense en profondeur&quot; -&gt; identité, réseau, chiffrement, secrets
+  Coût / Cost Optimization            &quot;le moins cher qui suffit&quot; -&gt; dimensionner, serverless, niveaux, tags
+  Excellence opér. / Operational      &quot;tout en code, tout observé&quot; -&gt; IaC, automatisation, monitoring
+  Performance / Performance Eff.      &quot;rapide et élastique&quot; -&gt; scale up/out, cache, bon service, régions</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu <strong>récites</strong> les 5 piliers et sais poser leur question sur n&#39;importe quel design. Le réflexe d&#39;architecte : pour <strong>chaque</strong> décision (« quelle base ? quel compute ? une IP publique ? »), demande <strong>quel pilier</strong> elle sert et <strong>quel compromis</strong> elle impose. ⚠️ Les piliers sont souvent en <strong>tension</strong> : plus de fiabilité (redondance multi-région) coûte plus cher ; plus de sécurité (couches) peut ralentir. L&#39;architecture, c&#39;est <strong>équilibrer</strong> selon les besoins — pas maximiser un pilier au détriment des autres.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you <strong>recite</strong> the 5 pillars and can ask their question about any design. The architect reflex: for <strong>each</strong> decision (&quot;which database? which compute? a public IP?&quot;), ask <strong>which pillar</strong> it serves and <strong>what tradeoff</strong> it imposes. ⚠️ Pillars are often in <strong>tension</strong>: more reliability (multi-region redundancy) costs more; more security (layers) can slow things. Architecture is <strong>balancing</strong> by requirement — not maximizing one pillar at the others&#39; expense.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer la <strong>fondation réseau</strong> — les piliers <strong>fiabilité</strong> &amp; <strong>sécurité</strong>, en live.</p>
+<p><strong>🤔 La base de tout.</strong> Une architecture solide commence par un <strong>réseau segmenté</strong> : un VNet découpé en tiers (web/app/data) avec un <strong>NSG</strong> limitant l&#39;exposition. Fiabilité (isolation des pannes) et sécurité (défense en profondeur) <strong>dès la fondation</strong>.</p>
+<p>Déploie la fondation (Terraform contre miniblue) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>network foundation</strong> — the <strong>reliability</strong> &amp; <strong>security</strong> pillars, live.</p>
+<p><strong>🤔 The base of everything.</strong> A solid architecture starts with a <strong>segmented network</strong>: a VNet split into tiers (web/app/data) with an <strong>NSG</strong> limiting exposure. Reliability (failure isolation) and security (defense in depth) <strong>from the foundation</strong>.</p>
+<p>Deploy the foundation (Terraform against miniblue):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/main.tf — fondation réseau (provider azurerm -&gt; miniblue, cf. guide réseau)
+resource &quot;azurerm_resource_group&quot; &quot;archi&quot; {
+  name     = &quot;rg-archi&quot;
+  location = &quot;westeurope&quot;
+  tags     = { pilier_secu = &quot;segmentation&quot;, env = &quot;archi&quot; }
+}
+resource &quot;azurerm_virtual_network&quot; &quot;hub&quot; {
+  name                = &quot;vnet-archi&quot;
+  address_space       = [&quot;10.0.0.0/16&quot;]
+  location            = azurerm_resource_group.archi.location
+  resource_group_name = azurerm_resource_group.archi.name
+}
+resource &quot;azurerm_subnet&quot; &quot;tiers&quot; {
+  for_each             = { web = &quot;10.0.1.0/24&quot;, app = &quot;10.0.2.0/24&quot;, data = &quot;10.0.3.0/24&quot; }
+  name                 = &quot;snet-${each.key}&quot;
+  resource_group_name  = azurerm_resource_group.archi.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [each.value]
+}
+resource &quot;azurerm_network_security_group&quot; &quot;web&quot; {
+  name                = &quot;nsg-web&quot;
+  location            = azurerm_resource_group.archi.location
+  resource_group_name = azurerm_resource_group.archi.name
+  security_rule {
+    name                       = &quot;https-seulement&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;443&quot;
+    source_address_prefix      = &quot;Internet&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd infra
+export SSL_CERT_FILE=~/.miniblue/cert.pem
+terraform init &amp;&amp; terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> déploie le groupe, le VNet, les <strong>trois sous-réseaux</strong> (web/app/data) et le NSG (<code>Apply complete!</code>). Tu as une <strong>fondation segmentée</strong> : le tier <strong>data</strong> est isolé du <strong>web</strong>, le NSG n&#39;autorise que HTTPS entrant. Analyse WAF : <strong>sécurité</strong> (segmentation + moindre exposition), <strong>fiabilité</strong> (une panne dans un tier n&#39;emporte pas les autres). ⚠️ En réel, on renforcerait avec des <strong>zones de disponibilité</strong> (fiabilité) et des <strong>private endpoints</strong> vers les services de données (sécurité) — on les décrit en Bicep/Terraform et on les déploie sur un compte.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> deploys the group, the VNet, the <strong>three subnets</strong> (web/app/data) and the NSG (<code>Apply complete!</code>). You have a <strong>segmented foundation</strong>: the <strong>data</strong> tier is isolated from <strong>web</strong>, the NSG only allows inbound HTTPS. WAF analysis: <strong>security</strong> (segmentation + least exposure), <strong>reliability</strong> (a failure in one tier doesn&#39;t take the others down). ⚠️ For real, you&#39;d reinforce with <strong>availability zones</strong> (reliability) and <strong>private endpoints</strong> to the data services (security) — described in Bicep/Terraform and deployed on an account.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer le <strong>tier données</strong> : une base <strong>SQL</strong> + un <strong>cache Redis</strong> — le pilier <strong>performance</strong>, en live.</p>
+<p><strong>🤔 La donnée et sa vitesse.</strong> L&#39;application transactionnelle appelle une base <strong>SQL</strong> (relationnel, ACID). Pour tenir la charge en lecture, on met un <strong>cache Redis</strong> <strong>devant</strong> : les données chaudes sont servies depuis la mémoire (&lt; 1 ms), la base est déchargée. C&#39;est le pattern <strong>cache-aside</strong>, réflexe de performance.</p>
+<p>Déploie le tier données (azlocal) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>data tier</strong>: a <strong>SQL</strong> database + a <strong>Redis cache</strong> — the <strong>performance</strong> pillar, live.</p>
+<p><strong>🤔 Data and its speed.</strong> The transactional app calls a <strong>SQL</strong> database (relational, ACID). To handle read load, you put a <strong>Redis cache</strong> <strong>in front</strong>: hot data is served from memory (&lt; 1 ms), the database is offloaded. It&#39;s the <strong>cache-aside</strong> pattern, a performance reflex.</p>
+<p>Deploy the data tier (azlocal):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Base relationnelle SQL / relational SQL database
+azlocal sql server create --name sqlsrv-archi --resource-group rg-archi
+
+# Cache Redis (couche mémoire devant la base) / Redis cache (in-memory layer in front of the DB)
+azlocal redis create --name redis-archi --resource-group rg-archi
+
+# Les lister / list them
+azlocal sql server list --resource-group rg-archi</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sql server create</code> et <code>redis create</code> renvoient des objets ARM <code>Succeeded</code> ; <code>sql server list</code> montre <code>sqlsrv-archi</code>. Ton tier données combine <strong>durabilité</strong> (SQL, source de vérité transactionnelle) et <strong>vitesse</strong> (Redis, cache en mémoire). Analyse WAF : <strong>performance</strong> (le cache absorbe les lectures répétées), et un choix de <strong>coût</strong> (une petite base + cache coûte moins qu&#39;une énorme base surdimensionnée). ⚠️ <strong>Choix de base :</strong> SQL ici car <strong>relationnel/transactionnel</strong> ; pour des données semi-structurées à échelle mondiale, ce serait <strong>Cosmos DB</strong> (voir la grille, étape 6).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sql server create</code> and <code>redis create</code> return <code>Succeeded</code> ARM objects; <code>sql server list</code> shows <code>sqlsrv-archi</code>. Your data tier combines <strong>durability</strong> (SQL, transactional source of truth) and <strong>speed</strong> (Redis, in-memory cache). WAF analysis: <strong>performance</strong> (the cache absorbs repeated reads), and a <strong>cost</strong> choice (a small DB + cache costs less than a huge oversized DB). ⚠️ <strong>Database choice:</strong> SQL here because <strong>relational/transactional</strong>; for semi-structured data at global scale, it would be <strong>Cosmos DB</strong> (see the grid, step 6).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir le <strong>tier compute</strong> — les piliers <strong>coût</strong> &amp; <strong>performance</strong>.</p>
+<p><strong>🤔 Le bon compute.</strong> Deux options courantes pour une API : le <strong>serverless</strong> (Functions — payé à l&#39;exécution, idéal pour une charge en pics) et l&#39;<strong>App Service</strong> (PaaS managé, scale intégré, idéal pour un trafic soutenu). On déploie une <strong>Function app</strong> (live) et on <strong>décrit une App Service</strong> en Bicep (le design PaaS reproductible).</p>
+<p>Déploie la Function app, puis valide le design App Service :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design the <strong>compute tier</strong> — the <strong>cost</strong> &amp; <strong>performance</strong> pillars.</p>
+<p><strong>🤔 The right compute.</strong> Two common options for an API: <strong>serverless</strong> (Functions — pay-per-execution, ideal for spiky load) and <strong>App Service</strong> (managed PaaS, built-in scaling, ideal for sustained traffic). We deploy a <strong>Function app</strong> (live) and <strong>describe an App Service</strong> in Bicep (the reproducible PaaS design).</p>
+<p>Deploy the Function app, then validate the App Service design:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Compute serverless (payé à l&#39;exécution) / serverless compute (pay-per-execution)
+azlocal functionapp create --name fn-archi --resource-group rg-archi</code></pre>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// appservice.bicep — alternative PaaS : plan + application web (design validé)
+param location string = resourceGroup().location
+param nomApp string = &#39;web-${uniqueString(resourceGroup().id)}&#39;
+
+resource plan &#39;Microsoft.Web/serverfarms@2023-01-01&#39; = {
+  name: &#39;plan-web&#39;
+  location: location
+  sku: { name: &#39;P1v3&#39;, tier: &#39;PremiumV3&#39; }   // Production, scale-out possible
+  properties: { reserved: true }              // Linux
+}
+
+resource app &#39;Microsoft.Web/sites@2023-01-01&#39; = {
+  name: nomApp
+  location: location
+  properties: {
+    serverFarmId: plan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: &#39;NODE|20-lts&#39;
+      minTlsVersion: &#39;1.2&#39;
+      ftpsState: &#39;Disabled&#39;
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build appservice.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>functionapp create</code> renvoie un objet <code>Succeeded</code> (compute serverless live). <code>bicep build appservice.bicep</code> compile <strong>deux</strong> ressources — <code>serverfarms</code> (le plan) et <code>sites</code> (l&#39;app) — sans erreur, avec <code>httpsOnly</code> et <code>minTlsVersion: 1.2</code> (sécurité par défaut). Analyse WAF : <strong>coût</strong> (Functions = payé à l&#39;usage, zéro coût au repos ; App Service = coût fixe mais prévisible sous charge soutenue), <strong>performance</strong> (App Service scale-out ; Functions scale automatique). Le <strong>choix</strong> dépend du profil de charge — pics → Functions ; soutenu → App Service. ⚠️ C&#39;est <strong>exactement</strong> ce type d&#39;arbitrage que l&#39;AZ-305 attend.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>functionapp create</code> returns a <code>Succeeded</code> object (live serverless compute). <code>bicep build appservice.bicep</code> compiles <strong>two</strong> resources — <code>serverfarms</code> (the plan) and <code>sites</code> (the app) — with no error, with <code>httpsOnly</code> and <code>minTlsVersion: 1.2</code> (secure by default). WAF analysis: <strong>cost</strong> (Functions = pay-per-use, zero cost at rest; App Service = fixed but predictable cost under sustained load), <strong>performance</strong> (App Service scale-out; Functions auto-scale). The <strong>choice</strong> depends on the load profile — spikes → Functions; sustained → App Service. ⚠️ It&#39;s <strong>exactly</strong> the kind of tradeoff AZ-305 expects.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Juger</strong> l&#39;architecture pilier par pilier — la revue d&#39;architecte.</p>
+<p><strong>🤔 La revue Well-Architected.</strong> Une fois l&#39;architecture posée, l&#39;architecte la <strong>passe au crible</strong> des 5 piliers et note les <strong>améliorations</strong>. C&#39;est un livrable concret (une « revue WAF »).</p>
+<p>Applique la grille à ce que tu as construit :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Judge</strong> the architecture pillar by pillar — the architect&#39;s review.</p>
+<p><strong>🤔 The Well-Architected review.</strong> Once the architecture is laid out, the architect <strong>runs it through</strong> the 5 pillars and notes <strong>improvements</strong>. It&#39;s a concrete deliverable (a &quot;WAF review&quot;).</p>
+<p>Apply the grid to what you built:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>REVUE WAF de l&#39;architecture / WAF REVIEW of the architecture
+  Fiabilité     réseau segmenté OK ; À AJOUTER : zones de dispo, sauvegarde SQL, réplica Redis
+  Sécurité      NSG + HTTPS OK ; À AJOUTER : private endpoints data, Key Vault, identité managée, RBAC
+  Coût          Functions à l&#39;usage OK ; À SURVEILLER : dimensionner SQL, tags de coût, arrêt hors prod
+  Excellence    IaC (Terraform+Bicep) OK ; À AJOUTER : monitoring (Azure Monitor), alertes, CI/CD
+  Performance   cache Redis OK ; À AJOUTER : scale-out App Service, CDN pour le statique, région proche</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu peux <strong>auditer</strong> ton architecture pilier par pilier et proposer les <strong>prochaines améliorations</strong>. C&#39;est le livrable d&#39;un architecte : non pas « c&#39;est fini », mais « voici où on est <strong>fort</strong>, voici où on <strong>renforce</strong>, selon les priorités du client ». Retiens : une bonne archi n&#39;est jamais « parfaite » sur les 5 piliers à la fois — elle est <strong>équilibrée</strong> selon les besoins (un site vitrine ne paie pas pour du multi-région ; une banque, si). ⚠️ Sur un vrai compte, Azure fournit l&#39;outil <strong>Azure Advisor</strong> et la <strong>revue WAF</strong> officielle qui automatisent une partie de cet audit.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>audit</strong> your architecture pillar by pillar and propose the <strong>next improvements</strong>. It&#39;s an architect&#39;s deliverable: not &quot;it&#39;s done&quot;, but &quot;here&#39;s where we&#39;re <strong>strong</strong>, here&#39;s where we <strong>reinforce</strong>, per the client&#39;s priorities&quot;. Remember: a good architecture is never &quot;perfect&quot; on all 5 pillars at once — it&#39;s <strong>balanced</strong> by requirement (a brochure site doesn&#39;t pay for multi-region; a bank does). ⚠️ On a real account, Azure provides <strong>Azure Advisor</strong> and the official <strong>WAF review</strong> that automate part of this audit.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Graver les <strong>grilles de choix de service</strong> — le cœur de l&#39;AZ-305.</p>
+<p><strong>🤔 « Quel service pour ce besoin ? »</strong> C&#39;est LA question de l&#39;examen. On mémorise deux grilles : <strong>base de données</strong> et <strong>compute</strong>. Chaque ligne = un besoin → un service.</p>
+<p>Les grilles :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Engrave the <strong>service-selection grids</strong> — the AZ-305 core.</p>
+<p><strong>🤔 &quot;Which service for this need?&quot;</strong> It&#39;s THE exam question. We memorize two grids: <strong>database</strong> and <strong>compute</strong>. Each row = a need → a service.</p>
+<p>The grids:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>BASE DE DONNÉES / DATABASE
+  Relationnel, ACID, jointures        -&gt; Azure SQL / PostgreSQL / MySQL
+  NoSQL, mondial, faible latence      -&gt; Cosmos DB
+  Objets/fichiers non structurés      -&gt; Blob Storage
+  Lecture ultra-rapide (cache)        -&gt; Azure Cache for Redis (devant la base)
+  Analytique massif / entrepôt        -&gt; Synapse / Fabric
+
+COMPUTE
+  Contrôle total de l&#39;OS / legacy     -&gt; Machine virtuelle (IaaS)
+  Appli web / API managée             -&gt; App Service (PaaS)
+  Événementiel, pics, payé à l&#39;usage  -&gt; Azure Functions (serverless)
+  Microservices conteneurisés         -&gt; AKS / Container Apps
+  Un conteneur ponctuel               -&gt; Container Instances (ACI)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> face à un scénario, tu <strong>choisis</strong> vite : « commandes transactionnelles » → <strong>Azure SQL</strong> ; « profils utilisateurs mondiaux, faible latence » → <strong>Cosmos DB</strong> ; « images » → <strong>Blob</strong> ; « API à trafic soutenu » → <strong>App Service</strong> ; « traitement de messages par pics » → <strong>Functions</strong> ; « microservices » → <strong>AKS/Container Apps ». C&#39;est </strong>exactement<strong> le format des questions AZ-305. ⚠️ Justifie toujours par les </strong>besoins<strong> (cohérence, latence, échelle, coût, contrôle) et le </strong>pilier<strong> dominant — l&#39;examen (et un vrai client) attend le </strong>pourquoi<strong>, pas seulement le </strong>quoi**.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> faced with a scenario, you <strong>choose</strong> fast: &quot;transactional orders&quot; → <strong>Azure SQL</strong>; &quot;global user profiles, low latency&quot; → <strong>Cosmos DB</strong>; &quot;images&quot; → <strong>Blob</strong>; &quot;sustained-traffic API&quot; → <strong>App Service</strong>; &quot;spiky message processing&quot; → <strong>Functions</strong>; &quot;microservices&quot; → <strong>AKS/Container Apps&quot;. It&#39;s </strong>exactly<strong> the AZ-305 question format. ⚠️ Always justify by the </strong>requirements<strong> (consistency, latency, scale, cost, control) and the dominant </strong>pillar<strong> — the exam (and a real client) expects the </strong>why<strong>, not just the </strong>what**.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime le groupe de ressources et tout ce qu&#39;il contient (réseau + services).</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the resource group and everything it holds (network + services).</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Services (azlocal) puis fondation réseau (Terraform)
+azlocal functionapp delete --name fn-archi     --resource-group rg-archi
+azlocal redis delete       --name redis-archi  --resource-group rg-archi
+azlocal sql server delete  --name sqlsrv-archi --resource-group rg-archi
+cd infra &amp;&amp; terraform destroy -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les <code>azlocal ... delete</code> renvoient <code>Deleted</code> et <code>terraform destroy</code> retire la fondation réseau. Ton labo est rangé. Tu tiens maintenant le <strong>réflexe d&#39;architecte</strong> : partir des <strong>besoins</strong>, concevoir une <strong>architecture multi-tier</strong>, la <strong>justifier</strong> par les 5 piliers du Well-Architected Framework, et <strong>choisir</strong> les services par grille. La suite du track AZ-305 : concevoir les <strong>données</strong> en profondeur, la <strong>continuité d&#39;activité</strong> (sauvegarde, reprise), l&#39;<strong>infrastructure</strong> (compute, réseau avancé), puis le <strong>projet d&#39;architecte</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>azlocal ... delete</code> return <code>Deleted</code> and <code>terraform destroy</code> removes the network foundation. Your lab is tidy. You now hold the <strong>architect reflex</strong>: start from <strong>requirements</strong>, design a <strong>multi-tier architecture</strong>, <strong>justify</strong> it by the 5 Well-Architected Framework pillars, and <strong>choose</strong> services by grid. The AZ-305 track continues: designing <strong>data</strong> in depth, <strong>business continuity</strong> (backup, recovery), <strong>infrastructure</strong> (compute, advanced networking), then the <strong>architect project</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Maximiser un seul pilier.</strong> Sur-sécuriser ou sur-fiabiliser sans regarder le coût, c&#39;est déséquilibré. L&#39;architecture <strong>équilibre</strong> selon les besoins.</p>
+<p><strong>2. Choisir un service par habitude.</strong> « Toujours une VM » ou « toujours du serverless » ignore le besoin. Justifie par la <strong>forme de la donnée</strong>/le <strong>profil de charge</strong>.</p>
+<p><strong>3. Oublier le cache.</strong> Une base sous charge de lecture sans <strong>cache</strong> (Redis), c&#39;est de la performance (et du coût) gaspillés.</p>
+<p><strong>4. Confondre SQL et Cosmos.</strong> SQL = relationnel/ACID/jointures ; Cosmos = NoSQL/mondial/échelle. Le mauvais choix se paie en refonte.</p>
+<p><strong>5. Pas de segmentation réseau.</strong> Un réseau « à plat » viole sécurité <strong>et</strong> fiabilité. Sépare les tiers dès la fondation.</p>
+<p><strong>6. Design sans revue WAF.</strong> Livrer sans passer les 5 piliers, c&#39;est livrer une archi non auditée. La revue est un <strong>livrable</strong>.</p>
+<p><strong>7. Décider sans justifier.</strong> L&#39;AZ-305 (et un client) veulent le <strong>pourquoi</strong> — le besoin et le pilier — pas seulement le service.</p>
+</div>
+<div data-lang="en"><p><strong>1. Maximizing a single pillar.</strong> Over-securing or over-hardening without watching cost is unbalanced. Architecture <strong>balances</strong> by requirement.</p>
+<p><strong>2. Choosing a service by habit.</strong> &quot;Always a VM&quot; or &quot;always serverless&quot; ignores the need. Justify by the <strong>shape of the data</strong>/the <strong>load profile</strong>.</p>
+<p><strong>3. Forgetting the cache.</strong> A database under read load with no <strong>cache</strong> (Redis) wastes performance (and cost).</p>
+<p><strong>4. Confusing SQL and Cosmos.</strong> SQL = relational/ACID/joins; Cosmos = NoSQL/global/scale. The wrong choice is paid for in a rewrite.</p>
+<p><strong>5. No network segmentation.</strong> A &quot;flat&quot; network violates security <strong>and</strong> reliability. Separate tiers from the foundation.</p>
+<p><strong>6. A design with no WAF review.</strong> Delivering without running the 5 pillars is delivering an unaudited architecture. The review is a <strong>deliverable</strong>.</p>
+<p><strong>7. Deciding without justifying.</strong> AZ-305 (and a client) want the <strong>why</strong> — the need and the pillar — not just the service.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu cites les <strong>5 piliers</strong> et poses leur question sur un design.</li><li>Tu traduis des <strong>besoins</strong> en décisions d&#39;architecture.</li><li>Tu déploies une <strong>fondation réseau</strong> segmentée (live).</li><li>Tu déploies un <strong>tier données</strong> (SQL + Redis, live).</li><li>Tu décris un <strong>tier compute</strong> (App Service) en Bicep.</li><li>Tu fais une <strong>revue WAF</strong> pilier par pilier.</li><li>Tu choisis <strong>base</strong> et <strong>compute</strong> par grille, en justifiant.</li></ul>
+<p>Sept cases = tu tiens le socle d&#39;architecte AZ-305. La suite : concevoir les <strong>données</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You name the <strong>5 pillars</strong> and ask their question about a design.</li><li>You translate <strong>requirements</strong> into architecture decisions.</li><li>You deploy a segmented <strong>network foundation</strong> (live).</li><li>You deploy a <strong>data tier</strong> (SQL + Redis, live).</li><li>You describe a <strong>compute tier</strong> (App Service) in Bicep.</li><li>You run a <strong>WAF review</strong> pillar by pillar.</li><li>You choose <strong>database</strong> and <strong>compute</strong> by grid, with justification.</li></ul>
+<p>Seven boxes = you hold the AZ-305 architect base. Next up: designing <strong>data</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-305 continue :</p>
+<ol><li><strong>Azure — conception des données</strong> : Azure SQL vs Cosmos vs Storage en profondeur, partitionnement, cohérence, cache, migration.</li><li>Plus loin : <strong>continuité d&#39;activité</strong> (sauvegarde, reprise, HA), <strong>infrastructure</strong> (compute, réseau avancé), puis le <strong>projet d&#39;architecte</strong> et l&#39;examen AZ-305.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-305 track continues:</p>
+<ol><li><strong>Azure — data design</strong>: Azure SQL vs Cosmos vs Storage in depth, partitioning, consistency, caching, migration.</li><li>Further along: <strong>business continuity</strong> (backup, recovery, HA), <strong>infrastructure</strong> (compute, advanced networking), then the <strong>architect project</strong> and the AZ-305 exam.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire architecture Azure (WAF).</p>
+</div>
+<div data-lang="en"><p>Azure architecture cheat sheet (WAF).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Fondation réseau (Terraform, live) / network foundation
+cd infra &amp;&amp; export SSL_CERT_FILE=~/.miniblue/cert.pem &amp;&amp; terraform apply -auto-approve
+
+# Tier données (azlocal, live) / data tier
+azlocal sql server create --name sqlsrv-archi --resource-group rg-archi
+azlocal redis create      --name redis-archi  --resource-group rg-archi
+
+# Tier compute (azlocal live + Bicep validé) / compute tier
+azlocal functionapp create --name fn-archi --resource-group rg-archi
+bicep build appservice.bicep --stdout</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>WAF : Fiabilité · Sécurité · Coût · Excellence opérationnelle · Performance
+Base : SQL(relationnel) · Cosmos(NoSQL mondial) · Blob(objets) · Redis(cache) · Synapse(analytique)
+Compute : VM(contrôle) · App Service(web PaaS) · Functions(serverless) · AKS/Container Apps(microservices)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/well-architected/">Well-Architected Framework</a> — les 5 piliers.</li><li><a href="https://learn.microsoft.com/azure/architecture/">Centre d&#39;architecture Azure</a> — architectures de référence.</li><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-store-decision-tree">Choisir un service de base de données</a> — l&#39;arbre de décision.</li><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree">Choisir un service de calcul</a> — l&#39;arbre de décision.</li><li><a href="https://learn.microsoft.com/azure/advisor/advisor-overview">Azure Advisor</a> — l&#39;audit automatique.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/well-architected/">Well-Architected Framework</a> — the 5 pillars.</li><li><a href="https://learn.microsoft.com/azure/architecture/">Azure Architecture Center</a> — reference architectures.</li><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-store-decision-tree">Choose a database service</a> — the decision tree.</li><li><a href="https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree">Choose a compute service</a> — the decision tree.</li><li><a href="https://learn.microsoft.com/azure/advisor/advisor-overview">Azure Advisor</a> — the automatic audit.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform apply</code> : erreur de certificat.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> avant Terraform.</p>
+<p><strong><code>azlocal sql/redis/functionapp create</code> : connexion refusée.</strong> miniblue ne tourne pas. Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+<p><strong>« resource group not found ».</strong> Lance d&#39;abord <code>terraform apply</code> (qui crée <code>rg-archi</code>), puis les services.</p>
+<p><strong><code>bicep build appservice.bicep</code> : erreur de schéma.</strong> Vérifie les propriétés <code>sku</code>/<code>siteConfig</code> contre la doc <code>Microsoft.Web/sites</code> ; la version d&#39;API doit exister.</p>
+<p><strong>Je ne sais pas quelle base choisir.</strong> Pars de la <strong>donnée</strong> : relationnelle avec jointures → SQL ; documents/clé-valeur à l&#39;échelle → Cosmos ; fichiers → Blob. Puis vérifie latence, cohérence, coût.</p>
+<p><strong>Mon archi est « parfaite » partout.</strong> Méfie-toi : c&#39;est souvent trop cher. Une bonne archi <strong>équilibre</strong> les piliers selon les besoins réels du client.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform apply</code>: certificate error.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> before Terraform.</p>
+<p><strong><code>azlocal sql/redis/functionapp create</code>: connection refused.</strong> miniblue isn&#39;t running. Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+<p><strong>&quot;resource group not found&quot;.</strong> Run <code>terraform apply</code> first (which creates <code>rg-archi</code>), then the services.</p>
+<p><strong><code>bicep build appservice.bicep</code>: schema error.</strong> Check the <code>sku</code>/<code>siteConfig</code> properties against the <code>Microsoft.Web/sites</code> docs; the API version must exist.</p>
+<p><strong>I don&#39;t know which database to choose.</strong> Start from the <strong>data</strong>: relational with joins → SQL; documents/key-value at scale → Cosmos; files → Blob. Then check latency, consistency, cost.</p>
+<p><strong>My architecture is &quot;perfect&quot; everywhere.</strong> Be suspicious: it&#39;s often too expensive. A good architecture <strong>balances</strong> the pillars by the client&#39;s real requirements.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
