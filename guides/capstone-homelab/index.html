@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Capstone — ton homelab en ligne, de bout en bout — jiha.tech</title>
+  <title data-lang="en">Capstone — your homelab online, end to end — jiha.tech</title>
+  <meta name="description" content="Le projet fil-rouge : provisionne un VPS, durcis-le, expose ta stack self-hostée en HTTPS public, ajoute monitoring et sauvegardes, et prouve ta restauration par un drill chronométré. Un livrable de portfolio DevOps junior." data-lang="fr">
+  <meta name="description" content="The capstone project: provision a VPS, harden it, expose your self-hosted stack over public HTTPS, add monitoring and backups, and prove your restore with a timed drill. A junior DevOps portfolio deliverable." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Capstone — ton homelab en ligne, de bout en bout">
+  <meta property="og:description" content="Le projet fil-rouge : provisionne un VPS, durcis-le, expose ta stack self-hostée en HTTPS public, ajoute monitoring et sauvegardes, et prouve ta restauration par un drill chronométré. Un livrable de portfolio DevOps junior.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/capstone-homelab/">
+  <link rel="canonical" href="https://jiha.tech/guides/capstone-homelab/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="capstone-homelab">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/capstone-homelab</div>
+    <div class="prompt" data-lang="en">~/guides/capstone-homelab</div>
+    <h1 data-lang="fr">Capstone — ton homelab en ligne, de bout en bout</h1>
+    <h1 data-lang="en">Capstone — your homelab online, end to end</h1>
+    <p class="tagline" data-lang="fr">Provisionner, durcir, déployer, monitorer, sauvegarder, restaurer.</p>
+    <p class="tagline" data-lang="en">Provision, harden, deploy, monitor, back up, restore.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 600 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 600 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Voici le moment où tout se rejoint. Jusqu&#39;ici, chaque module vivait <strong>sur ta machine</strong>, en local. Ce projet fil-rouge change la donne : tu vas <strong>mettre un vrai service en ligne</strong>, sur un <strong>vrai serveur</strong>, accessible sur Internet en HTTPS — et surtout, tu vas <strong>prouver</strong> que tu sais l&#39;exploiter : le sauvegarder, le restaurer, le surveiller.</p>
+<p>C&#39;est le <strong>seul module qui demande un serveur</strong> : un petit VPS coûte 3 à 5 € par mois, et c&#39;est le meilleur investissement de ta reconversion — parce qu&#39;à la fin, tu n&#39;auras pas « suivi un tuto », tu auras <strong>un livrable montrable à un recruteur</strong> : une infrastructure que tu as provisionnée, durcie, déployée et documentée toi-même.</p>
+<p>Ce n&#39;est pas un tuto pas-à-pas : c&#39;est un <strong>cahier des charges</strong>. Chaque phase te dit <em>quoi</em> accomplir et <em>comment le prouver</em>, en réutilisant les compétences des modules précédents. Les commandes exactes, tu les connais déjà — ici, tu <strong>assembles</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé le parcours (Linux, Docker, Compose, reverse proxy, Ansible, monitoring) et tu veux le transformer en projet concret.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Il te manque encore des bases (durcissement SSH, Compose, Traefik/monitoring) → reviens les consolider, ce projet les suppose acquises.</li><li>Tu ne veux (ou ne peux) pas louer un VPS : tu peux faire une <strong>version dégradée en local</strong> (VM + certificats locaux), mais tu perdras l&#39;expérience « vraie prod » (DNS, HTTPS public, exposition) qui fait la valeur du livrable.</li></ul>
+</div>
+<div data-lang="en"><p>Here&#39;s where everything comes together. So far, each module lived <strong>on your machine</strong>, locally. This capstone changes the game: you&#39;re going to <strong>put a real service online</strong>, on a <strong>real server</strong>, reachable over the Internet in HTTPS — and above all, you&#39;re going to <strong>prove</strong> you can operate it: back it up, restore it, monitor it.</p>
+<p>It&#39;s the <strong>only module that requires a server</strong>: a small VPS costs €3–5 a month, and it&#39;s the best investment of your career switch — because in the end, you won&#39;t have &quot;followed a tutorial&quot;, you&#39;ll have <strong>a deliverable to show a recruiter</strong>: an infrastructure you provisioned, hardened, deployed and documented yourself.</p>
+<p>This isn&#39;t a step-by-step tutorial: it&#39;s a <strong>project brief</strong>. Each phase tells you <em>what</em> to accomplish and <em>how to prove it</em>, reusing the skills from previous modules. The exact commands, you already know them — here, you <strong>assemble</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the track (Linux, Docker, Compose, reverse proxy, Ansible, monitoring) and you want to turn it into a concrete project.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re still missing foundations (SSH hardening, Compose, Traefik/monitoring) → go consolidate them, this project assumes them.</li><li>You don&#39;t want to (or can&#39;t) rent a VPS: you can do a <strong>degraded local version</strong> (VM + local certs), but you&#39;ll lose the &quot;real prod&quot; experience (DNS, public HTTPS, exposure) that gives the deliverable its value.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>Ce projet valide, en conditions réelles, que tu sais :</p>
+<ul><li><strong>Provisionner</strong> un serveur et le <strong>durcir</strong> (SSH par clé, pare-feu, fail2ban).</li><li>Configurer un <strong>domaine</strong> et son <strong>DNS</strong>.</li><li>Exposer des services en <strong>HTTPS public</strong> derrière un reverse proxy.</li><li><strong>Déployer</strong> une stack multi-services, idéalement <strong>automatisée</strong> (Ansible).</li><li>Mettre en place <strong>monitoring</strong> et <strong>alertes</strong>.</li><li>Sauvegarder, et <strong>prouver la restauration</strong> par un drill chronométré.</li><li><strong>Documenter</strong> l&#39;ensemble comme un professionnel.</li></ul>
+</div>
+<div data-lang="en"><p>This project validates, in real conditions, that you can:</p>
+<ul><li><strong>Provision</strong> a server and <strong>harden</strong> it (SSH keys, firewall, fail2ban).</li><li>Configure a <strong>domain</strong> and its <strong>DNS</strong>.</li><li>Expose services over <strong>public HTTPS</strong> behind a reverse proxy.</li><li><strong>Deploy</strong> a multi-service stack, ideally <strong>automated</strong> (Ansible).</li><li>Set up <strong>monitoring</strong> and <strong>alerts</strong>.</li><li>Back up, and <strong>prove restoration</strong> with a timed drill.</li><li><strong>Document</strong> the whole thing like a professional.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Avant de commencer :</p>
+<ul><li><strong>Tout le parcours</strong> : Linux, Docker &amp; Compose, reverse proxy &amp; HTTPS, Ansible, monitoring. Ce projet les mobilise tous.</li><li>Un <strong>VPS</strong> chez un hébergeur (Hetzner, Scaleway, OVH, DigitalOcean… ~3-5 €/mois), en <strong>Ubuntu 24.04 LTS</strong>.</li><li>Un <strong>nom de domaine</strong> (ou un sous-domaine délégué). Certains registrars proposent des <code>.eu</code>/<code>.xyz</code> à quelques euros/an.</li><li>Ta <strong>clé SSH</strong> (générée au module Ansible) et de quoi éditer du YAML.</li></ul>
+<p>⚠️ <strong>Sécurité &amp; budget :</strong> un serveur exposé sur Internet est <strong>scanné en permanence</strong>. Le durcissement (phase 2) n&#39;est pas optionnel. Et pense à <strong>détruire le VPS</strong> à la fin si tu ne le gardes pas, pour ne pas payer dans le vide.</p>
+<p>⏱️ <strong>C&#39;est un projet étalé</strong> (propagation DNS, debug Let&#39;s Encrypt, Ansible) : compte plusieurs sessions sur quelques jours, pas une seule soirée.</p>
+</div>
+<div data-lang="en"><p>Before you start:</p>
+<ul><li><strong>The whole track</strong>: Linux, Docker &amp; Compose, reverse proxy &amp; HTTPS, Ansible, monitoring. This project draws on all of it.</li><li>A <strong>VPS</strong> at a provider (Hetzner, Scaleway, OVH, DigitalOcean… ~€3–5/month), on <strong>Ubuntu 24.04 LTS</strong>.</li><li>A <strong>domain name</strong> (or a delegated subdomain). Some registrars offer <code>.eu</code>/<code>.xyz</code> for a few euros/year.</li><li>Your <strong>SSH key</strong> (generated in the Ansible module) and something to edit YAML.</li></ul>
+<p>⚠️ <strong>Security &amp; budget:</strong> a server exposed on the Internet is <strong>scanned constantly</strong>. Hardening (phase 2) is not optional. And remember to <strong>destroy the VPS</strong> at the end if you&#39;re not keeping it, to avoid paying for nothing.</p>
+<p>⏱️ <strong>This is a spread-out project</strong> (DNS propagation, Let&#39;s Encrypt debugging, Ansible): plan several sessions over a few days, not a single evening.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-fondamentaux/">
+    <span class="num">20</span>
+    <span class="title-line" data-lang="fr">Ansible — automatiser tes serveurs</span>
+    <span class="title-line" data-lang="en">Ansible — automate your servers</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../monitoring/">
+    <span class="num">42</span>
+    <span class="title-line" data-lang="fr">Prometheus + Grafana — Monitoring de ton homelab</span>
+    <span class="title-line" data-lang="en">Prometheus + Grafana — Homelab monitoring</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>L&#39;architecture cible, en une image mentale : <strong>Internet → DNS → ton VPS → reverse proxy (HTTPS) → tes services conteneurisés</strong>, le tout <strong>surveillé</strong> et <strong>sauvegardé</strong>.</p>
+<ul><li>Le <strong>DNS</strong> traduit ton domaine en l&#39;IP publique du VPS (enregistrement <code>A</code>).</li><li>Le <strong>reverse proxy</strong> (Traefik, Caddy ou Nginx Proxy Manager) reçoit tout le trafic sur 80/443, obtient un <strong>certificat Let&#39;s Encrypt</strong> automatiquement, et route chaque sous-domaine vers le bon service.</li><li>Tes <strong>services</strong> tournent en conteneurs (Compose), isolés, avec leurs volumes de données.</li><li>Le <strong>monitoring</strong> (Prometheus + Grafana) observe l&#39;état ; les <strong>sauvegardes</strong> protègent les données ; le <strong>drill de restauration</strong> prouve que ces sauvegardes <em>fonctionnent vraiment</em>.</li></ul>
+<p>La règle d&#39;or de ce projet : <strong>une sauvegarde non testée n&#39;est pas une sauvegarde.</strong> Le cœur du livrable, ce n&#39;est pas de déployer — c&#39;est de <strong>détruire et restaurer</strong> avec succès.</p>
+</div>
+<div data-lang="en"><p>The target architecture, as a mental picture: <strong>Internet → DNS → your VPS → reverse proxy (HTTPS) → your containerized services</strong>, all of it <strong>monitored</strong> and <strong>backed up</strong>.</p>
+<ul><li><strong>DNS</strong> translates your domain into the VPS&#39;s public IP (an <code>A</code> record).</li><li>The <strong>reverse proxy</strong> (Traefik, Caddy or Nginx Proxy Manager) receives all traffic on 80/443, automatically obtains a <strong>Let&#39;s Encrypt certificate</strong>, and routes each subdomain to the right service.</li><li>Your <strong>services</strong> run in containers (Compose), isolated, with their data volumes.</li><li><strong>Monitoring</strong> (Prometheus + Grafana) watches the state; <strong>backups</strong> protect the data; the <strong>restore drill</strong> proves those backups <em>actually work</em>.</li></ul>
+<p>The golden rule of this project: <strong>an untested backup is not a backup.</strong> The core of the deliverable isn&#39;t deploying — it&#39;s <strong>destroying and restoring</strong> successfully.</p>
+</div>
+
+<figure class="schema" id="figure-homelab-architecture">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-homelab-architecture">
+  <title id="s-homelab-architecture">Homelab auto-hébergé</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Homelab auto-hébergé</text><rect class="box" x="18" y="40" width="124" height="66" rx="3"/><text class="lbl" x="80" y="77" text-anchor="middle">Internet</text><path class="arrow" d="M 142 73 L 168 73"/><rect class="box" x="168" y="40" width="124" height="66" rx="3"/><text class="lbl" x="230" y="77" text-anchor="middle">DNS</text><path class="arrow" d="M 292 73 L 318 73"/><rect class="box" x="318" y="40" width="124" height="66" rx="3"/><text class="lbl" x="380" y="77" text-anchor="middle">VPS</text><path class="arrow" d="M 442 73 L 468 73"/><rect class="box-accent" x="468" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-fill" x="530" y="70.5" text-anchor="middle">reverse proxy</text><text class="sub sub-fill" x="530" y="83.5" text-anchor="middle">HTTPS</text><path class="arrow" d="M 592 73 L 618 73"/><rect class="box-soft" x="618" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-blue" x="680" y="70.5" text-anchor="middle">services</text><text class="sub sub-blue" x="680" y="83.5" text-anchor="middle">conteneurisés</text><text class="sub" x="380" y="144" text-anchor="middle">monitorés et sauvegardés</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Internet → DNS → VPS → reverse proxy HTTPS → services conteneurisés, monitorés et sauvegardés.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Internet → DNS → VPS → HTTPS reverse proxy → containerized services, monitored and backed up.</figcaption>
+</figure>
+<div data-lang="fr"><p>Le projet se déroule en 7 phases. Chacune a un <strong>livrable</strong> vérifiable. Avance dans l&#39;ordre : chaque phase suppose la précédente réussie.</p>
+</div>
+<div data-lang="en"><p>The project unfolds in 7 phases. Each has a verifiable <strong>deliverable</strong>. Go in order: each phase assumes the previous one succeeded.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Phase 1 — Provisionner le serveur.</strong></p>
+<p><strong>Objectif.</strong> Obtenir un Ubuntu 24.04 accessible en SSH.</p>
+<p><strong>🤔 Pourquoi Ubuntu LTS ?</strong> Support long (5 ans), énorme communauté, la distribution la plus documentée pour le self-hosting. Prends un format modeste mais <strong>4 Go de RAM minimum</strong> : les services de la phase 5 <strong>plus</strong> le monitoring de la phase 6 en ont besoin (un 2 Go partira en <em>OOM</em>).</p>
+<p><strong>Marche à suivre :</strong> crée le VPS chez ton hébergeur, en <strong>ajoutant ta clé SSH publique</strong> dès la création (évite la connexion par mot de passe). Note l&#39;<strong>IP publique</strong>. Connecte-toi : <code>ssh root@&lt;IP&gt;</code>.</p>
+<p><strong>📦 Livrable :</strong> une capture de <code>ssh root@&lt;IP&gt;</code> réussie + <code>lsb_release -a</code> montrant Ubuntu 24.04.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 1 — Provision the server.</strong></p>
+<p><strong>Goal.</strong> Get an Ubuntu 24.04 reachable over SSH.</p>
+<p><strong>🤔 Why Ubuntu LTS?</strong> Long support (5 years), huge community, the most documented distro for self-hosting. Pick a modest size but <strong>4 GB RAM minimum</strong>: the phase 5 services <strong>plus</strong> the phase 6 monitoring need it (a 2 GB box will <em>OOM</em>).</p>
+<p><strong>Steps:</strong> create the VPS at your provider, <strong>adding your public SSH key</strong> at creation time (avoid password login). Note the <strong>public IP</strong>. Connect: <code>ssh root@&lt;IP&gt;</code>.</p>
+<p><strong>📦 Deliverable:</strong> a screenshot of a successful <code>ssh root@&lt;IP&gt;</code> + <code>lsb_release -a</code> showing Ubuntu 24.04.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Phase 2 — Durcir le serveur.</strong> <em>(non négociable)</em></p>
+<p><strong>Objectif.</strong> Réduire drastiquement la surface d&#39;attaque.</p>
+<p><strong>🤔 Pourquoi maintenant ?</strong> Ton IP est déjà scannée. Chaque heure sans durcissement est un risque. On applique le socle Linux du parcours, version « exposé à Internet ».</p>
+<p><strong>À accomplir :</strong></p>
+<ul><li>Crée un <strong>utilisateur non-root</strong> avec <code>sudo</code> ; copie-lui ta clé SSH (<code>ssh-copy-id</code> ou manuellement). ⚠️ <strong>Avant de couper quoi que ce soit</strong>, garde ta session ouverte et <strong>teste <code>ssh &lt;toi&gt;@&lt;IP&gt;</code> dans un AUTRE terminal</strong> — c&#39;est ici qu&#39;on se verrouille dehors.</li><li><strong>Désactive</strong> la connexion par mot de passe <strong>et</strong> le login <code>root</code> : <code>PasswordAuthentication no</code>, <code>PermitRootLogin no</code>. ⚠️ Sur une image cloud, un fichier <code>/etc/ssh/sshd_config.d/50-cloud-init.conf</code> <strong>surcharge</strong> le fichier principal — édite-le aussi, ou crée ton propre <code>/etc/ssh/sshd_config.d/99-hardening.conf</code>. Applique avec <code>sudo systemctl restart ssh.service</code> (SSH est socket-activé sur 24.04) et <strong>vérifie que c&#39;est pris</strong> : <code>sudo sshd -T | grep -Ei &#39;passwordauth|permitroot&#39;</code>.</li><li>Active le <strong>pare-feu</strong> dans cet ordre (sinon tu te coupes SSH) : <code>ufw allow OpenSSH</code>, <code>ufw allow 80,443/tcp</code>, <strong>puis</strong> <code>ufw enable</code>.</li><li>Installe <strong>fail2ban</strong>. Sur Ubuntu 24.04, il n&#39;y a plus de <code>/var/log/auth.log</code> (tout est dans le journal systemd) : mets <code>backend = systemd</code> dans la jail <code>sshd</code> (<code>/etc/fail2ban/jail.local</code>), sinon elle ne démarre pas.</li><li>Active les <strong>mises à jour de sécurité automatiques</strong> (<code>unattended-upgrades</code>).</li></ul>
+<p><strong>📦 Livrable :</strong> <code>ssh root@&lt;IP&gt;</code> <strong>échoue</strong> désormais, <code>ssh &lt;toi&gt;@&lt;IP&gt;</code> marche par clé ; <code>sudo ufw status</code> montre les règles ; <code>fail2ban-client status sshd</code> tourne.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 2 — Harden the server.</strong> <em>(non-negotiable)</em></p>
+<p><strong>Goal.</strong> Drastically reduce the attack surface.</p>
+<p><strong>🤔 Why now?</strong> Your IP is already being scanned. Every hour without hardening is a risk. We apply the track&#39;s Linux foundation, &quot;exposed to the Internet&quot; edition.</p>
+<p><strong>To accomplish:</strong></p>
+<ul><li>Create a <strong>non-root user</strong> with <code>sudo</code>; copy your SSH key to it (<code>ssh-copy-id</code> or manually). ⚠️ <strong>Before disabling anything</strong>, keep your session open and <strong>test <code>ssh &lt;you&gt;@&lt;IP&gt;</code> in ANOTHER terminal</strong> — this is where people lock themselves out.</li><li><strong>Disable</strong> password login <strong>and</strong> <code>root</code> login: <code>PasswordAuthentication no</code>, <code>PermitRootLogin no</code>. ⚠️ On a cloud image, a <code>/etc/ssh/sshd_config.d/50-cloud-init.conf</code> file <strong>overrides</strong> the main config — edit it too, or create your own <code>/etc/ssh/sshd_config.d/99-hardening.conf</code>. Apply with <code>sudo systemctl restart ssh.service</code> (SSH is socket-activated on 24.04) and <strong>verify it took effect</strong>: <code>sudo sshd -T | grep -Ei &#39;passwordauth|permitroot&#39;</code>.</li><li>Enable the <strong>firewall</strong> in this order (otherwise you cut off SSH): <code>ufw allow OpenSSH</code>, <code>ufw allow 80,443/tcp</code>, <strong>then</strong> <code>ufw enable</code>.</li><li>Install <strong>fail2ban</strong>. On Ubuntu 24.04 there&#39;s no more <code>/var/log/auth.log</code> (everything is in the systemd journal): set <code>backend = systemd</code> in the <code>sshd</code> jail (<code>/etc/fail2ban/jail.local</code>), otherwise it won&#39;t start.</li><li>Enable <strong>automatic security updates</strong> (<code>unattended-upgrades</code>).</li></ul>
+<p><strong>📦 Deliverable:</strong> <code>ssh root@&lt;IP&gt;</code> now <strong>fails</strong>, <code>ssh &lt;you&gt;@&lt;IP&gt;</code> works via key; <code>sudo ufw status</code> shows the rules; <code>fail2ban-client status sshd</code> runs.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Phase 3 — Domaine &amp; DNS.</strong></p>
+<p><strong>Objectif.</strong> Pointer ton domaine vers le VPS.</p>
+<p><strong>🤔 Pourquoi le DNS d&#39;abord ?</strong> Le reverse proxy a besoin d&#39;un nom de domaine résolvant vers ton IP <strong>avant</strong> de pouvoir obtenir un certificat HTTPS (Let&#39;s Encrypt vérifie que tu contrôles le domaine).</p>
+<p><strong>À accomplir :</strong> chez ton registrar/DNS, crée un enregistrement <strong><code>A</code></strong> <code>homelab.tondomaine.xyz</code> → <strong>IP publique du VPS</strong>. Ajoute aussi les sous-domaines de tes services (ex. <code>vault.</code>, <code>grafana.</code>) en <code>A</code> vers la même IP (ou un <code>CNAME</code> vers l&#39;apex). Attends la propagation.</p>
+<p><strong>📦 Livrable :</strong> <code>dig +short homelab.tondomaine.xyz</code> renvoie l&#39;IP de ton VPS depuis ta machine.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 3 — Domain &amp; DNS.</strong></p>
+<p><strong>Goal.</strong> Point your domain at the VPS.</p>
+<p><strong>🤔 Why DNS first?</strong> The reverse proxy needs a domain name resolving to your IP <strong>before</strong> it can obtain an HTTPS certificate (Let&#39;s Encrypt verifies you control the domain).</p>
+<p><strong>To accomplish:</strong> at your registrar/DNS, create an <strong><code>A</code></strong> record <code>homelab.yourdomain.xyz</code> → <strong>the VPS public IP</strong>. Also add your services&#39; subdomains (e.g. <code>vault.</code>, <code>grafana.</code>) as <code>A</code> to the same IP (or a <code>CNAME</code> to the apex). Wait for propagation.</p>
+<p><strong>📦 Deliverable:</strong> <code>dig +short homelab.yourdomain.xyz</code> returns your VPS&#39;s IP from your machine.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Phase 4 — Reverse proxy &amp; HTTPS public.</strong></p>
+<p><strong>Objectif.</strong> Servir un premier service en <code>https://</code> avec un vrai certificat.</p>
+<p><strong>🤔 Ce qui change vs le local :</strong> cette fois, Let&#39;s Encrypt délivre un <strong>certificat public valide</strong> (plus de <code>mkcert</code>, plus d&#39;avertissement navigateur), parce que ton domaine résout vraiment vers le serveur. C&#39;est la récompense des phases 2-3.</p>
+<p><strong>À accomplir :</strong> installe Docker + Compose sur le VPS, déploie ton reverse proxy (Traefik, Caddy ou Nginx Proxy Manager) avec le <strong>challenge Let&#39;s Encrypt HTTP</strong> (ports 80/443 ouverts), et branche un premier service de test (ex. <code>whoami</code> ou une page statique) sur <code>homelab.tondomaine.xyz</code>.</p>
+<p>💡 <strong>Tâtonne d&#39;abord avec le staging Let&#39;s Encrypt</strong> (certificats de test, non valides dans le navigateur, mais <strong>sans rate-limit</strong>). Une fois le routage et le DNS bons, bascule en production — LE limite à ~5 échecs/heure, et on les épuise vite en debug.</p>
+<p><strong>📦 Livrable :</strong> <code>https://homelab.tondomaine.xyz</code> s&#39;ouvre avec un <strong>cadenas valide</strong> (certificat Let&#39;s Encrypt) et affiche ton service.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 4 — Reverse proxy &amp; public HTTPS.</strong></p>
+<p><strong>Goal.</strong> Serve a first service over <code>https://</code> with a real certificate.</p>
+<p><strong>🤔 What changes vs local:</strong> this time, Let&#39;s Encrypt issues a <strong>valid public certificate</strong> (no more <code>mkcert</code>, no more browser warning), because your domain truly resolves to the server. It&#39;s the reward for phases 2-3.</p>
+<p><strong>To accomplish:</strong> install Docker + Compose on the VPS, deploy your reverse proxy (Traefik, Caddy or Nginx Proxy Manager) with the <strong>Let&#39;s Encrypt HTTP challenge</strong> (ports 80/443 open), and wire a first test service (e.g. <code>whoami</code> or a static page) on <code>homelab.yourdomain.xyz</code>.</p>
+<p>💡 <strong>Experiment with the Let&#39;s Encrypt staging environment first</strong> (test certificates, invalid in the browser, but <strong>no rate limit</strong>). Once routing and DNS are right, switch to production — LE caps at ~5 failures/hour, and debugging burns through them fast.</p>
+<p><strong>📦 Deliverable:</strong> <code>https://homelab.yourdomain.xyz</code> opens with a <strong>valid padlock</strong> (Let&#39;s Encrypt certificate) and shows your service.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Phase 5 — Déployer la stack (idéalement automatisée).</strong></p>
+<p><strong>Objectif.</strong> Faire tourner 2 services réels avec données persistantes.</p>
+<p><strong>🤔 Pourquoi automatiser ?</strong> Tu <em>peux</em> tout faire à la main en SSH. Mais le vrai réflexe DevOps — et ce qui impressionne un recruteur — c&#39;est un <strong>playbook Ansible</strong> qui rejoue <strong>tout</strong> depuis ta machine : « je détruis le VPS, j&#39;en recrée un, je relance le playbook, et 10 minutes plus tard tout est de nouveau debout ». C&#39;est la reproductibilité.</p>
+<p><strong>À accomplir :</strong> déploie <strong>deux services</strong> de ton choix derrière le proxy — par ex. <strong>Vaultwarden</strong> (léger) + une app web ou <strong>Uptime-Kuma</strong> — chacun sur son sous-domaine, avec <strong>volumes</strong> pour les données. <em>(Immich est superbe mais gourmand : ~4 Go pour lui seul, réserve-le à un VPS mieux doté.)</em> ⚠️ Tant que ce VPS est un <strong>bac à sable voué à la destruction</strong>, n&#39;y mets <strong>pas de vrais mots de passe</strong> dans Vaultwarden. Bonus fort : décris tout le déploiement en <strong>Ansible</strong> (inventaire = ton VPS).</p>
+<p><strong>📦 Livrable :</strong> deux services accessibles en HTTPS sur leurs sous-domaines, avec données qui <strong>survivent</strong> à un redémarrage. Bonus : le playbook Ansible qui les déploie.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 5 — Deploy the stack (ideally automated).</strong></p>
+<p><strong>Goal.</strong> Run 2 real services with persistent data.</p>
+<p><strong>🤔 Why automate?</strong> You <em>can</em> do it all by hand over SSH. But the real DevOps reflex — and what impresses a recruiter — is an <strong>Ansible playbook</strong> that replays <strong>everything</strong> from your machine: &quot;I destroy the VPS, recreate one, re-run the playbook, and 10 minutes later everything is back up&quot;. That&#39;s reproducibility.</p>
+<p><strong>To accomplish:</strong> deploy <strong>two services</strong> of your choice behind the proxy — e.g. <strong>Vaultwarden</strong> (lightweight) + a web app or <strong>Uptime-Kuma</strong> — each on its subdomain, with <strong>volumes</strong> for the data. <em>(Immich is great but hungry: ~4 GB for it alone, save it for a beefier VPS.)</em> ⚠️ While this VPS is a <strong>disposable sandbox</strong>, do <strong>not</strong> put real passwords in Vaultwarden. Strong bonus: describe the whole deployment in <strong>Ansible</strong> (inventory = your VPS).</p>
+<p><strong>📦 Deliverable:</strong> two services reachable over HTTPS on their subdomains, with data that <strong>survives</strong> a restart. Bonus: the Ansible playbook that deploys them.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Phase 6 — Monitoring &amp; alertes.</strong></p>
+<p><strong>Objectif.</strong> Savoir, sans te connecter, si quelque chose ne va pas.</p>
+<p><strong>🤔 Pourquoi ?</strong> Un service en prod sans supervision, c&#39;est piloter les yeux fermés. Tu réutilises le module monitoring, version distante.</p>
+<p><strong>À accomplir :</strong> déploie <strong>Prometheus + Grafana</strong> (derrière le proxy, sur <code>grafana.tondomaine.xyz</code>, protégé par mot de passe), avec au moins un <strong>node exporter</strong> (métriques CPU/RAM/disque du VPS) et une <strong>règle d&#39;alerte</strong> utile (ex. disque &gt; 85 %, ou service down).</p>
+<p><strong>📦 Livrable :</strong> un dashboard Grafana montrant les métriques du VPS, et une alerte configurée que tu peux déclencher volontairement.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 6 — Monitoring &amp; alerts.</strong></p>
+<p><strong>Goal.</strong> Know, without logging in, whether something&#39;s wrong.</p>
+<p><strong>🤔 Why?</strong> A service in prod with no supervision is flying blind. You reuse the monitoring module, remote edition.</p>
+<p><strong>To accomplish:</strong> deploy <strong>Prometheus + Grafana</strong> (behind the proxy, on <code>grafana.yourdomain.xyz</code>, password-protected), with at least a <strong>node exporter</strong> (VPS CPU/RAM/disk metrics) and a useful <strong>alert rule</strong> (e.g. disk &gt; 85 %, or service down).</p>
+<p><strong>📦 Deliverable:</strong> a Grafana dashboard showing the VPS metrics, and a configured alert you can trigger on purpose.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Phase 7 — Sauvegardes &amp; drill de restauration.</strong> <em>(le cœur du projet)</em></p>
+<p><strong>Objectif.</strong> Prouver que tu peux tout perdre… et tout retrouver.</p>
+<p><strong>🤔 Pourquoi c&#39;est LA phase qui compte ?</strong> N&#39;importe qui peut déployer. Ce qui sépare un amateur d&#39;un pro, c&#39;est la <strong>capacité à restaurer</strong>. Une sauvegarde jamais testée échoue le jour où tu en as besoin. Ici, on la teste <strong>pour de vrai</strong>.</p>
+<p><strong>À accomplir :</strong></p>
+<ol><li>Mets en place une <strong>sauvegarde automatisée</strong> (cron) des volumes de données et des configs, idéalement vers un stockage <strong>hors du VPS</strong> (S3/Backblaze, ou ta machine via <code>rsync</code>). ⚠️ Pour une <strong>base de données</strong>, ne copie pas le volume « à chaud » (risque de sauvegarde corrompue) : fais un <code>pg_dump</code>/dump applicatif, ou arrête le service le temps du snapshot.</li><li>Fais le <strong>drill, chronomètre en main</strong> : détruis délibérément un service (supprime son conteneur <strong>et son volume</strong>), puis restaure-le depuis la dernière sauvegarde. Mesure le temps.</li><li>Vérifie que les <strong>données d&#39;avant sont bien là</strong> (une entrée que tu avais créée).</li></ol>
+<p><strong>📦 Livrable :</strong> un compte-rendu du drill : ce que tu as détruit, la procédure de restauration, le <strong>temps de restauration (RTO)</strong>, et la preuve que les données sont revenues.</p>
+</div>
+<div data-lang="en"><p><strong>Phase 7 — Backups &amp; restore drill.</strong> <em>(the heart of the project)</em></p>
+<p><strong>Goal.</strong> Prove you can lose everything… and get it all back.</p>
+<p><strong>🤔 Why is this THE phase that matters?</strong> Anyone can deploy. What separates an amateur from a pro is the <strong>ability to restore</strong>. A backup never tested fails the day you need it. Here, we test it <strong>for real</strong>.</p>
+<p><strong>To accomplish:</strong></p>
+<ol><li>Set up an <strong>automated backup</strong> (cron) of the data volumes and configs, ideally to storage <strong>off the VPS</strong> (S3/Backblaze, or your machine via <code>rsync</code>). ⚠️ For a <strong>database</strong>, don&#39;t copy the volume &quot;hot&quot; (risk of a corrupt backup): do a <code>pg_dump</code>/application dump, or stop the service during the snapshot.</li><li>Do the <strong>drill, stopwatch in hand</strong>: deliberately destroy a service (remove its container <strong>and its volume</strong>), then restore it from the last backup. Measure the time.</li><li>Verify the <strong>prior data is really there</strong> (an entry you had created).</li></ol>
+<p><strong>📦 Deliverable:</strong> a drill report: what you destroyed, the restore procedure, the <strong>restore time (RTO)</strong>, and proof the data came back.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Sauter le durcissement « pour aller vite ».</strong> Un VPS root/mot-de-passe exposé est compromis en heures, pas en jours. La phase 2 avant tout le reste.</p>
+<p><strong>2. Ouvrir tous les ports « au cas où ».</strong> N&#39;ouvre que 22 (SSH), 80 et 443. Tout le reste passe par le reverse proxy. <code>ufw</code> par défaut : tout fermé sauf l&#39;explicite.</p>
+<p><strong>3. Croire qu&#39;une sauvegarde qui « tourne » suffit.</strong> Tant que tu n&#39;as pas <strong>restauré</strong>, tu ne sais pas si elle marche. Le drill n&#39;est pas optionnel : c&#39;est le livrable central.</p>
+<p><strong>4. Stocker les sauvegardes sur le VPS lui-même.</strong> Si le serveur meurt (ou est compromis), tu perds les données <strong>et</strong> leurs sauvegardes. Externalise-les.</p>
+<p><strong>5. Secrets en clair dans les fichiers ou l&#39;historique Git.</strong> Mots de passe, tokens : variables d&#39;environnement, <code>.env</code> hors Git, ou Ansible Vault. Jamais commités.</p>
+<p><strong>6. Oublier de documenter.</strong> Sans README, ton projet n&#39;est pas reproductible — et pas montrable. La doc fait partie du livrable, pas un extra.</p>
+<p><strong>7. Laisser tourner (et payer) le VPS après coup — ou le détruire sans avoir rien gardé.</strong> Ton livrable de portfolio, ce n&#39;est pas le serveur : ce sont les <strong>preuves</strong>. <strong>Avant</strong> de détruire le VPS, capture tout — captures d&#39;écran, un court screencast du drill, et tes configs/playbooks <strong>anonymisés</strong> poussés sur GitHub avec le README. Puis détruis-le proprement.</p>
+</div>
+<div data-lang="en"><p><strong>1. Skipping hardening &quot;to go faster&quot;.</strong> A root/password VPS exposed is compromised in hours, not days. Phase 2 before anything else.</p>
+<p><strong>2. Opening all ports &quot;just in case&quot;.</strong> Only open 22 (SSH), 80 and 443. Everything else goes through the reverse proxy. <code>ufw</code> default: everything closed except the explicit.</p>
+<p><strong>3. Thinking a backup that &quot;runs&quot; is enough.</strong> Until you&#39;ve <strong>restored</strong>, you don&#39;t know it works. The drill isn&#39;t optional: it&#39;s the central deliverable.</p>
+<p><strong>4. Storing backups on the VPS itself.</strong> If the server dies (or is compromised), you lose the data <strong>and</strong> its backups. Externalize them.</p>
+<p><strong>5. Clear-text secrets in files or Git history.</strong> Passwords, tokens: environment variables, <code>.env</code> out of Git, or Ansible Vault. Never committed.</p>
+<p><strong>6. Forgetting to document.</strong> Without a README, your project isn&#39;t reproducible — and not showable. Docs are part of the deliverable, not an extra.</p>
+<p><strong>7. Leaving the VPS running (and billing) afterward — or destroying it with nothing kept.</strong> Your portfolio deliverable isn&#39;t the server: it&#39;s the <strong>evidence</strong>. <strong>Before</strong> destroying the VPS, capture everything — screenshots, a short screencast of the drill, and your <strong>anonymized</strong> configs/playbooks pushed to GitHub with the README. Then destroy it cleanly.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Le projet est réussi — et <strong>présentable</strong> — quand :</p>
+<ul class="checklist"><li>Le serveur est <strong>durci</strong> (clé SSH seule, root désactivé, <code>ufw</code>, fail2ban).</li><li>Deux services tournent en <strong>HTTPS public</strong> (cadenas valide) sur leurs sous-domaines.</li><li>Le déploiement est <strong>reproductible</strong> (idéalement un playbook Ansible rejouable).</li><li>Le <strong>monitoring</strong> est en place avec au moins une alerte.</li><li>Les <strong>sauvegardes</strong> sont automatisées et <strong>externalisées</strong>.</li><li>Le <strong>drill de restauration</strong> est réussi et <strong>chronométré</strong>, données récupérées.</li><li>Un <strong>README</strong> documente l&#39;architecture, le déploiement et la procédure de restauration.</li></ul>
+<p><strong>Évaluation (soutenance) :</strong> présente ton architecture, montre les services en ligne, et <strong>fais la démonstration du drill</strong> — c&#39;est lui qui prouve la compétence. Ce dépôt (README + playbooks + captures) devient une <strong>pièce maîtresse de ton portfolio</strong> DevOps.</p>
+<p><em>(Version dégradée locale : la case « HTTPS public » ne peut pas être cochée — <code>mkcert</code> ne donne pas de cadenas public. Documente ce choix honnêtement ; tout le reste reste valable.)</em></p>
+</div>
+<div data-lang="en"><p>The project is a success — and <strong>presentable</strong> — when:</p>
+<ul class="checklist"><li>The server is <strong>hardened</strong> (SSH key only, root disabled, <code>ufw</code>, fail2ban).</li><li>Two services run over <strong>public HTTPS</strong> (valid padlock) on their subdomains.</li><li>The deployment is <strong>reproducible</strong> (ideally a replayable Ansible playbook).</li><li><strong>Monitoring</strong> is in place with at least one alert.</li><li><strong>Backups</strong> are automated and <strong>externalized</strong>.</li><li>The <strong>restore drill</strong> is successful and <strong>timed</strong>, data recovered.</li><li>A <strong>README</strong> documents the architecture, deployment and restore procedure.</li></ul>
+<p><strong>Evaluation (defense):</strong> present your architecture, show the services online, and <strong>demonstrate the drill</strong> — that&#39;s what proves the skill. This repo (README + playbooks + screenshots) becomes a <strong>centerpiece of your DevOps portfolio</strong>.</p>
+<p><em>(Local degraded version: the &quot;public HTTPS&quot; box can&#39;t be ticked — <code>mkcert</code> gives no public padlock. Document that choice honestly; everything else still holds.)</em></p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Bravo — tu as bouclé le parcours et tu as un vrai projet à montrer. Pour aller plus loin :</p>
+<ul><li><strong>Passe les certifications</strong> que le parcours a préparées (LPIC-1, Docker, Terraform Associate, CKA/CKAD, RHCE) : ton homelab est ton terrain d&#39;entraînement.</li><li><strong>Automatise le provisioning</strong> avec Terraform (créer le VPS) en amont d&#39;Ansible (le configurer) : la combinaison complète.</li><li><strong>Ajoute un pipeline CI/CD</strong> qui redéploie automatiquement à chaque push (le module GitHub Actions, branché sur ton serveur).</li><li><strong>Étoffe le homelab</strong> : réseau (VLAN, VPN WireGuard), stockage, plus de services — au gré de tes besoins réels.</li></ul>
+</div>
+<div data-lang="en"><p>Congrats — you&#39;ve completed the track and you have a real project to show. To go further:</p>
+<ul><li><strong>Take the certifications</strong> the track prepared you for (LPIC-1, Docker, Terraform Associate, CKA/CKAD, RHCE): your homelab is your training ground.</li><li><strong>Automate provisioning</strong> with Terraform (create the VPS) upstream of Ansible (configure it): the full combo.</li><li><strong>Add a CI/CD pipeline</strong> that redeploys automatically on every push (the GitHub Actions module, wired to your server).</li><li><strong>Grow the homelab</strong>: networking (VLAN, WireGuard VPN), storage, more services — as your real needs dictate.</li></ul>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 09 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 09 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://letsencrypt.org/fr/docs/">Let&#39;s Encrypt</a> — certificats HTTPS gratuits et automatisés.</li><li><a href="https://help.ubuntu.com/community/UFW">ufw — pare-feu Ubuntu</a> — règles simples.</li><li><a href="https://github.com/fail2ban/fail2ban">fail2ban</a> — bannissement des IP malveillantes.</li><li><a href="https://restic.net">restic</a> / <a href="https://www.backblaze.com/cloud-storage">Backblaze B2</a> — sauvegardes chiffrées, externalisées.</li><li><a href="https://github.com/awesome-selfhosted/awesome-selfhosted">Awesome-Selfhosted</a> — des idées de services à héberger.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://letsencrypt.org/docs/">Let&#39;s Encrypt</a> — free, automated HTTPS certificates.</li><li><a href="https://help.ubuntu.com/community/UFW">ufw — Ubuntu firewall</a> — simple rules.</li><li><a href="https://github.com/fail2ban/fail2ban">fail2ban</a> — banning malicious IPs.</li><li><a href="https://restic.net">restic</a> / <a href="https://www.backblaze.com/cloud-storage">Backblaze B2</a> — encrypted, externalized backups.</li><li><a href="https://github.com/awesome-selfhosted/awesome-selfhosted">Awesome-Selfhosted</a> — ideas for services to host.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 10 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 10 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Je me suis verrouillé dehors en SSH.</strong> Utilise la <strong>console web</strong> de ton hébergeur (accès hors SSH) pour corriger <code>sshd_config</code> ou <code>ufw</code>. Toujours garder une session SSH ouverte <strong>avant</strong> de tester une modif SSH.</p>
+<p><strong>Let&#39;s Encrypt refuse le certificat.</strong> Le DNS ne résout pas encore (attends la propagation, <code>dig</code>), ou le port 80 n&#39;est pas joignable (<code>ufw</code>, ou un autre service occupe le port). Vérifie les logs du reverse proxy.</p>
+<p><strong>Un service répond en HTTP mais pas en HTTPS.</strong> Le routage du proxy ou le sous-domaine DNS manque. Vérifie que le sous-domaine résout et que le proxy a une route pour lui.</p>
+<p><strong>Après restauration, le service démarre mais « vide ».</strong> Tu as probablement restauré la config mais pas le <strong>volume de données</strong> (ou l&#39;inverse). Le drill sert justement à découvrir ça <strong>en exercice</strong>, pas en vrai incident.</p>
+<p><strong>fail2ban m&#39;a banni ma propre IP.</strong> <code>sudo fail2ban-client set sshd unbanip &lt;ton-IP&gt;</code>. Ajoute ton IP fixe à la liste blanche si besoin.</p>
+</div>
+<div data-lang="en"><p><strong>I locked myself out of SSH.</strong> Use your provider&#39;s <strong>web console</strong> (out-of-band access) to fix <code>sshd_config</code> or <code>ufw</code>. Always keep an SSH session open <strong>before</strong> testing an SSH change.</p>
+<p><strong>Let&#39;s Encrypt refuses the certificate.</strong> DNS doesn&#39;t resolve yet (wait for propagation, <code>dig</code>), or port 80 isn&#39;t reachable (<code>ufw</code>, or another service occupies the port). Check the reverse proxy logs.</p>
+<p><strong>A service answers over HTTP but not HTTPS.</strong> The proxy routing or the DNS subdomain is missing. Check the subdomain resolves and the proxy has a route for it.</p>
+<p><strong>After restore, the service starts but &quot;empty&quot;.</strong> You probably restored the config but not the <strong>data volume</strong> (or vice versa). The drill exists precisely to discover this <strong>in practice</strong>, not in a real incident.</p>
+<p><strong>fail2ban banned my own IP.</strong> <code>sudo fail2ban-client set sshd unbanip &lt;your-IP&gt;</code>. Add your static IP to the whitelist if needed.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

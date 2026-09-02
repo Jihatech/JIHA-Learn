@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker Compose — jiha.tech</title>
+  <title data-lang="en">Docker Compose — jiha.tech</title>
+  <meta name="description" content="Guide pas-à-pas Docker Compose : décrire une stack multi-services en YAML déclaratif, avec volumes, réseaux et .env." data-lang="fr">
+  <meta name="description" content="Step-by-step Docker Compose guide: describe a multi-service stack in declarative YAML, with volumes, networks and .env." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker Compose">
+  <meta property="og:description" content="Guide pas-à-pas Docker Compose : décrire une stack multi-services en YAML déclaratif, avec volumes, réseaux et .env.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-compose/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-compose/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-compose">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-compose</div>
+    <div class="prompt" data-lang="en">~/guides/docker-compose</div>
+    <h1 data-lang="fr">Docker Compose</h1>
+    <h1 data-lang="en">Docker Compose</h1>
+    <p class="tagline" data-lang="fr">Orchestrer plusieurs services proprement.</p>
+    <p class="tagline" data-lang="en">Orchestrate multiple services cleanly.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 60 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-19</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 60 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-06-19</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Une fois Docker en main, tu vas vite vouloir lancer <strong>plusieurs conteneurs ensemble</strong> : une app + sa base de données + un cache + un reverse proxy. Le faire à coup de <code>docker run</code> séparés est pénible (dix commandes à retaper), non versionnable (ta stack vit dans ton historique shell) et non partageable (impossible de dire « voici ma stack » à quelqu&#39;un).</p>
+<p><strong>Docker Compose</strong> résout ça : un fichier YAML décrit toute ta stack, et tu lances tout avec une seule commande. C&#39;est <strong>la</strong> brique standard du self-hosting moderne — tous les guides suivants de cette plateforme utilisent Compose.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé le guide Docker fondamentaux, tu sais lancer un conteneur seul, et tu veux passer à la vitesse supérieure.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu veux gérer un <strong>cluster multi-nœuds</strong> → regarde Kubernetes ou Docker Swarm.</li><li>Tu fais du serverless / des conteneurs managés (Cloud Run, Fargate) → ces plateformes ont leurs propres outils de déploiement.</li></ul>
+<p>Pour un serveur unique qui héberge tes services, Compose est exactement le bon niveau de complexité.</p>
+</div>
+<div data-lang="en"><p>Once you&#39;re comfortable with Docker, you&#39;ll quickly want to run <strong>several containers together</strong>: an app + its database + a cache + a reverse proxy. Doing it with separate <code>docker run</code> commands is painful (ten commands to retype), unversionable (your stack lives in your shell history) and unshareable (no way to hand someone &quot;here&#39;s my stack&quot;).</p>
+<p><strong>Docker Compose</strong> solves that: one YAML file describes your whole stack, and you start everything with a single command. It&#39;s <strong>the</strong> standard building block of modern self-hosting — every following guide on this platform uses Compose.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the Docker fundamentals guide, you can run a single container, and you want to level up.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You want to manage a <strong>multi-node cluster</strong> → look at Kubernetes or Docker Swarm.</li><li>You&#39;re doing serverless / managed containers (Cloud Run, Fargate) → those platforms have their own deployment tools.</li></ul>
+<p>For a single server hosting your services, Compose is exactly the right level of complexity.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Lire et écrire la structure d&#39;un <code>compose.yaml</code> moderne (sans la clé <code>version:</code> obsolète).</li><li>Définir des <strong>services</strong>, des <strong>volumes</strong> et des <strong>réseaux</strong> de façon déclarative.</li><li>Gérer les <strong>dépendances</strong> entre services (<code>depends_on</code> + healthchecks).</li><li>Externaliser les secrets dans un fichier <strong><code>.env</code></strong> — et éviter les pièges d&#39;échappement des <code>$</code>.</li><li>Piloter le <strong>cycle de vie</strong> d&#39;une stack : <code>up</code>, <code>down</code>, <code>restart</code>, <code>logs</code>, <code>ps</code>, <code>exec</code>.</li><li>Préparer ta stack à rejoindre un <strong>réseau partagé</strong> (<code>proxy</code>) pour le guide Traefik.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Read and write the structure of a modern <code>compose.yaml</code> (without the obsolete <code>version:</code> key).</li><li>Define <strong>services</strong>, <strong>volumes</strong> and <strong>networks</strong> declaratively.</li><li>Manage <strong>dependencies</strong> between services (<code>depends_on</code> + healthchecks).</li><li>Externalize secrets in a <strong><code>.env</code></strong> file — and avoid the <code>$</code> escaping traps.</li><li>Drive a stack&#39;s <strong>lifecycle</strong>: <code>up</code>, <code>down</code>, <code>restart</code>, <code>logs</code>, <code>ps</code>, <code>exec</code>.</li><li>Prepare your stack to join a <strong>shared network</strong> (<code>proxy</code>) for the Traefik guide.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Docker fondamentaux</strong> terminé : tu sais ce qu&#39;est une image, un conteneur, un volume, et tu as déjà lancé un <code>docker run</code>.</li><li>Le plugin <strong>Docker Compose v2</strong> installé — <code>docker compose version</code> doit répondre. Il est inclus par défaut dans Docker Desktop et Docker Engine récents.</li><li>Une aisance de base en <strong>ligne de commande Linux</strong> (<code>cd</code>, <code>nano</code>/<code>vim</code>, <code>ls</code>).</li></ul>
+<p>⚠️ Note importante : <strong><code>docker-compose</code></strong> (avec tiret) est l&#39;ancien outil Python, déprécié. <strong><code>docker compose</code></strong> (sans tiret) est le plugin officiel actuel. Dans ce guide — et partout ailleurs — on utilise toujours <strong>le sans-tiret</strong>.</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Docker fundamentals</strong> guide completed: you know what an image, a container and a volume are, and you&#39;ve already run a <code>docker run</code>.</li><li>The <strong>Docker Compose v2</strong> plugin installed — <code>docker compose version</code> must answer. It ships by default with Docker Desktop and recent Docker Engine.</li><li>Basic comfort with the <strong>Linux command line</strong> (<code>cd</code>, <code>nano</code>/<code>vim</code>, <code>ls</code>).</li></ul>
+<p>⚠️ Important note: <strong><code>docker-compose</code></strong> (with a hyphen) is the old Python tool, deprecated. <strong><code>docker compose</code></strong> (no hyphen) is the current official plugin. In this guide — and everywhere else — we always use <strong>the hyphen-less one</strong>.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Un projet Compose, c&#39;est un dossier avec un fichier <code>compose.yaml</code> au centre. Ce fichier décrit <strong>toute</strong> ta stack : les services (chaque entrée devient un conteneur), les volumes (la donnée qui survit aux conteneurs) et les réseaux (qui parle à qui).</p>
+<p>Anatomie d&#39;un projet typique :</p>
+</div>
+<div data-lang="en"><p>A Compose project is a folder with a <code>compose.yaml</code> file at its core. That file describes your <strong>entire</strong> stack: services (each entry becomes a container), volumes (the data that outlives containers) and networks (who talks to whom).</p>
+<p>Anatomy of a typical project:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>mon-projet/
+├── compose.yaml      # description déclarative de la stack / declarative stack description
+├── .env              # secrets et config sensible / secrets and sensitive config
+├── app/
+│   └── Dockerfile    # si tu builds une image custom / if you build a custom image
+└── data/             # bind mounts éventuels / optional bind mounts</code></pre>
+
+<figure class="schema" id="figure-compose-stack">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-compose-stack">
+  <title id="s-compose-stack">Une stack Docker Compose</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Une stack Docker Compose</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">compose.yml</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">un seul fichier</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="77" text-anchor="middle">services</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="77" text-anchor="middle">réseaux</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="77" text-anchor="middle">volumes</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Une stack Compose : plusieurs services, réseaux et volumes déclarés dans un seul fichier.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A Compose stack: several services, networks and volumes declared in a single file.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li><strong>Déclaratif, pas impératif.</strong> Tu décris l&#39;état voulu (« un service <code>db</code> avec ce volume »), Compose se débrouille pour l&#39;atteindre. Relancer <code>docker compose up -d</code> ne recrée que ce qui a changé.</li><li><strong>Un projet = un espace de noms.</strong> Compose préfixe conteneurs, volumes et réseaux avec le nom du projet (par défaut, le nom du dossier). Deux stacks ne se marchent pas dessus.</li><li><strong>Réseau automatique + DNS interne.</strong> Compose crée un réseau dédié à la stack, et les services <strong>se résolvent par leur nom</strong> : depuis le conteneur <code>app</code>, l&#39;hôte <code>db</code> pointe vers le conteneur <code>db</code>. Pas d&#39;IP à gérer.</li><li><strong>Le volume est ta vraie donnée.</strong> Les conteneurs sont jetables ; ce qui compte, c&#39;est ce qui est déclaré dans <code>volumes:</code>.</li><li><strong>Versions pinées, toujours.</strong> <code>image: mariadb:11.4</code>, jamais <code>:latest</code> : tu décides quand tu mets à jour, et tu sais quoi rollback si ça casse.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li><strong>Declarative, not imperative.</strong> You describe the desired state (&quot;a <code>db</code> service with this volume&quot;), Compose figures out how to get there. Re-running <code>docker compose up -d</code> only recreates what changed.</li><li><strong>One project = one namespace.</strong> Compose prefixes containers, volumes and networks with the project name (by default, the folder name). Two stacks never step on each other.</li><li><strong>Automatic network + internal DNS.</strong> Compose creates a network dedicated to the stack, and services <strong>resolve each other by name</strong>: from the <code>app</code> container, the host <code>db</code> points to the <code>db</code> container. No IPs to manage.</li><li><strong>The volume is your real data.</strong> Containers are disposable; what matters is what&#39;s declared under <code>volumes:</code>.</li><li><strong>Pinned versions, always.</strong> <code>image: mariadb:11.4</code>, never <code>:latest</code>: you decide when to update, and you know what to roll back if something breaks.</li></ul>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire ton premier <code>compose.yaml</code> : un WordPress + sa base MariaDB, le classique multi-services.</p>
+<p><strong>🤔 Pourquoi ?</strong> Deux services qui dépendent l&#39;un de l&#39;autre, un volume pour la donnée, des variables d&#39;environnement : ce petit fichier contient déjà tous les concepts que tu réutiliseras dans chaque stack self-hostée. Chaque ligne a un équivalent <code>docker run</code> que tu connais : <code>environment:</code> = <code>-e</code>, <code>volumes:</code> = <code>-v</code>, <code>ports:</code> = <code>-p</code>. La clé <code>volumes:</code> au niveau racine, elle, <strong>déclare</strong> les volumes nommés que la stack utilise. Et note l&#39;absence de clé <code>version:</code> en tête de fichier — elle est obsolète depuis Compose v2.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write your first <code>compose.yaml</code>: a WordPress + its MariaDB database, the classic multi-service example.</p>
+<p><strong>🤔 Why?</strong> Two services depending on each other, a volume for the data, environment variables: this small file already contains every concept you&#39;ll reuse in each self-hosted stack. Every line has a <code>docker run</code> equivalent you know: <code>environment:</code> = <code>-e</code>, <code>volumes:</code> = <code>-v</code>, <code>ports:</code> = <code>-p</code>. The root-level <code>volumes:</code> key, on the other hand, <strong>declares</strong> the named volumes the stack uses. Also note the absence of a <code>version:</code> key at the top — it&#39;s been obsolete since Compose v2.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/wp
+cd ~/wp
+nano compose.yaml</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootsecret
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wpsecret
+    volumes:
+      - db-data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.8
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - &quot;8080:80&quot;
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wpsecret
+      WORDPRESS_DB_NAME: wordpress
+
+volumes:
+  db-data:</code></pre>
+<div data-lang="fr"><p>Deux détails à bien voir :</p>
+<ul><li><code>WORDPRESS_DB_HOST: db</code> → grâce au réseau automatique de la stack et à son DNS interne, le nom du service <code>db</code> <strong>est</strong> l&#39;adresse de la base. Aucune IP à connaître.</li><li><code>depends_on: [db]</code> → démarre <code>wordpress</code> <strong>après</strong> <code>db</code>… mais ⚠️ ne garantit pas que la base soit <em>prête</em>, juste <em>démarrée</em>. On corrigera ça à l&#39;étape 6.</li><li>Les mots de passe en dur dans le YAML sont <strong>provisoires</strong> — on les sortira dans <code>.env</code> à l&#39;étape 4.</li></ul>
+<p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p>Two details worth noticing:</p>
+<ul><li><code>WORDPRESS_DB_HOST: db</code> → thanks to the stack&#39;s automatic network and internal DNS, the <code>db</code> service name <strong>is</strong> the database address. No IP to know.</li><li><code>depends_on: [db]</code> → starts <code>wordpress</code> <strong>after</strong> <code>db</code>… but ⚠️ doesn&#39;t guarantee the database is <em>ready</em>, only <em>started</em>. We&#39;ll fix that in step 6.</li><li>The hard-coded passwords in the YAML are <strong>temporary</strong> — we&#39;ll move them to <code>.env</code> in step 4.</li></ul>
+<p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Doit afficher la config interprétée sans erreur / should print the parsed config with no error</code></pre>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer toute la stack en une commande.</p>
+<p><strong>🤔 Pourquoi <code>-d</code> ?</strong> <code>-d</code> = detached : les conteneurs tournent en arrière-plan et te rendent la main. Sans cette option, tu serais attaché aux logs et un <code>Ctrl+C</code> arrêterait toute la stack. En pratique, on est toujours en <code>-d</code>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Start the whole stack with one command.</p>
+<p><strong>🤔 Why <code>-d</code>?</strong> <code>-d</code> = detached: the containers run in the background and free your shell. Without it, you&#39;d be attached to the logs and a <code>Ctrl+C</code> would stop the whole stack. In practice you&#39;re always in <code>-d</code>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# Les 2 services doivent être &quot;Up&quot;</code></pre>
+<p>Puis ouvre <code>http://localhost:8080</code> dans ton navigateur : tu dois voir la page d&#39;installation de WordPress. Si <code>db</code> redémarre en boucle, regarde ses logs : <code>docker compose logs db</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# Both services should be &quot;Up&quot;</code></pre>
+<p>Then open <code>http://localhost:8080</code> in your browser: you should see the WordPress install page. If <code>db</code> keeps restarting, check its logs: <code>docker compose logs db</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Maîtriser le cycle de vie de la stack — démarrer, observer, arrêter, supprimer.</p>
+<p><strong>🤔 Pourquoi ?</strong> C&#39;est ton quotidien d&#39;opérateur : 90 % de ta vie avec Compose, ce sont ces sept commandes. La distinction la plus importante est <code>down</code> vs <code>down -v</code> : <code>down</code> est <strong>non-destructif</strong> pour les données (les volumes nommés survivent, un <code>up -d</code> derrière et tout revient) ; <code>down -v</code> <strong>détruit aussi les volumes</strong> — donc ta base de données.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Master the stack lifecycle — start, observe, stop, remove.</p>
+<p><strong>🤔 Why?</strong> This is your day-to-day as an operator: 90% of your life with Compose is these seven commands. The most important distinction is <code>down</code> vs <code>down -v</code>: <code>down</code> is <strong>non-destructive</strong> for data (named volumes survive; run <code>up -d</code> afterwards and everything comes back); <code>down -v</code> <strong>also destroys the volumes</strong> — meaning your database.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps                  # état de la stack / stack status
+docker compose logs -f wordpress   # logs d&#39;un service / one service&#39;s logs
+docker compose logs -f             # logs de toute la stack / whole-stack logs
+docker compose restart wordpress   # redémarrer un service / restart one service
+docker compose stop                # arrêter sans supprimer / stop without removing
+docker compose start               # relancer après stop / start again after stop
+docker compose down                # arrêter ET supprimer les conteneurs (volumes préservés) / stop AND remove containers (volumes preserved)</code></pre>
+<div data-lang="fr"><p>⚠️ <strong>Commande destructive — à connaître, à ne PAS taper maintenant :</strong></p>
+</div>
+<div data-lang="en"><p>⚠️ <strong>Destructive command — know it, do NOT type it now:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose down -v   # ⚠️ supprime AUSSI les volumes = PERTE DE DONNÉES définitive
+                         # ⚠️ ALSO removes volumes = permanent DATA LOSS</code></pre>
+<div data-lang="fr"><p><code>down -v</code> n&#39;a qu&#39;un usage légitime : repartir de zéro volontairement. Triple vérification avant de l&#39;utiliser.</p>
+<p><strong>✅ Vérification :</strong> fais un cycle complet <code>docker compose down</code> puis <code>docker compose up -d</code>, et recharge <code>http://localhost:8080</code> : WordPress doit se souvenir de ton installation (le volume <code>db-data</code> a survécu).</p>
+</div>
+<div data-lang="en"><p><code>down -v</code> has only one legitimate use: deliberately starting from scratch. Triple-check before using it.</p>
+<p><strong>✅ Check:</strong> run a full cycle — <code>docker compose down</code> then <code>docker compose up -d</code> — and reload <code>http://localhost:8080</code>: WordPress must remember your installation (the <code>db-data</code> volume survived).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Sortir les secrets du <code>compose.yaml</code> vers un fichier <code>.env</code>.</p>
+<p><strong>🤔 Pourquoi ?</strong> Hardcoder <code>MARIADB_ROOT_PASSWORD: rootsecret</code> dans le YAML est <strong>mauvais</strong> : si tu versionnes ton compose dans Git, ton mot de passe est public. Le pattern universel du self-hosting : <code>compose.yaml</code> versionnable et partageable, <code>.env</code> qui reste sur ta machine.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Move secrets out of <code>compose.yaml</code> into a <code>.env</code> file.</p>
+<p><strong>🤔 Why?</strong> Hard-coding <code>MARIADB_ROOT_PASSWORD: rootsecret</code> in the YAML is <strong>bad</strong>: if you version your compose file in Git, your password is public. The universal self-hosting pattern: <code>compose.yaml</code> versionable and shareable, <code>.env</code> staying on your machine.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano .env</code></pre>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code># Valeurs BRUTES : pas de guillemets, pas d&#39;espaces autour du =
+# RAW values: no quotes, no spaces around the =
+MARIADB_ROOT_PASSWORD=rootsecret
+MARIADB_DATABASE=wordpress
+MARIADB_USER=wp
+MARIADB_PASSWORD=wpsecret</code></pre>
+<div data-lang="fr"><p>Puis modifie le service <code>db</code> dans <code>compose.yaml</code> pour interpoler ces variables :</p>
+</div>
+<div data-lang="en"><p>Then edit the <code>db</code> service in <code>compose.yaml</code> to interpolate those variables:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql</code></pre>
+<div data-lang="fr"><p>Et protège le <code>.env</code> de Git dès maintenant :</p>
+</div>
+<div data-lang="en"><p>And protect <code>.env</code> from Git right away:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;.env&quot; &gt;&gt; .gitignore</code></pre>
+<div data-lang="fr"><p>⚠️ <strong>Le piège des <code>$</code> — retiens la règle une fois pour toutes :</strong></p>
+<ul><li><strong>Valeur dans un <code>.env</code> chargé via <code>env_file:</code> ou lue par interpolation</strong> → colle-la <strong>brute</strong> : pas de guillemets, pas de doublement des <code>$</code>. Des guillemets parasites peuvent finir <em>dans</em> la valeur et casser silencieusement.</li><li><strong>Valeur écrite directement dans <code>compose.yaml</code></strong> (là où l&#39;interpolation <code>${...}</code> s&#39;applique) et qui contient un <code>$</code> littéral (hash Argon2id, htpasswd…) → <strong>double</strong> chaque <code>$</code> en <code>$$</code>, sinon Compose essaie d&#39;interpoler.</li><li>Écris toujours <code>${VARIABLE}</code> avec accolades, jamais <code>$VARIABLE</code> nu : sans accolades, certains enchaînements de caractères cassent l&#39;interpolation.</li></ul>
+<p>Il existe aussi <code>env_file: .env</code>, qui injecte <strong>tout</strong> le fichier comme variables d&#39;environnement du conteneur, sans interpolation dans le YAML. Pratique quand un service prend toute sa config par variables (tu le verras dans le guide Vaultwarden). Ici on garde l&#39;interpolation <code>${...}</code>, plus explicite : on voit dans le YAML exactement quelles variables chaque service reçoit.</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config | grep MARIADB
+# Les valeurs du .env doivent apparaître interpolées, sans ${...} restant
+docker compose up -d
+docker compose ps
+# Les 2 services toujours &quot;Up&quot;</code></pre>
+</div>
+<div data-lang="en"><p>⚠️ <strong>The <code>$</code> trap — learn the rule once and for all:</strong></p>
+<ul><li><strong>Value in a <code>.env</code> loaded via <code>env_file:</code> or read through interpolation</strong> → paste it <strong>raw</strong>: no quotes, no doubling of <code>$</code>. Stray quotes can end up <em>inside</em> the value and break things silently.</li><li><strong>Value written directly in <code>compose.yaml</code></strong> (where <code>${...}</code> interpolation applies) that contains a literal <code>$</code> (Argon2id hash, htpasswd…) → <strong>double</strong> each <code>$</code> as <code>$$</code>, otherwise Compose tries to interpolate it.</li><li>Always write <code>${VARIABLE}</code> with braces, never bare <code>$VARIABLE</code>: without braces, some character sequences break interpolation.</li></ul>
+<p>There&#39;s also <code>env_file: .env</code>, which injects the <strong>whole</strong> file as container environment variables, with no interpolation in the YAML. Handy when a service takes all its config through variables (you&#39;ll see it in the Vaultwarden guide). Here we keep <code>${...}</code> interpolation, which is more explicit: the YAML shows exactly which variables each service receives.</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config | grep MARIADB
+# The .env values must appear interpolated, no ${...} left
+docker compose up -d
+docker compose ps
+# Both services still &quot;Up&quot;</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Attacher un service à un réseau partagé externe — la préparation directe du guide Traefik.</p>
+<p><strong>🤔 Pourquoi ?</strong> Compose crée un réseau dédié par stack : parfait pour l&#39;isolation, mais quand tu voudras qu&#39;un <strong>reverse proxy externe</strong> (Traefik) atteigne ton service, il faut un réseau commun aux deux stacks. Convention de tout le parcours : ce réseau s&#39;appelle <strong><code>proxy</code></strong>. <code>external: true</code> dit à Compose : « ce réseau existe déjà ailleurs, ne le crée pas, attache-toi à lui ». Règle de sécurité : <strong>seuls les services à exposer</strong> rejoignent <code>proxy</code> — jamais les bases de données ni les caches, qui restent sur le réseau <code>default</code> de la stack.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Attach a service to a shared external network — the direct preparation for the Traefik guide.</p>
+<p><strong>🤔 Why?</strong> Compose creates one dedicated network per stack: great for isolation, but when you want an <strong>external reverse proxy</strong> (Traefik) to reach your service, you need a network shared by both stacks. Convention for the whole learning path: that network is called <strong><code>proxy</code></strong>. <code>external: true</code> tells Compose: &quot;this network already exists elsewhere, don&#39;t create it, attach to it&quot;. Security rule: <strong>only services meant to be exposed</strong> join <code>proxy</code> — never databases or caches, which stay on the stack&#39;s <code>default</code> network.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create proxy</code></pre>
+<div data-lang="fr"><p>Puis dans <code>compose.yaml</code>, attache <strong>uniquement</strong> <code>wordpress</code> au réseau partagé (et garde <code>db</code> isolée) :</p>
+</div>
+<div data-lang="en"><p>Then in <code>compose.yaml</code>, attach <strong>only</strong> <code>wordpress</code> to the shared network (and keep <code>db</code> isolated):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>  wordpress:
+    image: wordpress:6.8
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - &quot;8080:80&quot;
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}
+      WORDPRESS_DB_NAME: ${MARIADB_DATABASE}
+    networks:
+      - default
+      - proxy
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p>(Dès que le service parle à Traefik, les <code>ports:</code> deviendront inutiles — on les enlèvera dans le guide Traefik. Ici on les garde pour continuer à tester en local.)</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d
+docker network inspect proxy --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;
+# Doit lister le conteneur wordpress — et PAS le conteneur db</code></pre>
+</div>
+<div data-lang="en"><p>(Once the service talks to Traefik, the <code>ports:</code> will become unnecessary — we&#39;ll remove them in the Traefik guide. Here we keep them to keep testing locally.)</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d
+docker network inspect proxy --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;
+# Must list the wordpress container — and NOT the db container</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Rendre le démarrage fiable avec un healthcheck et <code>depends_on: condition: service_healthy</code>.</p>
+<p><strong>🤔 Pourquoi ?</strong> Le <code>depends_on</code> basique ne fait que <strong>lancer dans l&#39;ordre</strong>, il n&#39;attend pas que le service soit <em>prêt</em>. Sans ça : WordPress démarre, tente de se connecter à MariaDB qui initialise encore son schéma, échoue, et plante. Avec un healthcheck + <code>condition: service_healthy</code>, Compose attend que la base réponde sainement avant de lancer WordPress. (<code>healthcheck.sh</code> est fourni <strong>dans</strong> l&#39;image MariaDB officielle — on ne suppose jamais un binaire présent sans vérifier.)</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Make startup reliable with a healthcheck and <code>depends_on: condition: service_healthy</code>.</p>
+<p><strong>🤔 Why?</strong> Basic <code>depends_on</code> only <strong>starts in order</strong>; it doesn&#39;t wait for the service to be <em>ready</em>. Without this: WordPress starts, tries to connect to MariaDB which is still initializing its schema, fails, and crashes. With a healthcheck + <code>condition: service_healthy</code>, Compose waits until the database answers healthily before starting WordPress. (<code>healthcheck.sh</code> ships <strong>inside</strong> the official MariaDB image — never assume a binary exists without checking.)</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;healthcheck.sh&quot;, &quot;--connect&quot;, &quot;--innodb_initialized&quot;]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    image: wordpress:6.8
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - &quot;8080:80&quot;
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: ${MARIADB_USER}
+      WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}
+      WORDPRESS_DB_NAME: ${MARIADB_DATABASE}
+    networks:
+      - default
+      - proxy
+
+volumes:
+  db-data:
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d
+docker compose ps
+# db doit afficher &quot;Up X (healthy)&quot; ; wordpress ne démarre qu&#39;après</code></pre>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d
+docker compose ps
+# db must show &quot;Up X (healthy)&quot;; wordpress only starts afterwards</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mémoriser le squelette « bonnes pratiques » que tu réutiliseras pour chaque service du parcours.</p>
+<p><strong>🤔 Pourquoi ?</strong> Chaque ligne encode une leçon : version <strong>pinée</strong> (jamais <code>:latest</code>), <code>restart: unless-stopped</code> (et pas <code>always</code>, qui relancerait même après un arrêt volontaire), secrets externalisés, volume nommé pour la donnée, config en lecture seule, réseau <code>proxy</code> réservé à l&#39;exposition, healthcheck, et une borne mémoire pour qu&#39;un service ne mange pas tout le serveur.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Memorize the &quot;best practices&quot; skeleton you&#39;ll reuse for every service in the learning path.</p>
+<p><strong>🤔 Why?</strong> Every line encodes a lesson: <strong>pinned</strong> version (never <code>:latest</code>), <code>restart: unless-stopped</code> (not <code>always</code>, which would restart even after a deliberate stop), externalized secrets, a named volume for data, read-only config, the <code>proxy</code> network reserved for exposure, a healthcheck, and a memory limit so one service can&#39;t eat the whole server.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  app:
+    image: monregistry/app:1.2.3      # ✅ version pinée, jamais :latest / pinned version, never :latest
+    restart: unless-stopped           # ✅ pas &quot;always&quot; / not &quot;always&quot;
+    env_file: .env                    # ✅ secrets externalisés / externalized secrets
+    volumes:
+      - app-data:/data                # ✅ volume nommé pour la donnée / named volume for data
+      - ./config:/etc/app:ro          # ✅ config en lecture seule / read-only config
+    networks:
+      - proxy                         # ✅ seulement si le service doit être exposé / only if exposed
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost/health&quot;]
+      interval: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M                # ✅ borne mémoire / memory cap
+
+volumes:
+  app-data:
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> relis le <code>compose.yaml</code> de ta stack WordPress et coche mentalement chaque pratique : versions pinées ? secrets dans <code>.env</code> ? volume nommé ? <code>db</code> hors du réseau <code>proxy</code> ? healthcheck ? Si oui partout, tu es prêt pour Traefik.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> re-read your WordPress stack&#39;s <code>compose.yaml</code> and mentally tick each practice: pinned versions? secrets in <code>.env</code>? named volume? <code>db</code> kept off the <code>proxy</code> network? healthcheck? If yes everywhere, you&#39;re ready for Traefik.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Tu utilises encore <code>version: &quot;3.x&quot;</code> en haut du fichier.</strong> Cette clé est <strong>obsolète</strong> depuis Compose v2 (2023). Elle ne fait rien, à part du bruit visuel et parfois un warning. Supprime-la.</p>
+<p><strong>2. Tu lances <code>docker-compose</code> (avec tiret) et obtiens des comportements étranges.</strong> C&#39;est l&#39;ancien outil Python, déprécié et figé. Utilise toujours <code>docker compose</code> (plugin officiel v2).</p>
+<p><strong>3. Tu fais <code>docker compose down -v</code> et perds tes données.</strong> <code>down</code> seul préserve les volumes nommés ; <code>-v</code> les <strong>détruit définitivement</strong> — base de données comprise. Triple vérification avant d&#39;ajouter <code>-v</code>, et jamais en copier-coller réflexe.</p>
+<p><strong>4. Tu modifies <code>compose.yaml</code> mais <code>restart</code> n&#39;applique rien.</strong> <code>docker compose restart</code> redémarre le conteneur <strong>existant</strong>, avec son ancienne définition. Pour appliquer un changement de config (YAML ou <code>.env</code>), c&#39;est <code>docker compose up -d</code> : Compose recrée les conteneurs dont la définition a changé.</p>
+<p><strong>5. Variables d&#39;env qui cassent à cause des <code>$</code>.</strong> <code>$VARIABLE</code> sans accolades casse sur certains caractères → toujours <code>${VARIABLE}</code>. Valeur avec <code>$</code> littéral (hash…) écrite directement dans le YAML → doubler en <code>$$</code>. Valeur dans un <code>.env</code> chargé par <code>env_file:</code> → brute, sans guillemets ni doublement. Inverser ces règles casse <strong>silencieusement</strong>.</p>
+<p><strong>6. Tu commits ton <code>.env</code>.</strong> Même piège que dans Git fondamentaux : le secret est public dès le premier push, et il reste dans l&#39;historique même après suppression. <code>.gitignore</code> dès la création du fichier, pas après.</p>
+<p><strong>7. Deux stacks, un conflit de ports.</strong> Deux compose qui exposent <code>8080:80</code> ne peuvent pas tourner en même temps (<code>address already in use</code>). Soit tu changes les ports publiés, soit — mieux — tu passes par un reverse proxy : c&#39;est exactement le guide suivant.</p>
+</div>
+<div data-lang="en"><p><strong>1. You still put <code>version: &quot;3.x&quot;</code> at the top of the file.</strong> That key has been <strong>obsolete</strong> since Compose v2 (2023). It does nothing except add visual noise and sometimes a warning. Remove it.</p>
+<p><strong>2. You run <code>docker-compose</code> (with a hyphen) and get weird behavior.</strong> That&#39;s the old Python tool, deprecated and frozen. Always use <code>docker compose</code> (official v2 plugin).</p>
+<p><strong>3. You run <code>docker compose down -v</code> and lose your data.</strong> Plain <code>down</code> preserves named volumes; <code>-v</code> <strong>destroys them permanently</strong> — database included. Triple-check before adding <code>-v</code>, and never as a copy-paste reflex.</p>
+<p><strong>4. You edit <code>compose.yaml</code> but <code>restart</code> applies nothing.</strong> <code>docker compose restart</code> restarts the <strong>existing</strong> container with its old definition. To apply a config change (YAML or <code>.env</code>), use <code>docker compose up -d</code>: Compose recreates the containers whose definition changed.</p>
+<p><strong>5. Environment variables breaking because of <code>$</code>.</strong> <code>$VARIABLE</code> without braces breaks on some characters → always <code>${VARIABLE}</code>. A value with a literal <code>$</code> (hash…) written directly in the YAML → double it as <code>$$</code>. A value in a <code>.env</code> loaded via <code>env_file:</code> → raw, no quotes, no doubling. Swapping these rules breaks <strong>silently</strong>.</p>
+<p><strong>6. You commit your <code>.env</code>.</strong> Same trap as in Git fundamentals: the secret is public from the first push, and it stays in history even after deletion. <code>.gitignore</code> when the file is created, not after.</p>
+<p><strong>7. Two stacks, one port conflict.</strong> Two compose files exposing <code>8080:80</code> can&#39;t run at the same time (<code>address already in use</code>). Either change the published ports, or — better — go through a reverse proxy: that&#39;s exactly the next guide.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li><code>docker compose ps</code> montre ta stack avec <code>db</code> en <code>Up X (healthy)</code> et <code>wordpress</code> en <code>Up</code>.</li><li>Tu lis un <code>compose.yaml</code> inconnu et tu en comprends 90 % du premier coup.</li><li>Tu sais expliquer la différence entre <code>docker compose down</code> et <code>down -v</code> — et pourquoi le second est dangereux.</li><li>Tes secrets vivent dans <code>.env</code> (gitignoré), plus aucun mot de passe dans le YAML.</li><li>Toutes tes images sont pinées sur une version explicite, aucun <code>:latest</code>.</li><li><code>docker network inspect proxy</code> montre ton service exposé — et pas ta base de données.</li><li>Tu peux faire <code>down</code> puis <code>up -d</code> sans perdre l&#39;installation WordPress.</li></ul>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li><code>docker compose ps</code> shows your stack with <code>db</code> as <code>Up X (healthy)</code> and <code>wordpress</code> as <code>Up</code>.</li><li>You can read an unfamiliar <code>compose.yaml</code> and understand 90% of it on first pass.</li><li>You can explain the difference between <code>docker compose down</code> and <code>down -v</code> — and why the latter is dangerous.</li><li>Your secrets live in <code>.env</code> (gitignored), no password left in the YAML.</li><li>All your images are pinned to an explicit version, no <code>:latest</code> anywhere.</li><li><code>docker network inspect proxy</code> shows your exposed service — and not your database.</li><li>You can run <code>down</code> then <code>up -d</code> without losing the WordPress installation.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Trois prolongements naturels, dans l&#39;ordre du parcours :</p>
+<ol><li><strong>Traefik</strong> — le guide suivant : exposer tes stacks proprement en HTTPS automatique, via le réseau <code>proxy</code> que tu viens de créer. Plus de conflits de ports, plus de <code>8080</code> à retenir.</li><li><strong>Vaultwarden</strong> — ton premier service self-hosté sérieux en Compose : il réutilise exactement les patterns de ce guide (volume, <code>env_file</code>, réseau <code>proxy</code>, healthcheck).</li><li><strong>Compose profiles</strong> — pour activer des services conditionnellement (dev / prod) dans un même fichier. À explorer plus tard, quand tes stacks grossiront.</li></ol>
+</div>
+<div data-lang="en"><p>Three natural extensions, in learning-path order:</p>
+<ol><li><strong>Traefik</strong> — the next guide: expose your stacks cleanly with automatic HTTPS, through the <code>proxy</code> network you just created. No more port conflicts, no more <code>8080</code> to remember.</li><li><strong>Vaultwarden</strong> — your first serious self-hosted service in Compose: it reuses exactly the patterns from this guide (volume, <code>env_file</code>, <code>proxy</code> network, healthcheck).</li><li><strong>Compose profiles</strong> — to enable services conditionally (dev / prod) within one file. Explore later, once your stacks grow.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés pour piloter une stack au quotidien.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet to drive a stack day-to-day.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+docker compose up -d               # démarrer / appliquer les changements — start / apply changes
+docker compose ps                  # état / status
+docker compose logs -f &lt;service&gt;   # suivre les logs / follow logs
+docker compose restart &lt;service&gt;   # redémarrer (SANS relire la config) / restart (does NOT re-read config)
+docker compose stop                # arrêter sans supprimer / stop without removing
+docker compose down                # arrêter + supprimer conteneurs (volumes préservés) / stop + remove containers (volumes kept)
+docker compose down -v             # ⚠️ DESTRUCTIF : supprime aussi les volumes / DESTRUCTIVE: also removes volumes
+
+# Inspecter / Inspect
+docker compose config              # YAML interprété (interpolation comprise) / parsed YAML (incl. interpolation)
+docker compose exec &lt;service&gt; sh   # shell dans un conteneur / shell inside a container
+docker network inspect proxy       # qui est sur le réseau partagé ? / who&#39;s on the shared network?
+
+# Mettre à jour / Update (après lecture des release notes / after reading release notes)
+# 1. changer le tag image: dans compose.yaml / change the image: tag in compose.yaml
+# 2. appliquer / apply:
+docker compose pull &amp;&amp; docker compose up -d</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com/compose/compose-file/">Spécification officielle Compose</a> — la référence du format <code>compose.yaml</code>.</li><li><a href="https://github.com/docker/awesome-compose">Awesome Compose</a> — exemples officiels pour des dizaines de stacks.</li><li><a href="https://docs.docker.com/compose/migrate/">Migration Compose v1 → v2</a> — si tu croises encore <code>docker-compose</code> avec tiret.</li><li><a href="https://docs.docker.com/compose/how-tos/environment-variables/">Variables d&#39;environnement et interpolation</a> — le détail des règles <code>.env</code> / <code>${...}</code> / <code>$$</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com/compose/compose-file/">Official Compose specification</a> — the reference for the <code>compose.yaml</code> format.</li><li><a href="https://github.com/docker/awesome-compose">Awesome Compose</a> — official examples for dozens of stacks.</li><li><a href="https://docs.docker.com/compose/migrate/">Compose v1 → v2 migration</a> — if you still run into hyphenated <code>docker-compose</code>.</li><li><a href="https://docs.docker.com/compose/how-tos/environment-variables/">Environment variables and interpolation</a> — the fine print on <code>.env</code> / <code>${...}</code> / <code>$$</code> rules.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« network proxy declared as external, but could not be found ».</strong> Le réseau externe que tu références n&#39;existe pas encore : <code>external: true</code> signifie que Compose ne le crée jamais lui-même. Crée-le une fois : <code>docker network create proxy</code>.</p>
+<p><strong>« yaml: line N: … » ou une erreur de structure alors que ton fichier « a l&#39;air bon ».</strong> Presque toujours l&#39;indentation : le YAML est strict sur les espaces et n&#39;accepte <strong>jamais</strong> de tabulation. Valide avec <code>docker compose config</code> — il pointe la ligne fautive — et configure ton éditeur pour indenter en espaces.</p>
+<p><strong>WordPress ne se connecte pas à la base.</strong> Deux causes classiques : soit MariaDB n&#39;était pas <em>prête</em> au moment où WordPress a tenté (→ healthcheck + <code>condition: service_healthy</code>, étape 6), soit les identifiants ne correspondent pas entre le bloc <code>db</code> et le bloc <code>wordpress</code> (→ revérifie ton <code>.env</code> puis <code>docker compose config | grep -E &#39;MARIADB|WORDPRESS&#39;</code>).</p>
+<p><strong>« no configuration file provided: not found ».</strong> Tu n&#39;es pas dans le dossier qui contient <code>compose.yaml</code>, ou ton fichier porte un autre nom (l&#39;ancien nom <code>docker-compose.yml</code> est encore accepté mais déprécié). <code>cd</code> dans le bon dossier, ou renomme en <code>compose.yaml</code>.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;network proxy declared as external, but could not be found&quot;.</strong> The external network you reference doesn&#39;t exist yet: <code>external: true</code> means Compose never creates it itself. Create it once: <code>docker network create proxy</code>.</p>
+<p><strong>&quot;yaml: line N: …&quot; or a structure error while your file &quot;looks fine&quot;.</strong> Almost always indentation: YAML is strict about spaces and <strong>never</strong> accepts tabs. Validate with <code>docker compose config</code> — it points at the offending line — and set your editor to indent with spaces.</p>
+<p><strong>WordPress can&#39;t connect to the database.</strong> Two classic causes: either MariaDB wasn&#39;t <em>ready</em> when WordPress tried (→ healthcheck + <code>condition: service_healthy</code>, step 6), or the credentials don&#39;t match between the <code>db</code> and <code>wordpress</code> blocks (→ re-check your <code>.env</code> then <code>docker compose config | grep -E &#39;MARIADB|WORDPRESS&#39;</code>).</p>
+<p><strong>&quot;no configuration file provided: not found&quot;.</strong> You&#39;re not in the folder containing <code>compose.yaml</code>, or your file has another name (the old <code>docker-compose.yml</code> name is still accepted but deprecated). <code>cd</code> into the right folder, or rename to <code>compose.yaml</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

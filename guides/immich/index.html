@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Immich — Ton Google Photos auto-hébergé — jiha.tech</title>
+  <title data-lang="en">Immich — Your self-hosted Google Photos — jiha.tech</title>
+  <meta name="description" content="Guide pas-à-pas pour héberger Immich : stack Docker multi-conteneurs, Traefik, apps mobiles, sauvegardes." data-lang="fr">
+  <meta name="description" content="Step-by-step guide to self-host Immich: multi-container Docker stack, Traefik, mobile apps, backups." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Immich — Ton Google Photos auto-hébergé">
+  <meta property="og:description" content="Guide pas-à-pas pour héberger Immich : stack Docker multi-conteneurs, Traefik, apps mobiles, sauvegardes.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/immich/">
+  <link rel="canonical" href="https://jiha.tech/guides/immich/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="immich">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/immich</div>
+    <div class="prompt" data-lang="en">~/guides/immich</div>
+    <h1 data-lang="fr">Immich — Ton Google Photos auto-hébergé</h1>
+    <h1 data-lang="en">Immich — Your self-hosted Google Photos</h1>
+    <p class="tagline" data-lang="fr">Galerie de photos privée, avec apps mobile.</p>
+    <p class="tagline" data-lang="en">Private photo gallery with mobile apps.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 75 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>v1.135.3</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-19</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 75 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>v1.135.3</strong></div>
+  <div><span>Last review</span><strong>2026-06-19</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Immich est devenu <strong>la référence</strong> du self-hosting photo. Apps iOS/Android polies, sauvegarde automatique du téléphone, recherche en langage naturel (&quot;photos de mon chien à la plage&quot;), reconnaissance faciale, carte, partage. Tout ça avec tes photos <strong>sur ton serveur</strong> — pas chez Google.</p>
+<p>Contrairement à Vaultwarden (un seul conteneur), Immich est <strong>une vraie stack</strong> : un serveur, un service de machine learning, un PostgreSQL avec extension vectorielle, un cache Redis. Ce guide te montre comment monter tout ça proprement, derrière Traefik, avec une stratégie de sauvegarde digne de tes souvenirs.</p>
+<p><strong>Pour qui c&#39;est :</strong> quelqu&#39;un qui veut quitter Google Photos ou iCloud Photos pour reprendre le contrôle, sans sacrifier l&#39;expérience mobile. C&#39;est aussi le guide idéal pour apprendre à intégrer une <strong>stack multi-conteneurs</strong> à ton reverse proxy.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu as <strong>moins de 6 Go de RAM</strong> disponibles sur ton serveur — Immich va ramer (avec le ML désactivé, 4 Go passent).</li><li>Tu as <strong>moins de 50 Go de stockage</strong> libre — ce ne sera pas suffisant à moyen terme pour une photothèque réelle.</li><li>Tu n&#39;as <strong>pas de stratégie de sauvegarde</strong> — ne mets pas tes photos précieuses ici. Perdre la base = perdre albums, visages et métadonnées (les photos elles-mêmes restent dans <code>UPLOAD_LOCATION</code>, mais anonymes).</li></ul>
+<p>Si l&#39;un des trois te concerne, garde Google Photos encore un peu et reviens quand ton serveur est prêt. C&#39;est un bon arbitrage, pas un échec.</p>
+</div>
+<div data-lang="en"><p>Immich has become <strong>the reference</strong> for self-hosted photos. Polished iOS/Android apps, automatic phone backup, natural-language search (&quot;photos of my dog at the beach&quot;), face recognition, map view, sharing. All of it with your photos <strong>on your server</strong> — not at Google&#39;s.</p>
+<p>Unlike Vaultwarden (a single container), Immich is <strong>a real stack</strong>: a server, a machine learning service, a PostgreSQL with a vector extension, a Redis cache. This guide shows you how to assemble it all cleanly, behind Traefik, with a backup strategy worthy of your memories.</p>
+<p><strong>Who it&#39;s for:</strong> someone who wants to leave Google Photos or iCloud Photos and take back control, without sacrificing the mobile experience. It&#39;s also the ideal guide for learning how to plug a <strong>multi-container stack</strong> into your reverse proxy.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You have <strong>less than 6 GB of RAM</strong> available on your server — Immich will crawl (with ML disabled, 4 GB is workable).</li><li>You have <strong>less than 50 GB of free storage</strong> — that won&#39;t be enough medium-term for a real photo library.</li><li>You have <strong>no backup strategy</strong> — don&#39;t put your precious photos here. Losing the database = losing albums, faces and metadata (the photos themselves stay in <code>UPLOAD_LOCATION</code>, but anonymous).</li></ul>
+<p>If any of the three applies, keep Google Photos a bit longer and come back when your server is ready. That&#39;s a sound trade-off, not a failure.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Déployer une <strong>stack multi-conteneurs</strong> complète (serveur + base de données + cache + machine learning) à partir du compose officiel du projet.</li><li>Utiliser un <strong>fichier <code>.env</code> officiel</strong> fourni par le projet (au lieu d&#39;une config inline), et <strong>pinner une version</strong> précise.</li><li>Configurer le <strong>stockage des photos</strong> sur un emplacement dédié — la seule donnée irremplaçable de la stack.</li><li>Attacher <strong>un seul service</strong> de la stack au réseau <code>proxy</code> de Traefik, en gardant base de données, cache et ML sur le réseau interne.</li><li>Mettre en place les <strong>apps mobiles</strong> avec sauvegarde automatique.</li><li>Sauvegarder <strong>base de données + photos</strong> avec la bonne méthode pour chacune.</li></ul>
+<p>Tu manipuleras au passage : <code>docker compose</code>, réseaux Docker multiples par conteneur, <code>pg_dumpall</code>, labels Traefik, cron.</p>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Deploy a complete <strong>multi-container stack</strong> (server + database + cache + machine learning) from the project&#39;s official compose file.</li><li>Use an <strong>official <code>.env</code> file</strong> provided by the project (instead of inline config), and <strong>pin a precise version</strong>.</li><li>Configure <strong>photo storage</strong> on a dedicated location — the only irreplaceable data in the stack.</li><li>Attach <strong>a single service</strong> of the stack to Traefik&#39;s <code>proxy</code> network, keeping the database, cache and ML on the internal network.</li><li>Set up the <strong>mobile apps</strong> with automatic backup.</li><li>Back up <strong>database + photos</strong> with the right method for each.</li></ul>
+<p>Along the way you&#39;ll handle: <code>docker compose</code>, multiple Docker networks per container, <code>pg_dumpall</code>, Traefik labels, cron.</p>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li><strong>Docker et Docker Compose</strong> maîtrisés (conteneurs, images, volumes, <code>compose.yaml</code>).</li><li>Un <strong>reverse proxy Traefik fonctionnel</strong>, avec son réseau Docker <code>proxy</code> et son certresolver nommé <code>le</code> (mis en place dans le guide Traefik).</li><li>Au moins <strong>6 Go de RAM</strong> disponibles sur ton serveur (4 Go si tu désactives le machine learning).</li><li>Au moins <strong>50 Go de disque</strong> libres, idéalement sur un disque dédié (pas ton disque système).</li><li>Un <strong>sous-domaine</strong> que tu contrôles (ex. <code>photos.exemple.com</code>), pointant vers ton serveur.</li><li>Un <strong>smartphone iOS ou Android</strong> pour l&#39;app mobile.</li></ul>
+<p><strong>Pourquoi la RAM compte ici :</strong> le service de machine learning (recherche intelligente, reconnaissance faciale) charge des modèles en mémoire. C&#39;est lui qui fait la magie d&#39;Immich, mais c&#39;est aussi lui qui consomme. On verra comment le désactiver si ta machine est modeste.</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li><strong>Docker and Docker Compose</strong> under your belt (containers, images, volumes, <code>compose.yaml</code>).</li><li>A <strong>working Traefik reverse proxy</strong>, with its <code>proxy</code> Docker network and its cert resolver named <code>le</code> (set up in the Traefik guide).</li><li>At least <strong>6 GB of RAM</strong> available on your server (4 GB if you disable machine learning).</li><li>At least <strong>50 GB of free disk</strong>, ideally on a dedicated disk (not your system disk).</li><li>A <strong>subdomain</strong> you control (e.g. <code>photos.exemple.com</code>), pointed at your server.</li><li>An <strong>iOS or Android smartphone</strong> for the mobile app.</li></ul>
+<p><strong>Why RAM matters here:</strong> the machine learning service (smart search, face recognition) loads models into memory. It&#39;s what makes Immich magical — and what makes it hungry. We&#39;ll see how to disable it if your machine is modest.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../docker-compose/">
+    <span class="num">12</span>
+    <span class="title-line" data-lang="fr">Docker Compose</span>
+    <span class="title-line" data-lang="en">Docker Compose</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Voici ce qu&#39;on va construire — quatre conteneurs qui coopèrent, mais <strong>un seul</strong> exposé au monde via Traefik.</p>
+</div>
+<div data-lang="en"><p>Here&#39;s what we&#39;re building — four containers working together, but <strong>only one</strong> exposed to the world through Traefik.</p>
+</div>
+
+<figure class="schema" id="figure-immich-architecture">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-immich-architecture">
+  <title id="s-immich-architecture">Architecture Immich</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Architecture Immich</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">serveur</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">rejoint le réseau proxy</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="77" text-anchor="middle">machine learning</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="77" text-anchor="middle">PostgreSQL</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="77" text-anchor="middle">Redis</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Architecture Immich : serveur + machine learning + PostgreSQL + Redis, seul le serveur rejoint le réseau proxy.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Immich architecture: server + machine learning + PostgreSQL + Redis; only the server joins the proxy network.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li><strong><code>immich-server</code></strong> est la porte d&#39;entrée : API, interface web, réception des uploads. C&#39;est le <strong>seul</strong> service qui rejoint le réseau <code>proxy</code> de Traefik.</li><li><strong><code>immich-machine-learning</code></strong>, <strong><code>postgres</code></strong> et <strong><code>redis</code></strong> ne parlent qu&#39;au serveur, via le réseau <strong>interne</strong> de la stack (le réseau <code>default</code> créé par Compose). Ils ne doivent <strong>jamais</strong> être attachés au réseau <code>proxy</code> : une base de données n&#39;a rien à faire sur un réseau partagé avec d&#39;autres stacks.</li><li>Un conteneur peut être sur <strong>plusieurs réseaux à la fois</strong> — <code>immich-server</code> sera sur <code>default</code> ET <code>proxy</code>. C&#39;est LE pattern à connaître pour intégrer une stack à un reverse proxy externe.</li><li><strong><code>UPLOAD_LOCATION</code></strong> est le composant critique : c&#39;est ton dossier de photos, sur le disque hôte. Tout le reste (conteneurs, cache, miniatures, et même la base si tu as des dumps) est reconstructible. <strong>Pas lui.</strong></li><li>La <strong>base PostgreSQL</strong> contient les métadonnées : albums, visages, favoris, index de recherche. La perdre ne détruit pas tes photos, mais les réduit à un tas de fichiers anonymes.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li><strong><code>immich-server</code></strong> is the front door: API, web UI, upload handling. It&#39;s the <strong>only</strong> service that joins Traefik&#39;s <code>proxy</code> network.</li><li><strong><code>immich-machine-learning</code></strong>, <strong><code>postgres</code></strong> and <strong><code>redis</code></strong> talk only to the server, through the stack&#39;s <strong>internal</strong> network (the <code>default</code> network created by Compose). They must <strong>never</strong> be attached to the <code>proxy</code> network: a database has no business on a network shared with other stacks.</li><li>A container can sit on <strong>several networks at once</strong> — <code>immich-server</code> will be on <code>default</code> AND <code>proxy</code>. That&#39;s THE pattern to know for plugging a stack into an external reverse proxy.</li><li><strong><code>UPLOAD_LOCATION</code></strong> is the critical component: it&#39;s your photo folder, on the host disk. Everything else (containers, cache, thumbnails, even the database if you have dumps) can be rebuilt. <strong>Not that folder.</strong></li><li>The <strong>PostgreSQL database</strong> holds the metadata: albums, faces, favorites, search index. Losing it doesn&#39;t destroy your photos, but it reduces them to a pile of anonymous files.</li></ul>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Préparer le stockage — deux dossiers séparés, sur un emplacement avec beaucoup d&#39;espace.</p>
+<p><strong>🤔 Pourquoi 2 dossiers séparés ?</strong></p>
+<ul><li><code>library/</code> → tes photos brutes + miniatures + transcodes vidéo. Gros volume, change uniquement par ajout.</li><li><code>postgres/</code> → la base de données (métadonnées, albums, visages, index de recherche). Petit volume, mais doit être sauvegardé <strong>figé</strong>, pas copié à chaud.</li></ul>
+<p>Les séparer permet de les sauvegarder différemment (on verra ça à l&#39;étape 8). Et choisis ton emplacement avec soin : idéalement un disque dédié, pas ton disque système — une photothèque, ça grossit vite.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prepare the storage — two separate folders, on a location with plenty of space.</p>
+<p><strong>🤔 Why 2 separate folders?</strong></p>
+<ul><li><code>library/</code> → your raw photos + thumbnails + video transcodes. Big volume, changes only by addition.</li><li><code>postgres/</code> → the database (metadata, albums, faces, search index). Small volume, but it must be backed up <strong>frozen</strong>, not copied hot.</li></ul>
+<p>Keeping them apart lets you back them up differently (we&#39;ll get to that in step 8). And pick your location carefully: ideally a dedicated disk, not your system disk — a photo library grows fast.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo mkdir -p /mnt/data/immich/library
+sudo mkdir -p /mnt/data/immich/postgres
+sudo chown -R $USER:$USER /mnt/data/immich</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ls -la /mnt/data/immich
+# Doit montrer library/ et postgres/, appartenant à ton utilisateur
+df -h /mnt/data
+# Vérifie qu&#39;il y a bien &gt;= 50 Go libres</code></pre>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Récupérer les fichiers officiels du projet — le <code>compose.yaml</code> et le <code>.env</code> d&#39;exemple — <strong>pour la version qu&#39;on valide</strong>, pas &quot;latest&quot;.</p>
+<p><strong>🤔 Pourquoi le compose officiel et pas en écrire un à la main ?</strong> La stack Immich, c&#39;est 4 conteneurs interdépendants dont les versions doivent matcher entre elles, et ça évolue à chaque release. Le compose officiel garantit la compatibilité. Maintenir un compose custom = casse assurée à chaque mise à jour majeure. Et on télécharge les fichiers de la release <strong>v1.135.3</strong> précisément (pas <code>latest/download</code>), pour que le compose corresponde à la version d&#39;image qu&#39;on va pinner.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Grab the project&#39;s official files — the <code>compose.yaml</code> and the example <code>.env</code> — <strong>for the version we&#39;re validating</strong>, not &quot;latest&quot;.</p>
+<p><strong>🤔 Why the official compose file instead of writing one by hand?</strong> The Immich stack is 4 interdependent containers whose versions must match each other, and it evolves with every release. The official compose file guarantees compatibility. Maintaining a custom compose = guaranteed breakage at every major update. And we download the files from release <strong>v1.135.3</strong> specifically (not <code>latest/download</code>), so the compose file matches the image version we&#39;re about to pin.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/immich &amp;&amp; cd ~/immich
+wget -O compose.yaml https://github.com/immich-app/immich/releases/download/v1.135.3/docker-compose.yml
+wget -O .env https://github.com/immich-app/immich/releases/download/v1.135.3/example.env</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ls -la ~/immich
+# compose.yaml et .env présents, non vides
+grep &quot;image:&quot; compose.yaml
+# 4 images : immich-server, immich-machine-learning, redis/valkey, postgres</code></pre>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Configurer <code>.env</code> : chemins de stockage, version pinée, mot de passe base de données.</p>
+<p><strong>🤔 Pourquoi pinner <code>IMMICH_VERSION</code> ?</strong> Le tag <code>release</code> est <strong>flottant</strong> : il suit les dernières versions publiées. Une mise à jour majeure peut casser la migration de la base de données pendant que tu dors. En pinnant <code>v1.135.3</code>, c&#39;est <strong>toi</strong> qui décides quand mettre à jour — après avoir lu les release notes (Immich documente clairement ses breaking changes).</p>
+<p><strong>🤔 Pourquoi <code>UPLOAD_LOCATION</code> est si critique ?</strong> Si tu te trompes ici et que tu commences à uploader 50 000 photos, les déplacer ensuite est pénible (chemins référencés en base, miniatures à recalculer). Choisis bien <strong>la première fois</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Configure <code>.env</code>: storage paths, pinned version, database password.</p>
+<p><strong>🤔 Why pin <code>IMMICH_VERSION</code>?</strong> The <code>release</code> tag is <strong>floating</strong>: it tracks whatever gets published. A major update can break the database migration while you sleep. By pinning <code>v1.135.3</code>, <strong>you</strong> decide when to update — after reading the release notes (Immich documents its breaking changes clearly).</p>
+<p><strong>🤔 Why is <code>UPLOAD_LOCATION</code> so critical?</strong> If you get it wrong here and start uploading 50,000 photos, moving them later is painful (paths referenced in the database, thumbnails to recompute). Choose well <strong>the first time</strong>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano .env</code></pre>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code># CHEMINS — adapte à ton stockage / adjust to your storage
+UPLOAD_LOCATION=/mnt/data/immich/library
+DB_DATA_LOCATION=/mnt/data/immich/postgres
+
+# VERSION — pinée explicitement, jamais &quot;release&quot; (tag flottant)
+# pinned explicitly, never the floating &quot;release&quot; tag
+IMMICH_VERSION=v1.135.3
+
+# BASE DE DONNÉES — mot de passe fort aléatoire (voir commande ci-dessous)
+DB_PASSWORD=remplace-par-un-mot-de-passe-fort-aleatoire
+
+# DB internes (laisse par défaut / leave as default)
+DB_USERNAME=postgres
+DB_DATABASE_NAME=immich
+
+# Fuseau horaire / Timezone (important pour les timestamps des photos)
+TZ=Europe/Paris</code></pre>
+<div data-lang="fr"><p>Génère un mot de passe fort pour <code>DB_PASSWORD</code> :</p>
+</div>
+<div data-lang="en"><p>Generate a strong password for <code>DB_PASSWORD</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>openssl rand -base64 32</code></pre>
+<div data-lang="fr"><p>Colle-le tel quel dans <code>.env</code>, <strong>sans guillemets</strong> — comme pour Vaultwarden, des guillemets parasites peuvent finir littéralement dans la valeur.</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat .env
+# UPLOAD_LOCATION et DB_DATA_LOCATION pointent vers tes dossiers de l&#39;étape 1,
+# IMMICH_VERSION=v1.135.3, DB_PASSWORD n&#39;est plus la valeur d&#39;exemple</code></pre>
+</div>
+<div data-lang="en"><p>Paste it as-is into <code>.env</code>, <strong>without quotes</strong> — as with Vaultwarden, stray quotes can end up literally inside the value.</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat .env
+# UPLOAD_LOCATION and DB_DATA_LOCATION point to your step-1 folders,
+# IMMICH_VERSION=v1.135.3, DB_PASSWORD is no longer the example value</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Adapter le compose pour Traefik : retirer l&#39;exposition du port, attacher <code>immich-server</code> au réseau <code>proxy</code>, ajouter les labels.</p>
+<p><strong>🤔 Pourquoi <code>default</code> ET <code>proxy</code> ?</strong></p>
+<ul><li><code>default</code> (le réseau créé automatiquement par Compose pour cette stack) → permet à <code>immich-server</code> de parler à <code>immich-machine-learning</code>, <code>database</code> et <code>redis</code>. Si tu mets <strong>seulement</strong> <code>proxy</code>, le serveur perd l&#39;accès à sa base et la stack casse.</li><li><code>proxy</code> → permet à Traefik de joindre <code>immich-server</code>, sans exposer un seul port sur l&#39;hôte.</li></ul>
+<p>⚠️ <strong>Règle absolue</strong> : seul <code>immich-server</code> rejoint <code>proxy</code>. Les autres services (ML, base de données, redis) restent sur <code>default</code> uniquement — ils ne doivent <strong>jamais</strong> être joignables depuis le réseau partagé. Une base de données sur <code>proxy</code> serait accessible à tous les conteneurs des autres stacks branchées sur ce réseau.</p>
+<p>Note : le compose officiel nomme parfois le service avec un underscore (<code>immich_server</code> en <code>container_name</code>) — adapte au nom réel dans <strong>ton</strong> fichier.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Adapt the compose file for Traefik: remove the port exposure, attach <code>immich-server</code> to the <code>proxy</code> network, add the labels.</p>
+<p><strong>🤔 Why <code>default</code> AND <code>proxy</code>?</strong></p>
+<ul><li><code>default</code> (the network Compose creates automatically for this stack) → lets <code>immich-server</code> talk to <code>immich-machine-learning</code>, <code>database</code> and <code>redis</code>. If you set <strong>only</strong> <code>proxy</code>, the server loses access to its database and the stack breaks.</li><li><code>proxy</code> → lets Traefik reach <code>immich-server</code>, without exposing a single port on the host.</li></ul>
+<p>⚠️ <strong>Absolute rule</strong>: only <code>immich-server</code> joins <code>proxy</code>. The other services (ML, database, redis) stay on <code>default</code> only — they must <strong>never</strong> be reachable from the shared network. A database on <code>proxy</code> would be accessible to every container of every other stack plugged into that network.</p>
+<p>Note: the official compose file sometimes names the service with an underscore (<code>immich_server</code> as <code>container_name</code>) — adapt to the actual name in <strong>your</strong> file.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano compose.yaml</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
+    # ... reste du service inchangé / rest of the service unchanged
+    #     (volumes, env_file, depends_on, etc.) ...
+
+    # Supprime ou commente la section &quot;ports:&quot; si présente
+    # Remove or comment out the &quot;ports:&quot; section if present
+    # ports:
+    #   - &quot;2283:2283&quot;
+
+    networks:
+      - default      # réseau interne Immich (server ↔ ML ↔ db ↔ redis)
+      - proxy        # réseau partagé avec Traefik / shared with Traefik
+
+    labels:
+      - &quot;traefik.enable=true&quot;
+      - &quot;traefik.http.routers.immich.rule=Host(`photos.exemple.com`)&quot;
+      - &quot;traefik.http.routers.immich.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.immich.tls.certresolver=le&quot;
+      - &quot;traefik.http.services.immich.loadbalancer.server.port=2283&quot;
+
+# À la fin du fichier, ajoute proxy au bloc networks.
+# NE redéclare PAS &quot;default&quot; : Compose le crée automatiquement.
+# At the end of the file, add proxy to the networks block.
+# Do NOT redeclare &quot;default&quot;: Compose creates it automatically.
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p>⚠️ Le nom du <code>certresolver</code> (<code>le</code>) doit correspondre <strong>exactement</strong> à celui défini dans ta config Traefik (dans le guide Traefik, on l&#39;a nommé <code>le</code>). Sinon : erreur &quot;certificate resolver not found&quot;.</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Config interprétée sans erreur. Contrôle que :
+# - &quot;proxy&quot; n&#39;apparaît QUE sous immich-server (jamais sous database, redis, ML)
+# - aucune section ports: ne subsiste sur immich-server</code></pre>
+<p>Si tu vois <code>network proxy declared as external, but could not be found</code> → crée-le (<code>docker network create proxy</code>) ou repasse par le guide Traefik.</p>
+</div>
+<div data-lang="en"><p>⚠️ The <code>certresolver</code> name (<code>le</code>) must match <strong>exactly</strong> the one defined in your Traefik config (in the Traefik guide we named it <code>le</code>). Otherwise: &quot;certificate resolver not found&quot;.</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Parsed config with no error. Verify that:
+# - &quot;proxy&quot; appears ONLY under immich-server (never under database, redis, ML)
+# - no ports: section remains on immich-server</code></pre>
+<p>If you see <code>network proxy declared as external, but could not be found</code> → create it (<code>docker network create proxy</code>) or go back through the Traefik guide.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Télécharger les images, puis lancer la stack.</p>
+<p><strong>🤔 Pourquoi <code>pull</code> séparé du <code>up</code> ?</strong> Pour forcer le téléchargement des images <strong>avant</strong> le démarrage. Les images Immich sont lourdes (le ML surtout) ; sans <code>pull</code> préalable, <code>up -d</code> télécharge en arrière-plan et tu peux croire à un crash quand c&#39;est juste long.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Download the images, then launch the stack.</p>
+<p><strong>🤔 Why a separate <code>pull</code> before <code>up</code>?</strong> To force the image download <strong>before</strong> startup. Immich images are heavy (the ML one especially); without a prior <code>pull</code>, <code>up -d</code> downloads in the background and you may mistake a long download for a crash.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose pull
+docker compose up -d
+docker compose logs -f immich-server</code></pre>
+<div data-lang="fr"><p><strong>Premier démarrage</strong> : la base initialise son schéma, ça peut prendre <strong>2 à 5 minutes</strong>. Dans les logs, tu dois voir passer :</p>
+<ul><li><code>Immich Server is listening</code> (le serveur écoute sur le port 2283)</li><li>Aucune boucle de redémarrage, aucune erreur de connexion à la base</li></ul>
+<p><code>Ctrl+C</code> pour quitter les logs (ça n&#39;arrête pas les conteneurs).</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# 4 services &quot;Up&quot; : immich_server, immich_machine_learning, database, redis
+
+docker network inspect proxy --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;
+# Doit lister traefik et immich_server — et SURTOUT PAS database, redis ou ML</code></pre>
+</div>
+<div data-lang="en"><p><strong>First startup</strong>: the database initializes its schema, which can take <strong>2 to 5 minutes</strong>. In the logs you should see:</p>
+<ul><li><code>Immich Server is listening</code> (the server listens on port 2283)</li><li>No restart loop, no database connection errors</li></ul>
+<p><code>Ctrl+C</code> to leave the logs (it does not stop the containers).</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# 4 services &quot;Up&quot;: immich_server, immich_machine_learning, database, redis
+
+docker network inspect proxy --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;
+# Must list traefik and immich_server — and DEFINITELY NOT database, redis or ML</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le compte admin et régler les deux paramètres à faire <strong>avant</strong> tout upload.</p>
+<p><strong>🤔 Pourquoi maintenant ?</strong> Le <strong>premier compte créé devient admin</strong> : si tu tardes et que ton URL fuite, quelqu&#39;un d&#39;autre pourrait le créer à ta place. Et le <strong>Storage Template</strong> doit être configuré <strong>avant</strong> d&#39;uploader : par défaut, Immich nomme tes fichiers avec des UUIDs illisibles. Avec un template type <code>{{y}}/{{y}}-{{MM}}/{{filename}}</code>, tes photos sont rangées par année/mois sur le disque — si un jour tu dois récupérer tes fichiers &quot;à la main&quot;, tu les retrouves.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the admin account and set the two settings that must be done <strong>before</strong> any upload.</p>
+<p><strong>🤔 Why now?</strong> The <strong>first account created becomes admin</strong>: if you wait and your URL leaks, someone else could create it in your place. And the <strong>Storage Template</strong> must be configured <strong>before</strong> uploading: by default, Immich names your files with unreadable UUIDs. With a template like <code>{{y}}/{{y}}-{{MM}}/{{filename}}</code>, your photos are organized by year/month on disk — if one day you need to recover files &quot;by hand&quot;, you&#39;ll find them.</p>
+</div>
+<div data-lang="fr"><p><strong>Action 1.</strong> Ouvre <code>https://photos.exemple.com</code> → première page = <strong>création du compte admin</strong>. Choisis un mot de passe fort et note-le : c&#39;est lui qui gouverne l&#39;instance.</p>
+<p><strong>Action 2.</strong> Administration → Settings → <strong>Machine Learning Settings</strong> : active/désactive la reconnaissance faciale et la recherche intelligente selon ta RAM.</p>
+<p><strong>Action 3.</strong> Administration → Settings → <strong>Storage Template</strong> : active le template et choisis un schéma lisible (ex. <code>{{y}}/{{y}}-{{MM}}/{{filename}}</code>). <strong>À faire AVANT d&#39;uploader.</strong></p>
+<p><strong>✅ Vérification :</strong> tu es connecté en admin sur <code>https://photos.exemple.com</code> avec un cadenas vert, et le Storage Template est activé (Administration → Settings).</p>
+</div>
+<div data-lang="en"><p><strong>Action 1.</strong> Open <code>https://photos.exemple.com</code> → first page = <strong>admin account creation</strong>. Pick a strong password and write it down: it governs the instance.</p>
+<p><strong>Action 2.</strong> Administration → Settings → <strong>Machine Learning Settings</strong>: enable/disable face recognition and smart search based on your RAM.</p>
+<p><strong>Action 3.</strong> Administration → Settings → <strong>Storage Template</strong>: enable the template and choose a readable scheme (e.g. <code>{{y}}/{{y}}-{{MM}}/{{filename}}</code>). <strong>Do this BEFORE uploading.</strong></p>
+<p><strong>✅ Check:</strong> you&#39;re logged in as admin at <code>https://photos.exemple.com</code> with a green padlock, and the Storage Template is enabled (Administration → Settings).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer l&#39;app mobile et activer la sauvegarde automatique.</p>
+<p><strong>🤔 Pourquoi Auto Backup change tout ?</strong> C&#39;est ce qui fait d&#39;Immich un vrai remplaçant de Google Photos : chaque photo prise est automatiquement envoyée à ton serveur, en wifi (ou en data si tu l&#39;autorises). Tu peux ensuite libérer de l&#39;espace sur ton téléphone sans crainte.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install the mobile app and enable automatic backup.</p>
+<p><strong>🤔 Why does Auto Backup change everything?</strong> It&#39;s what makes Immich a true Google Photos replacement: every photo you take is automatically sent to your server, over wifi (or mobile data if you allow it). You can then free up space on your phone without worry.</p>
+</div>
+<div data-lang="fr"><p><strong>Action 1.</strong> Installe <strong>Immich</strong> depuis l&#39;App Store ou le Play Store.</p>
+<p><strong>Action 2.</strong> À la première ouverture, <strong>Server Endpoint URL</strong> : <code>https://photos.exemple.com</code> (avec le <code>https://</code>, sans slash final), puis connecte-toi avec ton compte.</p>
+<p><strong>Action 3.</strong> Active <strong>Auto Backup</strong> dans les paramètres de l&#39;app et sélectionne les albums du téléphone à sauvegarder.</p>
+<p>Le premier backup peut prendre <strong>des heures, voire des jours</strong> selon ta volumétrie. Laisse l&#39;app ouverte, ou active le backup en arrière-plan (Android : pense à exclure Immich de l&#39;optimisation batterie).</p>
+<p><strong>✅ Vérification :</strong> prends une photo test avec le téléphone. Elle doit apparaître dans la web UI (<code>https://photos.exemple.com</code>) en quelques secondes.</p>
+</div>
+<div data-lang="en"><p><strong>Action 1.</strong> Install <strong>Immich</strong> from the App Store or Play Store.</p>
+<p><strong>Action 2.</strong> On first launch, <strong>Server Endpoint URL</strong>: <code>https://photos.exemple.com</code> (with the <code>https://</code>, no trailing slash), then log in with your account.</p>
+<p><strong>Action 3.</strong> Enable <strong>Auto Backup</strong> in the app settings and select which phone albums to back up.</p>
+<p>The first backup can take <strong>hours, even days</strong> depending on your volume. Keep the app open, or enable background backup (Android: remember to exclude Immich from battery optimization).</p>
+<p><strong>✅ Check:</strong> take a test photo with your phone. It must show up in the web UI (<code>https://photos.exemple.com</code>) within a few seconds.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Sauvegarde automatique quotidienne : dump PostgreSQL cohérent + synchronisation des photos.</p>
+<p><strong>🤔 Pourquoi <code>pg_dumpall</code> et pas un <code>cp -r</code> du dossier postgres ?</strong> Copier les fichiers d&#39;une base PostgreSQL en cours d&#39;écriture = backup potentiellement corrompu. <code>pg_dumpall</code>, exécuté <strong>dans</strong> le conteneur <code>database</code> (le binaire y est présent, contrairement au <code>sqlite3</code> absent de l&#39;image Vaultwarden), produit un SQL cohérent même base active.</p>
+<p><strong>🤔 Pourquoi 2 sauvegardes séparées ?</strong> Les photos (<code>UPLOAD_LOCATION</code>) sont énormes (Go → To) et ne changent que par ajout : sauvegarde incrémentale (rsync, Restic, B2). La base est petite (centaines de Mo) mais doit être dumpée proprement. Deux natures de données, deux méthodes.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Automated daily backup: a consistent PostgreSQL dump + photo synchronization.</p>
+<p><strong>🤔 Why <code>pg_dumpall</code> and not a <code>cp -r</code> of the postgres folder?</strong> Copying the files of a PostgreSQL database while it&#39;s being written = potentially corrupted backup. <code>pg_dumpall</code>, run <strong>inside</strong> the <code>database</code> container (the binary is present there, unlike the <code>sqlite3</code> missing from the Vaultwarden image), produces consistent SQL even with the database live.</p>
+<p><strong>🤔 Why 2 separate backups?</strong> The photos (<code>UPLOAD_LOCATION</code>) are huge (GB → TB) and change only by addition: incremental backup (rsync, Restic, B2). The database is small (hundreds of MB) but must be dumped properly. Two kinds of data, two methods.</p>
+</div>
+<div data-lang="fr"><p>Crée <code>~/immich/backup.sh</code> :</p>
+</div>
+<div data-lang="en"><p>Create <code>~/immich/backup.sh</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>#!/bin/bash
+set -e
+
+BACKUP_DIR=&quot;$HOME/backups/immich&quot;
+DATE=$(date +%Y%m%d-%H%M%S)
+mkdir -p &quot;$BACKUP_DIR&quot;
+
+cd &quot;$HOME/immich&quot;
+
+# Dump Postgres cohérent, exécuté DANS le conteneur database
+# Consistent Postgres dump, run INSIDE the database container
+docker compose exec -T database pg_dumpall --clean --if-exists --username=postgres \
+  | gzip &gt; &quot;$BACKUP_DIR/immich-db-$DATE.sql.gz&quot;
+
+# Garde uniquement les 14 derniers dumps / keep only the last 14 dumps
+ls -tp &quot;$BACKUP_DIR&quot;/immich-db-*.sql.gz | tail -n +15 | xargs -r rm --
+
+echo &quot;✓ DB backup OK : immich-db-$DATE.sql.gz&quot;
+echo &quot;⚠️ Pense à synchroniser UPLOAD_LOCATION vers un stockage externe (rsync/Restic/B2)&quot;</code></pre>
+<div data-lang="fr"><p>Rends-le exécutable et programme-le en cron :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>chmod +x ~/immich/backup.sh
+crontab -e
+# Ajoute :
+0 4 * * * /home/&lt;toi&gt;/immich/backup.sh &gt;&gt; /home/&lt;toi&gt;/immich/backup.log 2&gt;&amp;1</code></pre>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>~/immich/backup.sh
+ls -la ~/backups/immich/
+# Tu dois voir immich-db-YYYYMMDD-HHMMSS.sql.gz, taille non nulle
+zcat ~/backups/immich/immich-db-*.sql.gz | head -5
+# Doit afficher du SQL (en-tête pg_dumpall), pas du binaire ni du vide</code></pre>
+<p>⚠️ <strong>Ce dump est local et ne couvre pas les photos.</strong> Une vraie stratégie copie le dump <strong>et</strong> <code>UPLOAD_LOCATION</code> ailleurs (autre disque, cloud chiffré type Restic + B2). Et surtout : tu n&#39;as pas un backup, tu as un <strong>plan de restauration testé</strong> — teste la restauration au moins une fois.</p>
+</div>
+<div data-lang="en"><p>Make it executable and schedule it via cron:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>chmod +x ~/immich/backup.sh
+crontab -e
+# Add:
+0 4 * * * /home/&lt;you&gt;/immich/backup.sh &gt;&gt; /home/&lt;you&gt;/immich/backup.log 2&gt;&amp;1</code></pre>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>~/immich/backup.sh
+ls -la ~/backups/immich/
+# You should see immich-db-YYYYMMDD-HHMMSS.sql.gz, non-zero size
+zcat ~/backups/immich/immich-db-*.sql.gz | head -5
+# Must print SQL (pg_dumpall header), not binary and not empty</code></pre>
+<p>⚠️ <strong>This dump is local and does not cover the photos.</strong> A real strategy copies the dump <strong>and</strong> <code>UPLOAD_LOCATION</code> elsewhere (another disk, encrypted cloud like Restic + B2). Above all: you don&#39;t have a backup, you have a <strong>tested restore plan</strong> — test the restore at least once.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Tu attaches <code>database</code>, <code>redis</code> ou le ML au réseau <code>proxy</code>.</strong> Le réseau <code>proxy</code> est partagé entre toutes tes stacks : tout conteneur qui y est attaché est joignable par tous les autres. Seul <code>immich-server</code> doit y être. Vérifie avec <code>docker network inspect proxy</code> — si tu y vois <code>database</code> ou <code>redis</code>, corrige immédiatement.</p>
+<p><strong>2. Tu utilises <code>IMMICH_VERSION=release</code> (ou <code>:latest</code>).</strong> Tag flottant : une mise à jour majeure peut casser la migration de la base pendant que tu dors. <strong>Toujours pinner</strong> (<code>v1.135.3</code>), et mettre à jour consciemment après lecture des release notes.</p>
+<p><strong>3. Tu changes <code>UPLOAD_LOCATION</code> après avoir uploadé des photos.</strong> Les chemins sont référencés en base. La migration est possible mais douloureuse (déplacement + vérifications). Choisis bien au premier jour — disque dédié, espace généreux.</p>
+<p><strong>4. Tu fais <code>docker compose down -v</code> &quot;pour tester&quot;.</strong> ⚠️ Le <code>-v</code> <strong>supprime les volumes</strong>, y compris la base PostgreSQL : albums, visages, métadonnées perdus. Les photos restent dans <code>UPLOAD_LOCATION</code> (bind mount), mais sans la base ce sont des fichiers anonymes. N&#39;utilise <strong>jamais</strong> <code>-v</code> sur cette stack sans un dump récent et restaurable.</p>
+<p><strong>5. Le ML mange toute ta RAM.</strong> Le conteneur <code>immich-machine-learning</code> charge des modèles lourds. Sur une machine modeste : désactive la reconnaissance faciale et la recherche intelligente dans Administration → Settings, ou retire carrément le service du compose.</p>
+<p><strong>6. Le backup mobile ne tourne pas en arrière-plan (Android).</strong> Android tue les apps en arrière-plan. Exclus Immich de l&#39;optimisation batterie et autorise l&#39;activité en arrière-plan, sinon le backup ne se fait que quand l&#39;app est ouverte.</p>
+<p><strong>7. Tu donnes l&#39;URL HTTP à l&#39;app.</strong> L&#39;app <strong>refuse</strong> d&#39;envoyer tes photos en clair. Toujours l&#39;URL HTTPS avec un certificat valide — si le cadenas n&#39;est pas vert dans le navigateur du téléphone, l&#39;app ne marchera pas non plus.</p>
+<p><strong>8. Tu mets à jour sans lire les release notes.</strong> Immich documente clairement ses breaking changes (étapes manuelles, migrations). Rituel de mise à jour : dump de la base → lecture des release notes → changement du tag dans <code>.env</code> → <code>pull</code> + <code>up -d</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. You attach <code>database</code>, <code>redis</code> or the ML to the <code>proxy</code> network.</strong> The <code>proxy</code> network is shared across all your stacks: any container attached to it is reachable by all the others. Only <code>immich-server</code> belongs there. Check with <code>docker network inspect proxy</code> — if you see <code>database</code> or <code>redis</code> in there, fix it immediately.</p>
+<p><strong>2. You use <code>IMMICH_VERSION=release</code> (or <code>:latest</code>).</strong> Floating tag: a major update can break the database migration while you sleep. <strong>Always pin</strong> (<code>v1.135.3</code>), and update deliberately after reading the release notes.</p>
+<p><strong>3. You change <code>UPLOAD_LOCATION</code> after uploading photos.</strong> Paths are referenced in the database. Migration is possible but painful (moving files + verification). Choose well on day one — dedicated disk, generous space.</p>
+<p><strong>4. You run <code>docker compose down -v</code> &quot;just to test&quot;.</strong> ⚠️ The <code>-v</code> <strong>deletes the volumes</strong>, including the PostgreSQL database: albums, faces, metadata gone. The photos stay in <code>UPLOAD_LOCATION</code> (bind mount), but without the database they&#39;re anonymous files. <strong>Never</strong> use <code>-v</code> on this stack without a recent, restorable dump.</p>
+<p><strong>5. The ML eats all your RAM.</strong> The <code>immich-machine-learning</code> container loads heavy models. On a modest machine: disable face recognition and smart search in Administration → Settings, or remove the service from the compose file entirely.</p>
+<p><strong>6. Mobile backup doesn&#39;t run in the background (Android).</strong> Android kills background apps. Exclude Immich from battery optimization and allow background activity, otherwise backup only happens while the app is open.</p>
+<p><strong>7. You give the app the HTTP URL.</strong> The app <strong>refuses</strong> to send your photos in clear text. Always the HTTPS URL with a valid certificate — if the padlock isn&#39;t green in the phone&#39;s browser, the app won&#39;t work either.</p>
+<p><strong>8. You update without reading the release notes.</strong> Immich documents its breaking changes clearly (manual steps, migrations). Update ritual: database dump → read the release notes → change the tag in <code>.env</code> → <code>pull</code> + <code>up -d</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li><code>docker compose ps</code> montre les 4 services <code>Up</code> (server, machine-learning, database, redis).</li><li><code>docker network inspect proxy</code> ne liste que <code>traefik</code> et <code>immich_server</code> — jamais la base, le cache ou le ML.</li><li><code>https://photos.exemple.com</code> charge la web UI avec un cadenas vert.</li><li>L&#39;app mobile se connecte et une photo test uploadée apparaît dans la web UI en quelques secondes.</li><li>La recherche en langage naturel fonctionne (&quot;plage&quot;, &quot;chien&quot;…) — si tu as gardé le ML activé.</li><li><code>~/immich/backup.sh</code> produit un dump SQL non vide, et le cron est en place.</li><li>Tu as documenté (et testé) comment <strong>restaurer</strong> : dump + photos → instance fonctionnelle.</li></ul>
+<p>Si tout est coché, tu as un Immich <strong>propre, cloisonné et sauvegardé</strong>. Tes souvenirs sont chez toi.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li><code>docker compose ps</code> shows all 4 services <code>Up</code> (server, machine-learning, database, redis).</li><li><code>docker network inspect proxy</code> lists only <code>traefik</code> and <code>immich_server</code> — never the database, cache or ML.</li><li><code>https://photos.exemple.com</code> loads the web UI with a green padlock.</li><li>The mobile app connects, and an uploaded test photo shows up in the web UI within seconds.</li><li>Natural-language search works (&quot;beach&quot;, &quot;dog&quot;…) — if you kept ML enabled.</li><li><code>~/immich/backup.sh</code> produces a non-empty SQL dump, and the cron job is in place.</li><li>You have documented (and tested) how to <strong>restore</strong>: dump + photos → working instance.</li></ul>
+<p>If everything is ticked, you have a <strong>clean, isolated, and backed-up</strong> Immich. Your memories live at home.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Prolongements naturels, du plus utile au plus avancé :</p>
+<ol><li><strong>Surveiller ta stack</strong> — 4 conteneurs, une base, un service ML : c&#39;est exactement le genre de système qu&#39;on veut monitorer avant qu&#39;il tombe en silence. Direction le guide monitoring.</li><li><strong>Backups offsite chiffrés</strong> — Restic vers un cloud type B2/S3, pour le dump <strong>et</strong> <code>UPLOAD_LOCATION</code>.</li><li><strong>External Libraries</strong> — indexer une photothèque existante sur le disque, sans la copier dans Immich.</li><li><strong>Transcodage matériel</strong> — si tu as un GPU Intel/NVIDIA, accélère la lecture vidéo (doc officielle, section &quot;Hardware Transcoding&quot;).</li><li><strong>OAuth / SSO</strong> — à plusieurs utilisateurs, brancher Authentik ou Authelia.</li></ol>
+</div>
+<div data-lang="en"><p>Natural extensions, from most useful to most advanced:</p>
+<ol><li><strong>Monitor your stack</strong> — 4 containers, a database, an ML service: exactly the kind of system you want monitored before it fails silently. Head to the monitoring guide.</li><li><strong>Encrypted offsite backups</strong> — Restic to a B2/S3-style cloud, for the dump <strong>and</strong> <code>UPLOAD_LOCATION</code>.</li><li><strong>External Libraries</strong> — index an existing photo library on disk without copying it into Immich.</li><li><strong>Hardware transcoding</strong> — if you have an Intel/NVIDIA GPU, accelerate video playback (official docs, &quot;Hardware Transcoding&quot; section).</li><li><strong>OAuth / SSO</strong> — with several users, plug in Authentik or Authelia.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../monitoring/">
+    <span class="num">42</span>
+    <span class="title-line" data-lang="fr">Prometheus + Grafana — Monitoring de ton homelab</span>
+    <span class="title-line" data-lang="en">Prometheus + Grafana — Homelab monitoring</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés pour gérer ta stack au quotidien.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet to operate your stack day-to-day.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+docker compose up -d                    # démarrer / start
+docker compose ps                       # statut des 4 services / status
+docker compose logs -f immich-server    # suivre les logs / follow logs
+docker compose down                     # arrêter / stop (données préservées / data preserved)
+# ⚠️ JAMAIS &quot;down -v&quot; sans dump récent : -v supprime la base Postgres !
+# ⚠️ NEVER &quot;down -v&quot; without a fresh dump: -v deletes the Postgres database!
+
+# Inspecter / Inspect
+docker network inspect proxy            # seul immich_server (+ traefik) doit y être
+                                        # only immich_server (+ traefik) should be there
+docker compose exec immich-server env | grep IMMICH   # version effective / running version
+
+# Mettre à jour / Update (dump + release notes D&#39;ABORD / FIRST)
+~/immich/backup.sh
+# 1. lire https://github.com/immich-app/immich/releases
+# 2. éditer IMMICH_VERSION=vX.Y.Z dans .env
+docker compose pull &amp;&amp; docker compose up -d
+
+# Sauvegarde manuelle / Manual backup
+~/immich/backup.sh
+
+# Restauration DB / DB restore
+# ⚠️ Écrase la base actuelle — à faire sur une base vide ou sacrifiable.
+# ⚠️ Overwrites the current database — only on an empty or expendable one.
+docker compose down
+docker compose up -d database
+zcat ~/backups/immich/immich-db-YYYYMMDD-HHMMSS.sql.gz \
+  | docker compose exec -T database psql --username=postgres
+docker compose up -d</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://immich.app/docs">Documentation officielle Immich</a> — installation, FAQ, options avancées.</li><li><a href="https://github.com/immich-app/immich">Repo GitHub immich-app/immich</a> — code source et issues.</li><li><a href="https://github.com/immich-app/immich/releases">Release notes</a> — <strong>à lire avant chaque mise à jour</strong> (breaking changes documentés).</li><li><a href="https://immich.app/docs/administration/backup-and-restore">Guide officiel de sauvegarde/restauration</a> — la référence pour le plan de restore.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://immich.app/docs">Official Immich documentation</a> — installation, FAQ, advanced options.</li><li><a href="https://github.com/immich-app/immich">GitHub repo immich-app/immich</a> — source code and issues.</li><li><a href="https://github.com/immich-app/immich/releases">Release notes</a> — <strong>read before every update</strong> (breaking changes are documented).</li><li><a href="https://immich.app/docs/administration/backup-and-restore">Official backup/restore guide</a> — the reference for your restore plan.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« 502 Bad Gateway » via Traefik.</strong> Le serveur Immich n&#39;est pas encore prêt : au premier démarrage, l&#39;initialisation de la base prend 2 à 5 minutes. Si ça persiste : <code>docker compose logs --tail=50 immich-server</code>. Vérifie aussi que <code>immich-server</code> est bien sur le réseau <code>proxy</code> (<code>docker network inspect proxy</code>) et que le label <code>loadbalancer.server.port=2283</code> est présent.</p>
+<p><strong>« Failed to fetch » / connexion impossible sur l&#39;app mobile.</strong> URL incorrecte (HTTP au lieu de HTTPS, slash final, mauvais sous-domaine) ou certificat invalide. Test : ouvre <code>https://photos.exemple.com</code> dans le <strong>navigateur du téléphone</strong> — si le cadenas n&#39;est pas vert, le problème est côté Traefik/DNS, pas côté Immich.</p>
+<p><strong>L&#39;upload de grosses vidéos patine ou échoue.</strong> Souvent une limite de taille côté reverse proxy. Traefik ne bufferise pas par défaut (les gros uploads passent), mais si tu as ajouté un middleware <code>buffering</code>, augmente ses limites. Derrière un autre proxy (Nginx : <code>client_max_body_size</code> à 1 Mo par défaut), c&#39;est la cause n°1.</p>
+<p><strong>La migration de la base échoue après une mise à jour.</strong> Ne bricole pas : restaure le dump pris <strong>avant</strong> la mise à jour (voir cheatsheet), puis lis les release notes de la version visée — il y a souvent une étape manuelle documentée ou une version intermédiaire obligatoire.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;502 Bad Gateway&quot; through Traefik.</strong> The Immich server isn&#39;t ready yet: on first startup, database initialization takes 2 to 5 minutes. If it persists: <code>docker compose logs --tail=50 immich-server</code>. Also verify that <code>immich-server</code> is on the <code>proxy</code> network (<code>docker network inspect proxy</code>) and that the <code>loadbalancer.server.port=2283</code> label is present.</p>
+<p><strong>&quot;Failed to fetch&quot; / can&#39;t connect from the mobile app.</strong> Wrong URL (HTTP instead of HTTPS, trailing slash, wrong subdomain) or invalid certificate. Test: open <code>https://photos.exemple.com</code> in the <strong>phone&#39;s browser</strong> — if the padlock isn&#39;t green, the problem is on the Traefik/DNS side, not Immich&#39;s.</p>
+<p><strong>Large video uploads stall or fail.</strong> Often a size limit on the reverse proxy side. Traefik doesn&#39;t buffer by default (big uploads go through), but if you added a <code>buffering</code> middleware, raise its limits. Behind another proxy (Nginx: <code>client_max_body_size</code> defaults to 1 MB), this is cause number one.</p>
+<p><strong>Database migration fails after an update.</strong> Don&#39;t improvise: restore the dump taken <strong>before</strong> the update (see cheatsheet), then read the release notes of the target version — there&#39;s often a documented manual step or a mandatory intermediate version.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
