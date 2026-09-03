@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — supervision de la livraison (AZ-400) : DORA, sondes, canari — jiha.tech</title>
+  <title data-lang="en">Azure — delivery monitoring (AZ-400): DORA, probes, canary — jiha.tech</title>
+  <meta name="description" content="&quot;Superviser la livraison pour l&#39;AZ-400, en local et pour de vrai : calculer les 4 métriques DORA (fréquence de déploiement, lead time, taux d&#39;échec de changement, MTTR) à partir d&#39;un VRAI historique Git (tags de déploiement + incident), exposer des sondes de santé liveness/readiness (endpoint HTTP réel), produire des logs structurés JSON interrogeables (avec un exemple de requête KQL), et livrer en douceur avec le déploiement progressif (blue-green, canari, feature flags — bascule de pourcentage réelle). Plus les alertes et la boucle de retour. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Monitoring delivery for AZ-400, locally and for real: computing the 4 DORA metrics (deployment frequency, lead time, change failure rate, MTTR) from a REAL Git history (deploy tags + incident), exposing liveness/readiness health probes (a real HTTP endpoint), producing queryable structured JSON logs (with a sample KQL query), and releasing smoothly with progressive delivery (blue-green, canary, feature flags — a real percentage rollout). Plus alerts and the feedback loop. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — supervision de la livraison (AZ-400) : DORA, sondes, canari">
+  <meta property="og:description" content="&quot;Superviser la livraison pour l&#39;AZ-400, en local et pour de vrai : calculer les 4 métriques DORA (fréquence de déploiement, lead time, taux d&#39;échec de changement, MTTR) à partir d&#39;un VRAI historique Git (tags de déploiement + incident), exposer des sondes de santé liveness/readiness (endpoint HTTP réel), produire des logs structurés JSON interrogeables (avec un exemple de requête KQL), et livrer en douceur avec le déploiement progressif (blue-green, canari, feature flags — bascule de pourcentage réelle). Plus les alertes et la boucle de retour. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-supervision-livraison/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-supervision-livraison/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-supervision-livraison">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-supervision-livraison</div>
+    <div class="prompt" data-lang="en">~/guides/azure-supervision-livraison</div>
+    <h1 data-lang="fr">Azure — supervision de la livraison (AZ-400) : DORA, sondes, canari</h1>
+    <h1 data-lang="en">Azure — delivery monitoring (AZ-400): DORA, probes, canary</h1>
+    <p class="tagline" data-lang="fr">mesurer (métriques DORA), observer (sondes, logs), livrer en douceur.</p>
+    <p class="tagline" data-lang="en">measure (DORA metrics), observe (probes, logs), release smoothly.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Livrer vite, c&#39;est bien. Livrer vite <strong>et le savoir</strong> — mesurer, observer, réagir — c&#39;est le métier. Le dernier pilier <strong>AZ-400</strong> : la <strong>supervision de la livraison</strong>. Sans mesure, tu ne sais pas si ta chaîne DevOps s&#39;améliore ou se dégrade ; sans observabilité, un incident reste invisible jusqu&#39;à ce qu&#39;un client se plaigne.</p>
+<p>Fidèle à la méthode, on le fait <strong>en vrai et en local</strong> : on calcule les <strong>4 métriques DORA</strong> (fréquence de déploiement, lead time, taux d&#39;échec de changement, MTTR) à partir d&#39;un <strong>vrai historique Git</strong> — des <strong>tags de déploiement</strong> et un <strong>incident</strong> suivi d&#39;un hotfix. On expose des <strong>sondes de santé</strong> (<code>liveness</code> / <code>readiness</code>) sur un <strong>vrai endpoint HTTP</strong> qu&#39;on interroge. On produit des <strong>logs structurés JSON</strong> interrogeables et on écrit une <strong>requête KQL</strong> (le langage de Log Analytics / Application Insights). Enfin, on <strong>livre en douceur</strong> : <strong>blue-green</strong>, <strong>canari</strong> et <strong>feature flags</strong> — avec une <strong>bascule de pourcentage réelle</strong>. On termine par les <strong>alertes</strong> et la <strong>boucle de retour</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as des pipelines qui déploient (guides AZ-400) et tu veux <strong>piloter</strong> la livraison, pas la subir.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas encore de pipeline → fais les guides AZ-400 précédents.</li><li>Tu veux la supervision <strong>d&#39;infrastructure</strong> détaillée (Azure Monitor, VM Insights) → on en pose les bases ici, l&#39;approfondissement est côté exploitation.</li></ul>
+</div>
+<div data-lang="en"><p>Shipping fast is good. Shipping fast <strong>and knowing it</strong> — measuring, observing, reacting — is the craft. The last <strong>AZ-400</strong> pillar: <strong>delivery monitoring</strong>. Without measurement, you don&#39;t know if your DevOps chain is improving or degrading; without observability, an incident stays invisible until a customer complains.</p>
+<p>True to the method, we do it <strong>for real and locally</strong>: we compute the <strong>4 DORA metrics</strong> (deployment frequency, lead time, change failure rate, MTTR) from a <strong>real Git history</strong> — <strong>deploy tags</strong> and an <strong>incident</strong> followed by a hotfix. We expose <strong>health probes</strong> (<code>liveness</code> / <code>readiness</code>) on a <strong>real HTTP endpoint</strong> we query. We produce <strong>queryable structured JSON logs</strong> and write a <strong>KQL query</strong> (the Log Analytics / Application Insights language). Finally, we <strong>release smoothly</strong>: <strong>blue-green</strong>, <strong>canary</strong> and <strong>feature flags</strong> — with a <strong>real percentage rollout</strong>. We close with <strong>alerts</strong> and the <strong>feedback loop</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you have pipelines that deploy (AZ-400 guides) and want to <strong>steer</strong> delivery, not endure it.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t have a pipeline yet → do the previous AZ-400 guides.</li><li>You want detailed <strong>infrastructure</strong> monitoring (Azure Monitor, VM Insights) → we lay the basics here, the deep dive is on the ops side.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Calculer les <strong>4 métriques DORA</strong> à partir d&#39;un <strong>historique Git</strong> réel.</li><li>Expliquer <strong>fréquence de déploiement</strong>, <strong>lead time</strong>, <strong>taux d&#39;échec</strong>, <strong>MTTR</strong>.</li><li>Exposer des <strong>sondes</strong> <code>liveness</code> et <code>readiness</code> et les <strong>interroger</strong>.</li><li>Produire des <strong>logs structurés</strong> (JSON) et écrire une <strong>requête KQL</strong>.</li><li>Comparer <strong>blue-green</strong>, <strong>canari</strong> et <strong>feature flags</strong>.</li><li>Réaliser une <strong>bascule de pourcentage</strong> (rollout progressif) réelle.</li><li>Poser une <strong>alerte</strong> et fermer la <strong>boucle de retour</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Compute the <strong>4 DORA metrics</strong> from a real <strong>Git history</strong>.</li><li>Explain <strong>deployment frequency</strong>, <strong>lead time</strong>, <strong>change failure rate</strong>, <strong>MTTR</strong>.</li><li>Expose <code>liveness</code> and <code>readiness</code> <strong>probes</strong> and <strong>query</strong> them.</li><li>Produce <strong>structured logs</strong> (JSON) and write a <strong>KQL query</strong>.</li><li>Compare <strong>blue-green</strong>, <strong>canary</strong> and <strong>feature flags</strong>.</li><li>Perform a real <strong>percentage rollout</strong> (progressive delivery).</li><li>Set an <strong>alert</strong> and close the <strong>feedback loop</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — DevSecOps (AZ-400)</strong> (pipeline sécurisée).</li><li><strong>Git</strong>, <strong>Node.js</strong> (<code>node -v</code> ≥ 18, pour les sondes/logs) et <strong>Python 3</strong> (pour le calcul DORA).</li><li>Un <strong>terminal</strong>. <strong>Aucun compte cloud</strong> : tout se calcule et s&#39;exécute en local ; les requêtes KQL sont <strong>illustratives</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — DevSecOps (AZ-400)</strong> guide (secured pipeline).</li><li><strong>Git</strong>, <strong>Node.js</strong> (<code>node -v</code> ≥ 18, for probes/logs) and <strong>Python 3</strong> (for the DORA computation).</li><li>A <strong>terminal</strong>. <strong>No cloud account</strong>: everything computes and runs locally; KQL queries are <strong>illustrative</strong>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-devsecops/">
+    <span class="num">73</span>
+    <span class="title-line" data-lang="fr">Azure — DevSecOps (AZ-400) : secrets, scan IaC, chaîne d&#39;approvisionnement</span>
+    <span class="title-line" data-lang="en">Azure — DevSecOps (AZ-400): secrets, IaC scanning, supply chain</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Mesurer : les 4 métriques DORA.</strong> La recherche <strong>DORA</strong> (DevOps Research and Assessment) a identifié <strong>4 indicateurs</strong> qui prédisent la performance d&#39;une équipe :</p>
+<ul><li><strong>Fréquence de déploiement</strong> — à quelle fréquence tu livres en prod (les élites : plusieurs fois par jour).</li><li><strong>Lead time for changes</strong> — délai du <strong>commit</strong> à la <strong>prod</strong> (les élites : moins d&#39;un jour).</li><li><strong>Change failure rate</strong> — % de déploiements qui <strong>causent un incident</strong> (les élites : 0–15 %).</li><li><strong>MTTR (Mean Time To Restore)</strong> — temps pour <strong>rétablir</strong> après un incident (les élites : moins d&#39;une heure).</li></ul>
+<p>Les deux premières mesurent la <strong>vélocité</strong>, les deux dernières la <strong>stabilité</strong>. Le secret DORA : les meilleures équipes sont <strong>bonnes aux quatre</strong> — vitesse <strong>et</strong> stabilité ne s&#39;opposent pas. Et ces métriques se <strong>dérivent de l&#39;historique Git</strong> (tags de déploiement, incidents).</p>
+<p><strong>Observer : sondes de santé.</strong> Un service expose des <strong>sondes</strong> que l&#39;orchestrateur interroge : <strong>liveness</strong> (« suis-je vivant ? » — sinon on me redémarre) et <strong>readiness</strong> (« suis-je prêt à recevoir du trafic ? » — sinon on ne m&#39;envoie rien). Distinguer les deux évite d&#39;envoyer du trafic à un service qui démarre encore.</p>
+<p><strong>Observer : logs structurés &amp; KQL.</strong> Un log en <strong>texte libre</strong> est illisible par la machine. Un log <strong>structuré</strong> (JSON : <code>level</code>, <code>msg</code>, <code>route</code>, <code>status</code>, <code>duree_ms</code>…) est <strong>interrogeable</strong>. Sur Azure, <strong>Log Analytics</strong> / <strong>Application Insights</strong> ingèrent ces logs et se requêtent en <strong>KQL</strong> (Kusto Query Language) : <code>traces | where status &gt;= 500 | summarize count() by route</code>.</p>
+<p><strong>Livrer en douceur : le déploiement progressif.</strong> Plutôt que basculer 100 % du trafic d&#39;un coup :</p>
+<ul><li><strong>Blue-green</strong> — deux environnements identiques ; on bascule le trafic de <em>blue</em> (ancien) à <em>green</em> (nouveau) d&#39;un coup, et on <strong>revient</strong> instantanément en cas de souci.</li><li><strong>Canari</strong> — on envoie un <strong>petit pourcentage</strong> du trafic à la nouvelle version, on <strong>surveille</strong>, puis on <strong>augmente</strong> progressivement (10 % → 50 % → 100 %).</li><li><strong>Feature flags</strong> — on déploie le code <strong>désactivé</strong>, puis on <strong>active</strong> la fonctionnalité par <strong>drapeau</strong> (pour un %, une région, un segment) — sans redéployer. Idéal avec le trunk-based.</li></ul>
+<p><strong>Réagir : alertes &amp; boucle de retour.</strong> Une <strong>alerte</strong> se déclenche quand une métrique franchit un <strong>seuil</strong> (ex. taux d&#39;erreur &gt; 1 %, latence p95 &gt; 500 ms). Elle <strong>notifie</strong> (ou déclenche un rollback automatique). C&#39;est la <strong>boucle de retour</strong> : mesurer → alerter → corriger → re-mesurer. Sans elle, la supervision n&#39;est qu&#39;un tableau de bord qu&#39;on ne regarde pas.</p>
+<p><strong>Ce qui est live ici.</strong> Les <strong>métriques DORA</strong> se <strong>calculent</strong> sur un <strong>vrai</strong> dépôt Git (tags + incident). Les <strong>sondes</strong> sont un <strong>vrai serveur HTTP</strong> qu&#39;on interroge (200/503). Les <strong>logs JSON</strong> sont <strong>réels</strong> et <strong>reparsés</strong>. La <strong>bascule de pourcentage</strong> (canari) est un <strong>vrai</strong> code exécuté. Les <strong>requêtes KQL</strong> et les <strong>alertes</strong> sont <strong>illustratives</strong> (elles s&#39;exécutent sur un vrai Azure Monitor). Tout le pilotage s&#39;apprend <strong>sans compte cloud</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Measure: the 4 DORA metrics.</strong> The <strong>DORA</strong> research (DevOps Research and Assessment) identified <strong>4 indicators</strong> that predict a team&#39;s performance:</p>
+<ul><li><strong>Deployment frequency</strong> — how often you ship to prod (elites: multiple times a day).</li><li><strong>Lead time for changes</strong> — time from <strong>commit</strong> to <strong>prod</strong> (elites: under a day).</li><li><strong>Change failure rate</strong> — % of deployments that <strong>cause an incident</strong> (elites: 0–15%).</li><li><strong>MTTR (Mean Time To Restore)</strong> — time to <strong>recover</strong> after an incident (elites: under an hour).</li></ul>
+<p>The first two measure <strong>velocity</strong>, the last two <strong>stability</strong>. The DORA insight: the best teams are <strong>good at all four</strong> — speed <strong>and</strong> stability don&#39;t oppose. And these metrics <strong>derive from Git history</strong> (deploy tags, incidents).</p>
+<p><strong>Observe: health probes.</strong> A service exposes <strong>probes</strong> the orchestrator queries: <strong>liveness</strong> (&quot;am I alive?&quot; — else restart me) and <strong>readiness</strong> (&quot;am I ready for traffic?&quot; — else send me nothing). Distinguishing them avoids sending traffic to a service still starting up.</p>
+<p><strong>Observe: structured logs &amp; KQL.</strong> A <strong>free-text</strong> log is unreadable by machine. A <strong>structured</strong> log (JSON: <code>level</code>, <code>msg</code>, <code>route</code>, <code>status</code>, <code>duree_ms</code>…) is <strong>queryable</strong>. On Azure, <strong>Log Analytics</strong> / <strong>Application Insights</strong> ingest these logs and are queried in <strong>KQL</strong> (Kusto Query Language): <code>traces | where status &gt;= 500 | summarize count() by route</code>.</p>
+<p><strong>Release smoothly: progressive delivery.</strong> Rather than switching 100% of traffic at once:</p>
+<ul><li><strong>Blue-green</strong> — two identical environments; you switch traffic from <em>blue</em> (old) to <em>green</em> (new) at once, and <strong>roll back</strong> instantly on trouble.</li><li><strong>Canary</strong> — you send a <strong>small percentage</strong> of traffic to the new version, <strong>watch</strong>, then <strong>increase</strong> progressively (10% → 50% → 100%).</li><li><strong>Feature flags</strong> — you deploy the code <strong>disabled</strong>, then <strong>enable</strong> the feature by <strong>flag</strong> (for a %, a region, a segment) — without redeploying. Ideal with trunk-based.</li></ul>
+<p><strong>React: alerts &amp; feedback loop.</strong> An <strong>alert</strong> fires when a metric crosses a <strong>threshold</strong> (e.g. error rate &gt; 1%, p95 latency &gt; 500 ms). It <strong>notifies</strong> (or triggers an automatic rollback). That&#39;s the <strong>feedback loop</strong>: measure → alert → fix → re-measure. Without it, monitoring is just a dashboard nobody watches.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>DORA metrics</strong> are <strong>computed</strong> on a <strong>real</strong> Git repo (tags + incident). The <strong>probes</strong> are a <strong>real HTTP server</strong> we query (200/503). The <strong>JSON logs</strong> are <strong>real</strong> and <strong>re-parsed</strong>. The <strong>percentage rollout</strong> (canary) is <strong>real</strong> executed code. The <strong>KQL queries</strong> and <strong>alerts</strong> are <strong>illustrative</strong> (they run on real Azure Monitor). All the steering learns <strong>without a cloud account</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-supervision-loop">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-supervision-loop">
+  <title id="s-azure-supervision-loop">Boucle de supervision</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Boucle de supervision</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">MESURER</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">4 métriques DORA</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="70.5" text-anchor="middle">OBSERVER</text><text class="sub" x="286" y="83.5" text-anchor="middle">sondes + logs KQL</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">LIVRER</text><text class="sub" x="474" y="83.5" text-anchor="middle">blue-green / canari / flags</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">ALERTER</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">seuil → notifier / rollback</text><text class="sub" x="380" y="144" text-anchor="middle">vélocité (2 premières) ET stabilité (2 dernières) ensemble</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La boucle de supervision : MESURER (4 métriques DORA calculées depuis l&#39;historique Git : fréquence, lead time, taux d&#39;échec, MTTR) → OBSERVER (sondes liveness/readiness + logs structurés interrogés en KQL) → LIVRER EN DOUCEUR (blue-green / canari / feature flags) → ALERTER (seuil franchi → notifier / rollback) → et on recommence. Vélocité (2 premières) ET stabilité (2 dernières) ensemble.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The monitoring loop: MEASURE (4 DORA metrics computed from Git history: frequency, lead time, failure rate, MTTR) → OBSERVE (liveness/readiness probes + structured logs queried in KQL) → RELEASE SMOOTHLY (blue-green / canary / feature flags) → ALERT (threshold crossed → notify / rollback) → and repeat. Velocity (first two) AND stability (last two) together.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Construire un <strong>historique de déploiement</strong> réel — la matière première des métriques DORA.</p>
+<p><strong>🤔 Les métriques sortent de l&#39;historique.</strong> Pas besoin d&#39;outil coûteux : des <strong>commits</strong> datés et des <strong>tags de déploiement</strong> (<code>deploy-N</code>) suffisent. On simule une équipe sur une semaine, avec un <strong>incident</strong> (un <code>hotfix</code>) — pour avoir les quatre métriques.</p>
+<p>Crée le dépôt et l&#39;historique de déploiement :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Build a real <strong>deployment history</strong> — the raw material of the DORA metrics.</p>
+<p><strong>🤔 Metrics come from history.</strong> No costly tool needed: dated <strong>commits</strong> and <strong>deploy tags</strong> (<code>deploy-N</code>) are enough. We simulate a team over a week, with an <strong>incident</strong> (a <code>hotfix</code>) — to have all four metrics.</p>
+<p>Create the repo and the deployment history:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p supervision &amp;&amp; cd supervision
+git init -q &amp;&amp; git config user.email you@example.com &amp;&amp; git config user.name student
+
+# Un commit daté / a dated commit
+c() { echo &quot;$2&quot; &gt;&gt; CHANGELOG.md; git add -A; GIT_AUTHOR_DATE=&quot;$1&quot; GIT_COMMITTER_DATE=&quot;$1&quot; git commit -qm &quot;$2&quot;; }
+
+c &quot;2026-08-01T09:00:00&quot; &quot;feat: page de login&quot;
+c &quot;2026-08-01T15:00:00&quot; &quot;feat: panier&quot;
+git tag deploy-1                                  # déploiement 1
+c &quot;2026-08-05T11:00:00&quot; &quot;feat: paiement&quot;
+c &quot;2026-08-06T09:00:00&quot; &quot;fix: correction TVA&quot;
+git tag deploy-2                                  # déploiement 2
+c &quot;2026-08-06T20:00:00&quot; &quot;hotfix: paiement cassé en prod&quot;
+git tag deploy-3-hotfix                           # déploiement 3 (incident)
+
+git tag | grep deploy</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>git tag</code> liste <code>deploy-1</code>, <code>deploy-2</code>, <code>deploy-3-hotfix</code>. Tu as trois <strong>déploiements</strong> sur la semaine, dont un <strong>hotfix</strong> (le signe d&#39;un <strong>incident</strong> en prod). Cet historique — commits datés + tags — contient <strong>tout</strong> ce qu&#39;il faut pour les 4 métriques DORA. On les calcule maintenant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>git tag</code> lists <code>deploy-1</code>, <code>deploy-2</code>, <code>deploy-3-hotfix</code>. You have three <strong>deployments</strong> over the week, one being a <strong>hotfix</strong> (the sign of a prod <strong>incident</strong>). This history — dated commits + tags — contains <strong>everything</strong> needed for the 4 DORA metrics. We compute them now.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Calculer la <strong>fréquence de déploiement</strong> et le <strong>lead time</strong> (la vélocité).</p>
+<p><strong>🤔 Vitesse de livraison.</strong> La <strong>fréquence</strong> = nombre de déploiements sur la période. Le <strong>lead time</strong> = délai entre le code (1er commit) et sa mise en prod (tag). On écrit un script qui lit l&#39;historique et calcule les <strong>4 métriques</strong> ; ici on lit les <strong>deux premières</strong>.</p>
+<p>Écris le calculateur DORA et lance-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Compute <strong>deployment frequency</strong> and <strong>lead time</strong> (velocity).</p>
+<p><strong>🤔 Delivery speed.</strong> <strong>Frequency</strong> = number of deployments over the period. <strong>Lead time</strong> = delay between code (1st commit) and its production (tag). We write a script that reads the history and computes the <strong>4 metrics</strong>; here we read the <strong>first two</strong>.</p>
+<p>Write the DORA calculator and run it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; dora.py &lt;&lt;&#39;PY&#39;
+import subprocess, datetime
+def git(*a): return subprocess.check_output([&quot;git&quot;, *a], text=True).strip()
+
+tags = [t for t in git(&quot;tag&quot;).splitlines() if t.startswith(&quot;deploy&quot;)]
+date = lambda t: datetime.datetime.fromisoformat(git(&quot;log&quot;, &quot;-1&quot;, &quot;--format=%cI&quot;, t))
+deploys = sorted(tags, key=date)
+dates = [date(t) for t in deploys]
+
+# 1) Fréquence de déploiement
+span = max((dates[-1] - dates[0]).days, 1)
+print(f&quot;1. Frequence de deploiement : {len(deploys)} / {span} j = {len(deploys)/span:.2f}/jour&quot;)
+
+# 2) Lead time : du 1er commit à chaque déploiement (heures)
+first = datetime.datetime.fromisoformat(git(&quot;log&quot;, &quot;--format=%cI&quot;, &quot;--reverse&quot;).splitlines()[0])
+print(f&quot;2. Lead time (1er commit -&gt; deploiement) : {[round((x-first).total_seconds()/3600,1) for x in dates]} h&quot;)
+
+# 3) Taux d&#39;échec de changement : % de déploiements &#39;hotfix&#39;
+fails = [t for t in deploys if &quot;hotfix&quot; in t]
+print(f&quot;3. Taux d&#39;echec de changement : {len(fails)}/{len(deploys)} = {100*len(fails)/len(deploys):.0f}%&quot;)
+
+# 4) MTTR : du déploiement cassé au hotfix (heures)
+if fails:
+    hf = fails[0]; broken = deploys[deploys.index(hf)-1]
+    print(f&quot;4. MTTR ({broken} -&gt; {hf}) : {(date(hf)-date(broken)).total_seconds()/3600:.1f} h&quot;)
+PY
+
+python3 dora.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche les 4 lignes. Concentre-toi sur les <strong>deux premières</strong> : <code>1. Frequence de deploiement : 3 / 5 j = 0.60/jour</code> (trois déploiements sur cinq jours) et <code>2. Lead time ... : [6.0, 120.0, 131.0] h</code> (le premier déploiement est parti <strong>6 h</strong> après le premier commit ; les suivants, plusieurs jours). Voilà la <strong>vélocité</strong>, calculée depuis Git — pas une estimation. On lit la <strong>stabilité</strong> à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints 4 lines. Focus on the <strong>first two</strong>: <code>1. Frequence de deploiement : 3 / 5 j = 0.60/jour</code> (three deployments over five days) and <code>2. Lead time ... : [6.0, 120.0, 131.0] h</code> (the first deployment went out <strong>6 h</strong> after the first commit; the next ones, several days). That&#39;s <strong>velocity</strong>, computed from Git — not an estimate. We read <strong>stability</strong> next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Calculer le <strong>taux d&#39;échec de changement</strong> et le <strong>MTTR</strong> (la stabilité).</p>
+<p><strong>🤔 Fiabilité de livraison.</strong> Le <strong>taux d&#39;échec</strong> = part des déploiements qui ont <strong>cassé</strong> la prod (ici, marqués <code>hotfix</code>). Le <strong>MTTR</strong> = temps entre le déploiement cassé (<code>deploy-2</code>) et le correctif (<code>deploy-3-hotfix</code>). Même script, on lit les <strong>deux dernières</strong> lignes.</p>
+<p>Relis les métriques de stabilité :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Compute the <strong>change failure rate</strong> and <strong>MTTR</strong> (stability).</p>
+<p><strong>🤔 Delivery reliability.</strong> The <strong>failure rate</strong> = share of deployments that <strong>broke</strong> prod (here, tagged <code>hotfix</code>). The <strong>MTTR</strong> = time between the broken deployment (<code>deploy-2</code>) and the fix (<code>deploy-3-hotfix</code>). Same script, read the <strong>last two</strong> lines.</p>
+<p>Re-read the stability metrics:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 dora.py | tail -2</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>3. Taux d&#39;echec de changement : 1/3 = 33%</code> (un déploiement sur trois a nécessité un hotfix) et <code>4. MTTR (deploy-2 -&gt; deploy-3-hotfix) : 11.0 h</code> (il a fallu 11 h pour rétablir). Un taux à 33 % est <strong>élevé</strong> (les élites : &lt; 15 %) et un MTTR de 11 h est <strong>lent</strong> (élites : &lt; 1 h) — ces chiffres <strong>guident l&#39;amélioration</strong> : plus de tests avant déploiement (baisse le taux d&#39;échec), meilleur rollback (baisse le MTTR). C&#39;est ça, piloter par la mesure.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>3. Taux d&#39;echec de changement : 1/3 = 33%</code> (one deployment in three needed a hotfix) and <code>4. MTTR (deploy-2 -&gt; deploy-3-hotfix) : 11.0 h</code> (it took 11 h to recover). A 33% rate is <strong>high</strong> (elites: &lt; 15%) and an 11 h MTTR is <strong>slow</strong> (elites: &lt; 1 h) — these numbers <strong>guide improvement</strong>: more tests before deploying (lowers failure rate), better rollback (lowers MTTR). That&#39;s steering by measurement.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exposer des <strong>sondes de santé</strong> <code>liveness</code> et <code>readiness</code> et les <strong>interroger</strong>.</p>
+<p><strong>🤔 « Vivant » n&#39;est pas « prêt ».</strong> Un service qui <strong>démarre</strong> est vivant mais <strong>pas prêt</strong> à recevoir du trafic. On expose deux endpoints : <code>/health/live</code> (200 si le process tourne) et <code>/health/ready</code> (200 seulement une fois initialisé, 503 sinon). On lance un <strong>vrai</strong> serveur et on le sonde.</p>
+<p>Lance le serveur de sondes et interroge-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Expose <code>liveness</code> and <code>readiness</code> <strong>health probes</strong> and <strong>query</strong> them.</p>
+<p><strong>🤔 &quot;Alive&quot; isn&#39;t &quot;ready&quot;.</strong> A service that&#39;s <strong>starting</strong> is alive but <strong>not ready</strong> for traffic. We expose two endpoints: <code>/health/live</code> (200 if the process runs) and <code>/health/ready</code> (200 only once initialized, 503 otherwise). We launch a <strong>real</strong> server and probe it.</p>
+<p>Launch the probe server and query it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; sondes.js &lt;&lt;&#39;JS&#39;
+const http = require(&quot;http&quot;);
+let pret = false;
+setTimeout(() =&gt; { pret = true; }, 300);   // simule l&#39;initialisation / simulate init
+
+const serveur = http.createServer((req, res) =&gt; {
+  if (req.url === &quot;/health/live&quot;) { res.writeHead(200).end(&quot;VIVANT&quot;); }
+  else if (req.url === &quot;/health/ready&quot;) {
+    res.writeHead(pret ? 200 : 503).end(pret ? &quot;PRET&quot; : &quot;DEMARRAGE&quot;);
+  } else { res.writeHead(404).end(); }
+});
+
+serveur.listen(8099, () =&gt; {
+  // Sonde &#39;ready&#39; tout de suite (démarrage), puis &#39;live&#39; et &#39;ready&#39; après init
+  http.get(&quot;http://localhost:8099/health/ready&quot;, r =&gt; console.log(&quot;ready (au démarrage) -&gt;&quot;, r.statusCode));
+  setTimeout(() =&gt; {
+    http.get(&quot;http://localhost:8099/health/live&quot;,  r =&gt; console.log(&quot;live  (après init)   -&gt;&quot;, r.statusCode));
+    http.get(&quot;http://localhost:8099/health/ready&quot;, r =&gt; { console.log(&quot;ready (après init)   -&gt;&quot;, r.statusCode); setTimeout(() =&gt; serveur.close(), 200); });
+  }, 500);
+});
+JS
+
+node sondes.js</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>ready (au démarrage) -&gt; 503</code>, puis <code>live (après init) -&gt; 200</code> et <code>ready (après init) -&gt; 200</code>. Au démarrage, le service est <strong>vivant</strong> mais <strong>pas prêt</strong> (503) — l&#39;orchestrateur (Kubernetes, App Service) <strong>ne lui envoie pas</strong> de trafic tant que <code>ready</code> n&#39;est pas 200. Une fois initialisé, il devient <strong>prêt</strong>. Cette distinction évite les erreurs pendant les démarrages et les déploiements. Les mêmes sondes servent aux <strong>health checks</strong> d&#39;un déploiement progressif (étape 6).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>ready (au démarrage) -&gt; 503</code>, then <code>live (après init) -&gt; 200</code> and <code>ready (après init) -&gt; 200</code>. At startup the service is <strong>alive</strong> but <strong>not ready</strong> (503) — the orchestrator (Kubernetes, App Service) <strong>sends it no</strong> traffic until <code>ready</code> is 200. Once initialized, it becomes <strong>ready</strong>. This distinction avoids errors during startups and deployments. The same probes serve the <strong>health checks</strong> of a progressive delivery (step 6).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Produire des <strong>logs structurés</strong> (JSON) et écrire une <strong>requête KQL</strong>.</p>
+<p><strong>🤔 Un log doit être interrogeable.</strong> Un <code>console.log(&quot;erreur !&quot;)</code> est inutile à l&#39;échelle. Un log <strong>structuré</strong> (JSON avec des champs) se <strong>filtre</strong>, s&#39;<strong>agrège</strong>, s&#39;<strong>alerte</strong>. On émet des logs JSON, on les <strong>reparse</strong> pour prouver qu&#39;ils sont exploitables, et on écrit la <strong>requête KQL</strong> équivalente (le langage d&#39;Application Insights).</p>
+<p>Émets des logs structurés et note la requête KQL :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Produce <strong>structured logs</strong> (JSON) and write a <strong>KQL query</strong>.</p>
+<p><strong>🤔 A log must be queryable.</strong> A <code>console.log(&quot;error!&quot;)</code> is useless at scale. A <strong>structured</strong> log (JSON with fields) can be <strong>filtered</strong>, <strong>aggregated</strong>, <strong>alerted on</strong>. We emit JSON logs, <strong>re-parse</strong> them to prove they&#39;re exploitable, and write the equivalent <strong>KQL query</strong> (the Application Insights language).</p>
+<p>Emit structured logs and note the KQL query:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; logs.js &lt;&lt;&#39;JS&#39;
+function log(level, msg, extra = {}) {
+  console.log(JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
+}
+log(&quot;info&quot;,  &quot;requête traitée&quot;, { route: &quot;/panier&quot;,   status: 200, duree_ms: 42 });
+log(&quot;info&quot;,  &quot;requête traitée&quot;, { route: &quot;/paiement&quot;, status: 200, duree_ms: 88 });
+log(&quot;error&quot;, &quot;paiement refusé&quot;, { route: &quot;/paiement&quot;, status: 500, code: &quot;CARD_DECLINED&quot; });
+JS
+
+# Émettre puis reparser : compter les erreurs par route (ce que fait Log Analytics)
+node logs.js | python3 -c &quot;
+import sys, json
+from collections import Counter
+erreurs = Counter()
+for ligne in sys.stdin:
+    e = json.loads(ligne)
+    if e[&#39;status&#39;] &gt;= 500: erreurs[e[&#39;route&#39;]] += 1
+print(&#39;erreurs 5xx par route / 5xx errors by route:&#39;, dict(erreurs))
+&quot;
+
+# La MÊME logique en KQL (Application Insights / Log Analytics) :
+cat &lt;&lt;&#39;KQL&#39;
+--- requête KQL équivalente / equivalent KQL query ---
+traces
+| where status &gt;= 500
+| summarize erreurs = count() by route
+| order by erreurs desc
+KQL</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>erreurs 5xx par route / 5xx errors by route: {&#39;/paiement&#39;: 1}</code> — on a <strong>agrégé</strong> de vrais logs JSON par route. C&#39;est <strong>exactement</strong> ce que fait la requête <strong>KQL</strong> affichée (<code>summarize count() by route</code>) sur Azure : les logs structurés arrivent dans <strong>Application Insights</strong>, et KQL les interroge. Retiens : <strong>logue en JSON</strong>, jamais en texte libre — c&#39;est ce qui rend l&#39;observabilité possible.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>erreurs 5xx par route / 5xx errors by route: {&#39;/paiement&#39;: 1}</code> — we <strong>aggregated</strong> real JSON logs by route. That&#39;s <strong>exactly</strong> what the shown <strong>KQL</strong> query does (<code>summarize count() by route</code>) on Azure: structured logs land in <strong>Application Insights</strong>, and KQL queries them. Remember: <strong>log in JSON</strong>, never free text — that&#39;s what makes observability possible.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Livrer en douceur — le <strong>déploiement progressif</strong> (canari, feature flag).</p>
+<p><strong>🤔 Ne bascule pas 100 % d&#39;un coup.</strong> Un <strong>feature flag</strong> active la nouveauté pour un <strong>pourcentage</strong> d&#39;utilisateurs, choisi de façon <strong>stable</strong> (le même utilisateur voit toujours la même version). On monte 10 % → 50 % → 100 % en <strong>surveillant</strong>. On exécute une <strong>vraie</strong> bascule de pourcentage.</p>
+<p>Réalise un rollout progressif :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Release smoothly — <strong>progressive delivery</strong> (canary, feature flag).</p>
+<p><strong>🤔 Don&#39;t switch 100% at once.</strong> A <strong>feature flag</strong> enables the new thing for a <strong>percentage</strong> of users, chosen <strong>stably</strong> (the same user always sees the same version). We ramp 10% → 50% → 100% while <strong>watching</strong>. We run a <strong>real</strong> percentage rollout.</p>
+<p>Perform a progressive rollout:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; canari.js &lt;&lt;&#39;JS&#39;
+const crypto = require(&quot;crypto&quot;);
+// Actif si le &quot;bucket&quot; stable de l&#39;utilisateur (0..99) &lt; pourcentage de déploiement
+function estActif(pourcentage, userId) {
+  const bucket = crypto.createHash(&quot;sha256&quot;).update(String(userId)).digest()[0] % 100;
+  return bucket &lt; pourcentage;
+}
+for (const pct of [0, 10, 50, 100]) {
+  const actifs = Array.from({ length: 1000 }, (_, i) =&gt; estActif(pct, &quot;user&quot; + i)).filter(Boolean).length;
+  console.log(`déploiement à ${pct}% -&gt; ~${actifs}/1000 utilisateurs voient la nouveauté`);
+}
+JS
+
+node canari.js</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre la montée : <code>0% -&gt; ~0/1000</code>, <code>10% -&gt; ~100/1000</code>, <code>50% -&gt; ~500/1000</code>, <code>100% -&gt; ~1000/1000</code> (chiffres proches, la répartition est <strong>stable</strong> par utilisateur). C&#39;est le <strong>canari</strong> par feature flag : on expose la nouveauté à <strong>peu</strong> d&#39;utilisateurs, on <strong>surveille</strong> les métriques (erreurs, latence), et on <strong>augmente</strong> — ou on <strong>rebascule à 0 %</strong> en cas de souci, <strong>sans redéployer</strong>. Le <strong>blue-green</strong>, lui, bascule tout d&#39;un coup entre deux environnements, avec retour instantané. Deux stratégies pour <strong>réduire le risque</strong> de chaque livraison.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows the ramp: <code>0% -&gt; ~0/1000</code>, <code>10% -&gt; ~100/1000</code>, <code>50% -&gt; ~500/1000</code>, <code>100% -&gt; ~1000/1000</code> (numbers are close; the split is <strong>stable</strong> per user). That&#39;s the <strong>canary</strong> via feature flag: you expose the new thing to <strong>few</strong> users, <strong>watch</strong> the metrics (errors, latency), and <strong>increase</strong> — or <strong>flip back to 0%</strong> on trouble, <strong>without redeploying</strong>. <strong>Blue-green</strong>, in contrast, switches everything at once between two environments, with instant rollback. Two strategies to <strong>reduce the risk</strong> of each release.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser une <strong>alerte</strong> et fermer la <strong>boucle de retour</strong>.</p>
+<p><strong>🤔 Mesurer sans réagir ne sert à rien.</strong> Une <strong>alerte</strong> surveille une métrique et se déclenche au <strong>franchissement d&#39;un seuil</strong> — elle <strong>notifie</strong> (ou déclenche un rollback). On simule une règle d&#39;alerte sur le taux d&#39;erreur, et on récapitule la boucle.</p>
+<p>Évalue une règle d&#39;alerte et récapitule :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set an <strong>alert</strong> and close the <strong>feedback loop</strong>.</p>
+<p><strong>🤔 Measuring without reacting is pointless.</strong> An <strong>alert</strong> watches a metric and fires when a <strong>threshold is crossed</strong> — it <strong>notifies</strong> (or triggers a rollback). We simulate an alert rule on the error rate, and recap the loop.</p>
+<p>Evaluate an alert rule and recap:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Règle d&#39;alerte : taux d&#39;erreur 5xx &gt; 1% sur les dernières requêtes
+cat &gt; alerte.py &lt;&lt;&#39;PY&#39;
+requetes = [200, 200, 200, 500, 200, 200, 503, 200, 200, 200]  # échantillon récent
+erreurs = sum(1 for s in requetes if s &gt;= 500)
+taux = 100 * erreurs / len(requetes)
+SEUIL = 1.0
+etat = &quot;🔴 DECLENCHEE&quot; if taux &gt; SEUIL else &quot;🟢 OK&quot;
+print(f&quot;Taux d&#39;erreur : {taux:.0f}% (seuil {SEUIL:.0f}%) -&gt; alerte {etat}&quot;)
+if taux &gt; SEUIL:
+    print(&quot;  Action : notifier l&#39;équipe + envisager un rollback (rebascule le canari à 0%).&quot;)
+PY
+python3 alerte.py
+
+echo &quot;--- La boucle de supervision / the monitoring loop ---&quot;
+echo &quot;MESURER (DORA) -&gt; OBSERVER (sondes, logs/KQL) -&gt; LIVRER (canari) -&gt; ALERTER (seuil) -&gt; corriger -&gt; re-mesurer&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> l&#39;évaluation affiche <code>Taux d&#39;erreur : 20% (seuil 1%) -&gt; alerte 🔴 DECLENCHEE</code> et propose l&#39;<strong>action</strong> (notifier + rollback). Sur Azure, cette logique est une <strong>règle d&#39;alerte</strong> (Azure Monitor) sur une métrique ou une requête KQL, reliée à un <strong>groupe d&#39;actions</strong> (mail, webhook, rollback). Tu as bouclé la <strong>supervision de la livraison</strong> : mesurer (DORA), observer (sondes, logs), livrer en douceur (canari), alerter, corriger — et recommencer. <strong>Tu as terminé le track AZ-400 !</strong> Il ne reste que le <strong>projet DevOps</strong> de synthèse, pour l&#39;emballage CV.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the evaluation shows <code>Taux d&#39;erreur : 20% (seuil 1%) -&gt; alerte 🔴 DECLENCHEE</code> and proposes the <strong>action</strong> (notify + rollback). On Azure, this logic is an <strong>alert rule</strong> (Azure Monitor) on a metric or a KQL query, wired to an <strong>action group</strong> (email, webhook, rollback). You closed <strong>delivery monitoring</strong>: measure (DORA), observe (probes, logs), release smoothly (canary), alert, fix — and repeat. <strong>You finished the AZ-400 track!</strong> Only the capstone <strong>DevOps project</strong> remains, for CV packaging.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Optimiser la vitesse en ignorant la stabilité.</strong> Déployer souvent avec un taux d&#39;échec de 40 % n&#39;est pas « performant ». DORA mesure les <strong>quatre</strong> — vélocité <strong>et</strong> stabilité.</p>
+<p><strong>2. Liveness et readiness confondues.</strong> Si <code>liveness</code> échoue pendant l&#39;init, l&#39;orchestrateur <strong>redémarre</strong> en boucle. La sonde de démarrage/prêt (<code>readiness</code>) gère l&#39;init ; <code>liveness</code> ne teste que « le process est-il bloqué ? ».</p>
+<p><strong>3. Logs en texte libre.</strong> <code>console.log(&quot;erreur sur user 42&quot;)</code> n&#39;est ni filtrable ni agrégeable. <strong>Logue en JSON</strong> avec des champs.</p>
+<p><strong>4. Tout logguer / rien logguer.</strong> Trop de logs = coût et bruit ; trop peu = angles morts. Logue les <strong>événements utiles</strong> (erreurs, latences, transactions), avec un <strong>niveau</strong>.</p>
+<p><strong>5. Canari sans surveillance.</strong> Monter 10 %→100 % <strong>sans regarder</strong> les métriques, c&#39;est juste un déploiement lent. Le canari <strong>surveille</strong> à chaque palier et <strong>rebascule</strong> si besoin.</p>
+<p><strong>6. Alerte sans seuil pertinent.</strong> Trop sensible = fatigue d&#39;alerte (on les ignore) ; trop laxiste = on rate l&#39;incident. Calibre sur des <strong>objectifs de service</strong> (SLO).</p>
+<p><strong>7. Mesurer sans agir.</strong> Un tableau de bord qu&#39;on ne regarde pas ne sert à rien. L&#39;<strong>alerte</strong> ferme la boucle : mesurer <strong>et</strong> réagir.</p>
+</div>
+<div data-lang="en"><p><strong>1. Optimizing speed while ignoring stability.</strong> Deploying often with a 40% failure rate isn&#39;t &quot;high-performing&quot;. DORA measures <strong>all four</strong> — velocity <strong>and</strong> stability.</p>
+<p><strong>2. Confusing liveness and readiness.</strong> If <code>liveness</code> fails during init, the orchestrator <strong>restarts</strong> in a loop. The startup/readiness probe handles init; <code>liveness</code> only tests &quot;is the process stuck?&quot;.</p>
+<p><strong>3. Free-text logs.</strong> <code>console.log(&quot;error on user 42&quot;)</code> is neither filterable nor aggregatable. <strong>Log in JSON</strong> with fields.</p>
+<p><strong>4. Log everything / log nothing.</strong> Too many logs = cost and noise; too few = blind spots. Log the <strong>useful events</strong> (errors, latencies, transactions), with a <strong>level</strong>.</p>
+<p><strong>5. Canary without watching.</strong> Ramping 10%→100% <strong>without looking</strong> at metrics is just a slow deployment. Canary <strong>watches</strong> at each step and <strong>flips back</strong> if needed.</p>
+<p><strong>6. Alert without a relevant threshold.</strong> Too sensitive = alert fatigue (ignored); too lax = you miss the incident. Calibrate against <strong>service objectives</strong> (SLOs).</p>
+<p><strong>7. Measuring without acting.</strong> A dashboard nobody watches is useless. The <strong>alert</strong> closes the loop: measure <strong>and</strong> react.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>calcules</strong> les 4 métriques DORA depuis un historique Git.</li><li>Tu expliques <strong>vélocité</strong> (fréquence, lead time) vs <strong>stabilité</strong> (taux d&#39;échec, MTTR).</li><li>Tu exposes et interroges des sondes <strong>liveness</strong> / <strong>readiness</strong>.</li><li>Tu produis des <strong>logs JSON</strong> et sais écrire la <strong>requête KQL</strong> d&#39;agrégation.</li><li>Tu réalises une <strong>bascule de pourcentage</strong> (canari) stable par utilisateur.</li><li>Tu poses une <strong>alerte</strong> sur un seuil et sais qu&#39;elle <strong>ferme la boucle</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>compute</strong> the 4 DORA metrics from a Git history.</li><li>You explain <strong>velocity</strong> (frequency, lead time) vs <strong>stability</strong> (failure rate, MTTR).</li><li>You expose and query <strong>liveness</strong> / <strong>readiness</strong> probes.</li><li>You produce <strong>JSON logs</strong> and can write the aggregation <strong>KQL query</strong>.</li><li>You perform a <strong>percentage rollout</strong> (canary) stable per user.</li><li>You set an <strong>alert</strong> on a threshold and know it <strong>closes the loop</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — projet DevOps (AZ-400)</em> — le projet de synthèse : une chaîne CI/CD complète, sécurisée et supervisée, pour le CV.</li><li><strong>Réviser :</strong> <em>Azure — DevSecOps (AZ-400)</em> pour la sécurité de la chaîne.</li><li><strong>S&#39;entraîner :</strong> branche ton calcul DORA sur un <strong>vrai</strong> dépôt (le tien) et interprète tes quatre chiffres.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — DevOps project (AZ-400)</em> — the capstone: a complete, secured and monitored CI/CD chain, for the CV.</li><li><strong>Review:</strong> <em>Azure — DevSecOps (AZ-400)</em> for chain security.</li><li><strong>Practice:</strong> point your DORA computation at a <strong>real</strong> repo (yours) and interpret your four numbers.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Les 4 métriques DORA</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Vélocité :
+  Fréquence de déploiement  = nb de déploiements / période       (élite : plusieurs/jour)
+  Lead time for changes     = temps commit -&gt; prod               (élite : &lt; 1 jour)
+Stabilité :
+  Change failure rate       = % déploiements causant un incident (élite : 0-15%)
+  MTTR                      = temps de rétablissement            (élite : &lt; 1 h)
+# se calculent depuis Git : tags de déploiement + commits datés + tags &#39;hotfix&#39;</code></pre>
+<p><strong>Sondes de santé</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>/health/live   -&gt; 200 si le process tourne        (sinon : redémarrer)
+/health/ready  -&gt; 200 si prêt au trafic, 503 sinon (sinon : ne pas router)</code></pre>
+<p><strong>Logs &amp; KQL</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># loguer en JSON : { ts, level, msg, route, status, duree_ms }
+# requête Application Insights / Log Analytics :
+#   traces | where status &gt;= 500 | summarize count() by route</code></pre>
+<p><strong>Déploiement progressif</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Blue-green    : 2 environnements, bascule tout-ou-rien, rollback instantané
+Canari        : 10% -&gt; 50% -&gt; 100% du trafic, surveillé à chaque palier
+Feature flag  : code déployé désactivé, activé par drapeau (%, région, segment)</code></pre>
+</div>
+<div data-lang="en"><p><strong>The 4 DORA metrics</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Velocity:
+  Deployment frequency   = # deployments / period        (elite: several/day)
+  Lead time for changes  = time commit -&gt; prod            (elite: &lt; 1 day)
+Stability:
+  Change failure rate    = % deployments causing incident (elite: 0-15%)
+  MTTR                   = time to restore                (elite: &lt; 1 h)
+# computed from Git: deploy tags + dated commits + &#39;hotfix&#39; tags</code></pre>
+<p><strong>Health probes</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>/health/live   -&gt; 200 if the process runs         (else: restart)
+/health/ready  -&gt; 200 if ready for traffic, 503 not (else: don&#39;t route)</code></pre>
+<p><strong>Logs &amp; KQL</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># log in JSON: { ts, level, msg, route, status, duree_ms }
+# Application Insights / Log Analytics query:
+#   traces | where status &gt;= 500 | summarize count() by route</code></pre>
+<p><strong>Progressive delivery</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Blue-green    : 2 environments, all-or-nothing switch, instant rollback
+Canary        : 10% -&gt; 50% -&gt; 100% of traffic, watched at each step
+Feature flag  : code deployed disabled, enabled by flag (%, region, segment)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>DORA / Four Keys</strong> : les 4 métriques, le rapport <em>Accelerate State of DevOps</em> — dora.dev, <code>dora-team/fourkeys</code>.</li><li><strong>Sondes</strong> : liveness/readiness/startup — docs Kubernetes ; Health checks App Service — Microsoft Learn.</li><li><strong>KQL</strong> : Kusto Query Language, Log Analytics, Application Insights — Microsoft Learn (AZ-400).</li><li><strong>Déploiement progressif</strong> : blue-green, canary, feature flags — docs Azure Deployment Center / App Configuration.</li><li><strong>Azure Monitor</strong> : règles d&#39;alerte, groupes d&#39;actions, SLO/SLI — Microsoft Learn.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>DORA / Four Keys</strong>: the 4 metrics, the <em>Accelerate State of DevOps</em> report — dora.dev, <code>dora-team/fourkeys</code>.</li><li><strong>Probes</strong>: liveness/readiness/startup — Kubernetes docs; App Service health checks — Microsoft Learn.</li><li><strong>KQL</strong>: Kusto Query Language, Log Analytics, Application Insights — Microsoft Learn (AZ-400).</li><li><strong>Progressive delivery</strong>: blue-green, canary, feature flags — Azure Deployment Center / App Configuration docs.</li><li><strong>Azure Monitor</strong>: alert rules, action groups, SLO/SLI — Microsoft Learn.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>dora.py</code> : aucune ligne / division par zéro.</strong> Il faut au moins **un tag <code>deploy<em></code></em>*. Vérifie <code>git tag | grep deploy</code> ; recrée l&#39;historique (step-01) si besoin.</p>
+<p><strong>Les dates du lead time semblent fausses.</strong> Le script utilise la date du <strong>commit</strong> que pointe le tag (<code>%cI</code>). Si tu as taggé un autre commit, le calcul change. Ici on tague le dernier commit avant chaque « déploiement ».</p>
+<p><strong><code>node sondes.js</code> ne rend pas la main.</strong> Le serveur se ferme seul après les sondes (<code>serveur.close()</code>). Si un <code>EADDRINUSE</code> apparaît, le port 8099 est pris — change-le, ou tue le process précédent.</p>
+<p><strong><code>ready</code> renvoie 200 dès le départ.</strong> L&#39;init simulée est courte (300 ms) et la première sonde part vite ; si ta machine est lente, l&#39;ordre peut varier. Le <strong>principe</strong> (503 tant que pas prêt) reste : augmente le délai d&#39;init pour bien le voir.</p>
+<p><strong>Le canari n&#39;est pas pile à 10 %.</strong> Normal : la répartition par hachage est <strong>stable</strong> mais <strong>approximative</strong> sur 1000 utilisateurs (<code>~100</code>). À grande échelle, elle converge vers le pourcentage visé.</p>
+<p><strong>KQL ne s&#39;exécute pas en local.</strong> C&#39;est attendu : KQL tourne sur <strong>Log Analytics / Application Insights</strong> (vrai Azure). En local, on <strong>reproduit la logique</strong> en Python pour prouver que les logs structurés sont interrogeables.</p>
+</div>
+<div data-lang="en"><p><strong><code>dora.py</code>: no lines / division by zero.</strong> You need at least **one <code>deploy<em></code> tag</em>*. Check <code>git tag | grep deploy</code>; recreate the history (step-01) if needed.</p>
+<p><strong>The lead-time dates look wrong.</strong> The script uses the date of the <strong>commit</strong> the tag points to (<code>%cI</code>). If you tagged a different commit, the computation changes. Here we tag the last commit before each &quot;deployment&quot;.</p>
+<p><strong><code>node sondes.js</code> doesn&#39;t return.</strong> The server closes itself after the probes (<code>serveur.close()</code>). If an <code>EADDRINUSE</code> appears, port 8099 is taken — change it, or kill the previous process.</p>
+<p><strong><code>ready</code> returns 200 from the start.</strong> The simulated init is short (300 ms) and the first probe fires quickly; on a slow machine the order may vary. The <strong>principle</strong> (503 until ready) holds: increase the init delay to see it clearly.</p>
+<p><strong>The canary isn&#39;t exactly 10%.</strong> Normal: the hash-based split is <strong>stable</strong> but <strong>approximate</strong> over 1000 users (<code>~100</code>). At scale it converges to the target percentage.</p>
+<p><strong>KQL doesn&#39;t run locally.</strong> Expected: KQL runs on <strong>Log Analytics / Application Insights</strong> (real Azure). Locally we <strong>reproduce the logic</strong> in Python to prove structured logs are queryable.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Terraform — le state en profondeur — jiha.tech</title>
+  <title data-lang="en">Terraform — state in depth — jiha.tech</title>
+  <meta name="description" content="Maîtrise le state Terraform en conditions réelles : backends distants et verrouillage, refactoring avec state mv/rm, import de ressources existantes, détection de drift, et sécurité du state. Aligné Terraform Associate." data-lang="fr">
+  <meta name="description" content="Master Terraform state for real-world use: remote backends and locking, refactoring with state mv/rm, importing existing resources, drift detection, and state security. Aligned with Terraform Associate." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Terraform — le state en profondeur">
+  <meta property="og:description" content="Maîtrise le state Terraform en conditions réelles : backends distants et verrouillage, refactoring avec state mv/rm, import de ressources existantes, détection de drift, et sécurité du state. Aligné Terraform Associate.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/terraform-state-avance/">
+  <link rel="canonical" href="https://jiha.tech/guides/terraform-state-avance/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="terraform-state-avance">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/terraform-state-avance</div>
+    <div class="prompt" data-lang="en">~/guides/terraform-state-avance</div>
+    <h1 data-lang="fr">Terraform — le state en profondeur</h1>
+    <h1 data-lang="en">Terraform — state in depth</h1>
+    <p class="tagline" data-lang="fr">Backends distants, verrouillage, import, drift, chirurgie du state.</p>
+    <p class="tagline" data-lang="en">Remote backends, locking, import, drift, state surgery.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 120 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 120 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Dans le guide fondamentaux, le <strong>state</strong> était une boîte noire : un fichier <code>terraform.tfstate</code> qui « marche ». En équipe et en production, c&#39;est <strong>la</strong> source de la moitié des incidents Terraform : deux personnes qui appliquent en même temps et s&#39;écrasent, une ressource créée à la main que Terraform ignore, un <code>tfstate</code> corrompu ou commité avec des secrets en clair.</p>
+<p>Ce guide fait du state une compétence maîtrisée, pas une source d&#39;angoisse. Tu vas voir <strong>ce qu&#39;il contient vraiment</strong>, le <strong>refactoriser sans rien détruire</strong>, <strong>importer</strong> l&#39;existant, <strong>détecter les écarts</strong> (drift), et le sécuriser via un <strong>backend distant avec verrouillage</strong>.</p>
+<p>Comme toujours, on reste <strong>sur ta machine</strong> : le provider Docker sert d&#39;infrastructure à manipuler. Seule la config de backend distant demande un vrai stockage (S3, Terraform Cloud) — on la montre et on explique la migration, tu la brancheras au module cloud.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait Terraform fondamentaux (HCL, plan/apply, modules) et tu veux le niveau « équipe / prod » — celui que teste la certification Associate.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas encore le socle Terraform (providers, ressources, plan/apply) → reviens au guide fondamentaux.</li><li>Tu cherches à provisionner un vrai cloud (AWS/Azure/GCP) : c&#39;est la suite ; ici on solidifie le <strong>cœur</strong> que ces modules réutiliseront.</li></ul>
+</div>
+<div data-lang="en"><p>In the fundamentals guide, <strong>state</strong> was a black box: a <code>terraform.tfstate</code> file that &quot;works&quot;. On a team and in production, it&#39;s <strong>the</strong> source of half of all Terraform incidents: two people applying at once and clobbering each other, a resource created by hand that Terraform ignores, a <code>tfstate</code> corrupted or committed with clear-text secrets.</p>
+<p>This guide turns state into a mastered skill, not a source of dread. You&#39;ll see <strong>what it really contains</strong>, <strong>refactor it without destroying anything</strong>, <strong>import</strong> existing resources, <strong>detect drift</strong>, and secure it via a <strong>remote backend with locking</strong>.</p>
+<p>As always, we stay <strong>on your machine</strong>: the Docker provider is the infrastructure to manipulate. Only the remote-backend config needs real storage (S3, Terraform Cloud) — we show it and explain the migration; you&#39;ll wire it up in the cloud module.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done Terraform fundamentals (HCL, plan/apply, modules) and you want the &quot;team / prod&quot; level — the one the Associate certification tests.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t have the Terraform base yet (providers, resources, plan/apply) → go back to the fundamentals guide.</li><li>You want to provision a real cloud (AWS/Azure/GCP): that&#39;s next; here we solidify the <strong>core</strong> those modules will reuse.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Inspecter le <strong>state</strong> et comprendre ce qu&#39;il stocke (et pourquoi on n&#39;y touche pas à la main).</li><li>Refactoriser sans destruction avec <strong><code>terraform state mv</code></strong> et <strong><code>terraform state rm</code></strong>.</li><li><strong>Importer</strong> une ressource existante sous gestion Terraform.</li><li>Détecter et réconcilier le <strong>drift</strong> (changements hors Terraform).</li><li>Configurer un <strong>backend distant</strong> avec <strong>verrouillage</strong> (concept + migration).</li><li>Traiter le state comme une <strong>donnée sensible</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Inspect the <strong>state</strong> and understand what it stores (and why you don&#39;t touch it by hand).</li><li>Refactor without destruction using <strong><code>terraform state mv</code></strong> and <strong><code>terraform state rm</code></strong>.</li><li><strong>Import</strong> an existing resource under Terraform management.</li><li>Detect and reconcile <strong>drift</strong> (changes made outside Terraform).</li><li>Configure a <strong>remote backend</strong> with <strong>locking</strong> (concept + migration).</li><li>Treat state as <strong>sensitive data</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Terraform fondamentaux</strong> acquis (prérequis dur).</li><li><strong>Terraform</strong> et <strong>Docker</strong> installés et fonctionnels.</li><li>Un projet de travail. Repars propre :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Terraform fundamentals</strong> guide under your belt (hard prerequisite).</li><li><strong>Terraform</strong> and <strong>Docker</strong> installed and working.</li><li>A working project. Start clean:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir tf-state &amp;&amp; cd tf-state</code></pre>
+<div data-lang="fr"><p>Crée <code>main.tf</code> avec une image et un conteneur (notre « infra » à gérer) :</p>
+</div>
+<div data-lang="en"><p>Create <code>main.tf</code> with an image and a container (our &quot;infra&quot; to manage):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>terraform {
+  required_providers {
+    docker = {
+      source  = &quot;kreuzwerker/docker&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;docker&quot; {}
+
+resource &quot;docker_image&quot; &quot;nginx&quot; {
+  name = &quot;nginx:1.27&quot;
+}
+
+resource &quot;docker_container&quot; &quot;web&quot; {
+  name  = &quot;tf-state-web&quot;
+  image = docker_image.nginx.image_id
+  ports {
+    internal = 80
+    external = 8080
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init &amp;&amp; terraform apply -auto-approve</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../terraform-fondamentaux/">
+    <span class="num">28</span>
+    <span class="title-line" data-lang="fr">Terraform — l’infrastructure en code</span>
+    <span class="title-line" data-lang="en">Terraform — infrastructure as code</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Le <strong>state</strong> est le <strong>carnet de comptes</strong> de Terraform : la correspondance entre ton code (<code>docker_container.web</code>) et l&#39;objet réel (le conteneur, son ID, ses attributs). Sans lui, Terraform ne saurait pas ce qui existe déjà.</p>
+<p>Trois vérités à intégrer :</p>
+<ul><li><strong>Le state peut mentir par rapport au réel.</strong> Si quelqu&#39;un modifie l&#39;infra <strong>hors</strong> Terraform (supprime le conteneur à la main), le state ne le sait pas encore : c&#39;est le <strong>drift</strong>. <code>terraform plan</code> le révèle en comparant state et réalité.</li><li><strong>Le state ≠ ton code.</strong> Renommer une ressource dans le code (<code>web</code> → <code>frontend</code>) fait croire à Terraform que l&#39;ancienne a disparu et qu&#39;une nouvelle apparaît → il <strong>détruit et recrée</strong>. Pour renommer <em>sans</em> détruire, on déplace l&#39;entrée dans le state (<code>state mv</code>).</li><li><strong>Le state contient des données sensibles en clair.</strong> Mots de passe, clés générées, sorties : tout y est. D&#39;où deux règles : <strong>jamais dans Git</strong>, et en équipe <strong>un backend distant chiffré et verrouillé</strong>.</li></ul>
+<p>Le <strong>backend</strong> est l&#39;endroit où vit le state. Par défaut : <strong>local</strong> (<code>terraform.tfstate</code> sur ton disque) — parfait pour apprendre, dangereux en équipe. En prod : un <strong>backend distant</strong> (S3, Terraform Cloud, GCS…) qui <strong>partage</strong> le state et le <strong>verrouille</strong> : pendant qu&#39;une personne applique, les autres sont bloquées. Fini les <code>apply</code> concurrents qui se corrompent.</p>
+</div>
+<div data-lang="en"><p>The <strong>state</strong> is Terraform&#39;s <strong>ledger</strong>: the mapping between your code (<code>docker_container.web</code>) and the real object (the container, its ID, its attributes). Without it, Terraform wouldn&#39;t know what already exists.</p>
+<p>Three truths to internalize:</p>
+<ul><li><strong>State can lie about reality.</strong> If someone changes the infra <strong>outside</strong> Terraform (deletes the container by hand), state doesn&#39;t know yet: that&#39;s <strong>drift</strong>. <code>terraform plan</code> reveals it by comparing state and reality.</li><li><strong>State ≠ your code.</strong> Renaming a resource in code (<code>web</code> → <code>frontend</code>) makes Terraform think the old one vanished and a new one appeared → it <strong>destroys and recreates</strong>. To rename <em>without</em> destroying, you move the entry in state (<code>state mv</code>).</li><li><strong>State holds sensitive data in clear text.</strong> Passwords, generated keys, outputs: it&#39;s all there. Hence two rules: <strong>never in Git</strong>, and on a team <strong>a remote, encrypted, locked backend</strong>.</li></ul>
+<p>The <strong>backend</strong> is where state lives. By default: <strong>local</strong> (<code>terraform.tfstate</code> on your disk) — perfect for learning, dangerous on a team. In prod: a <strong>remote backend</strong> (S3, Terraform Cloud, GCS…) that <strong>shares</strong> state and <strong>locks</strong> it: while one person applies, the others are blocked. No more concurrent <code>apply</code>s corrupting each other.</p>
+</div>
+
+<figure class="schema" id="figure-terraform-state-flow">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-terraform-state-flow">
+  <title id="s-terraform-state-flow">Le state relie code et réel</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Le state relie code et réel</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Code HCL</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">State</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">la carte</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="77" text-anchor="middle">Réel (cloud)</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">Backend distant</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">partagé + verrouillé</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le state relie code et réel ; le backend distant le partage et le verrouille entre plusieurs personnes.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> State links code and reality; the remote backend shares and locks it across people.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : inspecter le state → refactorer avec <code>state mv</code> → arrêter de gérer avec <code>state rm</code> → importer l&#39;existant → détecter le drift → backend distant &amp; verrouillage → sécurité.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: inspect state → refactor with <code>state mv</code> → stop managing with <code>state rm</code> → import existing → detect drift → remote backend &amp; locking → security.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Regarder dans le state — et comprendre pourquoi on le lit avec des commandes, jamais avec un éditeur.</p>
+<p><strong>🤔 Pourquoi <code>terraform state</code> et pas ouvrir le fichier ?</strong> Le <code>.tfstate</code> est du JSON que Terraform met à jour de façon atomique. L&#39;éditer à la main, c&#39;est risquer de le désynchroniser du réel — une des pires pannes Terraform. Les sous-commandes <code>state</code> sont l&#39;interface <strong>sûre</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Look inside state — and understand why you read it with commands, never with an editor.</p>
+<p><strong>🤔 Why <code>terraform state</code> and not open the file?</strong> The <code>.tfstate</code> is JSON that Terraform updates atomically. Editing it by hand risks desyncing it from reality — one of the worst Terraform failures. The <code>state</code> subcommands are the <strong>safe</strong> interface.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform state list                       # les ressources gérées / the managed resources
+terraform state show docker_container.web  # tous les attributs enregistrés / all recorded attributes</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>state list</code> affiche <code>docker_image.nginx</code> et <code>docker_container.web</code>. <code>state show</code> détaille l&#39;objet réel (ID, ports, image) tel que Terraform le connaît. Note l&#39;<strong>adresse de ressource</strong> (<code>docker_container.web</code>) : c&#39;est la clé qu&#39;on manipule ensuite.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>state list</code> shows <code>docker_image.nginx</code> and <code>docker_container.web</code>. <code>state show</code> details the real object (ID, ports, image) as Terraform knows it. Note the <strong>resource address</strong> (<code>docker_container.web</code>): that&#39;s the key we&#39;ll manipulate next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Renommer une ressource <strong>sans la détruire</strong>, avec <code>terraform state mv</code>.</p>
+<p><strong>🤔 Pourquoi ne pas juste renommer dans le code ?</strong> Parce que Terraform identifie une ressource par son <strong>adresse</strong> (<code>docker_container.web</code>). Change l&#39;adresse dans le code et le plan devient « détruire <code>web</code>, créer <code>frontend</code> » — inacceptable sur une base de données en prod. <code>state mv</code> déplace l&#39;entrée dans le state pour que la nouvelle adresse pointe vers l&#39;objet <strong>existant</strong>.</p>
+<p>Renomme d&#39;abord dans le state, <strong>puis</strong> dans le code — tant que tu ne fais pas d&#39;<code>apply</code> entre les deux, le plan reste propre :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Rename a resource <strong>without destroying it</strong>, with <code>terraform state mv</code>.</p>
+<p><strong>🤔 Why not just rename in code?</strong> Because Terraform identifies a resource by its <strong>address</strong> (<code>docker_container.web</code>). Change the address in code and the plan becomes &quot;destroy <code>web</code>, create <code>frontend</code>&quot; — unacceptable on a production database. <code>state mv</code> moves the state entry so the new address points to the <strong>existing</strong> object.</p>
+<p>Rename in state first, <strong>then</strong> in code — as long as you don&#39;t <code>apply</code> in between, the plan stays clean:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform state mv docker_container.web docker_container.frontend
+# puis édite main.tf : renomme le bloc &quot;web&quot; en &quot;frontend&quot; / then edit main.tf: rename block &quot;web&quot; to &quot;frontend&quot;
+terraform plan</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après le <code>state mv</code> et l&#39;édition du code, <code>terraform plan</code> annonce <strong><code>No changes</code></strong> — la ressource a changé de nom <strong>sans</strong> être recréée. Sans <code>state mv</code>, tu aurais vu un <code>-/+</code> destructeur.</p>
+<p>💡 Depuis Terraform 1.1, un <strong>bloc <code>moved { … }</code></strong> dans le code fait la même chose de façon <strong>versionnable</strong> (pas de commande manuelle) — c&#39;est la méthode moderne recommandée pour les refactorings publiés en équipe.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after the <code>state mv</code> and the code edit, <code>terraform plan</code> reports <strong><code>No changes</code></strong> — the resource was renamed <strong>without</strong> being recreated. Without <code>state mv</code>, you&#39;d have seen a destructive <code>-/+</code>.</p>
+<p>💡 Since Terraform 1.1, a <strong><code>moved { … }</code> block</strong> in code does the same thing in a <strong>versionable</strong> way (no manual command) — the modern recommended method for refactorings published on a team.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Retirer une ressource de la gestion Terraform <strong>sans la supprimer</strong>, avec <code>terraform state rm</code>.</p>
+<p><strong>🤔 À quoi ça sert ?</strong> Parfois tu veux que Terraform <strong>oublie</strong> une ressource (elle sera gérée autrement, ou par un autre projet) sans la détruire. <code>state rm</code> retire l&#39;entrée du state : l&#39;objet réel continue de tourner, mais Terraform ne le suit plus.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Remove a resource from Terraform management <strong>without deleting it</strong>, with <code>terraform state rm</code>.</p>
+<p><strong>🤔 What&#39;s it for?</strong> Sometimes you want Terraform to <strong>forget</strong> a resource (it&#39;ll be managed elsewhere, or by another project) without destroying it. <code>state rm</code> removes the state entry: the real object keeps running, but Terraform no longer tracks it.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform state rm docker_container.frontend
+terraform state list          # frontend a disparu du state / frontend is gone from state
+docker ps                     # ...mais le conteneur tourne toujours / ...but the container still runs</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform state list</code> ne montre plus <code>docker_container.frontend</code>, alors que <code>docker ps</code> le liste encore. Terraform l&#39;a <strong>oublié</strong>, pas détruit. <em>(À l&#39;étape suivante, on va le ré-adopter par <code>import</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform state list</code> no longer shows <code>docker_container.frontend</code>, while <code>docker ps</code> still lists it. Terraform <strong>forgot</strong> it, didn&#39;t destroy it. <em>(In the next step, we&#39;ll re-adopt it via <code>import</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Importer une ressource <strong>existante</strong> sous gestion Terraform, avec <code>terraform import</code>.</p>
+<p><strong>🤔 Le cas réel ?</strong> Une infra créée à la main (ou par un autre outil) que tu veux désormais gérer en code — sans la recréer. <code>import</code> associe une ressource <strong>réelle</strong> (par son ID) à une adresse Terraform. Le code doit déjà décrire la ressource ; l&#39;import remplit le state.</p>
+<p>Le bloc <code>docker_container.frontend</code> est toujours dans ton <code>main.tf</code> (on l&#39;a seulement retiré du state). Récupère l&#39;ID du conteneur et importe-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Import an <strong>existing</strong> resource under Terraform management, with <code>terraform import</code>.</p>
+<p><strong>🤔 The real-world case?</strong> Infra created by hand (or by another tool) that you now want to manage as code — without recreating it. <code>import</code> binds a <strong>real</strong> resource (by its ID) to a Terraform address. The code must already describe the resource; import fills the state.</p>
+<p>The <code>docker_container.frontend</code> block is still in your <code>main.tf</code> (we only removed it from state). Get the container&#39;s ID and import it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker ps --filter name=tf-state-web --format &#39;{{.ID}}&#39;   # récupère l&#39;ID / get the ID
+terraform import docker_container.frontend &lt;ID-DU-CONTENEUR&gt;
+terraform plan</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform import</code> répond <code>Import successful!</code>. <code>terraform plan</code> peut afficher un <strong>petit diff</strong> (le provider Docker normalise certains attributs — image en digest, ports…) : c&#39;est <strong>normal après un import</strong>, ajuste le HCL jusqu&#39;à <code>No changes</code> (cf. <em>troubleshooting</em>). L&#39;essentiel : Terraform gère de nouveau le conteneur existant <strong>sans l&#39;avoir recréé</strong>. Tu viens de <strong>ré-adopter</strong> une ressource.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform import</code> replies <code>Import successful!</code>. <code>terraform plan</code> may show a <strong>small diff</strong> (the Docker provider normalizes some attributes — image digest, ports…): this is <strong>normal after an import</strong>, adjust the HCL until <code>No changes</code> (see <em>troubleshooting</em>). The point: Terraform manages the existing container again <strong>without recreating it</strong>. You just <strong>re-adopted</strong> a resource.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Provoquer un <strong>drift</strong> et le réconcilier.</p>
+<p><strong>🤔 Pourquoi c&#39;est central ?</strong> En vrai, l&#39;infra bouge hors Terraform : un collègue modifie une ressource dans la console, un incident supprime un objet. Le <strong>drift</strong>, c&#39;est l&#39;écart entre le state et le réel. Terraform le <strong>détecte</strong> au <code>plan</code> (il rafraîchit l&#39;état réel avant de comparer) et propose de <strong>reconverger</strong> vers ton code.</p>
+<p>On simule : on supprime le conteneur <strong>à la main</strong>, puis on regarde ce que Terraform en dit.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Cause <strong>drift</strong> and reconcile it.</p>
+<p><strong>🤔 Why is this central?</strong> In reality, infra changes outside Terraform: a colleague edits a resource in the console, an incident deletes an object. <strong>Drift</strong> is the gap between state and reality. Terraform <strong>detects</strong> it at <code>plan</code> (it refreshes real state before comparing) and offers to <strong>reconverge</strong> to your code.</p>
+<p>We simulate: delete the container <strong>by hand</strong>, then see what Terraform says.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f tf-state-web          # changement HORS Terraform / change OUTSIDE Terraform
+terraform plan                     # Terraform détecte que le conteneur a disparu / detects it&#39;s gone
+terraform apply -auto-approve      # reconverge : il le recrée / reconverges: recreates it</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <code>plan</code> signale que <code>docker_container.frontend</code> a été supprimé hors Terraform et propose de le <strong>recréer</strong> (<code>1 to add</code>). Après <code>apply</code>, <code>docker ps</code> le remontre. Terraform a <strong>réconcilié</strong> le réel avec ton code.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>plan</code> flags that <code>docker_container.frontend</code> was deleted outside Terraform and offers to <strong>recreate</strong> it (<code>1 to add</code>). After <code>apply</code>, <code>docker ps</code> shows it again. Terraform <strong>reconciled</strong> reality with your code.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Passer d&#39;un state local à un <strong>backend distant avec verrouillage</strong> — le prérequis du travail en équipe.</p>
+<p><strong>🤔 Ce que ça change :</strong> le state ne vit plus sur ton disque mais dans un stockage partagé (S3, Terraform Cloud, GCS…), <strong>chiffré</strong>, et <strong>verrouillé</strong> pendant chaque opération. Deux <code>apply</code> simultanés ? Le second attend le déverrouillage — plus de corruption.</p>
+<p>On déclare le backend dans un bloc <code>terraform</code>. Exemple avec un <strong>backend S3</strong> (nécessite un compte AWS + une table de verrouillage). <em>Terraform Cloud offre une alternative avec un palier gratuit — mais il s&#39;écrit avec un bloc <code>cloud { … }</code>, pas <code>backend</code>.</em></p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Move from local state to a <strong>remote backend with locking</strong> — the prerequisite for teamwork.</p>
+<p><strong>🤔 What changes:</strong> state no longer lives on your disk but in shared storage (S3, Terraform Cloud, GCS…), <strong>encrypted</strong>, and <strong>locked</strong> during each operation. Two simultaneous <code>apply</code>s? The second waits for the unlock — no more corruption.</p>
+<p>You declare the backend in a <code>terraform</code> block. Example with an <strong>S3 backend</strong> (requires an AWS account + a lock table). <em>Terraform Cloud offers a free-tier alternative — but it&#39;s written with a <code>cloud { … }</code> block, not <code>backend</code>.</em></p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>terraform {
+  backend &quot;s3&quot; {
+    bucket         = &quot;mon-org-terraform-state&quot;
+    key            = &quot;tf-state/demo.tfstate&quot;
+    region         = &quot;eu-west-3&quot;
+    dynamodb_table = &quot;terraform-locks&quot;   # le verrouillage / the locking
+    encrypt        = true
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init -migrate-state    # migre le state local vers le backend distant / migrate local state to the remote backend</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init -migrate-state</code> te demande de confirmer la copie du state local vers le backend, puis <code>terraform.tfstate</code> local devient vide (le state vit à distance).</p>
+<p>⚠️ <strong>Cette étape exige un vrai backend</strong> (un bucket S3 + table de verrouillage, ou un compte Terraform Cloud) — tu la brancheras pour de bon au <strong>module cloud</strong>. Retiens le mécanisme : un bloc <code>backend</code> + <code>init -migrate-state</code>, et le verrouillage devient automatique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init -migrate-state</code> asks you to confirm copying local state to the backend, then the local <code>terraform.tfstate</code> becomes empty (state lives remotely).</p>
+<p>⚠️ <strong>This step requires a real backend</strong> (an S3 bucket + lock table, or a Terraform Cloud account) — you&#39;ll wire it up for real in the <strong>cloud module</strong>. Remember the mechanism: a <code>backend</code> block + <code>init -migrate-state</code>, and locking becomes automatic.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Traiter le state comme la donnée sensible qu&#39;il est.</p>
+<p><strong>🤔 Pourquoi si sensible ?</strong> Le state stocke <strong>en clair</strong> tout ce que Terraform connaît : mots de passe de bases, clés générées, jetons. Committer un <code>tfstate</code>, c&#39;est publier des secrets. Idem pour les fichiers de plan (<code>-out</code>).</p>
+<p>Protège-toi :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Treat state as the sensitive data it is.</p>
+<p><strong>🤔 Why so sensitive?</strong> State stores <strong>in clear text</strong> everything Terraform knows: database passwords, generated keys, tokens. Committing a <code>tfstate</code> means publishing secrets. Same for plan files (<code>-out</code>).</p>
+<p>Protect yourself:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>printf &#39;%s\n&#39; &#39;terraform.tfstate*&#39; &#39;.terraform/&#39; &#39;*.tfplan&#39; &gt; .gitignore
+# NB : .terraform.lock.hcl n&#39;est PAS ignoré — il SE commite (il fige les versions de providers)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>git status</code> ne propose plus de suivre <code>terraform.tfstate</code>. En revanche <code>.terraform.lock.hcl</code> <strong>apparaît</strong> à suivre — c&#39;est voulu : il <strong>doit</strong> être versionné (il fige les versions de providers), c&#39;est le seul fichier <code>terraform*</code> qu&#39;on commite.</p>
+<p><em>(Nettoyage : <code>terraform destroy -auto-approve</code> supprime le conteneur de démo.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>git status</code> no longer offers to track <code>terraform.tfstate</code>. <code>.terraform.lock.hcl</code>, however, <strong>does</strong> show up to track — that&#39;s intended: it <strong>must</strong> be versioned (it pins provider versions), the only <code>terraform*</code> file you commit.</p>
+<p><em>(Cleanup: <code>terraform destroy -auto-approve</code> removes the demo container.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Éditer <code>terraform.tfstate</code> à la main.</strong> La panne classique : tu désynchronises Terraform du réel. Utilise <strong>toujours</strong> <code>state mv</code>/<code>rm</code>/<code>import</code>, jamais un éditeur.</p>
+<p><strong>2. Renommer une ressource dans le code sans <code>state mv</code>.</strong> Tu déclenches un <code>destroy</code>/<code>create</code> — potentiellement destructeur sur du stateful. <code>state mv</code> d&#39;abord.</p>
+<p><strong>3. Committer le state.</strong> Secrets en clair publiés. <code>.gitignore</code> sur <code>terraform.tfstate*</code> et, en équipe, backend distant.</p>
+<p><strong>4. State local à plusieurs.</strong> Deux personnes, deux states divergents → corruption. Backend distant + verrouillage dès qu&#39;on est plus d&#39;un.</p>
+<p><strong>5. Ignorer le drift.</strong> Si le réel dérive et que tu ne rafraîchis jamais, ton prochain <code>apply</code> peut surprendre. <code>terraform plan</code> régulièrement ; il rafraîchit et révèle les écarts.</p>
+<p><strong>6. Oublier le verrouillage.</strong> Un backend distant <strong>sans</strong> verrouillage (ex. S3 sans table DynamoDB) n&#39;empêche pas les <code>apply</code> concurrents. Le verrou fait partie du backend, pas une option.</p>
+</div>
+<div data-lang="en"><p><strong>1. Editing <code>terraform.tfstate</code> by hand.</strong> The classic failure: you desync Terraform from reality. <strong>Always</strong> use <code>state mv</code>/<code>rm</code>/<code>import</code>, never an editor.</p>
+<p><strong>2. Renaming a resource in code without <code>state mv</code>.</strong> You trigger a <code>destroy</code>/<code>create</code> — potentially destructive on stateful resources. <code>state mv</code> first.</p>
+<p><strong>3. Committing state.</strong> Clear-text secrets published. <code>.gitignore</code> on <code>terraform.tfstate*</code> and, on a team, a remote backend.</p>
+<p><strong>4. Local state with multiple people.</strong> Two people, two diverging states → corruption. Remote backend + locking as soon as there&#39;s more than one of you.</p>
+<p><strong>5. Ignoring drift.</strong> If reality drifts and you never refresh, your next <code>apply</code> can surprise you. Run <code>terraform plan</code> regularly; it refreshes and reveals the gaps.</p>
+<p><strong>6. Forgetting locking.</strong> A remote backend <strong>without</strong> locking (e.g. S3 without a DynamoDB table) doesn&#39;t prevent concurrent <code>apply</code>s. The lock is part of the backend, not an option.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis le state avec <code>state list</code>/<code>show</code> et tu <strong>n&#39;ouvres jamais</strong> le fichier.</li><li>Tu renommes/déplaces une ressource <strong>sans</strong> la recréer (<code>state mv</code>).</li><li>Tu sais retirer (<code>state rm</code>) et ré-adopter (<code>import</code>) une ressource.</li><li>Tu reconnais un <strong>drift</strong> dans un plan et tu sais reconverger.</li><li>Tu expliques backend distant + <strong>verrouillage</strong>, et la migration <code>init -migrate-state</code>.</li><li>Le state n&#39;atterrit <strong>jamais</strong> dans Git ; le lock, lui, y est.</li></ul>
+<p>Six cases cochées = tu gères le state au niveau « équipe / prod » attendu par l&#39;Associate.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read state with <code>state list</code>/<code>show</code> and <strong>never open</strong> the file.</li><li>You rename/move a resource <strong>without</strong> recreating it (<code>state mv</code>).</li><li>You can remove (<code>state rm</code>) and re-adopt (<code>import</code>) a resource.</li><li>You recognize <strong>drift</strong> in a plan and know how to reconverge.</li><li>You can explain remote backend + <strong>locking</strong>, and the <code>init -migrate-state</code> migration.</li><li>State <strong>never</strong> lands in Git; the lock file does.</li></ul>
+<p>Six boxes ticked = you handle state at the &quot;team / prod&quot; level the Associate expects.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Terraform :</p>
+<ol><li><strong>Composition &amp; expressions</strong> — <code>count</code>/<code>for_each</code>, fonctions, <code>data</code> sources, <code>dynamic</code> : générer de l&#39;infra sans copier-coller.</li><li><strong>Travail d&#39;équipe &amp; cloud réel</strong> — Terraform Cloud et un vrai provider (AWS/Azure/GCP), avec les <strong>workspaces</strong>, la data source <strong><code>terraform_remote_state</code></strong> et <code>state pull</code>/<code>push</code> (tous au programme Associate), puis le <strong>projet d&#39;entreprise</strong> : une infra multi-environnement.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Terraform track:</p>
+<ol><li><strong>Composition &amp; expressions</strong> — <code>count</code>/<code>for_each</code>, functions, <code>data</code> sources, <code>dynamic</code>: generate infra without copy-paste.</li><li><strong>Teamwork &amp; real cloud</strong> — Terraform Cloud and a real provider (AWS/Azure/GCP), with <strong>workspaces</strong>, the <strong><code>terraform_remote_state</code></strong> data source and <code>state pull</code>/<code>push</code> (all on the Associate exam), then the <strong>enterprise project</strong>: a multi-environment infrastructure.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-fondamentaux/">
+    <span class="num">33</span>
+    <span class="title-line" data-lang="fr">Kubernetes — orchestrer des conteneurs</span>
+    <span class="title-line" data-lang="en">Kubernetes — orchestrate containers</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du state Terraform.</p>
+</div>
+<div data-lang="en"><p>Terraform state cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Inspecter / Inspect
+terraform state list                 # ressources gérées / managed resources
+terraform state show &lt;adresse&gt;       # attributs d&#39;une ressource / a resource&#39;s attributes
+
+# Chirurgie du state (jamais l&#39;éditeur !) / State surgery (never the editor!)
+terraform state mv &lt;ancien&gt; &lt;nouveau&gt;  # renommer/déplacer sans recréer / rename/move without recreating
+terraform state rm &lt;adresse&gt;           # oublier (sans détruire) / forget (without destroying)
+terraform import &lt;adresse&gt; &lt;ID-réel&gt;   # adopter une ressource existante / adopt an existing resource
+
+# Drift
+terraform plan                       # rafraîchit et révèle les écarts / refreshes and reveals drift
+terraform apply -refresh-only        # met à jour le state sans changer l&#39;infra / update state without changing infra
+
+# Backend distant / Remote backend
+terraform init -migrate-state        # migrer le state vers le backend / migrate state to the backend</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://developer.hashicorp.com/terraform/language/state">Terraform — state</a> — la référence.</li><li><a href="https://developer.hashicorp.com/terraform/cli/commands/state">Commandes <code>state</code></a> — mv, rm, show, list.</li><li><a href="https://developer.hashicorp.com/terraform/language/backend">Backends distants</a> — S3, Terraform Cloud, GCS…</li><li><a href="https://developer.hashicorp.com/terraform/cli/import">Importer des ressources</a> — adopter l&#39;existant.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://developer.hashicorp.com/terraform/language/state">Terraform — state</a> — the reference.</li><li><a href="https://developer.hashicorp.com/terraform/cli/commands/state"><code>state</code> commands</a> — mv, rm, show, list.</li><li><a href="https://developer.hashicorp.com/terraform/language/backend">Remote backends</a> — S3, Terraform Cloud, GCS…</li><li><a href="https://developer.hashicorp.com/terraform/cli/import">Importing resources</a> — adopt existing infra.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>Error acquiring the state lock</code>.</strong> Un verrou est resté (un <code>apply</code> interrompu, ou un collègue en cours). Attends, ou en dernier recours <code>terraform force-unlock &lt;ID&gt;</code> — seulement si tu es <strong>sûr</strong> qu&#39;aucune opération ne tourne.</p>
+<p><strong><code>terraform import</code> : « Resource already managed ».</strong> L&#39;adresse est déjà dans le state. Fais <code>state rm</code> d&#39;abord, ou choisis une autre adresse.</p>
+<p><strong>Après <code>import</code>, <code>plan</code> propose des changements.</strong> Ton code ne correspond pas exactement à la ressource réelle (un attribut diffère). Ajuste le HCL pour refléter le réel jusqu&#39;à obtenir <code>No changes</code>.</p>
+<p><strong><code>state mv</code> : « Invalid target address ».</strong> Vérifie la syntaxe de l&#39;adresse (<code>type.nom</code>, ou <code>module.x.type.nom</code>). <code>terraform state list</code> te donne les adresses exactes.</p>
+<p><strong>Le <code>plan</code> veut tout recréer après un changement de backend.</strong> Tu as probablement fait un <code>init</code> sans <code>-migrate-state</code> : le nouveau backend est vide. Restaure le state (copie de sauvegarde <code>terraform.tfstate.backup</code>) et refais <code>init -migrate-state</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>Error acquiring the state lock</code>.</strong> A lock got stuck (an interrupted <code>apply</code>, or a colleague mid-operation). Wait, or as a last resort <code>terraform force-unlock &lt;ID&gt;</code> — only if you&#39;re <strong>sure</strong> no operation is running.</p>
+<p><strong><code>terraform import</code>: &quot;Resource already managed&quot;.</strong> The address is already in state. Run <code>state rm</code> first, or pick another address.</p>
+<p><strong>After <code>import</code>, <code>plan</code> proposes changes.</strong> Your code doesn&#39;t exactly match the real resource (an attribute differs). Adjust the HCL to reflect reality until you get <code>No changes</code>.</p>
+<p><strong><code>state mv</code>: &quot;Invalid target address&quot;.</strong> Check the address syntax (<code>type.name</code>, or <code>module.x.type.name</code>). <code>terraform state list</code> gives you the exact addresses.</p>
+<p><strong><code>plan</code> wants to recreate everything after a backend change.</strong> You probably ran <code>init</code> without <code>-migrate-state</code>: the new backend is empty. Restore state (from the <code>terraform.tfstate.backup</code> copy) and re-run <code>init -migrate-state</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

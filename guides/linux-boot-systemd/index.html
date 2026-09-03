@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — boot, systemd &amp; processus — jiha.tech</title>
+  <title data-lang="en">Linux — boot, systemd &amp; processes — jiha.tech</title>
+  <meta name="description" content="Le démarrage et la gestion des services Linux au niveau LPIC-1 : la chaîne de boot (firmware → GRUB → noyau → systemd), les units et targets, systemctl, la lecture des logs avec journalctl, les processus et signaux (kill, nice), et la planification (cron, timers systemd, at)." data-lang="fr">
+  <meta name="description" content="Linux boot and service management at LPIC-1 level: the boot chain (firmware → GRUB → kernel → systemd), units and targets, systemctl, reading logs with journalctl, processes and signals (kill, nice), and scheduling (cron, systemd timers, at)." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — boot, systemd &amp; processus">
+  <meta property="og:description" content="Le démarrage et la gestion des services Linux au niveau LPIC-1 : la chaîne de boot (firmware → GRUB → noyau → systemd), les units et targets, systemctl, la lecture des logs avec journalctl, les processus et signaux (kill, nice), et la planification (cron, timers systemd, at).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-boot-systemd/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-boot-systemd/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-boot-systemd">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-boot-systemd</div>
+    <div class="prompt" data-lang="en">~/guides/linux-boot-systemd</div>
+    <h1 data-lang="fr">Linux — boot, systemd &amp; processus</h1>
+    <h1 data-lang="en">Linux — boot, systemd &amp; processes</h1>
+    <p class="tagline" data-lang="fr">Démarrage, units, journalctl, signaux, cron, timers.</p>
+    <p class="tagline" data-lang="en">Boot, units, journalctl, signals, cron, timers.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 195 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 195 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Quand un serveur démarre, <strong>une longue chaîne se met en route</strong> avant que ton service ne réponde — et quand quelque chose ne va pas, c&#39;est <strong>là</strong> qu&#39;un admin regarde. Le guide fondamentaux t&#39;a montré <code>systemctl status</code> ; l&#39;examen <strong>LPIC-1</strong> attend la maîtrise complète : <em>que se passe-t-il du bouton d&#39;allumage jusqu&#39;à l&#39;invite ? comment créer son propre service ? comment lire ses logs ? comment tuer proprement un processus (et la différence entre les signaux) ? comment planifier une tâche, avec cron <strong>et</strong> avec systemd ?</em></p>
+<p>Ce guide couvre les domaines <strong>Démarrage, systemd, processus &amp; planification</strong> : la <strong>chaîne de boot</strong> (firmware → <strong>GRUB</strong> → noyau → <strong>systemd</strong>), les <strong>units</strong> et <strong>targets</strong>, <strong><code>systemctl</code></strong>, la lecture des logs avec <strong><code>journalctl</code></strong>, les <strong>processus</strong> et <strong>signaux</strong> (<code>kill</code>, <code>nice</code>), et la <strong>planification</strong> (<strong>cron</strong>, <strong>timers systemd</strong>, <code>at</code>).</p>
+<p>On travaille sur <strong>ta machine Ubuntu</strong> (native ou VM Multipass ; <strong>WSL2</strong> : active systemd via <code>/etc/wsl.conf</code> comme au guide fondamentaux). On crée un <strong>vrai service systemd</strong> de démo, qu&#39;on supprime à la fin.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides précédents de la track et tu vises <strong>LPIC-1</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas ce qu&#39;est un service → revois <code>systemctl</code> dans le guide fondamentaux.</li><li>Tu veux le réseau ou le scripting → ce sont les guides suivants.</li></ul>
+</div>
+<div data-lang="en"><p>When a server boots, <strong>a long chain kicks off</strong> before your service answers — and when something&#39;s wrong, that&#39;s <strong>where</strong> an admin looks. The fundamentals guide showed you <code>systemctl status</code>; the <strong>LPIC-1</strong> exam expects full mastery: <em>what happens from the power button to the prompt? how do you create your own service? how do you read its logs? how do you kill a process cleanly (and the difference between signals)? how do you schedule a task, with cron <strong>and</strong> with systemd?</em></p>
+<p>This guide covers the <strong>Boot, systemd, processes &amp; scheduling</strong> domains: the <strong>boot chain</strong> (firmware → <strong>GRUB</strong> → kernel → <strong>systemd</strong>), <strong>units</strong> and <strong>targets</strong>, <strong><code>systemctl</code></strong>, reading logs with <strong><code>journalctl</code></strong>, <strong>processes</strong> and <strong>signals</strong> (<code>kill</code>, <code>nice</code>), and <strong>scheduling</strong> (<strong>cron</strong>, <strong>systemd timers</strong>, <code>at</code>).</p>
+<p>We work on <strong>your Ubuntu machine</strong> (native or Multipass VM; <strong>WSL2</strong>: enable systemd via <code>/etc/wsl.conf</code> as in the fundamentals guide). We create a <strong>real demo systemd service</strong>, deleted at the end.</p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier track guides and you&#39;re aiming for <strong>LPIC-1</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know what a service is → review <code>systemctl</code> in the fundamentals guide.</li><li>You want networking or scripting → those are the next guides.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Décrire la <strong>chaîne de démarrage</strong> et lire son temps (<code>systemd-analyze</code>).</li><li>Identifier la <strong>target par défaut</strong> et le rôle de <strong>systemd</strong> (PID 1).</li><li><strong>Écrire</strong> une <strong>unit</strong> <code>.service</code> et la gérer (<code>start</code>, <code>enable</code>, <code>status</code>).</li><li>Maîtriser le cycle <strong><code>systemctl</code></strong> : <code>stop</code>, <code>restart</code>, <code>disable</code>, <strong><code>mask</code></strong>.</li><li>Lire et <strong>filtrer</strong> les logs avec <strong><code>journalctl</code></strong> (<code>-u</code>, <code>-b</code>, <code>--since</code>, <code>-p</code>, <code>-f</code>).</li><li>Gérer les <strong>processus</strong> et envoyer des <strong>signaux</strong> (<code>kill</code>, <code>nice</code>/<code>renice</code>, <code>pgrep</code>/<code>pkill</code>).</li><li>Planifier avec <strong>cron</strong>, un <strong>timer systemd</strong>, et <strong><code>at</code></strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Describe the <strong>boot chain</strong> and read its timing (<code>systemd-analyze</code>).</li><li>Identify the <strong>default target</strong> and systemd&#39;s role (PID 1).</li><li><strong>Write</strong> a <code>.service</code> <strong>unit</strong> and manage it (<code>start</code>, <code>enable</code>, <code>status</code>).</li><li>Master the <strong><code>systemctl</code></strong> lifecycle: <code>stop</code>, <code>restart</code>, <code>disable</code>, <strong><code>mask</code></strong>.</li><li>Read and <strong>filter</strong> logs with <strong><code>journalctl</code></strong> (<code>-u</code>, <code>-b</code>, <code>--since</code>, <code>-p</code>, <code>-f</code>).</li><li>Manage <strong>processes</strong> and send <strong>signals</strong> (<code>kill</code>, <code>nice</code>/<code>renice</code>, <code>pgrep</code>/<code>pkill</code>).</li><li>Schedule with <strong>cron</strong>, a <strong>systemd timer</strong>, and <strong><code>at</code></strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides précédents de la track Linux acquis.</li><li>Un système <strong>Ubuntu</strong> avec <strong>systemd actif</strong> et <code>sudo</code> (native, VM Multipass, ou WSL2 configuré).</li><li>L&#39;outil <code>at</code> (pour la dernière étape) :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Linux track guides under your belt.</li><li>An <strong>Ubuntu</strong> system with <strong>systemd active</strong> and <code>sudo</code> (native, Multipass VM, or configured WSL2).</li><li>The <code>at</code> tool (for the last step):</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt update &amp;&amp; sudo apt install -y at</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-fichiers-disques/">
+    <span class="num">05</span>
+    <span class="title-line" data-lang="fr">Linux — systèmes de fichiers, disques &amp; FHS</span>
+    <span class="title-line" data-lang="en">Linux — filesystems, disks &amp; FHS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>La chaîne de démarrage</strong>, du courant à l&#39;invite :</p>
+<ol><li><strong>Firmware</strong> (BIOS ou <strong>UEFI</strong>) : teste le matériel et cherche un <strong>chargeur d&#39;amorçage</strong>.</li><li><strong>GRUB</strong> (le bootloader) : charge le <strong>noyau Linux</strong> et l&#39;<code>initramfs</code> (mini-système pour monter la vraie racine).</li><li><strong>Noyau</strong> : initialise le matériel, monte <code>/</code>, puis lance le <strong>premier processus</strong>, <strong>PID 1</strong>.</li><li><strong><code>systemd</code></strong> (PID 1) : c&#39;est lui, l&#39;<code>init</code> moderne. Il <strong>active les units</strong> dans l&#39;ordre des dépendances jusqu&#39;à atteindre la <strong>target</strong> voulue.</li></ol>
+<p><strong>Les units</strong> sont les objets que systemd gère. Types principaux : <strong><code>.service</code></strong> (un démon/programme), <strong><code>.target</code></strong> (un <strong>groupe</strong> d&#39;units, l&#39;équivalent des anciens <em>runlevels</em>), <strong><code>.timer</code></strong> (déclenche une unit sur planning), <strong><code>.socket</code></strong>, <strong><code>.mount</code></strong>. Une unit a un état (<strong>active</strong>, inactive, failed) et une config (le fichier <code>.service</code>).</p>
+<p><strong>Les targets</strong> remplacent les runlevels : <strong><code>multi-user.target</code></strong> (serveur, multi-utilisateur sans interface graphique, ≈ runlevel 3), <strong><code>graphical.target</code></strong> (avec GUI, ≈ 5), <strong><code>rescue.target</code></strong> (maintenance mono-utilisateur, ≈ 1). <code>systemctl get-default</code> montre la target de démarrage.</p>
+<p><strong><code>systemctl</code></strong> pilote tout : <code>start</code>/<code>stop</code> (maintenant), <code>enable</code>/<code>disable</code> (<strong>au démarrage</strong>), <code>status</code>, et <strong><code>mask</code></strong> (interdit <strong>totalement</strong> une unit, même le démarrage manuel — plus fort que <code>disable</code>).</p>
+<p><strong><code>journalctl</code></strong> lit le <strong>journal</strong> centralisé de systemd (tous les logs des services, du noyau, du boot). On le <strong>filtre</strong> : par unit (<code>-u</code>), par démarrage (<code>-b</code>), par date (<code>--since</code>), par priorité (<code>-p</code>), en suivi temps réel (<code>-f</code>).</p>
+<p><strong>Les processus &amp; signaux.</strong> Chaque programme en cours est un <strong>processus</strong> (un <strong>PID</strong>). On lui envoie des <strong>signaux</strong> avec <code>kill</code> : <strong><code>SIGTERM</code></strong> (15, demande polie d&#39;arrêt — <strong>défaut</strong>), <strong><code>SIGKILL</code></strong> (9, arrêt <strong>brutal</strong>, non-interceptable), <strong><code>SIGHUP</code></strong> (1, souvent « recharge ta config »). La <strong>priorité</strong> d&#39;ordonnancement se règle avec <strong><code>nice</code></strong> (au lancement) et <strong><code>renice</code></strong> (en cours) : de <strong>-20</strong> (prioritaire) à <strong>+19</strong> (effacé).</p>
+<p><strong>La planification.</strong> Deux mondes coexistent : <strong>cron</strong> (historique — <code>crontab</code> par utilisateur, et <code>/etc/cron.d</code>, <code>/etc/cron.daily</code>…) et les <strong>timers systemd</strong> (une <code>.timer</code> déclenche une <code>.service</code>). Pour une tâche <strong>unique</strong> différée : <strong><code>at</code></strong>.</p>
+</div>
+<div data-lang="en"><p><strong>The boot chain</strong>, from power to prompt:</p>
+<ol><li><strong>Firmware</strong> (BIOS or <strong>UEFI</strong>): tests hardware and looks for a <strong>bootloader</strong>.</li><li><strong>GRUB</strong> (the bootloader): loads the <strong>Linux kernel</strong> and the <code>initramfs</code> (a mini-system to mount the real root).</li><li><strong>Kernel</strong>: initializes hardware, mounts <code>/</code>, then launches the <strong>first process</strong>, <strong>PID 1</strong>.</li><li><strong><code>systemd</code></strong> (PID 1): the modern <code>init</code>. It <strong>activates units</strong> in dependency order until it reaches the desired <strong>target</strong>.</li></ol>
+<p><strong>Units</strong> are the objects systemd manages. Main types: <strong><code>.service</code></strong> (a daemon/program), <strong><code>.target</code></strong> (a <strong>group</strong> of units, the equivalent of the old <em>runlevels</em>), <strong><code>.timer</code></strong> (triggers a unit on a schedule), <strong><code>.socket</code></strong>, <strong><code>.mount</code></strong>. A unit has a state (<strong>active</strong>, inactive, failed) and config (the <code>.service</code> file).</p>
+<p><strong>Targets</strong> replace runlevels: <strong><code>multi-user.target</code></strong> (server, multi-user without a GUI, ≈ runlevel 3), <strong><code>graphical.target</code></strong> (with GUI, ≈ 5), <strong><code>rescue.target</code></strong> (single-user maintenance, ≈ 1). <code>systemctl get-default</code> shows the boot target.</p>
+<p><strong><code>systemctl</code></strong> drives it all: <code>start</code>/<code>stop</code> (now), <code>enable</code>/<code>disable</code> (<strong>at boot</strong>), <code>status</code>, and <strong><code>mask</code></strong> (<strong>totally</strong> forbids a unit, even manual start — stronger than <code>disable</code>).</p>
+<p><strong><code>journalctl</code></strong> reads systemd&#39;s centralized <strong>journal</strong> (all services&#39;, kernel&#39;s, boot&#39;s logs). You <strong>filter</strong> it: by unit (<code>-u</code>), by boot (<code>-b</code>), by date (<code>--since</code>), by priority (<code>-p</code>), following in real time (<code>-f</code>).</p>
+<p><strong>Processes &amp; signals.</strong> Each running program is a <strong>process</strong> (a <strong>PID</strong>). You send it <strong>signals</strong> with <code>kill</code>: <strong><code>SIGTERM</code></strong> (15, polite stop request — <strong>default</strong>), <strong><code>SIGKILL</code></strong> (9, <strong>brutal</strong>, non-catchable stop), <strong><code>SIGHUP</code></strong> (1, often &quot;reload your config&quot;). Scheduling <strong>priority</strong> is set with <strong><code>nice</code></strong> (at launch) and <strong><code>renice</code></strong> (running): from <strong>-20</strong> (top priority) to <strong>+19</strong> (lowest).</p>
+<p><strong>Scheduling.</strong> Two worlds coexist: <strong>cron</strong> (historical — per-user <code>crontab</code>, and <code>/etc/cron.d</code>, <code>/etc/cron.daily</code>…) and <strong>systemd timers</strong> (a <code>.timer</code> triggers a <code>.service</code>). For a <strong>one-off</strong> deferred task: <strong><code>at</code></strong>.</p>
+</div>
+
+<figure class="schema" id="figure-linux-boot-chain">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-linux-boot-chain">
+  <title id="s-linux-boot-chain">Chaîne de démarrage Linux</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Chaîne de démarrage Linux</text><rect class="box" x="18" y="40" width="124" height="66" rx="3"/><text class="lbl" x="80" y="70.5" text-anchor="middle">Firmware</text><text class="sub" x="80" y="83.5" text-anchor="middle">BIOS/UEFI</text><path class="arrow" d="M 142 73 L 168 73"/><rect class="box" x="168" y="40" width="124" height="66" rx="3"/><text class="lbl" x="230" y="77" text-anchor="middle">GRUB</text><path class="arrow" d="M 292 73 L 318 73"/><rect class="box" x="318" y="40" width="124" height="66" rx="3"/><text class="lbl" x="380" y="77" text-anchor="middle">Noyau</text><path class="arrow" d="M 442 73 L 468 73"/><rect class="box-accent" x="468" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-fill" x="530" y="70.5" text-anchor="middle">systemd</text><text class="sub sub-fill" x="530" y="83.5" text-anchor="middle">PID 1</text><path class="arrow" d="M 592 73 L 618 73"/><rect class="box" x="618" y="40" width="124" height="66" rx="3"/><text class="lbl" x="680" y="77" text-anchor="middle">target</text><text class="sub" x="380" y="144" text-anchor="middle">systemctl gère les units · journalctl lit les logs</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Firmware → GRUB → noyau → systemd (PID 1) → units jusqu&#39;à la target. systemctl gère, journalctl lit les logs.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Firmware → GRUB → kernel → systemd (PID 1) → units up to the target. systemctl manages, journalctl reads logs.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : chaîne de boot → écrire une unit → cycle systemctl → journalctl → processus &amp; signaux → cron → timers &amp; at.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: boot chain → write a unit → systemctl lifecycle → journalctl → processes &amp; signals → cron → timers &amp; at.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Observer la <strong>chaîne de démarrage</strong> et la <strong>target par défaut</strong>.</p>
+<p><strong>🤔 Qui est PID 1 ?</strong> <code>systemd</code> est le premier processus, celui d&#39;où tout descend. Inspecte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Observe the <strong>boot chain</strong> and the <strong>default target</strong>.</p>
+<p><strong>🤔 Who is PID 1?</strong> <code>systemd</code> is the first process, the one everything descends from. Inspect:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ps -p 1 -o pid,comm          # PID 1 = systemd / PID 1 = systemd
+systemctl get-default        # la target de démarrage (multi-user ou graphical) / boot target
+systemd-analyze              # temps de boot total / total boot time
+systemd-analyze blame | head # les units les plus lentes au démarrage / slowest units at boot</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ps -p 1</code> confirme que le processus <strong>PID 1</strong> est <strong><code>systemd</code></strong> — l&#39;<code>init</code> qui a orchestré tout le démarrage. <code>systemctl get-default</code> renvoie ta target de boot (souvent <code>graphical.target</code> sur un poste, <code>multi-user.target</code> sur un serveur). <code>systemd-analyze</code> donne le temps de boot, et <code>blame</code> classe les units par lenteur — l&#39;outil pour diagnostiquer un démarrage lent. Tu vois la chaîne aboutir : firmware → GRUB → noyau → <strong>systemd</strong> → target.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ps -p 1</code> confirms process <strong>PID 1</strong> is <strong><code>systemd</code></strong> — the <code>init</code> that orchestrated the whole boot. <code>systemctl get-default</code> returns your boot target (often <code>graphical.target</code> on a desktop, <code>multi-user.target</code> on a server). <code>systemd-analyze</code> gives boot time, and <code>blame</code> ranks units by slowness — the tool to diagnose a slow boot. You see the chain land: firmware → GRUB → kernel → <strong>systemd</strong> → target.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Écrire</strong> ta propre <strong>unit <code>.service</code></strong> et la démarrer.</p>
+<p><strong>🤔 Un service, c&#39;est un fichier texte.</strong> systemd cherche les units dans <strong>deux</strong> dossiers : <strong><code>/usr/lib/systemd/system/</code></strong> (les définitions livrées par les <strong>paquets</strong>) et <strong><code>/etc/systemd/system/</code></strong> (les units et <strong>surcharges locales</strong> de l&#39;admin, <strong>prioritaires</strong>). On crée un petit démon qui écrit l&#39;heure toutes les 5 secondes ; on le place dans <strong><code>/usr/lib/systemd/system/</code></strong> — l&#39;emplacement d&#39;une « définition » de paquet, ce qui nous permettra aussi de démontrer le <code>mask</code> à l&#39;étape suivante. Crée l&#39;unit :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Write</strong> your own <strong><code>.service</code> unit</strong> and start it.</p>
+<p><strong>🤔 A service is a text file.</strong> systemd looks for units in <strong>two</strong> folders: <strong><code>/usr/lib/systemd/system/</code></strong> (definitions shipped by <strong>packages</strong>) and <strong><code>/etc/systemd/system/</code></strong> (the admin&#39;s units and <strong>local overrides</strong>, which take <strong>precedence</strong>). We create a small daemon that prints the time every 5 seconds; we place it in <strong><code>/usr/lib/systemd/system/</code></strong> — a package &quot;definition&quot; location, which will also let us demonstrate <code>mask</code> in the next step. Create the unit:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo tee /usr/lib/systemd/system/hello.service &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+[Unit]
+Description=Service de démo hello
+After=network.target
+
+[Service]
+ExecStart=/bin/bash -c &#39;while true; do echo &quot;hello à $(date)&quot;; sleep 5; done&#39;
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload      # systemd relit les units après création/modif / re-read units
+sudo systemctl start hello
+systemctl status hello --no-pager # doit être &quot;active (running)&quot; / must be &quot;active (running)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>systemctl status hello</code> affiche <strong><code>active (running)</code></strong> avec le <strong>PID</strong> du processus et les dernières lignes de sortie (<code>hello à …</code>). Tu as créé un <strong>vrai service systemd</strong> à partir d&#39;un simple fichier <code>.service</code> : une section <code>[Unit]</code> (métadonnées, ordre), <code>[Service]</code> (<strong>quoi lancer</strong>, <code>ExecStart</code>), <code>[Install]</code> (à quelle target l&#39;attacher). Point clé : <strong><code>daemon-reload</code></strong> est obligatoire après toute création/modification d&#39;unit — sinon systemd ne « voit » pas ton changement.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>systemctl status hello</code> shows <strong><code>active (running)</code></strong> with the process <strong>PID</strong> and the latest output lines (<code>hello à …</code>). You created a <strong>real systemd service</strong> from a plain <code>.service</code> file: a <code>[Unit]</code> section (metadata, ordering), <code>[Service]</code> (<strong>what to run</strong>, <code>ExecStart</code>), <code>[Install]</code> (which target to attach to). Key point: <strong><code>daemon-reload</code></strong> is mandatory after any unit creation/change — otherwise systemd doesn&#39;t &quot;see&quot; your change.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Maîtriser le cycle <strong><code>systemctl</code></strong> : <code>enable</code>, <code>restart</code>, <code>disable</code>, <strong><code>mask</code></strong>.</p>
+<p><strong>🤔 « Maintenant » vs « au démarrage ».</strong> <code>start</code>/<code>stop</code> agissent tout de suite ; <code>enable</code>/<code>disable</code> décident du <strong>démarrage automatique</strong>. Le <code>mask</code> va plus loin : il <strong>interdit</strong> l&#39;unit en créant un lien <strong><code>/etc/systemd/system/hello.service → /dev/null</code></strong> qui <strong>masque</strong> la définition. <em>(C&#39;est pourquoi on masque une unit livrée dans <code>/usr/lib</code> : le lien de masquage prend sa place dans <code>/etc</code>. Une unit qui vit <strong>déjà</strong> dans <code>/etc/systemd/system/</code> ne peut pas être masquée ainsi — on la supprimerait plutôt.)</em></p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Master the <strong><code>systemctl</code></strong> lifecycle: <code>enable</code>, <code>restart</code>, <code>disable</code>, <strong><code>mask</code></strong>.</p>
+<p><strong>🤔 &quot;Now&quot; vs &quot;at boot&quot;.</strong> <code>start</code>/<code>stop</code> act immediately; <code>enable</code>/<code>disable</code> decide <strong>automatic startup</strong>. <code>mask</code> goes further: it <strong>forbids</strong> the unit by creating a link <strong><code>/etc/systemd/system/hello.service → /dev/null</code></strong> that <strong>shadows</strong> the definition. <em>(That&#39;s why you mask a unit shipped in <code>/usr/lib</code>: the mask link takes its place in <code>/etc</code>. A unit that <strong>already</strong> lives in <code>/etc/systemd/system/</code> can&#39;t be masked this way — you&#39;d delete it instead.)</em></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo systemctl enable hello         # démarrage auto au boot (crée un lien dans .wants) / auto-start at boot
+systemctl is-enabled hello          # &quot;enabled&quot;
+sudo systemctl restart hello        # stop + start (nouveau PID) / stop + start (new PID)
+
+sudo systemctl disable hello        # retire du démarrage auto / remove from auto-start
+sudo systemctl mask hello           # INTERDIT l&#39;unit (lien vers /dev/null) / FORBID the unit
+sudo systemctl start hello || echo &quot;refusé car masqué / refused because masked&quot;
+sudo systemctl unmask hello         # lève l&#39;interdiction / lift the ban</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>enable</code>, <code>systemctl is-enabled hello</code> répond <strong><code>enabled</code></strong> (le service démarrera au prochain boot — systemd a créé un lien dans <code>multi-user.target.wants/</code>). Après <code>mask</code> <strong>puis</strong> <code>start</code>, le démarrage est <strong>refusé</strong> (<code>Unit hello.service is masked.</code>) : le <code>mask</code> est un <strong>verrou</strong> bien plus fort que <code>disable</code> (qui, lui, laisse le démarrage manuel possible). Retiens l&#39;échelle : <strong>start/stop</strong> (maintenant) &lt; <strong>enable/disable</strong> (au boot) &lt; <strong>mask/unmask</strong> (interdiction totale).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>enable</code>, <code>systemctl is-enabled hello</code> answers <strong><code>enabled</code></strong> (the service will start at next boot — systemd created a link in <code>multi-user.target.wants/</code>). After <code>mask</code> <strong>then</strong> <code>start</code>, startup is <strong>refused</strong> (<code>Unit hello.service is masked.</code>): <code>mask</code> is a <strong>lock</strong> far stronger than <code>disable</code> (which still allows a manual start). Remember the scale: <strong>start/stop</strong> (now) &lt; <strong>enable/disable</strong> (at boot) &lt; <strong>mask/unmask</strong> (total ban).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire et <strong>filtrer</strong> les logs avec <strong><code>journalctl</code></strong>.</p>
+<p><strong>🤔 Un journal unique.</strong> systemd centralise <strong>tous</strong> les logs. L&#39;art, c&#39;est de <strong>filtrer</strong> pour ne voir que ce qui compte. Interroge ton service :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read and <strong>filter</strong> logs with <strong><code>journalctl</code></strong>.</p>
+<p><strong>🤔 One journal.</strong> systemd centralizes <strong>all</strong> logs. The art is to <strong>filter</strong> to see only what matters. Query your service:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>journalctl -u hello --no-pager | tail       # les logs de CE service / this service&#39;s logs
+journalctl -u hello -b --no-pager | tail     # ...depuis le démarrage courant / ...since the current boot
+journalctl -u hello --since &quot;5 min ago&quot; --no-pager | tail   # ...sur une fenêtre de temps / a time window
+journalctl -p err -b --no-pager | tail       # tout ce qui est de priorité &quot;error&quot; ce boot / errors this boot
+# journalctl -u hello -f                      # SUIVI temps réel (Ctrl+C pour sortir) / live follow (Ctrl+C)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>journalctl -u hello</code> affiche <strong>uniquement</strong> les lignes <code>hello à …</code> de ton service (pas le bruit des autres). Les filtres se <strong>combinent</strong> : <code>-b</code> (ce démarrage), <code>--since</code> (fenêtre de temps), <code>-p err</code> (priorité). Le suivi <code>-f</code> afficherait les nouvelles lignes en direct (ton service en produit une toutes les 5 s). C&#39;est <strong>la</strong> compétence de diagnostic : au lieu de lire des milliers de lignes, tu <strong>cibles</strong> l&#39;unit, la période, la gravité.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>journalctl -u hello</code> shows <strong>only</strong> your service&#39;s <code>hello à …</code> lines (not the noise from others). Filters <strong>combine</strong>: <code>-b</code> (this boot), <code>--since</code> (time window), <code>-p err</code> (priority). The <code>-f</code> follow would show new lines live (your service emits one every 5 s). That&#39;s <strong>the</strong> diagnostic skill: instead of reading thousands of lines, you <strong>target</strong> the unit, the period, the severity.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer les <strong>processus</strong> et envoyer des <strong>signaux</strong> (<code>kill</code>, <code>nice</code>).</p>
+<p><strong>🤔 TERM vs KILL.</strong> Un processus reçoit <strong>SIGTERM</strong> (arrêt poli, il peut nettoyer) ou <strong>SIGKILL</strong> (couperet, ininterceptable). Lance des cibles de test :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage <strong>processes</strong> and send <strong>signals</strong> (<code>kill</code>, <code>nice</code>).</p>
+<p><strong>🤔 TERM vs KILL.</strong> A process gets <strong>SIGTERM</strong> (polite stop, it can clean up) or <strong>SIGKILL</strong> (guillotine, uncatchable). Launch test targets:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sleep 600 &amp;                 # un processus en arrière-plan / a background process
+PID=$!                      # son PID / its PID
+ps -o pid,ni,cmd -p $PID    # colonne NI = niceness (priorité) / NI = niceness (priority)
+
+sudo renice -n 10 -p $PID   # baisse sa priorité (10) / lower its priority
+kill -SIGTERM $PID          # arrêt poli (= kill $PID par défaut) / polite stop (= default kill)
+
+sleep 600 &amp; PID2=$!
+kill -SIGKILL $PID2         # arrêt brutal, non-ignorable / brutal, non-ignorable
+
+sleep 600 &amp;                 # un dernier, pour la démo pgrep/pkill / one more, for the pgrep/pkill demo
+pgrep -a sleep              # le trouve PAR NOM (pas par PID) / find it BY NAME (not PID)
+pkill sleep                 # le tue par nom / kill it by name</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ps -o pid,ni</code> montre le <strong>niceness</strong> du processus (0 par défaut) ; après <code>renice -n 10</code>, il passe à <strong>10</strong> (moins prioritaire). <code>kill -SIGTERM $PID</code> l&#39;arrête proprement (un <code>jobs</code> le montre <code>Terminated</code>) ; <code>kill -SIGKILL</code> tue l&#39;autre <strong>immédiatement</strong>, sans qu&#39;il puisse rien intercepter. <code>pgrep</code>/<code>pkill</code> agissent <strong>par nom</strong> au lieu du PID. Retiens : <strong>TERM</strong> (15, défaut, poli) d&#39;abord ; <strong>KILL</strong> (9, brutal) en dernier recours quand un process est bloqué.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ps -o pid,ni</code> shows the process&#39;s <strong>niceness</strong> (0 by default); after <code>renice -n 10</code>, it becomes <strong>10</strong> (lower priority). <code>kill -SIGTERM $PID</code> stops it cleanly (a <code>jobs</code> shows it <code>Terminated</code>); <code>kill -SIGKILL</code> kills the other <strong>immediately</strong>, with no chance to catch anything. <code>pgrep</code>/<code>pkill</code> act <strong>by name</strong> instead of PID. Remember: <strong>TERM</strong> (15, default, polite) first; <strong>KILL</strong> (9, brutal) as a last resort when a process is stuck.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Planifier une tâche <strong>récurrente</strong> avec <strong>cron</strong>.</p>
+<p><strong>🤔 Le format cron.</strong> Cinq champs : <code>minute heure jour-du-mois mois jour-de-semaine</code>, puis la commande. <code><em> </em> <em> </em> *</code> = chaque minute. Programme une tâche pour ton utilisateur :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Schedule a <strong>recurring</strong> task with <strong>cron</strong>.</p>
+<p><strong>🤔 The cron format.</strong> Five fields: <code>minute hour day-of-month month day-of-week</code>, then the command. <code><em> </em> <em> </em> *</code> = every minute. Schedule a task for your user:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Ajoute une ligne à ta crontab sans ouvrir l&#39;éditeur / add a crontab line without the editor
+( crontab -l 2&gt;/dev/null; echo &#39;* * * * * echo &quot;tick $(date)&quot; &gt;&gt; /tmp/cron.log&#39; ) | crontab -
+crontab -l                          # vérifie la crontab / check the crontab
+
+sleep 65 ; cat /tmp/cron.log         # attends &gt;1 min, la tâche a tourné / wait &gt;1 min, the task ran
+
+# Retire la tâche (vide la crontab de démo) / remove the task (clear the demo crontab)
+crontab -r</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>crontab -l</code> montre ta ligne planifiée. Après une minute, <code>/tmp/cron.log</code> contient une (ou plusieurs) ligne(s) <code>tick …</code> — <strong>cron a exécuté</strong> ta commande <strong>tout seul</strong>, chaque minute. Tu maîtrises les <strong>5 champs</strong> (<code>min h jour mois jour-sem</code>). À connaître aussi pour l&#39;examen : les répertoires système <strong><code>/etc/cron.d/</code></strong> et <strong><code>/etc/cron.{hourly,daily,weekly,monthly}/</code></strong> (scripts lancés à intervalle), et <code>/etc/crontab</code> (crontab système, avec un champ <strong>utilisateur</strong> en plus).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>crontab -l</code> shows your scheduled line. After a minute, <code>/tmp/cron.log</code> contains one (or more) <code>tick …</code> line(s) — <strong>cron ran</strong> your command <strong>on its own</strong>, every minute. You&#39;ve got the <strong>5 fields</strong> (<code>min h day month weekday</code>). Also for the exam: the system directories <strong><code>/etc/cron.d/</code></strong> and <strong><code>/etc/cron.{hourly,daily,weekly,monthly}/</code></strong> (scripts run at intervals), and <code>/etc/crontab</code> (system crontab, with an extra <strong>user</strong> field).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Planifier avec un <strong>timer systemd</strong> et une tâche unique avec <strong><code>at</code></strong>.</p>
+<p><strong>🤔 L&#39;alternative moderne à cron.</strong> Un <strong>timer</strong> systemd déclenche un <strong>service</strong>. On crée un service <em>oneshot</em> + son timer. Puis une tâche <strong>unique</strong> avec <code>at</code>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Schedule with a <strong>systemd timer</strong> and a one-off task with <strong><code>at</code></strong>.</p>
+<p><strong>🤔 The modern alternative to cron.</strong> A systemd <strong>timer</strong> triggers a <strong>service</strong>. We create a <em>oneshot</em> service + its timer. Then a <strong>one-off</strong> task with <code>at</code>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) le service à déclencher / the service to trigger
+sudo tee /etc/systemd/system/tick.service &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c &#39;echo &quot;tick systemd $(date)&quot; &gt;&gt; /tmp/timer.log&#39;
+EOF
+# 2) le timer : toutes les minutes / the timer: every minute
+sudo tee /etc/systemd/system/tick.timer &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+[Timer]
+OnUnitActiveSec=1min
+OnBootSec=30s
+[Install]
+WantedBy=timers.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now tick.timer
+systemctl list-timers tick.timer --no-pager     # le timer est armé / the timer is armed
+
+# 3) tâche UNIQUE différée avec at / one-off deferred task with at
+echo &#39;echo &quot;at a tourné $(date)&quot; &gt;&gt; /tmp/at.log&#39; | at now + 1 minute
+atq                                              # la file des tâches at / the at queue</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>systemctl list-timers</code> liste <strong><code>tick.timer</code></strong> avec son prochain déclenchement (<code>NEXT</code>) — le couple <strong><code>.timer</code> + <code>.service</code></strong> est l&#39;équivalent systemd d&#39;une ligne cron (après ~1 min, <code>/tmp/timer.log</code> se remplit). <code>atq</code> montre ta tâche <code>at</code> en attente ; après l&#39;échéance, <code>/tmp/at.log</code> apparaît — <code>at</code> exécute <strong>une seule fois</strong>, à l&#39;heure dite. Tu as les <strong>trois</strong> mécanismes de planification du LPIC-1 : <strong>cron</strong> (récurrent, historique), <strong>timer systemd</strong> (récurrent, moderne), <strong>at</strong> (ponctuel).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>systemctl list-timers</code> lists <strong><code>tick.timer</code></strong> with its next trigger (<code>NEXT</code>) — the <strong><code>.timer</code> + <code>.service</code></strong> pair is systemd&#39;s equivalent of a cron line (after ~1 min, <code>/tmp/timer.log</code> fills up). <code>atq</code> shows your pending <code>at</code> task; after it&#39;s due, <code>/tmp/at.log</code> appears — <code>at</code> runs <strong>exactly once</strong>, at the set time. You have the <strong>three</strong> LPIC-1 scheduling mechanisms: <strong>cron</strong> (recurring, historical), <strong>systemd timer</strong> (recurring, modern), <strong>at</strong> (one-off).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Oublier <code>daemon-reload</code>.</strong> Après avoir créé/modifié une unit, systemd ne la voit qu&#39;après <code>sudo systemctl daemon-reload</code>. Sans ça, tu pilotes l&#39;ancienne version.</p>
+<p><strong>2. Confondre <code>enable</code> et <code>start</code>.</strong> <code>start</code> démarre <strong>maintenant</strong> ; <code>enable</code> planifie le <strong>démarrage au boot</strong>. Un service peut être <code>enabled</code> mais arrêté, ou <code>running</code> mais pas <code>enabled</code>. Souvent on veut <code>enable --now</code> (les deux).</p>
+<p><strong>3. <code>disable</code> ≠ <code>mask</code>.</strong> <code>disable</code> retire du démarrage auto (mais on peut encore <code>start</code> à la main) ; <code>mask</code> <strong>interdit</strong> tout (lien vers <code>/dev/null</code>). Un service « impossible à démarrer » est peut-être <strong>masqué</strong>.</p>
+<p><strong>4. Dégainer <code>SIGKILL</code> d&#39;emblée.</strong> <code>SIGKILL</code> (9) ne laisse <strong>aucun</strong> nettoyage (fichiers temporaires, connexions). Essaie <strong>SIGTERM</strong> (15, défaut) d&#39;abord ; <code>KILL</code> seulement si le process est bloqué.</p>
+<p><strong>5. Mauvais champ cron.</strong> Les 5 champs sont <code>min h jour-du-mois mois jour-de-semaine</code>. Confondre « jour du mois » et « jour de semaine » est l&#39;erreur classique. <code><em> </em> <em> </em> *</code> = chaque minute (pas « une fois »).</p>
+<p><strong>6. <code>crontab</code> système vs utilisateur.</strong> <code>crontab -e</code> édite <strong>ta</strong> crontab (pas de champ utilisateur). <code>/etc/crontab</code> et <code>/etc/cron.d/</code> ont un <strong>champ utilisateur en plus</strong>. Ne mélange pas les deux formats.</p>
+<p><strong>7. Timer sans service.</strong> Un <code>.timer</code> <strong>déclenche</strong> un <code>.service</code> du même nom (ou via <code>Unit=</code>). Un timer seul ne fait rien ; il faut la paire.</p>
+</div>
+<div data-lang="en"><p><strong>1. Forgetting <code>daemon-reload</code>.</strong> After creating/modifying a unit, systemd only sees it after <code>sudo systemctl daemon-reload</code>. Without it, you&#39;re driving the old version.</p>
+<p><strong>2. Confusing <code>enable</code> and <code>start</code>.</strong> <code>start</code> starts it <strong>now</strong>; <code>enable</code> schedules <strong>startup at boot</strong>. A service can be <code>enabled</code> but stopped, or <code>running</code> but not <code>enabled</code>. Often you want <code>enable --now</code> (both).</p>
+<p><strong>3. <code>disable</code> ≠ <code>mask</code>.</strong> <code>disable</code> removes from auto-start (you can still <code>start</code> by hand); <code>mask</code> <strong>forbids</strong> everything (link to <code>/dev/null</code>). A service &quot;impossible to start&quot; may be <strong>masked</strong>.</p>
+<p><strong>4. Reaching for <code>SIGKILL</code> first.</strong> <code>SIGKILL</code> (9) allows <strong>no</strong> cleanup (temp files, connections). Try <strong>SIGTERM</strong> (15, default) first; <code>KILL</code> only if the process is stuck.</p>
+<p><strong>5. Wrong cron field.</strong> The 5 fields are <code>min h day-of-month month day-of-week</code>. Confusing &quot;day of month&quot; and &quot;day of week&quot; is the classic mistake. <code><em> </em> <em> </em> *</code> = every minute (not &quot;once&quot;).</p>
+<p><strong>6. System vs user <code>crontab</code>.</strong> <code>crontab -e</code> edits <strong>your</strong> crontab (no user field). <code>/etc/crontab</code> and <code>/etc/cron.d/</code> have an <strong>extra user field</strong>. Don&#39;t mix the two formats.</p>
+<p><strong>7. Timer without a service.</strong> A <code>.timer</code> <strong>triggers</strong> a <code>.service</code> of the same name (or via <code>Unit=</code>). A timer alone does nothing; you need the pair.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu décris la <strong>chaîne de boot</strong> et tu sais que <strong>systemd est PID 1</strong>.</li><li>Tu <strong>écris</strong> une unit <code>.service</code> et tu fais <code>daemon-reload</code> + <code>start</code>.</li><li>Tu distingues <strong>start/enable/mask</strong> et tu lis <code>is-enabled</code>.</li><li>Tu <strong>filtres</strong> les logs d&#39;un service avec <code>journalctl -u/-b/--since/-p</code>.</li><li>Tu envoies <strong>SIGTERM</strong> vs <strong>SIGKILL</strong> et tu règles un <strong>niceness</strong>.</li><li>Tu planifies une tâche <strong>cron</strong> (5 champs) et tu connais <code>/etc/cron.*</code>.</li><li>Tu crées un <strong>timer systemd</strong> et une tâche <strong><code>at</code></strong>.</li></ul>
+<p>Sept cases cochées = tu tiens <strong>Boot, systemd, processus &amp; planification</strong> du LPIC-1.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You describe the <strong>boot chain</strong> and know <strong>systemd is PID 1</strong>.</li><li>You <strong>write</strong> a <code>.service</code> unit and do <code>daemon-reload</code> + <code>start</code>.</li><li>You distinguish <strong>start/enable/mask</strong> and read <code>is-enabled</code>.</li><li>You <strong>filter</strong> a service&#39;s logs with <code>journalctl -u/-b/--since/-p</code>.</li><li>You send <strong>SIGTERM</strong> vs <strong>SIGKILL</strong> and set a <strong>niceness</strong>.</li><li>You schedule a <strong>cron</strong> task (5 fields) and know <code>/etc/cron.*</code>.</li><li>You create a <strong>systemd timer</strong> and an <strong><code>at</code></strong> task.</li></ul>
+<p>Seven boxes ticked = you hold LPIC-1 <strong>Boot, systemd, processes &amp; scheduling</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Linux → LPIC-1 :</p>
+<ol><li><strong>Réseau &amp; sécurité système</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, pare-feu, durcissement.</li><li><strong>Scripting shell (bash)</strong> — variables, conditions, boucles, fonctions.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner et durcir un serveur Linux multi-utilisateur.</li></ol>
+<p><strong>Ménage :</strong> supprime le service, le timer et la tâche <code>at</code> de démo — <code>sudo systemctl disable --now hello tick.timer 2&gt;/dev/null ; sudo systemctl unmask hello 2&gt;/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk &#39;{print $1}&#39;) 2&gt;/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log</code>.</p>
+</div>
+<div data-lang="en"><p>The rest of the Linux → LPIC-1 track:</p>
+<ol><li><strong>Networking &amp; system security</strong> — <code>ip</code>/<code>ss</code>, DNS, SSH, firewall, hardening.</li><li><strong>Shell scripting (bash)</strong> — variables, conditionals, loops, functions.</li><li><strong>Enterprise project</strong> — provision and harden a multi-user Linux server.</li></ol>
+<p><strong>Cleanup:</strong> delete the demo service, timer and <code>at</code> task — <code>sudo systemctl disable --now hello tick.timer 2&gt;/dev/null ; sudo systemctl unmask hello 2&gt;/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk &#39;{print $1}&#39;) 2&gt;/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log</code>.</p>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">10</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire boot, systemd &amp; processus.</p>
+</div>
+<div data-lang="en"><p>Boot, systemd &amp; processes cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Boot / systemd
+ps -p 1 -o comm ; systemctl get-default ; systemd-analyze [blame]
+sudo systemctl daemon-reload            # APRÈS toute création/modif d&#39;unit / after any unit change
+systemctl start|stop|restart|status UNIT
+systemctl enable|disable [--now] UNIT   # au boot / at boot
+systemctl mask|unmask UNIT ; systemctl is-enabled UNIT
+
+# Logs / journalctl
+journalctl -u UNIT ; -b (ce boot) ; --since &quot;1h ago&quot; ; -p err ; -f (suivi/follow)
+
+# Processus &amp; signaux / processes &amp; signals
+ps aux ; top ; pgrep -a nom ; pkill nom
+kill -TERM PID   # 15, poli/polite (défaut)     kill -KILL PID  # 9, brutal
+kill -HUP PID    # 1, souvent recharge/reload
+nice -n 10 cmd ; renice -n 5 -p PID     # priorité / priority (-20..19)
+
+# Planification / scheduling
+crontab -e|-l|-r   # min h jour mois jour-sem CMD    ; /etc/cron.d /etc/cron.daily
+systemctl list-timers ; (.timer -&gt; .service)
+echo &#39;cmd&#39; | at now + 5 min ; atq ; atrm N</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/systemctl.1.html"><code>man systemctl</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/systemd.service.5.html"><code>man systemd.service</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man1/journalctl.1.html"><code>man journalctl</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man7/signal.7.html">Signaux — <code>man 7 signal</code></a> et <code>man nice</code>/<code>man renice</code>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/crontab.5.html"><code>man 5 crontab</code></a> et <a href="https://manpages.ubuntu.com/manpages/noble/man5/systemd.timer.5.html"><code>man systemd.timer</code></a>.</li><li>Objectifs <strong>LPIC-1 101.2, 101.3, 103.5, 103.6, 107.2</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://manpages.ubuntu.com/manpages/noble/man1/systemctl.1.html"><code>man systemctl</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/systemd.service.5.html"><code>man systemd.service</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man1/journalctl.1.html"><code>man journalctl</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man7/signal.7.html">Signals — <code>man 7 signal</code></a> and <code>man nice</code>/<code>man renice</code>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/crontab.5.html"><code>man 5 crontab</code></a> and <a href="https://manpages.ubuntu.com/manpages/noble/man5/systemd.timer.5.html"><code>man systemd.timer</code></a>.</li><li><strong>LPIC-1 101.2, 101.3, 103.5, 103.6, 107.2</strong> objectives.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>systemctl start</code> : « Unit hello.service not found ».</strong> Le fichier n&#39;est pas dans un dossier scanné (<code>/usr/lib/systemd/system/</code> ou <code>/etc/systemd/system/</code>) ou tu as oublié <code>daemon-reload</code>. Vérifie le chemin et recharge.</p>
+<p><strong><code>systemctl mask</code> : « file already exists ».</strong> Tu essaies de masquer une unit dont la définition est <strong>déjà</strong> dans <code>/etc/systemd/system/</code> : le lien de masquage ne peut pas s&#39;y créer. Le <code>mask</code> s&#39;applique aux units de <code>/usr/lib/systemd/system/</code> (paquets). Pour une unit locale de <code>/etc</code>, supprime-la plutôt.</p>
+<p><strong>Le service passe en <code>failed</code> juste après <code>start</code>.</strong> Regarde <strong>pourquoi</strong> : <code>systemctl status hello</code> et <code>journalctl -u hello</code>. Souvent un <code>ExecStart</code> incorrect (chemin, guillemets) ou un binaire manquant.</p>
+<p><strong>« Unit is masked ».</strong> Le service est <strong>masqué</strong> : <code>sudo systemctl unmask hello</code> avant de pouvoir le démarrer.</p>
+<p><strong>Le job cron ne se déclenche pas.</strong> Le service <code>cron</code> tourne-t-il (<code>systemctl status cron</code>) ? La syntaxe des 5 champs est-elle correcte (<code>crontab -l</code>) ? Le <code>PATH</code> de cron est minimal → utilise des <strong>chemins absolus</strong> dans la commande.</p>
+<p><strong><code>systemctl list-timers</code> ne montre pas mon timer.</strong> Tu ne l&#39;as pas activé : <code>sudo systemctl enable --now tick.timer</code> (et <code>daemon-reload</code> d&#39;abord). Le timer doit être <strong>actif</strong>, pas seulement présent.</p>
+<p><strong><code>at: command not found</code> ou la tâche ne part pas.</strong> Installe <code>at</code> (<code>sudo apt install at</code>) et vérifie que le service <code>atd</code> tourne (<code>systemctl status atd</code>).</p>
+</div>
+<div data-lang="en"><p><strong><code>systemctl start</code>: &quot;Unit hello.service not found&quot;.</strong> The file isn&#39;t in a scanned folder (<code>/usr/lib/systemd/system/</code> or <code>/etc/systemd/system/</code>) or you forgot <code>daemon-reload</code>. Check the path and reload.</p>
+<p><strong><code>systemctl mask</code>: &quot;file already exists&quot;.</strong> You&#39;re trying to mask a unit whose definition is <strong>already</strong> in <code>/etc/systemd/system/</code>: the mask link can&#39;t be created there. <code>mask</code> applies to <code>/usr/lib/systemd/system/</code> (package) units. For a local <code>/etc</code> unit, delete it instead.</p>
+<p><strong>The service goes <code>failed</code> right after <code>start</code>.</strong> Look at <strong>why</strong>: <code>systemctl status hello</code> and <code>journalctl -u hello</code>. Often a wrong <code>ExecStart</code> (path, quotes) or a missing binary.</p>
+<p><strong>&quot;Unit is masked&quot;.</strong> The service is <strong>masked</strong>: <code>sudo systemctl unmask hello</code> before you can start it.</p>
+<p><strong>The cron job doesn&#39;t fire.</strong> Is the <code>cron</code> service running (<code>systemctl status cron</code>)? Is the 5-field syntax correct (<code>crontab -l</code>)? cron&#39;s <code>PATH</code> is minimal → use <strong>absolute paths</strong> in the command.</p>
+<p><strong><code>systemctl list-timers</code> doesn&#39;t show my timer.</strong> You didn&#39;t activate it: <code>sudo systemctl enable --now tick.timer</code> (and <code>daemon-reload</code> first). The timer must be <strong>active</strong>, not just present.</p>
+<p><strong><code>at: command not found</code> or the task doesn&#39;t run.</strong> Install <code>at</code> (<code>sudo apt install at</code>) and check the <code>atd</code> service is running (<code>systemctl status atd</code>).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

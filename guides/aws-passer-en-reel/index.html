@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — passer en réel proprement — jiha.tech</title>
+  <title data-lang="en">AWS — going real, cleanly — jiha.tech</title>
+  <meta name="description" content="La transition du labo au vrai AWS, sans mauvaise surprise : créer un compte et sécuriser le root (MFA), créer un utilisateur IAM et configurer la CLI, poser des garde-fous de coût (AWS Budgets, alarmes de facturation, suivi free-tier), basculer ton projet Terraform de LocalStack vers le réel (retirer le bloc endpoints), et comprendre tout ce que LocalStack cachait (Block Public Access, application d&#39;IAM, unicité des noms, démarrage à froid, cohérence). Plus la discipline de nettoyage anti-facture." data-lang="fr">
+  <meta name="description" content="The transition from lab to real AWS, with no nasty surprise: create an account and secure the root (MFA), create an IAM user and configure the CLI, set cost guardrails (AWS Budgets, billing alarms, free-tier tracking), switch your Terraform project from LocalStack to real (remove the endpoints block), and understand everything LocalStack hid (Block Public Access, IAM enforcement, name uniqueness, cold start, consistency). Plus the anti-bill cleanup discipline." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — passer en réel proprement">
+  <meta property="og:description" content="La transition du labo au vrai AWS, sans mauvaise surprise : créer un compte et sécuriser le root (MFA), créer un utilisateur IAM et configurer la CLI, poser des garde-fous de coût (AWS Budgets, alarmes de facturation, suivi free-tier), basculer ton projet Terraform de LocalStack vers le réel (retirer le bloc endpoints), et comprendre tout ce que LocalStack cachait (Block Public Access, application d&#39;IAM, unicité des noms, démarrage à froid, cohérence). Plus la discipline de nettoyage anti-facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-passer-en-reel/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-passer-en-reel/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-passer-en-reel">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-passer-en-reel</div>
+    <div class="prompt" data-lang="en">~/guides/aws-passer-en-reel</div>
+    <h1 data-lang="fr">AWS — passer en réel proprement</h1>
+    <h1 data-lang="en">AWS — going real, cleanly</h1>
+    <p class="tagline" data-lang="fr">compte AWS, sécurité du root, garde-fous de coût, ce que LocalStack cachait.</p>
+    <p class="tagline" data-lang="en">AWS account, root security, cost guardrails, what LocalStack hid.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 180 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-13</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 180 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-13</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as appris tout AWS <strong>sans compte, sans carte, sans risque</strong> grâce à LocalStack. À un moment, tu voudras (ou devras) toucher au <strong>vrai</strong> AWS : pour l&#39;examen, pour un projet client, pour valider en conditions réelles. Ce guide est le <strong>pont</strong> — et surtout le <strong>garde-fou</strong>. Car le vrai AWS a une différence de taille avec LocalStack : <strong>il facture</strong>. Une ressource oubliée, un bucket rendu public, une passerelle NAT laissée tourner, et tu retrouves une facture surprise en fin de mois. Ce guide t&#39;apprend à passer en réel <strong>proprement</strong> : sécuriser ton compte, poser des garde-fous de coût <strong>avant</strong> de créer quoi que ce soit, et garder la discipline de nettoyage.</p>
+<p>On y va dans l&#39;ordre qui évite les catastrophes : d&#39;abord <strong>créer et verrouiller</strong> le compte (le root est tout-puissant — on le protège et on ne s&#39;en sert plus), puis un <strong>utilisateur IAM</strong> pour le quotidien, puis — <strong>avant toute ressource</strong> — les <strong>garde-fous de coût</strong> (budgets, alarmes de facturation). Ensuite seulement on bascule ton <strong>projet Terraform</strong> de LocalStack vers le réel (spoiler : c&#39;est presque juste retirer le bloc <code>endpoints</code>). Enfin, on démonte les <strong>illusions de LocalStack</strong> : ce que l&#39;émulateur cachait et qui compte vraiment en production.</p>
+<p>⚠️ <strong>Ce guide implique de VRAIES actions sur un VRAI compte AWS</strong>, qui peuvent <strong>coûter de l&#39;argent</strong> si tu n&#39;es pas discipliné·e. On reste dans l&#39;<strong>offre gratuite</strong> (free tier) et on nettoie tout — mais lis chaque avertissement. Les vérifications « ✅ » décrivent ce que tu dois voir dans la console/CLI, pas des commandes de labo à rejouer à l&#39;aveugle.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé tout le track AWS (jusqu&#39;au projet serverless) et tu es prêt·e à mettre le pied dans le vrai cloud.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu veux juste réviser/t&#39;entraîner → reste sur <strong>LocalStack</strong>, c&#39;est gratuit et sans risque.</li><li>Tu n&#39;es pas sûr·e de pouvoir surveiller tes coûts → pose <strong>d&#39;abord</strong> les garde-fous de ce guide (étape 3), puis reviens créer des ressources.</li></ul>
+</div>
+<div data-lang="en"><p>You learned all of AWS <strong>with no account, no card, no risk</strong> thanks to LocalStack. At some point, you&#39;ll want (or need) to touch <strong>real</strong> AWS: for the exam, a client project, a real-conditions validation. This guide is the <strong>bridge</strong> — and above all the <strong>guardrail</strong>. Because real AWS has one big difference from LocalStack: <strong>it bills</strong>. A forgotten resource, a bucket made public, a NAT gateway left running, and you find a surprise bill at month&#39;s end. This guide teaches you to go real <strong>cleanly</strong>: secure your account, set cost guardrails <strong>before</strong> creating anything, and keep cleanup discipline.</p>
+<p>We go in the disaster-avoiding order: first <strong>create and lock down</strong> the account (the root is all-powerful — protect it and stop using it), then an <strong>IAM user</strong> for daily work, then — <strong>before any resource</strong> — the <strong>cost guardrails</strong> (budgets, billing alarms). Only then do we switch your <strong>Terraform project</strong> from LocalStack to real (spoiler: it&#39;s almost just removing the <code>endpoints</code> block). Finally, we dismantle <strong>LocalStack&#39;s illusions</strong>: what the emulator hid and what truly matters in production.</p>
+<p>⚠️ <strong>This guide involves REAL actions on a REAL AWS account</strong>, which can <strong>cost money</strong> if you&#39;re not disciplined. We stay in the <strong>free tier</strong> and clean everything up — but read every warning. The &quot;✅&quot; checks describe what you should see in the console/CLI, not lab commands to replay blindly.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the whole AWS track (through the serverless project) and you&#39;re ready to step into the real cloud.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You just want to revise/practice → stay on <strong>LocalStack</strong>, it&#39;s free and risk-free.</li><li>You&#39;re not sure you can watch your costs → set the guardrails from this guide <strong>first</strong> (step 3), then come back to create resources.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Créer un compte AWS</strong> et <strong>verrouiller le root</strong> (MFA, arrêt de l&#39;usage quotidien).</li><li>Créer un <strong>utilisateur/rôle IAM</strong> administrateur et <strong>configurer la CLI</strong> avec de vraies clés.</li><li>Poser les <strong>garde-fous de coût</strong> : AWS Budgets, alarme de facturation, suivi du free-tier.</li><li><strong>Basculer ton projet Terraform</strong> de LocalStack vers le vrai AWS (bloc <code>endpoints</code>, profils, état distant).</li><li>Reconnaître <strong>ce que LocalStack cachait</strong> (Block Public Access, application d&#39;IAM, unicité des noms, démarrage à froid, cohérence, coûts réseau).</li><li>Appliquer la <strong>discipline de nettoyage</strong> anti-facture.</li><li>Préparer et passer l&#39;<strong>examen SAA-C03</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Create an AWS account</strong> and <strong>lock down the root</strong> (MFA, stop daily use).</li><li>Create an admin <strong>IAM user/role</strong> and <strong>configure the CLI</strong> with real keys.</li><li>Set <strong>cost guardrails</strong>: AWS Budgets, a billing alarm, free-tier tracking.</li><li><strong>Switch your Terraform project</strong> from LocalStack to real AWS (<code>endpoints</code> block, profiles, remote state).</li><li>Recognize <strong>what LocalStack hid</strong> (Block Public Access, IAM enforcement, name uniqueness, cold start, consistency, network costs).</li><li>Apply the anti-bill <strong>cleanup discipline</strong>.</li><li>Prepare for and take the <strong>SAA-C03 exam</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Tout le track AWS</strong> terminé, projet serverless compris — tu connais les services et les commandes.</li><li>Une <strong>carte bancaire</strong> (AWS l&#39;exige à l&#39;inscription, même pour le free tier ; un débit de vérification de ~1 $ peut apparaître puis être remboursé).</li><li>Une <strong>application d&#39;authentification</strong> (Google Authenticator, Authy, 1Password…) pour la MFA.</li><li><strong>aws-cli v2</strong> installé (<code>aws --version</code>). Terraform pour la partie IaC.</li><li>⚠️ <strong>Un budget mental « je nettoie tout »</strong>. Rien de ce guide ne doit te coûter plus de quelques centimes si tu suis la discipline — mais le vrai AWS ne pardonne pas l&#39;oubli.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>The whole AWS track</strong> done, serverless project included — you know the services and commands.</li><li>A <strong>credit card</strong> (AWS requires it at signup, even for the free tier; a ~$1 verification charge may appear then be refunded).</li><li>An <strong>authenticator app</strong> (Google Authenticator, Authy, 1Password…) for MFA.</li><li><strong>aws-cli v2</strong> installed (<code>aws --version</code>). Terraform for the IaC part.</li><li>⚠️ <strong>A &quot;clean everything up&quot; mindset</strong>. Nothing in this guide should cost you more than a few cents if you follow the discipline — but real AWS doesn&#39;t forgive forgetting.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-projet-entreprise/">
+    <span class="num">50</span>
+    <span class="title-line" data-lang="fr">AWS — projet d&#39;entreprise : pipeline serverless</span>
+    <span class="title-line" data-lang="en">AWS — enterprise project: serverless pipeline</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Compte AWS &amp; utilisateur root.</strong> À l&#39;inscription, tu obtiens un <strong>compte</strong> identifié par un e-mail, et son <strong>utilisateur root</strong> — un accès <strong>total et irrévocable</strong> à tout, y compris la facturation et la fermeture du compte. Le root est si puissant qu&#39;on le <strong>sécurise au maximum</strong> (MFA obligatoire) et qu&#39;on <strong>ne l&#39;utilise plus</strong> au quotidien. Tout le travail passe par des identités IAM à privilèges limités.</p>
+<p><strong>Offre gratuite (free tier).</strong> AWS offre, pour les nouveaux comptes, des quotas gratuits : certains <strong>12 mois</strong> (ex. 750 h/mois d&#39;EC2 <code>t2.micro</code>), d&#39;autres <strong>toujours gratuits</strong> (ex. 1 M de requêtes Lambda/mois, 25 Go DynamoDB), d&#39;autres en <strong>essai</strong>. Rester dans ces quotas = 0 €. <strong>Les dépasser facture</strong> — d&#39;où les garde-fous.</p>
+<p><strong>Garde-fous de coût.</strong> Trois outils : <strong>AWS Budgets</strong> (« préviens-moi si je dépasse 5 $ ce mois »), l&#39;<strong>alarme de facturation</strong> CloudWatch (une alarme sur la métrique de coût estimé), et les <strong>alertes free-tier</strong> (« tu approches d&#39;un quota gratuit »). On les pose <strong>avant</strong> de créer des ressources — c&#39;est la ceinture de sécurité.</p>
+<p><strong>Profils CLI.</strong> <code>aws configure</code> enregistre des identifiants. Pour ne pas mélanger labo et prod, on utilise des <strong>profils nommés</strong> (<code>aws configure --profile perso</code>) et on les cible (<code>aws s3 ls --profile perso</code> ou <code>AWS_PROFILE=perso</code>). LocalStack, lui, utilisait <code>test</code>/<code>test</code> ; en réel, ce sont de vraies clés IAM (ou, mieux, <strong>IAM Identity Center</strong>/SSO).</p>
+<p><strong>Basculer Terraform.</strong> Ton projet LocalStack devient un projet réel en <strong>retirant le bloc <code>endpoints</code></strong> (et les <code>skip_*</code>/<code>s3_use_path_style</code> de labo) : le provider vise alors le vrai AWS via ton profil. Bonus prod : un <strong>état distant</strong> (<code>backend &quot;s3&quot;</code>) pour partager l&#39;état en équipe, au lieu du <code>terraform.tfstate</code> local.</p>
+<p><strong>Ce que LocalStack émulait « en gentil ».</strong> L&#39;émulateur ne <strong>facture pas</strong>, n&#39;<strong>applique pas</strong> toujours les règles de sécurité (IAM, Block Public Access), ignore l&#39;<strong>unicité mondiale</strong> des noms de bucket, n&#39;a pas de <strong>démarrage à froid</strong> Lambda réaliste, et masque la <strong>cohérence à terme</strong> de certains services. En réel, tout ça compte.</p>
+</div>
+<div data-lang="en"><p><strong>AWS account &amp; root user.</strong> At signup, you get an <strong>account</strong> identified by an email, and its <strong>root user</strong> — <strong>total, irrevocable</strong> access to everything, including billing and closing the account. The root is so powerful that you <strong>secure it to the max</strong> (mandatory MFA) and <strong>stop using it</strong> day to day. All work goes through limited-privilege IAM identities.</p>
+<p><strong>Free tier.</strong> AWS offers new accounts free quotas: some for <strong>12 months</strong> (e.g. 750 h/month of EC2 <code>t2.micro</code>), some <strong>always free</strong> (e.g. 1M Lambda requests/month, 25 GB DynamoDB), some <strong>trials</strong>. Staying within these = €0. <strong>Exceeding them bills</strong> — hence the guardrails.</p>
+<p><strong>Cost guardrails.</strong> Three tools: <strong>AWS Budgets</strong> (&quot;warn me if I exceed $5 this month&quot;), the CloudWatch <strong>billing alarm</strong> (an alarm on the estimated-charges metric), and <strong>free-tier alerts</strong> (&quot;you&#39;re nearing a free quota&quot;). You set them <strong>before</strong> creating resources — it&#39;s the seatbelt.</p>
+<p><strong>CLI profiles.</strong> <code>aws configure</code> stores credentials. To avoid mixing lab and prod, use <strong>named profiles</strong> (<code>aws configure --profile perso</code>) and target them (<code>aws s3 ls --profile perso</code> or <code>AWS_PROFILE=perso</code>). LocalStack used <code>test</code>/<code>test</code>; in real life these are real IAM keys (or, better, <strong>IAM Identity Center</strong>/SSO).</p>
+<p><strong>Switching Terraform.</strong> Your LocalStack project becomes a real project by <strong>removing the <code>endpoints</code> block</strong> (and the lab <code>skip_*</code>/<code>s3_use_path_style</code>): the provider then targets real AWS via your profile. Prod bonus: a <strong>remote state</strong> (<code>backend &quot;s3&quot;</code>) to share state across a team, instead of the local <code>terraform.tfstate</code>.</p>
+<p><strong>What LocalStack emulated &quot;leniently&quot;.</strong> The emulator doesn&#39;t <strong>bill</strong>, doesn&#39;t always <strong>enforce</strong> security rules (IAM, Block Public Access), ignores bucket names&#39; <strong>global uniqueness</strong>, has no realistic Lambda <strong>cold start</strong>, and hides some services&#39; <strong>eventual consistency</strong>. In real life, all of that matters.</p>
+</div>
+
+<figure class="schema" id="figure-aws-lab-to-real">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-aws-lab-to-real">
+  <title id="s-aws-lab-to-real">Du labo au réel (AWS)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Du labo au réel (AWS)</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="64" text-anchor="middle">LocalStack</text><text class="sub sub-fill" x="129" y="77" text-anchor="middle">gratuit · endpoints locaux · IAM non</text><text class="sub sub-fill" x="129" y="89" text-anchor="middle">appliqué</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="380" y="70.5" text-anchor="middle">bascule Terraform</text><text class="sub" x="380" y="83.5" text-anchor="middle">retirer le bloc endpoints</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box-soft" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="631" y="64" text-anchor="middle">AWS réel</text><text class="sub sub-blue" x="631" y="77" text-anchor="middle">facturé · profil IAM · garde-fous</text><text class="sub sub-blue" x="631" y="89" text-anchor="middle">coût</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Du labo au réel : le même projet, deux cibles. LocalStack (gratuit, endpoints locaux, IAM non appliqué) → AWS réel (facturé, profil IAM, garde-fous de coût obligatoires). La bascule Terraform = retirer le bloc endpoints.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> From lab to real: the same project, two targets. LocalStack (free, local endpoints, IAM not enforced) → real AWS (billed, IAM profile, mandatory cost guardrails). The Terraform switch = remove the endpoints block.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le <strong>compte AWS</strong> et <strong>verrouiller le root</strong>.</p>
+<p><strong>🤔 Pourquoi verrouiller le root d&#39;abord.</strong> Le root peut <strong>tout</strong> faire, y compris vider ton compte ou générer des coûts illimités. S&#39;il est compromis, c&#39;est terminé. Donc : <strong>MFA immédiate</strong>, pas de clé d&#39;accès root, et on <strong>arrête</strong> de s&#39;en servir dès l&#39;utilisateur IAM créé (étape 2).</p>
+<p>Fais ceci <strong>dans la console</strong> (<a href="https://aws.amazon.com">aws.amazon.com</a> → « Créer un compte ») :</p>
+<ol><li>Inscris-toi (e-mail, mot de passe <strong>fort et unique</strong>, carte bancaire, vérification téléphone).</li><li>Une fois connecté <strong>en tant que root</strong> : va dans <strong>IAM</strong> → <strong>active la MFA</strong> sur l&#39;utilisateur root (avec ton app d&#39;authentification).</li><li><strong>Ne crée AUCUNE clé d&#39;accès pour le root.</strong> Si des clés root existent, supprime-les.</li></ol>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <strong>AWS account</strong> and <strong>lock down the root</strong>.</p>
+<p><strong>🤔 Why lock the root first.</strong> The root can do <strong>everything</strong>, including draining your account or generating unlimited costs. If it&#39;s compromised, it&#39;s over. So: <strong>MFA immediately</strong>, no root access keys, and <strong>stop</strong> using it as soon as the IAM user is created (step 2).</p>
+<p>Do this <strong>in the console</strong> (<a href="https://aws.amazon.com">aws.amazon.com</a> → &quot;Create an account&quot;):</p>
+<ol><li>Sign up (email, <strong>strong and unique</strong> password, credit card, phone verification).</li><li>Once logged in <strong>as root</strong>: go to <strong>IAM</strong> → <strong>enable MFA</strong> on the root user (with your authenticator app).</li><li><strong>Create NO access keys for the root.</strong> If root keys exist, delete them.</li></ol>
+</div>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans <strong>IAM → Tableau de bord</strong>, l&#39;indicateur de sécurité montre <strong>« MFA activée sur le root »</strong> (coche verte), et <strong>aucune clé d&#39;accès active pour le root</strong>. C&#39;est le minimum vital : un root avec MFA et sans clé long terme est beaucoup plus dur à compromettre. ⚠️ <strong>Note ton numéro de compte</strong> (12 chiffres) et <strong>conserve précieusement</strong> l&#39;accès à l&#39;app MFA — perdre la MFA du root est un cauchemar de récupération.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in <strong>IAM → Dashboard</strong>, the security indicator shows <strong>&quot;MFA enabled on root&quot;</strong> (green tick), and <strong>no active access keys for root</strong>. It&#39;s the vital minimum: a root with MFA and no long-term key is much harder to compromise. ⚠️ <strong>Note your account number</strong> (12 digits) and <strong>carefully keep</strong> access to the MFA app — losing the root MFA is a recovery nightmare.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>utilisateur IAM</strong> administrateur (pour le quotidien) et <strong>configurer la CLI</strong>.</p>
+<p><strong>🤔 Root vs IAM (rappel du guide sécurité).</strong> On ne travaille <strong>jamais</strong> en root. On crée un utilisateur IAM avec les droits admin (ou, mieux en équipe, <strong>IAM Identity Center</strong>/SSO), on lui met la MFA, et c&#39;est <strong>lui</strong> qu&#39;on utilise. Pour la CLI, cet utilisateur a une <strong>clé d&#39;accès</strong> — qu&#39;on garde secrète et qu&#39;on fait tourner.</p>
+<p>Dans la console (connecté en root une <strong>dernière</strong> fois) :</p>
+<ol><li><strong>IAM → Utilisateurs → Créer</strong> : un utilisateur <code>admin-perso</code>, avec la politique gérée <code>AdministratorAccess</code> (via un groupe, comme au guide IAM). Active-lui la <strong>MFA</strong>.</li><li>Crée-lui une <strong>clé d&#39;accès</strong> (type « CLI »), note l&#39;<code>Access Key ID</code> et le <code>Secret</code> (affiché <strong>une seule fois</strong>).</li><li>Configure la CLI avec un <strong>profil nommé</strong> :</li></ol>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create an admin <strong>IAM user</strong> (for daily work) and <strong>configure the CLI</strong>.</p>
+<p><strong>🤔 Root vs IAM (recall from the security guide).</strong> You <strong>never</strong> work as root. You create an IAM user with admin rights (or, better in a team, <strong>IAM Identity Center</strong>/SSO), give it MFA, and use <strong>it</strong>. For the CLI, this user has an <strong>access key</strong> — kept secret and rotated.</p>
+<p>In the console (logged in as root one <strong>last</strong> time):</p>
+<ol><li><strong>IAM → Users → Create</strong>: a user <code>admin-perso</code>, with the managed policy <code>AdministratorAccess</code> (via a group, as in the IAM guide). Enable <strong>MFA</strong> for it.</li><li>Create it an <strong>access key</strong> (type &quot;CLI&quot;), note the <code>Access Key ID</code> and <code>Secret</code> (shown <strong>only once</strong>).</li><li>Configure the CLI with a <strong>named profile</strong>:</li></ol>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Configurer un profil &quot;perso&quot; avec tes VRAIES clés IAM / configure a &quot;perso&quot; profile with your REAL IAM keys
+aws configure --profile perso
+# AWS Access Key ID     : AKIA................
+# AWS Secret Access Key : ........................................
+# Default region name   : eu-west-3        (Paris, ou ta région)
+# Default output format : json
+
+# Vérifier QUI tu es sur le VRAI AWS / check WHO you are on REAL AWS
+aws sts get-caller-identity --profile perso</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>aws sts get-caller-identity --profile perso</code> renvoie ton <strong>vrai</strong> numéro de compte (12 chiffres, <strong>pas</strong> <code>000000000000</code>) et l&#39;ARN <code>arn:aws:iam::&lt;compte&gt;:user/admin-perso</code>. Tu parles maintenant au <strong>vrai</strong> AWS, en tant qu&#39;utilisateur IAM (pas root). ⚠️ <strong>Ne mets JAMAIS ces clés dans Git</strong> ni dans un playbook en clair. Le fichier <code>~/.aws/credentials</code> reste <strong>local</strong>. Compare avec LocalStack : là-bas c&#39;était <code>awslocal</code> (endpoint local, clés bidon) ; ici c&#39;est <code>aws --profile perso</code> (vrai endpoint, vraies clés).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>aws sts get-caller-identity --profile perso</code> returns your <strong>real</strong> account number (12 digits, <strong>not</strong> <code>000000000000</code>) and the ARN <code>arn:aws:iam::&lt;account&gt;:user/admin-perso</code>. You now talk to <strong>real</strong> AWS, as an IAM user (not root). ⚠️ <strong>NEVER put these keys in Git</strong> or in a clear-text playbook. The <code>~/.aws/credentials</code> file stays <strong>local</strong>. Compare with LocalStack: there it was <code>awslocal</code> (local endpoint, dummy keys); here it&#39;s <code>aws --profile perso</code> (real endpoint, real keys).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser les <strong>garde-fous de coût</strong> — <strong>avant</strong> de créer la moindre ressource.</p>
+<p><strong>🤔 L&#39;étape qui t&#39;évite une facture surprise.</strong> C&#39;est <strong>la</strong> raison des histoires d&#39;horreur (« j&#39;ai laissé tourner un truc, 300 $ »). Un <strong>budget</strong> avec alerte te prévient par e-mail dès que tes coûts (réels ou prévus) dépassent un seuil. On le pose <strong>maintenant</strong>, seuil bas, pour dormir tranquille.</p>
+<p>Crée un budget mensuel de 5 $ avec alerte (remplace l&#39;e-mail) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set the <strong>cost guardrails</strong> — <strong>before</strong> creating any resource.</p>
+<p><strong>🤔 The step that saves you from a surprise bill.</strong> It&#39;s <strong>the</strong> reason for the horror stories (&quot;I left something running, $300&quot;). A <strong>budget</strong> with an alert emails you as soon as your costs (actual or forecast) exceed a threshold. Set it <strong>now</strong>, low threshold, to sleep soundly.</p>
+<p>Create a $5 monthly budget with an alert (replace the email):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Un budget mensuel de 5 $ / a $5 monthly budget
+cat &gt; budget.json &lt;&lt;&#39;EOF&#39;
+{ &quot;BudgetName&quot;: &quot;garde-fou-mensuel&quot;, &quot;BudgetLimit&quot;: { &quot;Amount&quot;: &quot;5&quot;, &quot;Unit&quot;: &quot;USD&quot; },
+  &quot;TimeUnit&quot;: &quot;MONTHLY&quot;, &quot;BudgetType&quot;: &quot;COST&quot; }
+EOF
+cat &gt; alerte.json &lt;&lt;&#39;EOF&#39;
+[ { &quot;Notification&quot;: { &quot;NotificationType&quot;: &quot;ACTUAL&quot;, &quot;ComparisonOperator&quot;: &quot;GREATER_THAN&quot;,
+      &quot;Threshold&quot;: 80, &quot;ThresholdType&quot;: &quot;PERCENTAGE&quot; },
+    &quot;Subscribers&quot;: [ { &quot;SubscriptionType&quot;: &quot;EMAIL&quot;, &quot;Address&quot;: &quot;TON-EMAIL@exemple.com&quot; } ] } ]
+EOF
+
+aws budgets create-budget --account-id &lt;TON-NUMERO-DE-COMPTE&gt; \
+  --budget file://budget.json --notifications-with-subscribers file://alerte.json \
+  --profile perso</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la commande ne renvoie <strong>aucune erreur</strong> (sortie vide = succès pour <code>create-budget</code>). Dans la console <strong>Billing → Budgets</strong>, ton budget <code>garde-fou-mensuel</code> apparaît avec une alerte à <strong>80 % de 5 $</strong> (= 4 $). Tu recevras un e-mail dès que tes coûts réels approchent ce seuil. Active <strong>aussi</strong>, dans <strong>Billing → Préférences</strong>, les <strong>« alertes free-tier »</strong> et les <strong>« CloudWatch billing alerts »</strong>. ⚠️ Ces alertes préviennent <strong>après coup</strong> : elles ne <strong>bloquent</strong> pas la dépense. Ta vraie protection reste la <strong>discipline de nettoyage</strong> (étape 6) — le budget est le filet, pas le mur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the command returns <strong>no error</strong> (empty output = success for <code>create-budget</code>). In the <strong>Billing → Budgets</strong> console, your <code>garde-fou-mensuel</code> budget appears with an alert at <strong>80% of $5</strong> (= $4). You&#39;ll get an email as soon as your actual costs near that threshold. Also enable, in <strong>Billing → Preferences</strong>, the <strong>&quot;free-tier alerts&quot;</strong> and the <strong>&quot;CloudWatch billing alerts&quot;</strong>. ⚠️ These alerts warn you <strong>after the fact</strong>: they don&#39;t <strong>block</strong> spending. Your real protection stays the <strong>cleanup discipline</strong> (step 6) — the budget is the net, not the wall.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Basculer ton projet Terraform</strong> (le pipeline serverless) de LocalStack vers le <strong>vrai</strong> AWS.</p>
+<p><strong>🤔 La bonne surprise.</strong> Comme tout ton projet est en <strong>infrastructure-as-code</strong>, le passage au réel est minimal : on <strong>retire le bloc <code>endpoints</code></strong> et les réglages de labo, on pointe le provider vers ton <strong>profil</strong> IAM, et <code>terraform apply</code> déploie sur le vrai AWS. C&#39;est <strong>exactement</strong> l&#39;intérêt de l&#39;IaC : le même code, une autre cible.</p>
+<p>Remplace ton <code>provider.tf</code> de labo par une version réelle :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Switch your Terraform project</strong> (the serverless pipeline) from LocalStack to <strong>real</strong> AWS.</p>
+<p><strong>🤔 The good surprise.</strong> Since your whole project is <strong>infrastructure-as-code</strong>, going real is minimal: you <strong>remove the <code>endpoints</code> block</strong> and the lab settings, point the provider at your IAM <strong>profile</strong>, and <code>terraform apply</code> deploys to real AWS. It&#39;s <strong>exactly</strong> the point of IaC: the same code, another target.</p>
+<p>Replace your lab <code>provider.tf</code> with a real version:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># provider.tf — version RÉELLE (compare avec la version LocalStack) / REAL version
+terraform {
+  required_providers {
+    aws     = { source = &quot;hashicorp/aws&quot;, version = &quot;~&gt; 5.0&quot; }
+    archive = { source = &quot;hashicorp/archive&quot;, version = &quot;~&gt; 2.0&quot; }
+  }
+}
+
+provider &quot;aws&quot; {
+  region  = &quot;eu-west-3&quot;     # ta région / your region
+  profile = &quot;perso&quot;         # ton profil IAM (pas de clés en dur) / your IAM profile (no hardcoded keys)
+  # PLUS de bloc endpoints, PLUS de skip_*, PLUS de s3_use_path_style
+  # NO more endpoints block, NO skip_*, NO s3_use_path_style
+}</code></pre>
+<div data-lang="fr"><p>⚠️ <strong>Un vrai bucket S3 a un nom UNIQUE MONDIALEMENT.</strong> <code>uploads-pipeline</code> est sûrement déjà pris : dans <code>storage.tf</code>, préfixe-le d&#39;un identifiant unique, ex. <code>uploads-pipeline-tonpseudo-2026</code>.</p>
+</div>
+<div data-lang="en"><p>⚠️ <strong>A real S3 bucket has a GLOBALLY UNIQUE name.</strong> <code>uploads-pipeline</code> is surely taken: in <code>storage.tf</code>, prefix it with a unique identifier, e.g. <code>uploads-pipeline-yournick-2026</code>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init            # reconfigure le provider / reconfigure the provider
+terraform plan            # PRÉVISUALISE sur le vrai AWS (lis attentivement) / PREVIEW on real AWS
+terraform apply           # déploie POUR DE VRAI / deploys FOR REAL
+# ... teste comme au projet, avec &quot;aws --profile perso&quot; au lieu de &quot;awslocal&quot; ...
+terraform destroy         # !!! DÉTRUIS DÈS QUE TU AS FINI !!! / destroy AS SOON as done</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform plan</code> liste les ressources à créer <strong>sur ton vrai compte</strong> (relis-le : c&#39;est de l&#39;argent réel). Après <code>apply</code>, tu vois tes ressources dans la <strong>console AWS</strong> (S3, Lambda, DynamoDB…) — de tes propres yeux, pour de vrai. Le pipeline fonctionne à l&#39;identique : dépose un fichier, l&#39;entrée apparaît dans DynamoDB. ⚠️ <strong>Fais <code>terraform destroy</code> immédiatement après avoir vérifié.</strong> Chaque minute où des ressources tournent peut compter (surtout hors free-tier). Le même code qui coûtait 0 € en LocalStack coûte <strong>maintenant</strong> — d&#39;où la discipline.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform plan</code> lists the resources to create <strong>on your real account</strong> (reread it: it&#39;s real money). After <code>apply</code>, you see your resources in the <strong>AWS console</strong> (S3, Lambda, DynamoDB…) — with your own eyes, for real. The pipeline works identically: drop a file, the entry appears in DynamoDB. ⚠️ <strong>Run <code>terraform destroy</code> immediately after checking.</strong> Every minute resources run can count (especially outside the free tier). The same code that cost €0 in LocalStack <strong>now</strong> costs — hence the discipline.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Reconnaître <strong>ce que LocalStack cachait</strong> — les différences qui comptent en production.</p>
+<p><strong>🤔 Pourquoi c&#39;est crucial.</strong> LocalStack est génial pour apprendre, mais c&#39;est un émulateur <strong>indulgent</strong>. Certaines choses qui « passaient » en labo se comportent <strong>différemment</strong> en réel — et c&#39;est souvent là que ça casse (ou que ça facture, ou que ça fuit). Voici les pièges à connaître :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Recognize <strong>what LocalStack hid</strong> — the differences that matter in production.</p>
+<p><strong>🤔 Why it&#39;s crucial.</strong> LocalStack is great for learning, but it&#39;s a <strong>lenient</strong> emulator. Some things that &quot;passed&quot; in the lab behave <strong>differently</strong> in real life — and that&#39;s often where things break (or bill, or leak). Here are the traps to know:</p>
+</div>
+<div data-lang="fr"><ul><li><strong>IAM est réellement appliqué.</strong> En labo, une action interdite passait quand même. En réel, une politique mal fichue <strong>bloque</strong> ton app (ou, pire, une politique trop large <strong>l&#39;expose</strong>). Le moindre privilège devient concret.</li><li><strong>Block Public Access est actif par défaut.</strong> Ta bucket policy publique du guide S3 <strong>ne suffit pas</strong> en réel : il faut <strong>explicitement</strong> désactiver le « Block Public Access » (et c&#39;est une décision risquée). LocalStack l&#39;ignorait.</li><li><strong>Les noms de bucket sont uniques mondialement.</strong> <code>mon-bucket</code> est pris. En réel, préfixe systématiquement.</li><li><strong>Démarrage à froid (cold start) Lambda.</strong> La première invocation après une pause a une <strong>latence</strong> (le runtime démarre). LocalStack ne la simulait pas ; en prod, ça compte pour les API sensibles à la latence.</li><li><strong>Cohérence à terme.</strong> Certains services (S3 historiquement, DynamoDB en lecture non-consistante) peuvent renvoyer une donnée <strong>légèrement en retard</strong>. LocalStack, local et instantané, masquait ça.</li><li><strong>Le réseau coûte et se configure.</strong> Une passerelle NAT <strong>facture à l&#39;heure + au Go</strong>. Le trafic <strong>sortant</strong> vers Internet est payant. En labo, gratuit et instantané ; en réel, une ligne de facture.</li><li><strong>Les quotas et limites existent.</strong> Nombre d&#39;instances, de VPC, de règles… Le vrai AWS a des <strong>quotas de service</strong> (relevables sur demande) que LocalStack ignorait.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>IAM is actually enforced.</strong> In the lab, a forbidden action went through anyway. In real life, a botched policy <strong>blocks</strong> your app (or, worse, a too-broad policy <strong>exposes</strong> it). Least privilege becomes concrete.</li><li><strong>Block Public Access is on by default.</strong> Your public bucket policy from the S3 guide is <strong>not enough</strong> in real life: you must <strong>explicitly</strong> disable &quot;Block Public Access&quot; (a risky decision). LocalStack ignored it.</li><li><strong>Bucket names are globally unique.</strong> <code>my-bucket</code> is taken. In real life, always prefix.</li><li><strong>Lambda cold start.</strong> The first invocation after a pause has <strong>latency</strong> (the runtime boots). LocalStack didn&#39;t simulate it; in prod it matters for latency-sensitive APIs.</li><li><strong>Eventual consistency.</strong> Some services (S3 historically, DynamoDB non-consistent reads) can return <strong>slightly stale</strong> data. LocalStack, local and instant, hid this.</li><li><strong>Networking costs and configures.</strong> A NAT gateway <strong>bills per hour + per GB</strong>. <strong>Outbound</strong> traffic to the internet is paid. In the lab, free and instant; in real life, a bill line.</li><li><strong>Quotas and limits exist.</strong> Number of instances, VPCs, rules… Real AWS has <strong>service quotas</strong> (raisable on request) that LocalStack ignored.</li></ul>
+</div>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais expliquer, pour chacun de ces sept points, <strong>en quoi le réel diffère</strong> du labo. Concrètement : si tu redéploies ton projet S3 « site statique » en réel et qu&#39;il n&#39;est pas accessible, tu penses <strong>immédiatement</strong> à « Block Public Access ». Si ta facture monte, tu penses <strong>NAT / trafic sortant</strong>. Cette grille de différences est ce qui transforme « je sais faire en LocalStack » en « je sais faire en production ».</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can explain, for each of these seven points, <strong>how real life differs</strong> from the lab. Concretely: if you redeploy your &quot;static site&quot; S3 project for real and it&#39;s not reachable, you <strong>immediately</strong> think &quot;Block Public Access&quot;. If your bill rises, you think <strong>NAT / outbound traffic</strong>. This grid of differences is what turns &quot;I can do it in LocalStack&quot; into &quot;I can do it in production&quot;.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer la <strong>discipline de nettoyage</strong> anti-facture.</p>
+<p><strong>🤔 La seule vraie protection.</strong> Les alertes préviennent, elles ne bloquent pas. Ce qui t&#39;évite les surprises, c&#39;est l&#39;<strong>habitude</strong> : tu crées, tu testes, tu <strong>détruis</strong>. Et tu <strong>vérifies</strong> qu&#39;il ne reste rien. Voici le rituel de fin de session sur le vrai AWS.</p>
+<p>Le check-list de nettoyage :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the anti-bill <strong>cleanup discipline</strong>.</p>
+<p><strong>🤔 The only real protection.</strong> Alerts warn, they don&#39;t block. What saves you from surprises is the <strong>habit</strong>: you create, you test, you <strong>destroy</strong>. And you <strong>verify</strong> nothing remains. Here&#39;s the end-of-session ritual on real AWS.</p>
+<p>The cleanup checklist:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Détruire l&#39;infra gérée par Terraform / destroy Terraform-managed infra
+terraform destroy --profile perso     # ou AWS_PROFILE=perso terraform destroy
+
+# 2) Chercher les ressources &quot;chères&quot; qui traînent / hunt for lingering &quot;expensive&quot; resources
+aws ec2 describe-instances --profile perso \
+  --query &#39;Reservations[].Instances[?State.Name!=`terminated`].InstanceId&#39; --output text
+aws ec2 describe-nat-gateways --profile perso --query &#39;NatGateways[?State==`available`].NatGatewayId&#39; --output text
+aws ec2 describe-volumes --profile perso --query &#39;Volumes[?State==`available`].VolumeId&#39; --output text   # volumes EBS orphelins
+aws s3 ls --profile perso                                          # buckets restants
+
+# 3) La facture du mois en cours / current month&#39;s charges
+#    Console : Billing → Bills / Cost Explorer (le réflexe de fin de session)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>terraform destroy</code>, les commandes de « chasse » ne renvoient <strong>rien</strong> (aucune instance non terminée, aucune passerelle NAT <code>available</code>, aucun volume orphelin, aucun bucket oublié). Dans <strong>Billing</strong>, la facture du mois reste à <strong>0 $</strong> (ou quelques centimes). ⚠️ Les gros postes à surveiller : <strong>instances EC2</strong> oubliées, <strong>passerelles NAT</strong> (chères !), <strong>volumes EBS</strong> non attachés, <strong>adresses IP Elastic</strong> non associées (facturées si inutilisées), et le <strong>trafic sortant</strong>. Fais cette chasse <strong>à chaque fin de session</strong> : c&#39;est le réflexe qui sépare ceux qui apprennent sereinement de ceux qui reçoivent une facture surprise.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>terraform destroy</code>, the &quot;hunt&quot; commands return <strong>nothing</strong> (no non-terminated instance, no <code>available</code> NAT gateway, no orphan volume, no forgotten bucket). In <strong>Billing</strong>, the month&#39;s charges stay at <strong>$0</strong> (or a few cents). ⚠️ The big items to watch: forgotten <strong>EC2 instances</strong>, <strong>NAT gateways</strong> (expensive!), unattached <strong>EBS volumes</strong>, unassociated <strong>Elastic IPs</strong> (billed if unused), and <strong>outbound traffic</strong>. Do this hunt <strong>at every end of session</strong>: it&#39;s the reflex that separates those who learn calmly from those who get a surprise bill.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrocher la <strong>certification SAA-C03</strong> — et savoir où aller ensuite.</p>
+<p><strong>🤔 Tu es prêt·e.</strong> Tout le track t&#39;a fait <strong>pratiquer</strong> les services que l&#39;examen teste : IAM, S3, VPC, EC2, Lambda, SQS/SNS/DynamoDB, l&#39;architecture découplée et résiliente, et l&#39;IaC. L&#39;examen <strong>Solutions Architect Associate (SAA-C03)</strong> est un QCM de ~65 questions en 130 min, orienté <strong>« quelle architecture pour ce besoin »</strong> (résilience, sécurité, performance, coût).</p>
+<p>La marche à suivre :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Earn the <strong>SAA-C03 certification</strong> — and know where to go next.</p>
+<p><strong>🤔 You&#39;re ready.</strong> The whole track had you <strong>practice</strong> the services the exam tests: IAM, S3, VPC, EC2, Lambda, SQS/SNS/DynamoDB, decoupled and resilient architecture, and IaC. The <strong>Solutions Architect Associate (SAA-C03)</strong> exam is a ~65-question MCQ in 130 min, focused on <strong>&quot;which architecture for this need&quot;</strong> (resilience, security, performance, cost).</p>
+<p>The plan:</p>
+</div>
+<div data-lang="fr"><ol><li><strong>Révise par domaines</strong> (les 4 de l&#39;examen) : conçois <strong>sécurisé</strong> (IAM, chiffrement), <strong>résilient</strong> (multi-AZ, découplage), <strong>performant</strong> (bon service, bon type), <strong>économique</strong> (bonne classe de stockage, bon compute). Chaque guide du track couvre un pan.</li><li><strong>Entraîne-toi aux QCM</strong> : fais des examens blancs (le format « scénario → meilleure réponse » se travaille).</li><li><strong>Réserve l&#39;examen</strong> sur <a href="https://aws.amazon.com/certification/certified-solutions-architect-associate/">aws.amazon.com/certification</a> (en ligne surveillé ou en centre).</li><li><strong>Le jour J</strong> : lis chaque question en cherchant les mots-clés (« le plus économique », « hautement disponible », « le moins d&#39;administration ») — ils pointent la bonne réponse.</li></ol>
+<p><strong>Après le SAA :</strong> SysOps ou Developer Associate (même socle), puis les <strong>pro</strong> (Solutions Architect Professional) ou les <strong>spécialités</strong> (sécurité, réseau, data). Et surtout : <strong>refais tes projets en réel</strong>, avec parcimonie et discipline de coût.</p>
+</div>
+<div data-lang="en"><ol><li><strong>Revise by domains</strong> (the exam&#39;s 4): design <strong>secure</strong> (IAM, encryption), <strong>resilient</strong> (multi-AZ, decoupling), <strong>high-performing</strong> (right service, right type), <strong>cost-optimized</strong> (right storage class, right compute). Each track guide covers one facet.</li><li><strong>Practice MCQs</strong>: take mock exams (the &quot;scenario → best answer&quot; format is a skill).</li><li><strong>Book the exam</strong> at <a href="https://aws.amazon.com/certification/certified-solutions-architect-associate/">aws.amazon.com/certification</a> (online proctored or at a center).</li><li><strong>On the day</strong>: read each question hunting for keywords (&quot;most cost-effective&quot;, &quot;highly available&quot;, &quot;least administration&quot;) — they point to the right answer.</li></ol>
+<p><strong>After SAA:</strong> SysOps or Developer Associate (same base), then the <strong>pro</strong> (Solutions Architect Professional) or the <strong>specialties</strong> (security, networking, data). And above all: <strong>redo your projects for real</strong>, sparingly and with cost discipline.</p>
+</div>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu as un compte AWS <strong>sécurisé</strong> (root MFA, utilisateur IAM, garde-fous de coût), tu sais <strong>basculer</strong> un projet Terraform du labo au réel, tu connais les <strong>différences</strong> qui comptent, et tu tiens la <strong>discipline de nettoyage</strong>. Tu as la pratique <strong>et</strong> la sécurité. Il ne reste qu&#39;à réserver l&#39;examen. Bonne route, futur·e AWS Solutions Architect. 🏆</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you have a <strong>secured</strong> AWS account (root MFA, IAM user, cost guardrails), you can <strong>switch</strong> a Terraform project from lab to real, you know the <strong>differences</strong> that matter, and you hold the <strong>cleanup discipline</strong>. You have the practice <strong>and</strong> the safety. All that&#39;s left is booking the exam. Safe travels, future AWS Solutions Architect. 🏆</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Travailler en root.</strong> Le root est pour l&#39;administration du compte (facturation, fermeture), <strong>pas</strong> pour le quotidien. Crée un utilisateur IAM, mets-lui la MFA, et <strong>oublie</strong> le root (sauf urgence).</p>
+<p><strong>2. Créer des ressources AVANT les garde-fous.</strong> Pose <strong>d&#39;abord</strong> le budget et les alertes (étape 3), <strong>ensuite</strong> crée. L&#39;inverse, c&#39;est jouer sans filet.</p>
+<p><strong>3. Committer des clés d&#39;accès.</strong> Une clé IAM dans Git = compte compromis en minutes (des bots scannent GitHub). Jamais de clés en clair ; <code>~/.aws/credentials</code> reste local, et on <strong>fait tourner</strong> les clés.</p>
+<p><strong>4. Oublier une passerelle NAT ou une instance.</strong> Ce sont les postes qui <strong>facturent en silence</strong> 24/7. La chasse de fin de session (étape 6) est non négociable.</p>
+<p><strong>5. Croire que la bucket policy publique suffit (comme en labo).</strong> En réel, <strong>Block Public Access</strong> est actif par défaut et prime. Le désactiver est une décision explicite et risquée — à ne faire qu&#39;en connaissance de cause.</p>
+<p><strong>6. Réutiliser un nom de bucket de labo.</strong> <code>uploads-pipeline</code> est mondialement unique et sûrement pris. Préfixe toujours en réel.</p>
+<p><strong>7. Laisser Terraform pointer vers le mauvais compte.</strong> Vérifie <strong>toujours</strong> <code>aws sts get-caller-identity --profile ...</code> et le <code>terraform plan</code> avant <code>apply</code> — sur le vrai AWS, un <code>apply</code> sur le mauvais profil a des conséquences réelles.</p>
+<p><strong>8. Croire que les alertes bloquent la dépense.</strong> Elles <strong>préviennent</strong>, elles ne <strong>coupent</strong> rien. La vraie protection, c&#39;est la discipline de nettoyage (et, pour aller plus loin, des politiques de contrôle de service).</p>
+</div>
+<div data-lang="en"><p><strong>1. Working as root.</strong> The root is for account administration (billing, closure), <strong>not</strong> daily work. Create an IAM user, give it MFA, and <strong>forget</strong> the root (except emergencies).</p>
+<p><strong>2. Creating resources BEFORE the guardrails.</strong> Set the budget and alerts <strong>first</strong> (step 3), <strong>then</strong> create. The reverse is playing without a net.</p>
+<p><strong>3. Committing access keys.</strong> An IAM key in Git = account compromised in minutes (bots scan GitHub). Never clear-text keys; <code>~/.aws/credentials</code> stays local, and you <strong>rotate</strong> keys.</p>
+<p><strong>4. Forgetting a NAT gateway or an instance.</strong> These are the items that <strong>bill silently</strong> 24/7. The end-of-session hunt (step 6) is non-negotiable.</p>
+<p><strong>5. Thinking the public bucket policy is enough (like in the lab).</strong> In real life, <strong>Block Public Access</strong> is on by default and wins. Disabling it is an explicit, risky decision — only knowingly.</p>
+<p><strong>6. Reusing a lab bucket name.</strong> <code>uploads-pipeline</code> is globally unique and surely taken. Always prefix in real life.</p>
+<p><strong>7. Letting Terraform point to the wrong account.</strong> <strong>Always</strong> check <code>aws sts get-caller-identity --profile ...</code> and the <code>terraform plan</code> before <code>apply</code> — on real AWS, an <code>apply</code> on the wrong profile has real consequences.</p>
+<p><strong>8. Thinking alerts block spending.</strong> They <strong>warn</strong>, they don&#39;t <strong>cut</strong> anything. Real protection is cleanup discipline (and, further, service control policies).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Ton compte a le <strong>root sécurisé</strong> (MFA, aucune clé root).</li><li>Tu travailles via un <strong>utilisateur IAM</strong> + profil CLI (<code>get-caller-identity</code> ≠ root).</li><li>Un <strong>budget</strong> avec alerte e-mail est en place <strong>avant</strong> toute ressource.</li><li>Tu bascules ton projet Terraform vers le réel en <strong>retirant le bloc <code>endpoints</code></strong>.</li><li>Tu cites les <strong>différences LocalStack ↔ réel</strong> (Block Public Access, IAM appliqué, unicité, cold start, coûts réseau).</li><li>Tu fais la <strong>chasse de nettoyage</strong> et ta facture reste à ~0 $.</li><li>Tu as un <strong>plan</strong> pour réserver et passer le SAA-C03.</li></ul>
+<p>Sept cases = tu passes du labo au réel <strong>sans te brûler</strong>. Track AWS terminé. 🏆</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>Your account has a <strong>secured root</strong> (MFA, no root keys).</li><li>You work via an <strong>IAM user</strong> + CLI profile (<code>get-caller-identity</code> ≠ root).</li><li>A <strong>budget</strong> with email alert is in place <strong>before</strong> any resource.</li><li>You switch your Terraform project to real by <strong>removing the <code>endpoints</code> block</strong>.</li><li>You can name the <strong>LocalStack ↔ real differences</strong> (Block Public Access, IAM enforced, uniqueness, cold start, network costs).</li><li>You do the <strong>cleanup hunt</strong> and your bill stays ~$0.</li><li>You have a <strong>plan</strong> to book and take SAA-C03.</li></ul>
+<p>Seven boxes = you go from lab to real <strong>without getting burned</strong>. AWS track complete. 🏆</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p><strong>Tu as bouclé le track AWS → SAA-C03.</strong> Récapitulons le chemin : LocalStack &amp; fondamentaux → IAM &amp; sécurité → S3 → réseau VPC → compute EC2/Lambda → découplage SQS/SNS/DynamoDB → projet serverless en Terraform → et enfin le passage en réel maîtrisé.</p>
+<p><strong>Les prochaines étapes :</strong></p>
+<ol><li><strong>Passe le SAA-C03</strong> — tu en as toute la pratique.</li><li><strong>Consolide en réel</strong> : refais tes projets sur ton compte, avec la discipline de coût de ce guide.</li><li><strong>Élargis</strong> : une autre associate (SysOps, Developer), ou une spécialité (sécurité, réseau, data), ou le niveau <strong>Professional</strong>.</li><li><strong>Combine tes tracks</strong> : Terraform provisionne, Ansible configure, Docker/Kubernetes orchestrent, AWS héberge — c&#39;est la pile complète d&#39;un ingénieur cloud/DevOps.</li></ol>
+</div>
+<div data-lang="en"><p><strong>You&#39;ve completed the AWS → SAA-C03 track.</strong> Let&#39;s recap the path: LocalStack &amp; fundamentals → IAM &amp; security → S3 → VPC networking → EC2/Lambda compute → SQS/SNS/DynamoDB decoupling → serverless Terraform project → and finally a mastered switch to real.</p>
+<p><strong>Next steps:</strong></p>
+<ol><li><strong>Take the SAA-C03</strong> — you have all the practice.</li><li><strong>Consolidate for real</strong>: redo your projects on your account, with this guide&#39;s cost discipline.</li><li><strong>Broaden</strong>: another associate (SysOps, Developer), or a specialty (security, networking, data), or the <strong>Professional</strong> level.</li><li><strong>Combine your tracks</strong>: Terraform provisions, Ansible configures, Docker/Kubernetes orchestrate, AWS hosts — that&#39;s the full stack of a cloud/DevOps engineer.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du passage en réel.</p>
+</div>
+<div data-lang="en"><p>Going-real cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Identité &amp; profil / identity &amp; profile
+aws configure --profile perso                 # enregistrer de VRAIES clés IAM / store REAL IAM keys
+aws sts get-caller-identity --profile perso   # vérifier le compte (≠ 000000000000)
+export AWS_PROFILE=perso                       # ou --profile sur chaque commande
+
+# Garde-fous de coût / cost guardrails
+aws budgets create-budget --account-id &lt;compte&gt; --budget file://budget.json \
+  --notifications-with-subscribers file://alerte.json --profile perso
+# Console : Billing → Budgets, Free-tier alerts, CloudWatch billing alerts
+
+# Chasse de nettoyage / cleanup hunt
+aws ec2 describe-instances --profile perso --query &#39;Reservations[].Instances[?State.Name!=`terminated`].InstanceId&#39;
+aws ec2 describe-nat-gateways --profile perso --query &#39;NatGateways[?State==`available`].NatGatewayId&#39;
+aws ec2 describe-volumes --profile perso --query &#39;Volumes[?State==`available`].VolumeId&#39;
+terraform destroy --profile perso</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># provider LocalStack -&gt; RÉEL : retirer le bloc endpoints / remove the endpoints block
+provider &quot;aws&quot; {
+  region  = &quot;eu-west-3&quot;
+  profile = &quot;perso&quot;
+  # (fini les endpoints/skip_*/s3_use_path_style de labo) / (no more lab endpoints/skip_*/path-style)
+}</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.aws.amazon.com/accounts/latest/reference/welcome-first-time-user.html">Créer et sécuriser un compte AWS</a> — root, MFA, premiers pas.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">Bonnes pratiques de sécurité IAM</a> — utilisateur, MFA, rotation.</li><li><a href="https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html">AWS Budgets</a> — alertes de coût.</li><li><a href="https://aws.amazon.com/free/">Offre gratuite AWS</a> — quotas 12 mois / toujours gratuits / essais.</li><li><a href="https://aws.amazon.com/certification/certified-solutions-architect-associate/">Certification SAA-C03</a> — guide d&#39;examen officiel.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.aws.amazon.com/accounts/latest/reference/welcome-first-time-user.html">Create and secure an AWS account</a> — root, MFA, first steps.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM security best practices</a> — user, MFA, rotation.</li><li><a href="https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html">AWS Budgets</a> — cost alerts.</li><li><a href="https://aws.amazon.com/free/">AWS Free Tier</a> — 12-month / always-free / trial quotas.</li><li><a href="https://aws.amazon.com/certification/certified-solutions-architect-associate/">SAA-C03 certification</a> — official exam guide.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>aws ... --profile perso</code> : « The config profile could not be found ».</strong> Le profil n&#39;est pas configuré. Lance <code>aws configure --profile perso</code>. Vérifie <code>~/.aws/credentials</code> et <code>~/.aws/config</code>.</p>
+<p><strong><code>create-budget</code> : « AccessDenied ».</strong> Ton utilisateur IAM n&#39;a pas les droits de facturation. Le root doit activer « IAM user/role access to Billing » (Compte → paramètres) et donner la permission <code>budgets:*</code> (ou <code>AdministratorAccess</code>).</p>
+<p><strong>Mon bucket S3 « site public » n&#39;est pas accessible en réel.</strong> <strong>Block Public Access</strong> est actif (par défaut). Désactive-le au niveau du bucket <strong>en connaissance de cause</strong>, puis vérifie la bucket policy. (En labo, LocalStack ignorait ce garde-fou.)</p>
+<p><strong><code>terraform apply</code> échoue « BucketAlreadyExists ».</strong> Le nom de bucket est pris (unicité <strong>mondiale</strong>). Préfixe-le d&#39;un identifiant unique.</p>
+<p><strong>Une facture apparaît alors que je « n&#39;ai rien laissé ».</strong> Cherche les postes silencieux : passerelle NAT, IP Elastic non associée, volume EBS orphelin, instance oubliée dans une <strong>autre région</strong>. Vérifie <strong>toutes</strong> les régions (<code>--region</code>).</p>
+<p><strong>J&#39;ai perdu ma MFA root.</strong> Procédure de récupération AWS (e-mail + téléphone du compte). Longue et pénible — d&#39;où l&#39;importance de sauvegarder l&#39;accès à ton app d&#39;authentification.</p>
+</div>
+<div data-lang="en"><p><strong><code>aws ... --profile perso</code>: &quot;The config profile could not be found&quot;.</strong> The profile isn&#39;t configured. Run <code>aws configure --profile perso</code>. Check <code>~/.aws/credentials</code> and <code>~/.aws/config</code>.</p>
+<p><strong><code>create-budget</code>: &quot;AccessDenied&quot;.</strong> Your IAM user lacks billing rights. The root must enable &quot;IAM user/role access to Billing&quot; (Account → settings) and grant <code>budgets:*</code> (or <code>AdministratorAccess</code>).</p>
+<p><strong>My &quot;public site&quot; S3 bucket isn&#39;t reachable in real life.</strong> <strong>Block Public Access</strong> is on (by default). Disable it at the bucket level <strong>knowingly</strong>, then check the bucket policy. (In the lab, LocalStack ignored this guardrail.)</p>
+<p><strong><code>terraform apply</code> fails &quot;BucketAlreadyExists&quot;.</strong> The bucket name is taken (<strong>global</strong> uniqueness). Prefix it with a unique identifier.</p>
+<p><strong>A bill appears though I &quot;left nothing&quot;.</strong> Hunt the silent items: NAT gateway, unassociated Elastic IP, orphan EBS volume, an instance forgotten in <strong>another region</strong>. Check <strong>all</strong> regions (<code>--region</code>).</p>
+<p><strong>I lost my root MFA.</strong> AWS recovery procedure (account email + phone). Long and painful — hence the importance of backing up access to your authenticator app.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

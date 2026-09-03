@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — DevOps fondamentaux (AZ-400) : Git, CI/CD, pipelines — jiha.tech</title>
+  <title data-lang="en">Azure — DevOps fundamentals (AZ-400): Git, CI/CD, pipelines — jiha.tech</title>
+  <meta name="description" content="Les fondamentaux DevOps pour l&#39;AZ-400, en pratique et en local : la culture DevOps (CALMS) et le CI/CD, une stratégie de contrôle de source Git jouée EN VRAI (branche de fonctionnalité, commit, fusion no-ff, trunk-based vs GitFlow), le workflow des pull requests et des stratégies de branche, et une première pipeline CI décrite en YAML GitHub Actions (déclencheurs, jobs, étapes, dépendances) validée localement. Plus la comparaison GitHub Actions vs Azure Pipelines. Sans compte cloud." data-lang="fr">
+  <meta name="description" content="DevOps fundamentals for AZ-400, hands-on and local: the DevOps culture (CALMS) and CI/CD, a Git source-control strategy played FOR REAL (feature branch, commit, no-ff merge, trunk-based vs GitFlow), the pull-request workflow and branch policies, and a first CI pipeline described in GitHub Actions YAML (triggers, jobs, steps, dependencies) validated locally. Plus GitHub Actions vs Azure Pipelines. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — DevOps fondamentaux (AZ-400) : Git, CI/CD, pipelines">
+  <meta property="og:description" content="Les fondamentaux DevOps pour l&#39;AZ-400, en pratique et en local : la culture DevOps (CALMS) et le CI/CD, une stratégie de contrôle de source Git jouée EN VRAI (branche de fonctionnalité, commit, fusion no-ff, trunk-based vs GitFlow), le workflow des pull requests et des stratégies de branche, et une première pipeline CI décrite en YAML GitHub Actions (déclencheurs, jobs, étapes, dépendances) validée localement. Plus la comparaison GitHub Actions vs Azure Pipelines. Sans compte cloud.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-devops-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-devops-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-devops-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-devops-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/azure-devops-fondamentaux</div>
+    <h1 data-lang="fr">Azure — DevOps fondamentaux (AZ-400) : Git, CI/CD, pipelines</h1>
+    <h1 data-lang="en">Azure — DevOps fundamentals (AZ-400): Git, CI/CD, pipelines</h1>
+    <p class="tagline" data-lang="fr">culture DevOps, stratégie Git, première pipeline CI.</p>
+    <p class="tagline" data-lang="en">DevOps culture, Git strategy, first CI pipeline.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Le <strong>DevOps</strong> n&#39;est pas un outil, c&#39;est une <strong>façon de livrer</strong> : rapprocher le développement (Dev) et l&#39;exploitation (Ops) pour livrer <strong>plus vite</strong>, <strong>plus souvent</strong> et <strong>plus sûrement</strong>, par l&#39;<strong>automatisation</strong>. L&#39;examen <strong>AZ-400</strong> (Designing and Implementing DevOps Solutions) en fait un métier : stratégie de contrôle de source, <strong>pipelines CI/CD</strong>, sécurité, supervision. Ce guide pose les fondations — et, fidèle à la méthode du parcours, tu les <strong>pratiques en local</strong>, gratuitement.</p>
+<p>On commence par la <strong>culture</strong> (CALMS) et le <strong>CI/CD</strong> (intégration et livraison continues). Puis on <strong>joue une stratégie Git EN VRAI</strong> : une <strong>branche de fonctionnalité</strong>, des commits, une <strong>fusion</strong> — et on compare <strong>trunk-based</strong> et <strong>GitFlow</strong>. On voit le workflow des <strong>pull requests</strong> et des <strong>stratégies de branche</strong> (qui protègent <code>main</code>). Enfin, on écrit une <strong>première pipeline CI</strong> en <strong>YAML GitHub Actions</strong> (déclencheurs, jobs, étapes, dépendances) qu&#39;on <strong>valide localement</strong>, et on la compare à <strong>Azure Pipelines</strong>, l&#39;alternative native d&#39;Azure.</p>
+<p>C&#39;est le premier guide du track <strong>AZ-400</strong>. Ici, l&#39;outillage change : <strong>Git</strong> est réel (et gratuit), les <strong>pipelines</strong> s&#39;écrivent et se <strong>valident</strong> en YAML — pas besoin de compte cloud pour apprendre les fondamentaux.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu sais déjà déployer de l&#39;infra (AZ-104/305) et tu veux <strong>automatiser la livraison</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne connais pas Git du tout → apprends les bases (<code>add</code>, <code>commit</code>, <code>branch</code>) d&#39;abord.</li><li>Tu cherches uniquement de la théorie de gestion de projet → ici c&#39;est <strong>technique et pratique</strong>.</li></ul>
+</div>
+<div data-lang="en"><p><strong>DevOps</strong> isn&#39;t a tool, it&#39;s a <strong>way of delivering</strong>: bringing development (Dev) and operations (Ops) closer to ship <strong>faster</strong>, <strong>more often</strong> and <strong>more safely</strong>, through <strong>automation</strong>. The <strong>AZ-400</strong> exam (Designing and Implementing DevOps Solutions) makes it a profession: source-control strategy, <strong>CI/CD pipelines</strong>, security, monitoring. This guide lays the foundations — and, true to the path&#39;s method, you <strong>practice them locally</strong>, for free.</p>
+<p>We start with the <strong>culture</strong> (CALMS) and <strong>CI/CD</strong> (continuous integration and delivery). Then we <strong>play a Git strategy FOR REAL</strong>: a <strong>feature branch</strong>, commits, a <strong>merge</strong> — and compare <strong>trunk-based</strong> and <strong>GitFlow</strong>. We see the <strong>pull request</strong> workflow and <strong>branch policies</strong> (that protect <code>main</code>). Finally, we write a <strong>first CI pipeline</strong> in <strong>GitHub Actions YAML</strong> (triggers, jobs, steps, dependencies) that we <strong>validate locally</strong>, and compare it to <strong>Azure Pipelines</strong>, Azure&#39;s native alternative.</p>
+<p>This is the first guide of the <strong>AZ-400</strong> track. Here, the tooling changes: <strong>Git</strong> is real (and free), <strong>pipelines</strong> are written and <strong>validated</strong> in YAML — no cloud account needed to learn the fundamentals.</p>
+<p><strong>Who it&#39;s for:</strong> you can already deploy infra (AZ-104/305) and want to <strong>automate delivery</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know Git at all → learn the basics (<code>add</code>, <code>commit</code>, <code>branch</code>) first.</li><li>You want only project-management theory → here it&#39;s <strong>technical and hands-on</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Expliquer la <strong>culture DevOps</strong> (CALMS) et le <strong>CI/CD</strong>.</li><li>Jouer une <strong>stratégie de branches</strong> Git en vrai (fonctionnalité, fusion).</li><li>Comparer <strong>trunk-based</strong> et <strong>GitFlow</strong>.</li><li>Décrire le workflow <strong>pull request</strong> et les <strong>stratégies de branche</strong>.</li><li>Écrire une <strong>pipeline CI</strong> en YAML GitHub Actions (déclencheurs, jobs, étapes).</li><li>Distinguer <strong>GitHub Actions</strong> et <strong>Azure Pipelines</strong>.</li><li>Choisir une <strong>stratégie</strong> et une <strong>plateforme</strong> selon l&#39;équipe.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Explain the <strong>DevOps culture</strong> (CALMS) and <strong>CI/CD</strong>.</li><li>Play a Git <strong>branching strategy</strong> for real (feature, merge).</li><li>Compare <strong>trunk-based</strong> and <strong>GitFlow</strong>.</li><li>Describe the <strong>pull request</strong> workflow and <strong>branch policies</strong>.</li><li>Write a <strong>CI pipeline</strong> in GitHub Actions YAML (triggers, jobs, steps).</li><li>Distinguish <strong>GitHub Actions</strong> and <strong>Azure Pipelines</strong>.</li><li>Choose a <strong>strategy</strong> and a <strong>platform</strong> by team.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Git</strong> installé et les bases (<code>add</code>, <code>commit</code>, <code>branch</code>, <code>merge</code>).</li><li>Un <strong>terminal</strong> ; <strong>Python 3</strong> (pour valider le YAML) — optionnel.</li><li><strong>Aucun compte cloud requis</strong> : Git est local, les pipelines se valident en local.</li><li>Utile : un compte <strong>GitHub</strong> (gratuit) pour exécuter tes pipelines pour de vrai plus tard.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Git</strong> installed and the basics (<code>add</code>, <code>commit</code>, <code>branch</code>, <code>merge</code>).</li><li>A <strong>terminal</strong>; <strong>Python 3</strong> (to validate YAML) — optional.</li><li><strong>No cloud account required</strong>: Git is local, pipelines are validated locally.</li><li>Useful: a <strong>GitHub</strong> account (free) to run your pipelines for real later.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-projet-entreprise/">
+    <span class="num">63</span>
+    <span class="title-line" data-lang="fr">Azure — projet d&#39;entreprise (AZ-104) : zone d&#39;atterrissage sécurisée</span>
+    <span class="title-line" data-lang="en">Azure — enterprise project (AZ-104): secure landing zone</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>La culture DevOps (CALMS).</strong> DevOps est d&#39;abord <strong>culturel</strong>. Le modèle <strong>CALMS</strong> résume ses cinq piliers : <strong>Culture</strong> (collaboration Dev+Ops, responsabilité partagée), <strong>Automation</strong> (tout ce qui est répétable est automatisé), <strong>Lean</strong> (petits lots, flux continu, réduire le gaspillage), <strong>Measurement</strong> (mesurer pour améliorer — métriques DORA), <strong>Sharing</strong> (partage du savoir et des outils). Sans la culture, les outils ne suffisent pas.</p>
+<p><strong>CI / CD.</strong> Le cœur automatisé. <strong>CI (Continuous Integration)</strong> : à chaque commit, on <strong>construit</strong> et on <strong>teste</strong> automatiquement — les problèmes sont détectés tôt. <strong>CD</strong> a deux sens : <strong>Continuous Delivery</strong> (le code est <strong>toujours prêt</strong> à livrer, le déploiement en prod reste un clic manuel) et <strong>Continuous Deployment</strong> (chaque changement validé part <strong>automatiquement</strong> en prod). CI → CD, c&#39;est la chaîne du commit à la production.</p>
+<p><strong>Le contrôle de source (Git).</strong> Toute la démarche part de <strong>Git</strong>. Une <strong>stratégie de branches</strong> organise le travail :</p>
+<ul><li><strong>Trunk-based.</strong> Une branche principale (<code>main</code>) toujours livrable ; des <strong>branches de fonctionnalité</strong> courtes, fusionnées vite. Simple, favorise le CI/CD — <strong>la tendance moderne</strong>.</li><li><strong>GitFlow.</strong> Des branches longues (<code>develop</code>, <code>release</code>, <code>hotfix</code>, <code>feature</code>). Structuré mais lourd ; adapté aux livraisons versionnées peu fréquentes.</li><li><strong>Release flow / GitHub flow.</strong> Variantes légères autour de <code>main</code> + branches courtes + tags de release.</li></ul>
+<p><strong>Pull requests &amp; stratégies de branche.</strong> On ne pousse pas directement sur <code>main</code> : on ouvre une <strong>pull request</strong> (PR) depuis sa branche. Une <strong>stratégie de branche</strong> (branch policy) protège <code>main</code> : exiger une <strong>revue</strong> (approbation), des <strong>checks CI</strong> verts, une branche <strong>à jour</strong>. C&#39;est la porte de qualité — humaine + automatisée.</p>
+<p><strong>L&#39;anatomie d&#39;une pipeline.</strong> Un fichier YAML décrit : des <strong>déclencheurs</strong> (triggers — sur push, PR, tag), des <strong>jobs</strong> (unités parallélisables, sur un <code>runner</code>), des <strong>étapes</strong> (steps — commandes ou actions réutilisables), et des <strong>dépendances</strong> (<code>needs</code> — un job attend un autre). C&#39;est identique en concept sur <strong>GitHub Actions</strong> et <strong>Azure Pipelines</strong>.</p>
+<p><strong>GitHub Actions vs Azure Pipelines.</strong> Deux moteurs CI/CD Microsoft. <strong>GitHub Actions</strong> : intégré à GitHub, écosystème d&#39;<strong>actions</strong> réutilisables, workflows dans <code>.github/workflows/</code>. <strong>Azure Pipelines</strong> (Azure DevOps) : mature côté entreprise, agents auto-hébergés, intégration Azure Boards/Repos, <code>azure-pipelines.yml</code>. Même logique YAML ; le choix dépend de l&#39;écosystème de l&#39;équipe.</p>
+<p><strong>Ce qui est live ici.</strong> <strong>Git</strong> est <strong>réel</strong> : tu crées des branches, commits et fusions pour de vrai. Les <strong>pipelines</strong> s&#39;écrivent en YAML et se <strong>valident localement</strong> (structure, syntaxe) — les <strong>exécuter</strong> demande un compte GitHub/Azure DevOps (gratuit), abordé plus loin dans le track. Pas besoin de cloud pour les <strong>fondamentaux</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>The DevOps culture (CALMS).</strong> DevOps is first <strong>cultural</strong>. The <strong>CALMS</strong> model sums up its five pillars: <strong>Culture</strong> (Dev+Ops collaboration, shared responsibility), <strong>Automation</strong> (everything repeatable is automated), <strong>Lean</strong> (small batches, continuous flow, reduce waste), <strong>Measurement</strong> (measure to improve — DORA metrics), <strong>Sharing</strong> (sharing knowledge and tools). Without the culture, tools aren&#39;t enough.</p>
+<p><strong>CI / CD.</strong> The automated core. <strong>CI (Continuous Integration)</strong>: on every commit, you <strong>build</strong> and <strong>test</strong> automatically — problems are caught early. <strong>CD</strong> has two meanings: <strong>Continuous Delivery</strong> (the code is <strong>always ready</strong> to ship, deploying to prod stays a manual click) and <strong>Continuous Deployment</strong> (every validated change goes to prod <strong>automatically</strong>). CI → CD is the chain from commit to production.</p>
+<p><strong>Source control (Git).</strong> The whole approach starts from <strong>Git</strong>. A <strong>branching strategy</strong> organizes the work:</p>
+<ul><li><strong>Trunk-based.</strong> One main branch (<code>main</code>) always shippable; <strong>short feature branches</strong>, merged quickly. Simple, favors CI/CD — <strong>the modern trend</strong>.</li><li><strong>GitFlow.</strong> Long-lived branches (<code>develop</code>, <code>release</code>, <code>hotfix</code>, <code>feature</code>). Structured but heavy; suited to infrequent versioned releases.</li><li><strong>Release flow / GitHub flow.</strong> Light variants around <code>main</code> + short branches + release tags.</li></ul>
+<p><strong>Pull requests &amp; branch policies.</strong> You don&#39;t push directly to <code>main</code>: you open a <strong>pull request</strong> (PR) from your branch. A <strong>branch policy</strong> protects <code>main</code>: require a <strong>review</strong> (approval), green <strong>CI checks</strong>, an <strong>up-to-date</strong> branch. It&#39;s the quality gate — human + automated.</p>
+<p><strong>A pipeline&#39;s anatomy.</strong> A YAML file describes: <strong>triggers</strong> (on push, PR, tag), <strong>jobs</strong> (parallelizable units, on a <code>runner</code>), <strong>steps</strong> (commands or reusable actions), and <strong>dependencies</strong> (<code>needs</code> — one job waits for another). It&#39;s conceptually identical on <strong>GitHub Actions</strong> and <strong>Azure Pipelines</strong>.</p>
+<p><strong>GitHub Actions vs Azure Pipelines.</strong> Two Microsoft CI/CD engines. <strong>GitHub Actions</strong>: integrated with GitHub, an ecosystem of reusable <strong>actions</strong>, workflows in <code>.github/workflows/</code>. <strong>Azure Pipelines</strong> (Azure DevOps): enterprise-mature, self-hosted agents, Azure Boards/Repos integration, <code>azure-pipelines.yml</code>. Same YAML logic; the choice depends on the team&#39;s ecosystem.</p>
+<p><strong>What&#39;s live here.</strong> <strong>Git</strong> is <strong>real</strong>: you create branches, commits and merges for real. <strong>Pipelines</strong> are written in YAML and <strong>validated locally</strong> (structure, syntax) — <strong>running</strong> them needs a GitHub/Azure DevOps account (free), covered later in the track. No cloud needed for the <strong>fundamentals</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-devops-ci-cd">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-devops-ci-cd">
+  <title id="s-azure-devops-ci-cd">La chaîne DevOps</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">La chaîne DevOps</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="70.5" text-anchor="middle">Branche</text><text class="sub" x="98" y="83.5" text-anchor="middle">fonctionnalité</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">Pull Request</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">revue + checks CI</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">main</text><text class="sub" x="474" y="83.5" text-anchor="middle">fusion</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">Pipeline</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">CI → CD</text><text class="sub" x="380" y="144" text-anchor="middle">culture CALMS en socle · mesure en boucle de retour</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La chaîne DevOps : le développeur travaille sur une BRANCHE de fonctionnalité → PULL REQUEST (revue + checks CI) → fusion sur main → la PIPELINE (déclencheur → jobs → étapes) construit, teste (CI) puis livre/déploie (CD). Culture CALMS en socle, mesure en boucle de retour.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The DevOps chain: the developer works on a feature BRANCH → PULL REQUEST (review + CI checks) → merge to main → the PIPELINE (trigger → jobs → steps) builds, tests (CI) then delivers/deploys (CD). CALMS culture as the base, measurement as the feedback loop.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer la <strong>culture DevOps</strong> (CALMS) et le <strong>CI/CD</strong>.</p>
+<p><strong>🤔 D&#39;abord la culture, ensuite les outils.</strong> DevOps échoue si on achète des outils sans changer la <strong>façon de travailler</strong>. CALMS rappelle l&#39;essentiel ; CI/CD en est le bras automatisé.</p>
+<p>Grave CALMS et le CI/CD :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>DevOps culture</strong> (CALMS) and <strong>CI/CD</strong>.</p>
+<p><strong>🤔 Culture first, tools second.</strong> DevOps fails if you buy tools without changing the <strong>way of working</strong>. CALMS recalls the essentials; CI/CD is its automated arm.</p>
+<p>Engrave CALMS and CI/CD:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>CALMS (culture DevOps)
+  Culture       collaboration Dev+Ops, responsabilité partagée
+  Automation    tout ce qui est répétable est automatisé
+  Lean          petits lots, flux continu, moins de gaspillage
+  Measurement   mesurer pour améliorer (métriques DORA)
+  Sharing       partage du savoir et des outils
+
+CI / CD
+  CI                 à chaque commit -&gt; build + tests automatiques (détecter tôt)
+  Continuous Delivery code TOUJOURS prêt à livrer ; déploiement prod = clic manuel
+  Continuous Deploy.  chaque changement validé -&gt; prod AUTOMATIQUEMENT</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu expliques <strong>CALMS</strong> et distingues <strong>CI</strong>, <strong>Continuous Delivery</strong> et <strong>Continuous Deployment</strong>. Réflexe : le CI attrape les erreurs <strong>tôt</strong> (à chaque commit) ; le CD raccourcit le délai du commit à la prod. ⚠️ Piège d&#39;examen fréquent : <strong>Delivery</strong> (prêt à livrer, déclenchement manuel) ≠ <strong>Deployment</strong> (livraison <strong>automatique</strong> en prod). La différence tient au <strong>dernier pas</strong> vers la production : manuel ou automatique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you explain <strong>CALMS</strong> and distinguish <strong>CI</strong>, <strong>Continuous Delivery</strong> and <strong>Continuous Deployment</strong>. Reflex: CI catches errors <strong>early</strong> (every commit); CD shortens the commit-to-prod delay. ⚠️ Frequent exam trap: <strong>Delivery</strong> (ready to ship, manual trigger) ≠ <strong>Deployment</strong> (<strong>automatic</strong> release to prod). The difference is the <strong>last step</strong> to production: manual or automatic.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Jouer une <strong>stratégie de branches</strong> Git — en vrai.</p>
+<p><strong>🤔 Isoler le travail.</strong> On ne code pas sur <code>main</code>. On crée une <strong>branche de fonctionnalité</strong>, on y commit, puis on <strong>fusionne</strong> dans <code>main</code> (idéalement via une PR). Une fusion <strong><code>--no-ff</code></strong> garde une trace explicite de la fonctionnalité dans l&#39;historique.</p>
+<p>Joue une branche de fonctionnalité :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Play a Git <strong>branching strategy</strong> — for real.</p>
+<p><strong>🤔 Isolate the work.</strong> You don&#39;t code on <code>main</code>. You create a <strong>feature branch</strong>, commit on it, then <strong>merge</strong> into <code>main</code> (ideally via a PR). A <strong><code>--no-ff</code></strong> merge keeps an explicit trace of the feature in the history.</p>
+<p>Play a feature branch:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir demo-git &amp;&amp; cd demo-git &amp;&amp; git init
+git config user.email &quot;toi@exemple.fr&quot; &amp;&amp; git config user.name &quot;Toi&quot;
+echo &quot;v1&quot; &gt; app.txt &amp;&amp; git add app.txt &amp;&amp; git commit -m &quot;init: app v1&quot;
+
+# Renommer la branche par défaut en main (convention moderne) / rename default branch to main
+git branch -M main
+
+# Branche de fonctionnalité / feature branch
+git checkout -b feature/login
+echo &quot;login&quot; &gt;&gt; app.txt &amp;&amp; git commit -am &quot;feat: ajout du login&quot;
+
+# Fusionner dans main avec une trace explicite / merge into main with an explicit trace
+git checkout main
+git merge --no-ff feature/login -m &quot;merge: feature/login&quot;
+git log --oneline --graph</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>git log --oneline --graph</code> montre un <strong>graphe de fusion</strong> : le commit <code>merge: feature/login</code> réunit <code>main</code> et la branche, avec le commit <code>feat: ajout du login</code> visible sur sa branche. Tu viens de jouer le cycle <strong>brancher → commiter → fusionner</strong> — le cœur du travail en équipe. Retiens la <strong>stratégie trunk-based</strong> : <code>main</code> toujours livrable, branches <strong>courtes</strong>, fusions <strong>fréquentes</strong> — c&#39;est ce qui rend le CI/CD fluide. ⚠️ Des branches <strong>longues</strong> accumulent des conflits ; garde-les courtes et fusionne souvent.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>git log --oneline --graph</code> shows a <strong>merge graph</strong>: the <code>merge: feature/login</code> commit joins <code>main</code> and the branch, with the <code>feat: ajout du login</code> commit visible on its branch. You just played the <strong>branch → commit → merge</strong> cycle — the heart of teamwork. Remember the <strong>trunk-based strategy</strong>: <code>main</code> always shippable, <strong>short</strong> branches, <strong>frequent</strong> merges — that&#39;s what keeps CI/CD smooth. ⚠️ <strong>Long</strong> branches accumulate conflicts; keep them short and merge often.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>pull requests</strong> et les <strong>stratégies de branche</strong>.</p>
+<p><strong>🤔 La porte de qualité.</strong> En équipe, on ne fusionne pas soi-même sur <code>main</code> : on ouvre une <strong>pull request</strong> (PR), quelqu&#39;un <strong>revoit</strong>, les <strong>checks CI</strong> doivent être verts, puis on fusionne. Une <strong>stratégie de branche</strong> (branch policy) <strong>impose</strong> ces règles sur <code>main</code>.</p>
+<p>Les règles typiques d&#39;une stratégie de branche :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>pull requests</strong> and <strong>branch policies</strong>.</p>
+<p><strong>🤔 The quality gate.</strong> On a team, you don&#39;t merge to <code>main</code> yourself: you open a <strong>pull request</strong> (PR), someone <strong>reviews</strong>, the <strong>CI checks</strong> must be green, then you merge. A <strong>branch policy</strong> <strong>enforces</strong> these rules on <code>main</code>.</p>
+<p>The typical rules of a branch policy:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>STRATÉGIE DE BRANCHE sur main / BRANCH POLICY on main
+  Exiger une pull request         pas de push direct sur main
+  Exiger N approbation(s)          revue par un pair (au moins 1)
+  Exiger les checks CI verts       la pipeline doit passer (build + tests)
+  Exiger la branche à jour          rebasée/mergée sur le dernier main
+  Résoudre les commentaires         les remarques de revue traitées
+  (option) exiger des commits signés  intégrité de l&#39;auteur</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu décris le <strong>workflow PR</strong> : brancher → pousser → <strong>ouvrir une PR</strong> → revue + CI → fusion. Et tu sais qu&#39;une <strong>stratégie de branche</strong> <strong>impose</strong> ces règles (sur GitHub : « branch protection rules » ; sur Azure Repos : « branch policies »). C&#39;est ce qui <strong>empêche</strong> un push cassé d&#39;atteindre <code>main</code>. ⚠️ La combinaison <strong>revue humaine + checks CI automatiques</strong> est la porte de qualité DevOps : ni l&#39;un ni l&#39;autre seul ne suffit. La PR est aussi le lieu de la <strong>traçabilité</strong> (qui a changé quoi, pourquoi, validé par qui).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you describe the <strong>PR workflow</strong>: branch → push → <strong>open a PR</strong> → review + CI → merge. And you know a <strong>branch policy</strong> <strong>enforces</strong> these rules (on GitHub: &quot;branch protection rules&quot;; on Azure Repos: &quot;branch policies&quot;). It&#39;s what <strong>prevents</strong> a broken push from reaching <code>main</code>. ⚠️ The combination <strong>human review + automated CI checks</strong> is the DevOps quality gate: neither alone is enough. The PR is also where <strong>traceability</strong> lives (who changed what, why, approved by whom).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong>première pipeline CI</strong> — en YAML GitHub Actions.</p>
+<p><strong>🤔 Automatiser la validation.</strong> À chaque push/PR, une pipeline <strong>construit</strong> et <strong>teste</strong>. On la décrit dans <code>.github/workflows/ci.yml</code> : des <strong>déclencheurs</strong>, des <strong>jobs</strong>, des <strong>étapes</strong>, des <strong>dépendances</strong>. Ici, un job valide l&#39;infra (Bicep/Terraform), un autre lance les tests <strong>après</strong> lui.</p>
+<p>Crée <code>.github/workflows/ci.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>first CI pipeline</strong> — in GitHub Actions YAML.</p>
+<p><strong>🤔 Automate validation.</strong> On every push/PR, a pipeline <strong>builds</strong> and <strong>tests</strong>. We describe it in <code>.github/workflows/ci.yml</code>: <strong>triggers</strong>, <strong>jobs</strong>, <strong>steps</strong>, <strong>dependencies</strong>. Here, one job validates the infra (Bicep/Terraform), another runs the tests <strong>after</strong> it.</p>
+<p>Create <code>.github/workflows/ci.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>name: CI
+
+# Déclencheurs : push et PR sur main / triggers: push and PR on main
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  valider:
+    name: Valider l&#39;infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+      - name: Installer Bicep
+        run: az bicep install
+      - name: Compiler les templates Bicep
+        run: |
+          for f in infra/*.bicep; do az bicep build --file &quot;$f&quot; --stdout &gt; /dev/null; done
+      - name: Vérifier le format Terraform
+        run: terraform fmt -check -recursive infra/
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: valider          # ne s&#39;exécute qu&#39;APRÈS &#39;valider&#39; / runs only AFTER &#39;valider&#39;
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lancer les tests
+        run: echo &quot;Exécuter la suite de tests ici&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Crée le dossier et le fichier (recopie le YAML ci-dessus) / create the folder and file (paste the YAML above)
+mkdir -p .github/workflows
+cat &gt; .github/workflows/ci.yml &lt;&lt;&#39;YAML&#39;
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  valider:
+    name: Valider l&#39;infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer Bicep
+        run: az bicep install
+      - name: Compiler les templates Bicep
+        run: |
+          for f in infra/*.bicep; do az bicep build --file &quot;$f&quot; --stdout &gt; /dev/null; done
+      - name: Vérifier le format Terraform
+        run: terraform fmt -check -recursive infra/
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: valider
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lancer les tests
+        run: echo &quot;Exécuter la suite de tests ici&quot;
+YAML
+
+# 2) Valide la structure du YAML en local / validate the YAML structure locally
+python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;.github/workflows/ci.yml&#39;)); print(&#39;jobs:&#39;, list(d[&#39;jobs&#39;].keys()))&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la commande Python affiche <code>jobs: [&#39;valider&#39;, &#39;test&#39;]</code> — ton YAML est <strong>valide</strong>. Décrypte-le : <strong><code>on</code></strong> = déclencheurs (push/PR sur <code>main</code>) ; <strong><code>jobs</code></strong> = deux unités ; <strong><code>steps</code></strong> = actions (<code>actions/checkout@v4</code>) ou commandes (<code>run</code>) ; <strong><code>needs: valider</code></strong> = <code>test</code> attend <code>valider</code> (dépendance). C&#39;est <strong>exactement</strong> l&#39;anatomie d&#39;une pipeline. ⚠️ Cette pipeline <strong>s&#39;exécutera</strong> sur GitHub à chaque push (dans un dépôt GitHub) ; ici on <strong>valide</strong> sa structure sans compte. L&#39;<code>az bicep</code>/<code>terraform</code> s&#39;exécutent sur le <strong>runner</strong> GitHub, pas sur ta machine.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the Python command prints <code>jobs: [&#39;valider&#39;, &#39;test&#39;]</code> — your YAML is <strong>valid</strong>. Decode it: <strong><code>on</code></strong> = triggers (push/PR on <code>main</code>); <strong><code>jobs</code></strong> = two units; <strong><code>steps</code></strong> = actions (<code>actions/checkout@v4</code>) or commands (<code>run</code>); <strong><code>needs: valider</code></strong> = <code>test</code> waits for <code>valider</code> (dependency). It&#39;s <strong>exactly</strong> a pipeline&#39;s anatomy. ⚠️ This pipeline <strong>runs</strong> on GitHub on every push (in a GitHub repo); here we <strong>validate</strong> its structure with no account. The <code>az bicep</code>/<code>terraform</code> run on the GitHub <strong>runner</strong>, not your machine.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Découvrir <strong>Azure Pipelines</strong> — l&#39;alternative native d&#39;Azure.</p>
+<p><strong>🤔 Même logique, autre moteur.</strong> Azure DevOps propose <strong>Azure Pipelines</strong> : même anatomie (déclencheurs, jobs, étapes) dans un <code>azure-pipelines.yml</code>. Différences : la syntaxe (<code>trigger</code>, <code>pool</code>, <code>steps</code>), les <strong>agents</strong> (Microsoft-hosted ou auto-hébergés), et l&#39;intégration à Azure Boards/Repos.</p>
+<p>La structure équivalente (Azure Pipelines) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Discover <strong>Azure Pipelines</strong> — Azure&#39;s native alternative.</p>
+<p><strong>🤔 Same logic, another engine.</strong> Azure DevOps offers <strong>Azure Pipelines</strong>: same anatomy (triggers, jobs, steps) in an <code>azure-pipelines.yml</code>. Differences: the syntax (<code>trigger</code>, <code>pool</code>, <code>steps</code>), the <strong>agents</strong> (Microsoft-hosted or self-hosted), and Azure Boards/Repos integration.</p>
+<p>The equivalent structure (Azure Pipelines):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># azure-pipelines.yml — même logique, syntaxe Azure Pipelines
+trigger:
+  - main                      # déclencheur sur main / trigger on main
+
+pool:
+  vmImage: ubuntu-latest      # agent Microsoft-hosted
+
+stages:
+  - stage: Valider
+    jobs:
+      - job: Infra
+        steps:
+          - script: az bicep build --file infra/main.bicep --stdout
+            displayName: Compiler Bicep
+  - stage: Test
+    dependsOn: Valider          # équivalent de &#39;needs&#39; / equivalent of &#39;needs&#39;
+    jobs:
+      - job: Tests
+        steps:
+          - script: echo &quot;tests&quot;
+            displayName: Lancer les tests</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu <strong>reconnais</strong> l&#39;anatomie : <code>trigger</code> (= <code>on</code>), <code>pool</code>/<code>vmImage</code> (= <code>runs-on</code>), <code>stages</code> → <code>jobs</code> → <code>steps</code>, <code>dependsOn</code> (= <code>needs</code>). Même <strong>logique</strong> que GitHub Actions, syntaxe différente. Retiens la notion de <strong>stages</strong> (étapes de haut niveau : Valider → Test → Déployer) qu&#39;Azure Pipelines met en avant — utile pour structurer un pipeline CI <strong>et</strong> CD. ⚠️ Le choix <strong>GitHub Actions vs Azure Pipelines</strong> dépend de l&#39;<strong>écosystème</strong> : GitHub (code sur GitHub, actions communautaires) vs Azure DevOps (entreprise, Boards/Repos, agents auto-hébergés). Les deux sont Microsoft et pleinement supportés.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you <strong>recognize</strong> the anatomy: <code>trigger</code> (= <code>on</code>), <code>pool</code>/<code>vmImage</code> (= <code>runs-on</code>), <code>stages</code> → <code>jobs</code> → <code>steps</code>, <code>dependsOn</code> (= <code>needs</code>). Same <strong>logic</strong> as GitHub Actions, different syntax. Remember the notion of <strong>stages</strong> (high-level steps: Validate → Test → Deploy) that Azure Pipelines emphasizes — useful to structure a CI <strong>and</strong> CD pipeline. ⚠️ The <strong>GitHub Actions vs Azure Pipelines</strong> choice depends on the <strong>ecosystem</strong>: GitHub (code on GitHub, community actions) vs Azure DevOps (enterprise, Boards/Repos, self-hosted agents). Both are Microsoft and fully supported.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Graver les <strong>grilles de choix</strong> — stratégie de branches &amp; plateforme.</p>
+<p><strong>🤔 Décider selon l&#39;équipe.</strong> Deux décisions DevOps courantes : la <strong>stratégie de branches</strong> et la <strong>plateforme CI/CD</strong>.</p>
+<p>Les grilles :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Engrave the <strong>choice grids</strong> — branching strategy &amp; platform.</p>
+<p><strong>🤔 Decide by the team.</strong> Two common DevOps decisions: the <strong>branching strategy</strong> and the <strong>CI/CD platform</strong>.</p>
+<p>The grids:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>STRATÉGIE DE BRANCHES / BRANCHING STRATEGY
+  Livraison continue, équipe fluide     -&gt; Trunk-based (main + branches courtes)
+  Releases versionnées peu fréquentes   -&gt; GitFlow (develop/release/hotfix)
+  Léger autour de main + tags           -&gt; GitHub flow / Release flow
+
+PLATEFORME CI/CD / CI-CD PLATFORM
+  Code sur GitHub, actions communautaires -&gt; GitHub Actions
+  Entreprise, Boards/Repos, agents privés -&gt; Azure Pipelines (Azure DevOps)
+  (les deux : même logique YAML, choix par écosystème)
+
+CI vs CD
+  CI              build + tests à chaque commit
+  Delivery        prêt à livrer, déclenchement manuel
+  Deployment      livraison automatique en prod</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> face à un contexte, tu <strong>choisis</strong> : « équipe qui livre plusieurs fois par jour » → <strong>trunk-based</strong> + <strong>Continuous Deployment</strong> ; « produit versionné trimestriel » → <strong>GitFlow</strong> + <strong>Continuous Delivery</strong> ; « code déjà sur GitHub » → <strong>GitHub Actions</strong> ; « entreprise avec Azure DevOps » → <strong>Azure Pipelines</strong>. C&#39;est le type d&#39;arbitrage de l&#39;AZ-400. ⚠️ Justifie par la <strong>cadence de livraison</strong> et l&#39;<strong>écosystème</strong> de l&#39;équipe — il n&#39;y a pas de « meilleure » stratégie dans l&#39;absolu, seulement la mieux adaptée au contexte.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> faced with a context, you <strong>choose</strong>: &quot;team shipping several times a day&quot; → <strong>trunk-based</strong> + <strong>Continuous Deployment</strong>; &quot;quarterly versioned product&quot; → <strong>GitFlow</strong> + <strong>Continuous Delivery</strong>; &quot;code already on GitHub&quot; → <strong>GitHub Actions</strong>; &quot;enterprise with Azure DevOps&quot; → <strong>Azure Pipelines</strong>. It&#39;s the kind of AZ-400 tradeoff. ⚠️ Justify by the <strong>release cadence</strong> and the team&#39;s <strong>ecosystem</strong> — there&#39;s no &quot;best&quot; strategy in the absolute, only the one best suited to the context.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Récapituler et <strong>versionner</strong> ta pipeline.</p>
+<p><strong>🤔 La pipeline vit dans le dépôt.</strong> Le YAML de pipeline est <strong>du code</strong> : il se <strong>commite</strong> avec le reste. On l&#39;ajoute au dépôt — désormais, chaque clone a la pipeline.</p>
+<p>Versionne :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Recap and <strong>version</strong> your pipeline.</p>
+<p><strong>🤔 The pipeline lives in the repo.</strong> The pipeline YAML is <strong>code</strong>: it&#39;s <strong>committed</strong> with the rest. We add it to the repo — now every clone has the pipeline.</p>
+<p>Version it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Tu es toujours dans demo-git ; le fichier .github/workflows/ci.yml existe déjà (step-04).
+# You&#39;re still in demo-git; .github/workflows/ci.yml already exists (step-04).
+git add .github/workflows/ci.yml
+git commit -m &quot;ci: ajout de la pipeline de validation&quot;
+git log --oneline</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>git log --oneline</code> montre ton commit <code>ci: ajout de la pipeline de validation</code> — la pipeline est <strong>versionnée</strong> avec le code (principe <strong>pipeline-as-code</strong>). Tu tiens maintenant les <strong>fondamentaux DevOps</strong> : la culture (CALMS), le CI/CD, une stratégie de branches Git jouée en vrai, le workflow PR + stratégies de branche, et une première pipeline CI en YAML. La suite du track AZ-400 : les <strong>pipelines CI/CD en profondeur</strong> (stages, artefacts, environnements, déploiement), l&#39;<strong>IaC dans les pipelines</strong>, la <strong>sécurité</strong> (DevSecOps) et la <strong>supervision</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>git log --oneline</code> shows your <code>ci: ajout de la pipeline de validation</code> commit — the pipeline is <strong>versioned</strong> with the code (<strong>pipeline-as-code</strong> principle). You now hold the <strong>DevOps fundamentals</strong>: the culture (CALMS), CI/CD, a Git branching strategy played for real, the PR workflow + branch policies, and a first CI pipeline in YAML. The AZ-400 track continues: <strong>CI/CD pipelines in depth</strong> (stages, artifacts, environments, deployment), <strong>IaC in pipelines</strong>, <strong>security</strong> (DevSecOps) and <strong>monitoring</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire que DevOps = des outils.</strong> C&#39;est d&#39;abord une <strong>culture</strong> (CALMS). Les outils sans collaboration ni automatisation ne suffisent pas.</p>
+<p><strong>2. Confondre Delivery et Deployment.</strong> Delivery = prêt à livrer (clic manuel) ; Deployment = livraison <strong>automatique</strong>. Le dernier pas diffère.</p>
+<p><strong>3. Branches trop longues.</strong> Elles accumulent des conflits. Trunk-based : branches <strong>courtes</strong>, fusions <strong>fréquentes</strong>.</p>
+<p><strong>4. Pousser directement sur main.</strong> On passe par une <strong>PR</strong> avec revue + CI. Une <strong>stratégie de branche</strong> l&#39;impose.</p>
+<p><strong>5. Pipeline sans dépendances claires.</strong> Sans <code>needs</code>/<code>dependsOn</code>, des jobs qui devraient s&#39;enchaîner tournent en parallèle et masquent des erreurs.</p>
+<p><strong>6. Pipeline hors du dépôt.</strong> Le YAML est du <strong>code</strong> : versionne-le (<code>.github/workflows/</code> ou <code>azure-pipelines.yml</code>), ne le configure pas « à la main » dans l&#39;UI.</p>
+<p><strong>7. Choisir une stratégie sans contexte.</strong> Trunk-based ≠ GitFlow selon la <strong>cadence</strong>. Justifie par l&#39;équipe, pas par la mode.</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking DevOps = tools.</strong> It&#39;s first a <strong>culture</strong> (CALMS). Tools without collaboration or automation aren&#39;t enough.</p>
+<p><strong>2. Confusing Delivery and Deployment.</strong> Delivery = ready to ship (manual click); Deployment = <strong>automatic</strong> release. The last step differs.</p>
+<p><strong>3. Too-long branches.</strong> They accumulate conflicts. Trunk-based: <strong>short</strong> branches, <strong>frequent</strong> merges.</p>
+<p><strong>4. Pushing directly to main.</strong> You go through a <strong>PR</strong> with review + CI. A <strong>branch policy</strong> enforces it.</p>
+<p><strong>5. A pipeline with unclear dependencies.</strong> Without <code>needs</code>/<code>dependsOn</code>, jobs that should chain run in parallel and hide errors.</p>
+<p><strong>6. A pipeline outside the repo.</strong> The YAML is <strong>code</strong>: version it (<code>.github/workflows/</code> or <code>azure-pipelines.yml</code>), don&#39;t configure it &quot;by hand&quot; in the UI.</p>
+<p><strong>7. Choosing a strategy with no context.</strong> Trunk-based ≠ GitFlow by the <strong>cadence</strong>. Justify by the team, not by fashion.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques <strong>CALMS</strong> et distingues <strong>CI / Delivery / Deployment</strong>.</li><li>Tu joues une <strong>branche de fonctionnalité</strong> et une <strong>fusion</strong> en vrai.</li><li>Tu compares <strong>trunk-based</strong> et <strong>GitFlow</strong>.</li><li>Tu décris le workflow <strong>PR</strong> + une <strong>stratégie de branche</strong>.</li><li>Tu écris une <strong>pipeline CI</strong> en YAML (déclencheurs, jobs, étapes, <code>needs</code>).</li><li>Tu reconnais l&#39;anatomie sur <strong>GitHub Actions</strong> et <strong>Azure Pipelines</strong>.</li><li>Tu choisis <strong>stratégie</strong> et <strong>plateforme</strong> selon l&#39;équipe.</li></ul>
+<p>Sept cases = tu tiens les fondamentaux DevOps AZ-400. La suite : les <strong>pipelines CI/CD</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You explain <strong>CALMS</strong> and distinguish <strong>CI / Delivery / Deployment</strong>.</li><li>You play a <strong>feature branch</strong> and a <strong>merge</strong> for real.</li><li>You compare <strong>trunk-based</strong> and <strong>GitFlow</strong>.</li><li>You describe the <strong>PR</strong> workflow + a <strong>branch policy</strong>.</li><li>You write a <strong>CI pipeline</strong> in YAML (triggers, jobs, steps, <code>needs</code>).</li><li>You recognize the anatomy on <strong>GitHub Actions</strong> and <strong>Azure Pipelines</strong>.</li><li>You choose <strong>strategy</strong> and <strong>platform</strong> by team.</li></ul>
+<p>Seven boxes = you hold AZ-400 DevOps fundamentals. Next up: <strong>CI/CD pipelines</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-400 continue :</p>
+<ol><li><strong>Azure — pipelines CI/CD</strong> : stages, artefacts, environnements, approbations, déploiement (Continuous Deployment) — en profondeur.</li><li>Plus loin : <strong>IaC dans les pipelines</strong>, <strong>DevSecOps</strong> (sécurité), <strong>supervision</strong>, puis le <strong>projet DevOps</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-400 track continues:</p>
+<ol><li><strong>Azure — CI/CD pipelines</strong>: stages, artifacts, environments, approvals, deployment (Continuous Deployment) — in depth.</li><li>Further along: <strong>IaC in pipelines</strong>, <strong>DevSecOps</strong> (security), <strong>monitoring</strong>, then the <strong>DevOps project</strong>.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire DevOps fondamentaux.</p>
+</div>
+<div data-lang="en"><p>DevOps fundamentals cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Stratégie de branches (Git réel) / branching strategy (real Git)
+git checkout -b feature/x           # brancher / branch
+git commit -am &quot;feat: ...&quot;          # commiter / commit
+git checkout main &amp;&amp; git merge --no-ff feature/x   # fusionner / merge
+git log --oneline --graph
+
+# Valider une pipeline en local / validate a pipeline locally
+python3 -c &quot;import yaml; print(list(yaml.safe_load(open(&#39;.github/workflows/ci.yml&#39;))[&#39;jobs&#39;]))&quot;</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>CALMS : Culture · Automation · Lean · Measurement · Sharing
+CI/CD : CI(build+test) -&gt; Delivery(prêt, manuel) / Deployment(auto en prod)
+Branches : Trunk-based(moderne) · GitFlow(versionné) · GitHub flow(léger)
+Pipeline : on/trigger -&gt; jobs -&gt; steps ; needs/dependsOn = dépendances
+Plateforme : GitHub Actions (.github/workflows) · Azure Pipelines (azure-pipelines.yml)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/devops/what-is-devops">Qu&#39;est-ce que DevOps ?</a> — culture et pratiques.</li><li><a href="https://learn.microsoft.com/azure/devops/repos/git/git-branching-guidance">Stratégies de branches Git</a> — trunk-based, GitFlow.</li><li><a href="https://docs.github.com/actions">GitHub Actions — documentation</a> — workflows, jobs, actions.</li><li><a href="https://learn.microsoft.com/azure/devops/pipelines/">Azure Pipelines — documentation</a> — stages, agents.</li><li><a href="https://learn.microsoft.com/azure/devops/report/dashboards/dora-metrics">Métriques DORA</a> — mesurer la performance DevOps.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/devops/what-is-devops">What is DevOps?</a> — culture and practices.</li><li><a href="https://learn.microsoft.com/azure/devops/repos/git/git-branching-guidance">Git branching strategies</a> — trunk-based, GitFlow.</li><li><a href="https://docs.github.com/actions">GitHub Actions — documentation</a> — workflows, jobs, actions.</li><li><a href="https://learn.microsoft.com/azure/devops/pipelines/">Azure Pipelines — documentation</a> — stages, agents.</li><li><a href="https://learn.microsoft.com/azure/devops/report/dashboards/dora-metrics">DORA metrics</a> — measuring DevOps performance.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>git merge --no-ff</code> : « Already up to date ».</strong> Tu es peut-être déjà sur la branche, ou la fusion est déjà faite. Vérifie <code>git branch</code> (l&#39;astérisque = branche courante) et <code>git log</code>.</p>
+<p><strong><code>git checkout main</code> : « did not match ».</strong> Ta branche par défaut s&#39;appelle <code>master</code>. Renomme-la (<code>git branch -M main</code>) ou utilise <code>master</code>.</p>
+<p><strong>Le YAML ne se valide pas (Python).</strong> Vérifie l&#39;<strong>indentation</strong> (YAML est sensible aux espaces, jamais de tabulations) et que <code>on:</code>/<code>jobs:</code> sont au bon niveau.</p>
+<p><strong>Ma pipeline ne se déclenche pas (sur GitHub).</strong> Le fichier doit être dans <code>.github/workflows/*.yml</code>, sur la branche, et les <code>branches:</code> du trigger doivent correspondre. Ici, on <strong>valide</strong> en local ; l&#39;exécution réelle demande un dépôt GitHub.</p>
+<p><strong>Trunk-based ou GitFlow ?</strong> Livraison fréquente et fluide → <strong>trunk-based</strong>. Releases versionnées, hotfix structurés → <strong>GitFlow</strong>. La cadence décide.</p>
+<p><strong>GitHub Actions ou Azure Pipelines ?</strong> Même logique. Choisis par l&#39;<strong>écosystème</strong> (GitHub vs Azure DevOps) de l&#39;équipe.</p>
+</div>
+<div data-lang="en"><p><strong><code>git merge --no-ff</code>: &quot;Already up to date&quot;.</strong> You may already be on the branch, or the merge is done. Check <code>git branch</code> (the asterisk = current branch) and <code>git log</code>.</p>
+<p><strong><code>git checkout main</code>: &quot;did not match&quot;.</strong> Your default branch is <code>master</code>. Rename it (<code>git branch -M main</code>) or use <code>master</code>.</p>
+<p><strong>The YAML doesn&#39;t validate (Python).</strong> Check the <strong>indentation</strong> (YAML is space-sensitive, never tabs) and that <code>on:</code>/<code>jobs:</code> are at the right level.</p>
+<p><strong>My pipeline doesn&#39;t trigger (on GitHub).</strong> The file must be in <code>.github/workflows/*.yml</code>, on the branch, and the trigger&#39;s <code>branches:</code> must match. Here, we <strong>validate</strong> locally; real execution needs a GitHub repo.</p>
+<p><strong>Trunk-based or GitFlow?</strong> Frequent, smooth delivery → <strong>trunk-based</strong>. Versioned releases, structured hotfixes → <strong>GitFlow</strong>. The cadence decides.</p>
+<p><strong>GitHub Actions or Azure Pipelines?</strong> Same logic. Choose by the team&#39;s <strong>ecosystem</strong> (GitHub vs Azure DevOps).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

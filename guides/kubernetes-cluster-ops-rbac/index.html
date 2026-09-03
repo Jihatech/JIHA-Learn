@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Kubernetes — cluster ops, sécurité &amp; RBAC — jiha.tech</title>
+  <title data-lang="en">Kubernetes — cluster ops, security &amp; RBAC — jiha.tech</title>
+  <meta name="description" content="L&#39;administration d&#39;un cluster Kubernetes en local sur k3d : kubeconfig et contexts, ServiceAccount, RBAC (Role/RoleBinding, ClusterRole), maintenance de nœud (cordon/drain), sauvegarde etcd (concept + analogue k3s), et la boîte à outils de troubleshooting. Les domaines Cluster Architecture, Security et Troubleshooting du CKA." data-lang="fr">
+  <meta name="description" content="Administering a Kubernetes cluster locally on k3d: kubeconfig and contexts, ServiceAccount, RBAC (Role/RoleBinding, ClusterRole), node maintenance (cordon/drain), etcd backup (concept + k3s analog), and the troubleshooting toolkit. The CKA Cluster Architecture, Security and Troubleshooting domains." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kubernetes — cluster ops, sécurité &amp; RBAC">
+  <meta property="og:description" content="L&#39;administration d&#39;un cluster Kubernetes en local sur k3d : kubeconfig et contexts, ServiceAccount, RBAC (Role/RoleBinding, ClusterRole), maintenance de nœud (cordon/drain), sauvegarde etcd (concept + analogue k3s), et la boîte à outils de troubleshooting. Les domaines Cluster Architecture, Security et Troubleshooting du CKA.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/kubernetes-cluster-ops-rbac/">
+  <link rel="canonical" href="https://jiha.tech/guides/kubernetes-cluster-ops-rbac/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="kubernetes-cluster-ops-rbac">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/kubernetes-cluster-ops-rbac</div>
+    <div class="prompt" data-lang="en">~/guides/kubernetes-cluster-ops-rbac</div>
+    <h1 data-lang="fr">Kubernetes — cluster ops, sécurité &amp; RBAC</h1>
+    <h1 data-lang="en">Kubernetes — cluster ops, security &amp; RBAC</h1>
+    <p class="tagline" data-lang="fr">Contexts, ServiceAccount, RBAC, drain, etcd, debug.</p>
+    <p class="tagline" data-lang="en">Contexts, ServiceAccount, RBAC, drain, etcd, debug.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Jusqu&#39;ici tu <strong>déployais</strong> des applis. Ce guide te fait passer de l&#39;autre côté : <strong>administrer</strong> le cluster. C&#39;est le cœur de l&#39;examen <strong>CKA</strong> (Certified Kubernetes <strong>Administrator</strong>) — moins de YAML applicatif, plus de « qui a le droit de faire quoi ? comment mettre un nœud en maintenance sans couper le service ? comment sauvegarder l&#39;état du cluster ? pourquoi ce composant est-il en panne ? »</p>
+<p>Ce guide couvre trois domaines CKA d&#39;un coup : <strong>Cluster Architecture</strong> (kubeconfig, <strong>contexts</strong>, maintenance de nœud), <strong>Security</strong> (<strong>ServiceAccount</strong>, <strong>RBAC</strong>), et <strong>Troubleshooting</strong> (la démarche de diagnostic). Tu apprendras à naviguer entre clusters/namespaces, à donner des droits <strong>précis</strong> avec Role/RoleBinding et ClusterRole, à <strong>drainer</strong> un nœud proprement, à comprendre la <strong>sauvegarde etcd</strong>, et à <strong>débugger</strong> méthodiquement.</p>
+<p>On travaille en <strong>local sur k3d</strong> (cluster <strong>multi-nœuds</strong> pour le drain). Une honnêteté d&#39;emblée : la sauvegarde <strong>etcd</strong> de l&#39;examen se fait avec <code>etcdctl</code> sur un cluster <strong>kubeadm</strong> ; k3d/k3s utilise par défaut <strong>SQLite</strong>, pas etcd. On enseigne donc la <strong>procédure d&#39;examen</strong> (commandes <code>etcdctl</code>) <strong>et</strong> son analogue k3s — sans prétendre l&#39;exécuter à l&#39;identique sur ta machine.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides <strong>fondamentaux</strong>, <strong>workloads</strong>, <strong>networking</strong> et <strong>stockage</strong>, et tu vises le <strong>CKA</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur Kubernetes → fais d&#39;abord les guides précédents.</li><li>Tu veux le projet fil-rouge → c&#39;est l&#39;étape suivante et finale de la track.</li></ul>
+</div>
+<div data-lang="en"><p>So far you <strong>deployed</strong> apps. This guide moves you to the other side: <strong>administering</strong> the cluster. It&#39;s the heart of the <strong>CKA</strong> exam (Certified Kubernetes <strong>Administrator</strong>) — less app YAML, more &quot;who&#39;s allowed to do what? how do you take a node down for maintenance without cutting service? how do you back up the cluster&#39;s state? why is this component down?&quot;</p>
+<p>This guide covers three CKA domains at once: <strong>Cluster Architecture</strong> (kubeconfig, <strong>contexts</strong>, node maintenance), <strong>Security</strong> (<strong>ServiceAccount</strong>, <strong>RBAC</strong>), and <strong>Troubleshooting</strong> (the diagnostic method). You&#39;ll learn to navigate between clusters/namespaces, grant <strong>precise</strong> rights with Role/RoleBinding and ClusterRole, <strong>drain</strong> a node cleanly, understand <strong>etcd backup</strong>, and <strong>debug</strong> methodically.</p>
+<p>We work <strong>locally on k3d</strong> (a <strong>multi-node</strong> cluster for the drain). Honesty up front: the exam&#39;s <strong>etcd</strong> backup uses <code>etcdctl</code> on a <strong>kubeadm</strong> cluster; k3d/k3s uses <strong>SQLite</strong> by default, not etcd. So we teach the <strong>exam procedure</strong> (<code>etcdctl</code> commands) <strong>and</strong> its k3s analog — without pretending to run it identically on your machine.</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>fundamentals</strong>, <strong>workloads</strong>, <strong>networking</strong> and <strong>storage</strong> guides, and you&#39;re aiming for the <strong>CKA</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to Kubernetes → do the earlier guides first.</li><li>You want the capstone → that&#39;s the next and final step of the track.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Lire et manipuler le <strong>kubeconfig</strong> : <strong>contexts</strong>, changer de cluster/namespace.</li><li>Créer un <strong>ServiceAccount</strong> et générer un <strong>token</strong>.</li><li>Écrire un <strong>Role</strong> + <strong>RoleBinding</strong> (namespacé) et tester avec <strong><code>kubectl auth can-i</code></strong>.</li><li>Écrire un <strong>ClusterRole</strong> + <strong>ClusterRoleBinding</strong> (portée cluster).</li><li>Mettre un nœud en maintenance : <strong><code>cordon</code></strong>, <strong><code>drain</code></strong>, <strong><code>uncordon</code></strong>.</li><li>Expliquer la <strong>sauvegarde/restauration etcd</strong> (procédure d&#39;examen + analogue k3s).</li><li>Appliquer une <strong>démarche de troubleshooting</strong> (events, logs, describe, santé des composants).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Read and manipulate the <strong>kubeconfig</strong>: <strong>contexts</strong>, switch cluster/namespace.</li><li>Create a <strong>ServiceAccount</strong> and generate a <strong>token</strong>.</li><li>Write a <strong>Role</strong> + <strong>RoleBinding</strong> (namespaced) and test with <strong><code>kubectl auth can-i</code></strong>.</li><li>Write a <strong>ClusterRole</strong> + <strong>ClusterRoleBinding</strong> (cluster scope).</li><li>Put a node into maintenance: <strong><code>cordon</code></strong>, <strong><code>drain</code></strong>, <strong><code>uncordon</code></strong>.</li><li>Explain <strong>etcd backup/restore</strong> (exam procedure + k3s analog).</li><li>Apply a <strong>troubleshooting method</strong> (events, logs, describe, component health).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les quatre guides Kubernetes précédents acquis.</li><li><strong>Docker</strong> lancé, <strong>k3d</strong> et <strong>kubectl</strong> installés.</li></ul>
+<p>On crée un cluster <strong>multi-nœuds</strong> (1 serveur + 1 agent) pour pouvoir drainer un nœud sans tout couper :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The four previous Kubernetes guides under your belt.</li><li><strong>Docker</strong> running, <strong>k3d</strong> and <strong>kubectl</strong> installed.</li></ul>
+<p>We create a <strong>multi-node</strong> cluster (1 server + 1 agent) to be able to drain a node without cutting everything:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># (optionnel) libère de la RAM / (optional) free RAM
+# k3d cluster delete stolab netlab ckalab
+k3d cluster create opslab --agents 1
+kubectl create namespace ops
+kubectl config set-context --current --namespace=ops</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-stockage/">
+    <span class="num">36</span>
+    <span class="title-line" data-lang="fr">Kubernetes — stockage persistant</span>
+    <span class="title-line" data-lang="en">Kubernetes — persistent storage</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Administrer, c&#39;est répondre à trois questions : <strong>qui suis-je</strong> (et sur quel cluster), <strong>qui a le droit</strong>, et <strong>comment garder le cluster sain</strong>.</p>
+<p><strong>Le kubeconfig et les contexts.</strong> Ton fichier <code>~/.kube/config</code> décrit des <strong>clusters</strong>, des <strong>users</strong> (identités) et des <strong>contexts</strong> qui associent <em>cluster + user + namespace</em>. Le <strong>context courant</strong> détermine à qui tu parles. <code>kubectl config use-context</code> bascule d&#39;un cluster à l&#39;autre — indispensable quand on en gère plusieurs.</p>
+<p><strong>L&#39;authentification vs l&#39;autorisation.</strong> Kubernetes <strong>authentifie</strong> (qui es-tu ? via certificat, token, ServiceAccount) puis <strong>autorise</strong> (as-tu le droit ? via <strong>RBAC</strong>). Un <strong>ServiceAccount</strong> (SA) est l&#39;identité d&#39;un <strong>pod</strong> (les process dans le cluster) ; un <strong>user</strong> est une identité humaine (gérée hors cluster).</p>
+<p><strong>RBAC — quatre objets, deux portées.</strong></p>
+<ul><li><strong><code>Role</code></strong> : un ensemble de <strong>permissions</strong> (verbes × ressources), <strong>dans un namespace</strong>.</li><li><strong><code>RoleBinding</code></strong> : <strong>attribue</strong> un Role (ou un ClusterRole) à un sujet (user, group, SA), <strong>dans un namespace</strong>.</li><li><strong><code>ClusterRole</code></strong> : des permissions <strong>à l&#39;échelle du cluster</strong> (ou sur des ressources non-namespacées : nodes, PV…).</li><li><strong><code>ClusterRoleBinding</code></strong> : attribue un ClusterRole <strong>partout</strong>.</li></ul>
+<p>La règle : commence <strong>au plus étroit</strong> (Role namespacé), n&#39;élargis (ClusterRole) que si nécessaire. <code>kubectl auth can-i</code> te dit si un sujet a un droit, <strong>sans</strong> l&#39;exercer.</p>
+<p><strong>La maintenance de nœud.</strong> Avant d&#39;éteindre un nœud (mise à jour, panne matérielle), on le <strong><code>cordon</code></strong> (« ne planifie plus rien ici ») puis on le <strong><code>drain</code></strong> (« évacue les pods vers d&#39;autres nœuds »). Après, <strong><code>uncordon</code></strong> le remet en service. C&#39;est ainsi qu&#39;on met à jour un cluster <strong>sans coupure</strong>.</p>
+<p><strong>La sauvegarde etcd.</strong> <strong>etcd</strong> est la base de données clé-valeur qui <strong>stocke tout l&#39;état</strong> du cluster (dans un cluster kubeadm). La sauvegarder (<code>etcdctl snapshot save</code>) = pouvoir <strong>reconstruire</strong> le cluster. <em>(Sur k3s, l&#39;état est dans SQLite par défaut, ou etcd en mode HA ; l&#39;outil devient <code>k3s etcd-snapshot</code>.)</em></p>
+<p><strong>Le troubleshooting</strong> n&#39;est pas une commande mais une <strong>démarche</strong> : partir du symptôme (<code>get</code>), lire les <strong>events</strong> et l&#39;état (<code>describe</code>), puis les <strong>logs</strong>, et remonter la chaîne (pod → node → composant système).</p>
+</div>
+<div data-lang="en"><p>Administering means answering three questions: <strong>who am I</strong> (and on which cluster), <strong>who&#39;s allowed</strong>, and <strong>how do I keep the cluster healthy</strong>.</p>
+<p><strong>The kubeconfig and contexts.</strong> Your <code>~/.kube/config</code> file describes <strong>clusters</strong>, <strong>users</strong> (identities) and <strong>contexts</strong> that pair <em>cluster + user + namespace</em>. The <strong>current context</strong> determines who you talk to. <code>kubectl config use-context</code> switches from one cluster to another — essential when managing several.</p>
+<p><strong>Authentication vs authorization.</strong> Kubernetes <strong>authenticates</strong> (who are you? via certificate, token, ServiceAccount) then <strong>authorizes</strong> (are you allowed? via <strong>RBAC</strong>). A <strong>ServiceAccount</strong> (SA) is the identity of a <strong>pod</strong> (in-cluster processes); a <strong>user</strong> is a human identity (managed outside the cluster).</p>
+<p><strong>RBAC — four objects, two scopes.</strong></p>
+<ul><li><strong><code>Role</code></strong>: a set of <strong>permissions</strong> (verbs × resources), <strong>in a namespace</strong>.</li><li><strong><code>RoleBinding</code></strong>: <strong>grants</strong> a Role (or a ClusterRole) to a subject (user, group, SA), <strong>in a namespace</strong>.</li><li><strong><code>ClusterRole</code></strong>: permissions <strong>cluster-wide</strong> (or on non-namespaced resources: nodes, PVs…).</li><li><strong><code>ClusterRoleBinding</code></strong>: grants a ClusterRole <strong>everywhere</strong>.</li></ul>
+<p>The rule: start <strong>narrowest</strong> (namespaced Role), widen (ClusterRole) only if needed. <code>kubectl auth can-i</code> tells you whether a subject has a right, <strong>without</strong> exercising it.</p>
+<p><strong>Node maintenance.</strong> Before shutting a node down (upgrade, hardware failure), you <strong><code>cordon</code></strong> it (&quot;schedule nothing new here&quot;) then <strong><code>drain</code></strong> it (&quot;evict pods to other nodes&quot;). Afterward, <strong><code>uncordon</code></strong> puts it back in service. That&#39;s how you upgrade a cluster <strong>without downtime</strong>.</p>
+<p><strong>etcd backup.</strong> <strong>etcd</strong> is the key-value database that <strong>stores all cluster state</strong> (in a kubeadm cluster). Backing it up (<code>etcdctl snapshot save</code>) = being able to <strong>rebuild</strong> the cluster. <em>(On k3s, state is in SQLite by default, or etcd in HA mode; the tool becomes <code>k3s etcd-snapshot</code>.)</em></p>
+<p><strong>Troubleshooting</strong> is not a command but a <strong>method</strong>: start from the symptom (<code>get</code>), read <strong>events</strong> and state (<code>describe</code>), then <strong>logs</strong>, and walk up the chain (pod → node → system component).</p>
+</div>
+
+<figure class="schema" id="figure-kubernetes-rbac">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-kubernetes-rbac">
+  <title id="s-kubernetes-rbac">RBAC Kubernetes</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">RBAC Kubernetes</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="70.5" text-anchor="middle">Sujet</text><text class="sub" x="98" y="83.5" text-anchor="middle">user / SA</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">RoleBinding /</text><text class="lbl lbl-fill" x="286" y="83.5" text-anchor="middle">ClusterRoleBinding</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">Role (ns) /</text><text class="lbl" x="474" y="83.5" text-anchor="middle">ClusterRole</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">auth can-i</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">teste le droit</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Un sujet (user/SA) reçoit un Role via un RoleBinding (namespacé) ou un ClusterRole via un ClusterRoleBinding (cluster). auth can-i teste le droit.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A subject (user/SA) gets a Role via a RoleBinding (namespaced) or a ClusterRole via a ClusterRoleBinding (cluster). auth can-i tests the right.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : contexts → ServiceAccount → Role/RoleBinding → ClusterRole → cordon/drain → etcd (concept) → troubleshooting.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: contexts → ServiceAccount → Role/RoleBinding → ClusterRole → cordon/drain → etcd (concept) → troubleshooting.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire le <strong>kubeconfig</strong> et manipuler les <strong>contexts</strong>.</p>
+<p><strong>🤔 Le context = ton adresse.</strong> Il dit <em>quel cluster, quel user, quel namespace</em>. Explore :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read the <strong>kubeconfig</strong> and manipulate <strong>contexts</strong>.</p>
+<p><strong>🤔 The context = your address.</strong> It says <em>which cluster, which user, which namespace</em>. Explore:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl config get-contexts                 # liste ; * = courant / list; * = current
+kubectl config current-context              # k3d-opslab
+kubectl config set-context --current --namespace=ops
+kubectl config view --minify -o jsonpath=&#39;{..namespace}{&quot;\n&quot;}&#39;   # ops</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl config get-contexts</code> liste <code>k3d-opslab</code> avec <code>*</code> (courant), et le <code>jsonpath</code> confirme <code>ops</code> comme namespace du context. <strong>Retiens <code>use-context</code></strong> : si tu avais gardé <code>stolab</code>/<code>netlab</code>, tu basculerais avec <code>kubectl config use-context k3d-stolab</code>. À l&#39;examen, on jongle entre clusters — un mauvais context, et tu modifies le mauvais cluster.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl config get-contexts</code> lists <code>k3d-opslab</code> with <code>*</code> (current), and the <code>jsonpath</code> confirms <code>ops</code> as the context&#39;s namespace. <strong>Remember <code>use-context</code></strong>: had you kept <code>stolab</code>/<code>netlab</code>, you&#39;d switch with <code>kubectl config use-context k3d-stolab</code>. In the exam you juggle clusters — a wrong context, and you change the wrong cluster.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>ServiceAccount</strong> et générer un <strong>token</strong> (l&#39;identité d&#39;un pod/robot).</p>
+<p><strong>🤔 Depuis Kubernetes 1.24.</strong> Un SA ne crée <strong>plus</strong> de Secret-token automatiquement. On génère un token <strong>à la demande</strong> avec <code>kubectl create token</code>. Crée le SA :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>ServiceAccount</strong> and generate a <strong>token</strong> (a pod/robot identity).</p>
+<p><strong>🤔 Since Kubernetes 1.24.</strong> A SA no longer auto-creates a Secret token. You generate a token <strong>on demand</strong> with <code>kubectl create token</code>. Create the SA:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl create serviceaccount deployer
+kubectl get serviceaccount deployer
+kubectl create token deployer               # imprime un JWT (court-lived) / prints a (short-lived) JWT</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get serviceaccount deployer</code> montre le SA, et <code>kubectl create token deployer</code> imprime un <strong>JWT</strong> (une longue chaîne <code>eyJ…</code>). Ce SA n&#39;a encore <strong>aucun droit</strong> particulier au-delà du minimum : on va lui en donner à l&#39;étape suivante. Un SA est l&#39;identité qu&#39;un pod porte via <code>spec.serviceAccountName</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get serviceaccount deployer</code> shows the SA, and <code>kubectl create token deployer</code> prints a <strong>JWT</strong> (a long <code>eyJ…</code> string). This SA has <strong>no</strong> special rights yet beyond the minimum: we&#39;ll grant some in the next step. A SA is the identity a pod carries via <code>spec.serviceAccountName</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Donner des droits <strong>précis</strong> avec un <strong>Role</strong> + <strong>RoleBinding</strong>, et vérifier avec <strong><code>auth can-i</code></strong>.</p>
+<p><strong>🤔 Le plus étroit possible.</strong> On autorise le SA <code>deployer</code> à <strong>lire</strong> les pods <strong>du namespace <code>ops</code> uniquement</strong> — rien d&#39;autre. Crée <code>rbac.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Grant <strong>precise</strong> rights with a <strong>Role</strong> + <strong>RoleBinding</strong>, and verify with <strong><code>auth can-i</code></strong>.</p>
+<p><strong>🤔 As narrow as possible.</strong> We allow the <code>deployer</code> SA to <strong>read</strong> pods <strong>in the <code>ops</code> namespace only</strong> — nothing else. Create <code>rbac.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: ops
+rules:
+  - apiGroups: [&quot;&quot;]                 # core API group / groupe d&#39;API &quot;core&quot;
+    resources: [&quot;pods&quot;]
+    verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployer-reads-pods
+  namespace: ops
+subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: ops
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f rbac.yaml
+# Test SANS exercer le droit / test WITHOUT exercising the right :
+kubectl auth can-i list pods --as=system:serviceaccount:ops:deployer -n ops     # yes
+kubectl auth can-i delete pods --as=system:serviceaccount:ops:deployer -n ops   # no
+kubectl auth can-i list pods --as=system:serviceaccount:ops:deployer -n default # no (autre namespace)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>auth can-i list pods --as=...:deployer -n ops</code> renvoie <strong><code>yes</code></strong>, tandis que <code>delete pods</code> renvoie <strong><code>no</code></strong> (le Role n&#39;accorde que get/list/watch) et <code>list pods -n default</code> renvoie <strong><code>no</code></strong> (le Role est <strong>namespacé</strong> sur <code>ops</code>). Tu viens de donner un droit <strong>chirurgical</strong> : un verbe, une ressource, un namespace. C&#39;est le principe du <strong>moindre privilège</strong>, et <code>--as</code> te permet de tester <strong>l&#39;identité d&#39;un autre</strong> sans te connecter en tant que lui.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>auth can-i list pods --as=...:deployer -n ops</code> returns <strong><code>yes</code></strong>, while <code>delete pods</code> returns <strong><code>no</code></strong> (the Role only grants get/list/watch) and <code>list pods -n default</code> returns <strong><code>no</code></strong> (the Role is <strong>namespaced</strong> to <code>ops</code>). You&#39;ve just granted a <strong>surgical</strong> right: one verb, one resource, one namespace. That&#39;s <strong>least privilege</strong>, and <code>--as</code> lets you test <strong>someone else&#39;s identity</strong> without logging in as them.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Accorder un droit <strong>à l&#39;échelle du cluster</strong> avec un <strong>ClusterRole</strong> + <strong>ClusterRoleBinding</strong>.</p>
+<p><strong>🤔 Quand cluster-wide ?</strong> Pour des ressources <strong>non-namespacées</strong> (comme les <strong>nodes</strong>) ou un droit valable <strong>dans tous les namespaces</strong>. Ici : autoriser <code>deployer</code> à <strong>lister les nodes</strong> (ressource cluster). Crée <code>clusterrbac.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Grant a <strong>cluster-wide</strong> right with a <strong>ClusterRole</strong> + <strong>ClusterRoleBinding</strong>.</p>
+<p><strong>🤔 When cluster-wide?</strong> For <strong>non-namespaced</strong> resources (like <strong>nodes</strong>) or a right valid <strong>across all namespaces</strong>. Here: allow <code>deployer</code> to <strong>list nodes</strong> (a cluster resource). Create <code>clusterrbac.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># clusterrbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-reader
+rules:
+  - apiGroups: [&quot;&quot;]
+    resources: [&quot;nodes&quot;]
+    verbs: [&quot;get&quot;, &quot;list&quot;]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deployer-reads-nodes
+subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: ops
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f clusterrbac.yaml
+kubectl auth can-i list nodes --as=system:serviceaccount:ops:deployer     # yes (ressource cluster)
+kubectl auth can-i list pods  --as=system:serviceaccount:ops:deployer -n default   # toujours no / still no</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>auth can-i list nodes --as=...:deployer</code> renvoie désormais <strong><code>yes</code></strong> — les nodes sont une ressource <strong>cluster</strong>, il fallait un <strong>ClusterRoleBinding</strong>. Mais <code>list pods -n default</code> reste <strong><code>no</code></strong> : le ClusterRole ne parle que des nodes. Distinction clé de l&#39;examen : <strong>Role/RoleBinding</strong> = un namespace ; <strong>ClusterRole/ClusterRoleBinding</strong> = tout le cluster et les ressources non-namespacées.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>auth can-i list nodes --as=...:deployer</code> now returns <strong><code>yes</code></strong> — nodes are a <strong>cluster</strong> resource, requiring a <strong>ClusterRoleBinding</strong>. But <code>list pods -n default</code> stays <strong><code>no</code></strong>: the ClusterRole only covers nodes. Key exam distinction: <strong>Role/RoleBinding</strong> = one namespace; <strong>ClusterRole/ClusterRoleBinding</strong> = the whole cluster and non-namespaced resources.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mettre un nœud en maintenance : <strong><code>cordon</code></strong> → <strong><code>drain</code></strong> → <strong><code>uncordon</code></strong>.</p>
+<p><strong>🤔 Évacuer sans couper.</strong> On déploie d&#39;abord une appli répartie, puis on draine l&#39;<strong>agent</strong> : ses pods migrent vers le serveur, le service continue. Prépare une cible :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Put a node into maintenance: <strong><code>cordon</code></strong> → <strong><code>drain</code></strong> → <strong><code>uncordon</code></strong>.</p>
+<p><strong>🤔 Evict without cutting.</strong> We first deploy a spread app, then drain the <strong>agent</strong>: its pods migrate to the server, service continues. Prepare a target:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl create deployment web --image=nginx:1.27-alpine --replicas=4
+kubectl get pods -o wide          # répartis sur les 2 nœuds / spread over the 2 nodes
+
+# 1) cordon : plus de nouveaux pods sur l&#39;agent / no new pods on the agent
+kubectl cordon k3d-opslab-agent-0
+kubectl get nodes                 # agent-0 : SchedulingDisabled
+
+# 2) drain : évacue les pods de l&#39;agent / evict the agent&#39;s pods
+kubectl drain k3d-opslab-agent-0 --ignore-daemonsets --delete-emptydir-data
+kubectl get pods -o wide          # tous les web-* sont maintenant sur le serveur / all on the server
+
+# 3) uncordon : remet l&#39;agent en service / put the agent back
+kubectl uncordon k3d-opslab-agent-0</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>cordon</code>, <code>kubectl get nodes</code> montre <code>k3d-opslab-agent-0</code> en <strong><code>SchedulingDisabled</code></strong>. Après <code>drain</code>, <code>kubectl get pods -o wide</code> ne montre <strong>plus aucun</strong> pod <code>web-*</code> sur l&#39;agent (ils ont été recréés sur le serveur) — et l&#39;appli n&#39;a jamais été totalement coupée. <code>--ignore-daemonsets</code> est <strong>obligatoire</strong> (les DaemonSets ne se drainent pas), et <code>--delete-emptydir-data</code> autorise l&#39;éviction de pods à volume éphémère. Après <code>uncordon</code>, l&#39;agent redevient <code>Ready</code> et <strong>schedulable</strong>. C&#39;est la procédure exacte d&#39;une <strong>mise à jour de nœud</strong> en prod.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>cordon</code>, <code>kubectl get nodes</code> shows <code>k3d-opslab-agent-0</code> as <strong><code>SchedulingDisabled</code></strong>. After <code>drain</code>, <code>kubectl get pods -o wide</code> shows <strong>no more</strong> <code>web-*</code> pods on the agent (recreated on the server) — and the app was never fully down. <code>--ignore-daemonsets</code> is <strong>mandatory</strong> (DaemonSets don&#39;t drain), and <code>--delete-emptydir-data</code> allows evicting pods with ephemeral volumes. After <code>uncordon</code>, the agent is <code>Ready</code> and <strong>schedulable</strong> again. That&#39;s the exact procedure for a <strong>node upgrade</strong> in prod.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>sauvegarde/restauration etcd</strong> — la procédure d&#39;examen, et son analogue k3s.</p>
+<p><strong>🤔 Pourquoi c&#39;est vital.</strong> <strong>etcd</strong> stocke <strong>tout</strong> l&#39;état du cluster. Le perdre = perdre le cluster. Sur un cluster <strong>kubeadm</strong> (celui de l&#39;examen CKA), la sauvegarde se fait avec <strong><code>etcdctl</code></strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>etcd backup/restore</strong> — the exam procedure, and its k3s analog.</p>
+<p><strong>🤔 Why it&#39;s vital.</strong> <strong>etcd</strong> stores <strong>all</strong> cluster state. Losing it = losing the cluster. On a <strong>kubeadm</strong> cluster (the CKA exam&#39;s), backup is done with <strong><code>etcdctl</code></strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Procédure d&#39;EXAMEN (cluster kubeadm) — NE tourne PAS tel quel sur k3d
+# EXAM procedure (kubeadm cluster) — does NOT run as-is on k3d
+ETCDCTL_API=3 etcdctl snapshot save /opt/snapshot.db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+
+ETCDCTL_API=3 etcdctl snapshot status /opt/snapshot.db -w table   # vérifier le snapshot / verify
+# Restauration : etcdctl snapshot restore /opt/snapshot.db --data-dir /var/lib/etcd-restore
+#   puis pointer le manifeste static pod etcd vers le nouveau data-dir / then repoint etcd static pod</code></pre>
+<div data-lang="fr"><p>Sur <strong>k3s/k3d</strong>, l&#39;état est dans <strong>SQLite</strong> par défaut (pas d&#39;etcd), ou dans un etcd embarqué en mode HA. L&#39;outil devient <strong><code>k3s etcd-snapshot</code></strong> (uniquement en mode etcd) :</p>
+</div>
+<div data-lang="en"><p>On <strong>k3s/k3d</strong>, state is in <strong>SQLite</strong> by default (no etcd), or in an embedded etcd in HA mode. The tool becomes <strong><code>k3s etcd-snapshot</code></strong> (etcd mode only):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Analogue k3s (cluster créé avec --cluster-init / etcd HA) :
+# k3s analog (cluster created with --cluster-init / etcd HA):
+#   k3s etcd-snapshot save --name mon-snapshot
+#   k3s etcd-snapshot ls</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>réciter</strong> la commande <code>etcdctl snapshot save</code> avec ses <strong>quatre</strong> paramètres critiques (<code>--endpoints</code>, <code>--cacert</code>, <code>--cert</code>, <code>--key</code>) et où trouver les certs (<code>/etc/kubernetes/pki/etcd/</code>), tu sais <strong>vérifier</strong> un snapshot (<code>snapshot status</code>), et tu sais que la <strong>restauration</strong> crée un nouveau data-dir vers lequel repointer etcd. Tu sais aussi que <strong>k3s diffère</strong> (SQLite/<code>k3s etcd-snapshot</code>). <em>(On ne l&#39;exécute pas ici : k3d n&#39;a pas d&#39;etcd en mode par défaut. C&#39;est le seul point de la track qu&#39;on ne peut pas jouer en local à l&#39;identique.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>recite</strong> the <code>etcdctl snapshot save</code> command with its <strong>four</strong> critical parameters (<code>--endpoints</code>, <code>--cacert</code>, <code>--cert</code>, <code>--key</code>) and where to find the certs (<code>/etc/kubernetes/pki/etcd/</code>), you can <strong>verify</strong> a snapshot (<code>snapshot status</code>), and you know <strong>restore</strong> creates a new data-dir to repoint etcd at. You also know <strong>k3s differs</strong> (SQLite/<code>k3s etcd-snapshot</code>). <em>(We don&#39;t run it here: k3d has no etcd in default mode. It&#39;s the only point of the track we can&#39;t replay locally as-is.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Appliquer une <strong>démarche de troubleshooting</strong> sur un pod cassé.</p>
+<p><strong>🤔 Une méthode, pas une commande.</strong> On casse volontairement un pod (mauvaise image) et on <strong>remonte la piste</strong> : <code>get</code> (symptôme) → <code>describe</code> (events) → <code>logs</code>. Provoque la panne :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Apply a <strong>troubleshooting method</strong> on a broken pod.</p>
+<p><strong>🤔 A method, not a command.</strong> We deliberately break a pod (bad image) and <strong>follow the trail</strong>: <code>get</code> (symptom) → <code>describe</code> (events) → <code>logs</code>. Trigger the failure:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl run broken --image=nginx:does-not-exist-999
+kubectl get pod broken                          # STATUS ImagePullBackOff / ErrImagePull
+kubectl describe pod broken | sed -n &#39;/Events/,$p&#39;   # &quot;Failed to pull image ... not found&quot;
+
+# La boîte à outils complète / the full toolkit :
+kubectl get events --sort-by=.lastTimestamp     # les événements récents du namespace / recent namespace events
+kubectl logs broken                             # erreur &quot;container is waiting to start&quot; (pas de logs : jamais démarré) / &quot;container is waiting to start&quot; error (no logs: never ran)
+kubectl get componentstatuses 2&gt;/dev/null || kubectl get --raw=&#39;/readyz?verbose&#39; | head</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get pod broken</code> montre <strong><code>ImagePullBackOff</code></strong>, et <code>describe … Events</code> explique la cause exacte : <code>Failed to pull image … not found</code>. Tu as diagnostiqué <strong>sans deviner</strong> : le symptôme (<code>get</code>) t&#39;a orienté, les <strong>events</strong> (<code>describe</code>) ont donné la cause. Mémorise la chaîne — pod cassé : <code>describe</code> d&#39;abord (events), puis <code>logs</code> <strong>si le conteneur a démarré</strong> (ici <code>logs</code> renvoie une erreur « container is waiting to start », car l&#39;image n&#39;a jamais pu être tirée). Pour la santé du cluster : <code>kubectl get nodes</code>, <code>kubectl -n kube-system get pods</code>, et <code>kubectl get --raw=&#39;/readyz?verbose&#39;</code>. <em>(Nettoyage : <code>kubectl delete pod broken</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get pod broken</code> shows <strong><code>ImagePullBackOff</code></strong>, and <code>describe … Events</code> explains the exact cause: <code>Failed to pull image … not found</code>. You diagnosed <strong>without guessing</strong>: the symptom (<code>get</code>) pointed you, the <strong>events</strong> (<code>describe</code>) gave the cause. Memorize the chain — broken pod: <code>describe</code> first (events), then <code>logs</code> <strong>if the container started</strong> (here <code>logs</code> returns a &quot;container is waiting to start&quot; error, since the image could never be pulled). For cluster health: <code>kubectl get nodes</code>, <code>kubectl -n kube-system get pods</code>, and <code>kubectl get --raw=&#39;/readyz?verbose&#39;</code>. <em>(Cleanup: <code>kubectl delete pod broken</code>.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Se tromper de context.</strong> Modifier le mauvais cluster/namespace est l&#39;erreur d&#39;admin classique (et coûteuse à l&#39;examen). <code>kubectl config current-context</code> <strong>avant</strong> toute action destructrice.</p>
+<p><strong>2. Attendre un Secret-token de SA.</strong> Depuis 1.24, il faut <code>kubectl create token &lt;sa&gt;</code> (ou un Secret de type <code>kubernetes.io/service-account-token</code> explicite). Ne cherche pas un token auto-généré.</p>
+<p><strong>3. Confondre les portées RBAC.</strong> Un <code>Role</code> ne marche que dans <strong>son</strong> namespace. Pour les nodes/PV (non-namespacés) ou tous les namespaces → <strong>ClusterRole</strong>. Un RoleBinding vers un ClusterRole limite ce dernier <strong>au namespace</strong> du binding.</p>
+<p><strong>4. <code>apiGroups: [&quot;&quot;]</code> oublié.</strong> Les ressources « core » (pods, services, configmaps…) sont dans le groupe <strong>vide</strong> <code>&quot;&quot;</code>. L&#39;oublier = permission qui ne s&#39;applique pas.</p>
+<p><strong>5. <code>drain</code> sans <code>--ignore-daemonsets</code>.</strong> Le drain <strong>échoue</strong> s&#39;il y a des pods de DaemonSet (il y en a toujours). Le flag est quasi obligatoire ; ajoute <code>--delete-emptydir-data</code> si des pods ont un <code>emptyDir</code>.</p>
+<p><strong>6. Oublier <code>uncordon</code>.</strong> Après maintenance, un nœud laissé <code>cordon</code> reste <code>SchedulingDisabled</code> — il ne reprend aucun pod. Toujours <code>uncordon</code> à la fin.</p>
+<p><strong>7. Croire pouvoir sauvegarder etcd sur k3d par défaut.</strong> Il n&#39;y a <strong>pas</strong> d&#39;etcd (c&#39;est SQLite). La commande <code>etcdctl</code> de l&#39;examen suppose un cluster kubeadm ; sur k3s HA, c&#39;est <code>k3s etcd-snapshot</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Wrong context.</strong> Modifying the wrong cluster/namespace is the classic (and costly, in the exam) admin mistake. <code>kubectl config current-context</code> <strong>before</strong> any destructive action.</p>
+<p><strong>2. Expecting a SA Secret token.</strong> Since 1.24, you need <code>kubectl create token &lt;sa&gt;</code> (or an explicit <code>kubernetes.io/service-account-token</code> Secret). Don&#39;t look for an auto-generated token.</p>
+<p><strong>3. Confusing RBAC scopes.</strong> A <code>Role</code> only works in <strong>its</strong> namespace. For nodes/PVs (non-namespaced) or all namespaces → <strong>ClusterRole</strong>. A RoleBinding to a ClusterRole limits it <strong>to the binding&#39;s namespace</strong>.</p>
+<p><strong>4. Forgetting <code>apiGroups: [&quot;&quot;]</code>.</strong> &quot;core&quot; resources (pods, services, configmaps…) live in the <strong>empty</strong> group <code>&quot;&quot;</code>. Forgetting it = a permission that doesn&#39;t apply.</p>
+<p><strong>5. <code>drain</code> without <code>--ignore-daemonsets</code>.</strong> The drain <strong>fails</strong> if there are DaemonSet pods (there always are). The flag is near-mandatory; add <code>--delete-emptydir-data</code> if pods have an <code>emptyDir</code>.</p>
+<p><strong>6. Forgetting <code>uncordon</code>.</strong> After maintenance, a node left <code>cordon</code>ed stays <code>SchedulingDisabled</code> — it takes no pods. Always <code>uncordon</code> at the end.</p>
+<p><strong>7. Believing you can back up etcd on default k3d.</strong> There&#39;s <strong>no</strong> etcd (it&#39;s SQLite). The exam&#39;s <code>etcdctl</code> command assumes a kubeadm cluster; on k3s HA, it&#39;s <code>k3s etcd-snapshot</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu listes les <strong>contexts</strong> et tu changes de cluster/namespace en connaissance de cause.</li><li>Tu crées un <strong>ServiceAccount</strong> et génères son <strong>token</strong>.</li><li>Tu écris un <strong>Role + RoleBinding</strong> et tu le testes avec <strong><code>auth can-i</code></strong>.</li><li>Tu écris un <strong>ClusterRole + ClusterRoleBinding</strong> et tu expliques la différence de portée.</li><li>Tu fais <strong><code>cordon</code> → <code>drain</code> → <code>uncordon</code></strong> proprement.</li><li>Tu récites la sauvegarde <strong>etcd</strong> (<code>etcdctl snapshot save</code> + certs) et l&#39;analogue k3s.</li><li>Tu diagnostiques un pod cassé par <strong><code>describe</code>/events</strong> avant de deviner.</li></ul>
+<p>Sept cases cochées = tu tiens les domaines <strong>Cluster Architecture, Security &amp; Troubleshooting</strong> du CKA.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You list <strong>contexts</strong> and switch cluster/namespace deliberately.</li><li>You create a <strong>ServiceAccount</strong> and generate its <strong>token</strong>.</li><li>You write a <strong>Role + RoleBinding</strong> and test it with <strong><code>auth can-i</code></strong>.</li><li>You write a <strong>ClusterRole + ClusterRoleBinding</strong> and explain the scope difference.</li><li>You do <strong><code>cordon</code> → <code>drain</code> → <code>uncordon</code></strong> cleanly.</li><li>You recite the <strong>etcd</strong> backup (<code>etcdctl snapshot save</code> + certs) and the k3s analog.</li><li>You diagnose a broken pod via <strong><code>describe</code>/events</strong> before guessing.</li></ul>
+<p>Seven boxes ticked = you hold the CKA <strong>Cluster Architecture, Security &amp; Troubleshooting</strong> domains.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>couverture de contenu</strong> de la track Kubernetes → CKA/CKAD. Il reste le <strong>projet d&#39;entreprise</strong> :</p>
+<ul><li><strong>Projet d&#39;entreprise</strong> — déployer une <strong>appli multi-tier</strong> sur Kubernetes : Deployment + Service + <strong>Ingress</strong>, <strong>ConfigMap/Secret</strong>, <strong>PVC</strong> pour la base, <strong>probes</strong> et <strong>HPA</strong> (autoscaling), le tout dans un dépôt documenté. Le livrable Kubernetes à mettre sur ton CV.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>content coverage</strong> of the Kubernetes → CKA/CKAD track. The <strong>enterprise project</strong> remains:</p>
+<ul><li><strong>Enterprise project</strong> — deploy a <strong>multi-tier app</strong> on Kubernetes: Deployment + Service + <strong>Ingress</strong>, <strong>ConfigMap/Secret</strong>, a <strong>PVC</strong> for the database, <strong>probes</strong> and <strong>HPA</strong> (autoscaling), all in a documented repo. The Kubernetes deliverable for your CV.</li></ul>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire cluster ops &amp; RBAC.</p>
+</div>
+<div data-lang="en"><p>Cluster ops &amp; RBAC cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Contexts
+kubectl config get-contexts            # * = courant / current
+kubectl config use-context &lt;ctx&gt;       # changer de cluster / switch cluster
+kubectl config set-context --current --namespace=&lt;ns&gt;
+
+# ServiceAccount &amp; token (&gt;=1.24)
+kubectl create serviceaccount &lt;sa&gt;
+kubectl create token &lt;sa&gt;              # JWT à la demande / on-demand JWT
+
+# RBAC (le plus étroit d&#39;abord / narrowest first)
+kubectl create role pod-reader --verb=get,list,watch --resource=pods -n &lt;ns&gt;
+kubectl create rolebinding rb --role=pod-reader --serviceaccount=&lt;ns&gt;:&lt;sa&gt; -n &lt;ns&gt;
+kubectl create clusterrole node-reader --verb=get,list --resource=nodes
+kubectl create clusterrolebinding crb --clusterrole=node-reader --serviceaccount=&lt;ns&gt;:&lt;sa&gt;
+kubectl auth can-i &lt;verbe&gt; &lt;ressource&gt; --as=system:serviceaccount:&lt;ns&gt;:&lt;sa&gt; [-n &lt;ns&gt;]
+
+# Maintenance de nœud / node maintenance
+kubectl cordon &lt;node&gt;
+kubectl drain &lt;node&gt; --ignore-daemonsets --delete-emptydir-data
+kubectl uncordon &lt;node&gt;
+
+# etcd (kubeadm) — cf. certs /etc/kubernetes/pki/etcd/
+ETCDCTL_API=3 etcdctl snapshot save snap.db --endpoints=... --cacert=... --cert=... --key=...
+#   k3s : k3s etcd-snapshot save
+
+# Troubleshooting
+kubectl describe &lt;type&gt; &lt;nom&gt; | sed -n &#39;/Events/,$p&#39;
+kubectl get events --sort-by=.lastTimestamp
+kubectl get --raw=&#39;/readyz?verbose&#39;</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/">Configurer l&#39;accès (kubeconfig)</a>.</li><li><a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/">RBAC</a> et <a href="https://kubernetes.io/docs/concepts/security/service-accounts/">ServiceAccounts</a>.</li><li><a href="https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/">Maintenance de nœud — Safely Drain a Node</a>.</li><li><a href="https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/">Sauvegarder etcd</a> et <a href="https://docs.k3s.io/datastore/backup-restore">k3s backup/restore</a>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/">Configure access (kubeconfig)</a>.</li><li><a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/">RBAC</a> and <a href="https://kubernetes.io/docs/concepts/security/service-accounts/">ServiceAccounts</a>.</li><li><a href="https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/">Node maintenance — Safely Drain a Node</a>.</li><li><a href="https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/">Backing up etcd</a> and <a href="https://docs.k3s.io/datastore/backup-restore">k3s backup/restore</a>.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>auth can-i</code> renvoie <code>no</code> alors que tu as créé le binding.</strong> Vérifie le <strong>nom exact</strong> du sujet (<code>system:serviceaccount:&lt;ns&gt;:&lt;sa&gt;</code>), le bon <strong>namespace</strong> (<code>-n</code>), et que <code>apiGroups</code>/<code>resources</code>/<code>verbs</code> couvrent bien l&#39;action. Un <code>Role</code> ne vaut que dans son namespace.</p>
+<p><strong>Le SA n&#39;a pas de token dans un Secret.</strong> Normal depuis 1.24. Utilise <code>kubectl create token &lt;sa&gt;</code>, ou crée un Secret <code>kubernetes.io/service-account-token</code> explicite si tu veux un token longue durée.</p>
+<p><strong><code>kubectl drain</code> échoue avec « cannot delete DaemonSet-managed Pods ».</strong> Ajoute <code>--ignore-daemonsets</code>. Si l&#39;erreur parle d&#39;<code>emptyDir</code>, ajoute <code>--delete-emptydir-data</code>. Pour un pod non géré (bare pod), il faudra <code>--force</code>.</p>
+<p><strong>Après un drain, des pods restent <code>Pending</code>.</strong> Les autres nœuds n&#39;ont plus de place (ou sont cordonnés). Vérifie <code>kubectl get nodes</code> et les ressources dispo ; <code>uncordon</code> un nœud si besoin.</p>
+<p><strong><code>kubectl get componentstatuses</code> est déprécié / vide.</strong> Utilise <code>kubectl get --raw=&#39;/readyz?verbose&#39;</code> et <code>kubectl -n kube-system get pods</code> pour la santé des composants.</p>
+<p><strong>Tout <code>auth can-i</code> renvoie <code>yes</code> (même ce qui devrait être <code>no</code>).</strong> Tu testes probablement en tant qu&#39;<strong>admin</strong> (ton propre context), pas en tant que SA. Ajoute bien <code>--as=system:serviceaccount:&lt;ns&gt;:&lt;sa&gt;</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>auth can-i</code> returns <code>no</code> although you created the binding.</strong> Check the <strong>exact</strong> subject name (<code>system:serviceaccount:&lt;ns&gt;:&lt;sa&gt;</code>), the right <strong>namespace</strong> (<code>-n</code>), and that <code>apiGroups</code>/<code>resources</code>/<code>verbs</code> actually cover the action. A <code>Role</code> only counts in its namespace.</p>
+<p><strong>The SA has no token in a Secret.</strong> Normal since 1.24. Use <code>kubectl create token &lt;sa&gt;</code>, or create an explicit <code>kubernetes.io/service-account-token</code> Secret if you want a long-lived token.</p>
+<p><strong><code>kubectl drain</code> fails with &quot;cannot delete DaemonSet-managed Pods&quot;.</strong> Add <code>--ignore-daemonsets</code>. If the error mentions <code>emptyDir</code>, add <code>--delete-emptydir-data</code>. For an unmanaged (bare) pod, you&#39;ll need <code>--force</code>.</p>
+<p><strong>After a drain, pods stay <code>Pending</code>.</strong> The other nodes have no room (or are cordoned). Check <code>kubectl get nodes</code> and available resources; <code>uncordon</code> a node if needed.</p>
+<p><strong><code>kubectl get componentstatuses</code> is deprecated / empty.</strong> Use <code>kubectl get --raw=&#39;/readyz?verbose&#39;</code> and <code>kubectl -n kube-system get pods</code> for component health.</p>
+<p><strong>Every <code>auth can-i</code> returns <code>yes</code> (even what should be <code>no</code>).</strong> You&#39;re probably testing as <strong>admin</strong> (your own context), not as the SA. Make sure to add <code>--as=system:serviceaccount:&lt;ns&gt;:&lt;sa&gt;</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — rôles &amp; collections — jiha.tech</title>
+  <title data-lang="en">Ansible — roles &amp; collections — jiha.tech</title>
+  <meta name="description" content="Factorise ton code Ansible au niveau RHCE/EX294 : structure d&#39;un rôle (tasks/handlers/templates/defaults/meta), squelette avec ansible-galaxy init, defaults vs vars, dépendances de rôles (meta/main.yml), import_role vs include_role, collections et noms complets FQCN, et requirements.yml pour installer rôles et collections. Rôle démo testable en local." data-lang="fr">
+  <meta name="description" content="Factor your Ansible code at RHCE/EX294 level: role structure (tasks/handlers/templates/defaults/meta), scaffold with ansible-galaxy init, defaults vs vars, role dependencies (meta/main.yml), import_role vs include_role, collections and fully-qualified FQCN names, and requirements.yml to install roles and collections. Demo role testable locally." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — rôles &amp; collections">
+  <meta property="og:description" content="Factorise ton code Ansible au niveau RHCE/EX294 : structure d&#39;un rôle (tasks/handlers/templates/defaults/meta), squelette avec ansible-galaxy init, defaults vs vars, dépendances de rôles (meta/main.yml), import_role vs include_role, collections et noms complets FQCN, et requirements.yml pour installer rôles et collections. Rôle démo testable en local.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-roles-collections/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-roles-collections/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-roles-collections">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-roles-collections</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-roles-collections</div>
+    <h1 data-lang="fr">Ansible — rôles &amp; collections</h1>
+    <h1 data-lang="en">Ansible — roles &amp; collections</h1>
+    <p class="tagline" data-lang="fr">ansible-galaxy init, structure, dépendances, FQCN, requirements.</p>
+    <p class="tagline" data-lang="en">ansible-galaxy init, structure, dependencies, FQCN, requirements.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tes playbooks grossissent. Le jour où tu copies-colles les mêmes vingt tâches « installer + configurer + démarrer un service » d&#39;un playbook à l&#39;autre, tu as un problème de <strong>factorisation</strong>. La réponse d&#39;Ansible, c&#39;est le <strong>rôle</strong> : un dossier standardisé qui regroupe tâches, handlers, templates, fichiers, variables par défaut et métadonnées — un composant réutilisable que tu déposes dans dix playbooks sans rien recopier.</p>
+<p>Et quand tu as besoin de <strong>modules qui ne sont pas dans le cœur</strong> d&#39;Ansible (gérer une base, un cloud, un pare-feu spécifique), tu installes une <strong>collection</strong>. Depuis Ansible 2.10, presque tout est distribué en collections, et l&#39;examen RHCE/EX294 exige que tu saches les <strong>installer</strong> (via <code>requirements.yml</code>) et <strong>appeler les modules par leur nom complet (FQCN)</strong>.</p>
+<p>Ce guide te fait construire un vrai rôle <strong>de A à Z</strong> (structure, defaults, template, handler, dépendances), l&#39;utiliser dans un <code>site.yml</code>, puis manipuler les collections et le <code>requirements.yml</code>. Le rôle de démo est <strong>file-based</strong> (il écrit des fichiers, pas de paquets) : entièrement testable sur <code>localhost</code>, idempotent, sans rien casser.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises playbooks, variables, facts et templates (guides précédents) et tu veux structurer ton code proprement.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu écris ton tout premier playbook → reviens en arrière dans le track.</li><li>Tu veux chiffrer les variables sensibles d&#39;un rôle → c&#39;est le guide <strong>Vault</strong>, juste après.</li></ul>
+</div>
+<div data-lang="en"><p>Your playbooks grow. The day you copy-paste the same twenty &quot;install + configure + start a service&quot; tasks from one playbook to another, you have a <strong>factoring</strong> problem. Ansible&#39;s answer is the <strong>role</strong>: a standardized folder grouping tasks, handlers, templates, files, default variables and metadata — a reusable component you drop into ten playbooks without recopying anything.</p>
+<p>And when you need <strong>modules that aren&#39;t in Ansible&#39;s core</strong> (manage a database, a cloud, a specific firewall), you install a <strong>collection</strong>. Since Ansible 2.10, almost everything ships as collections, and the RHCE/EX294 exam requires you to know how to <strong>install</strong> them (via <code>requirements.yml</code>) and <strong>call modules by their fully-qualified name (FQCN)</strong>.</p>
+<p>This guide has you build a real role <strong>from scratch</strong> (structure, defaults, template, handler, dependencies), use it in a <code>site.yml</code>, then handle collections and <code>requirements.yml</code>. The demo role is <strong>file-based</strong> (it writes files, no packages): fully testable on <code>localhost</code>, idempotent, breaking nothing.</p>
+<p><strong>Who it&#39;s for:</strong> you master playbooks, variables, facts and templates (previous guides) and you want to structure your code cleanly.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re writing your very first playbook → go back in the track.</li><li>You want to encrypt a role&#39;s sensitive variables → that&#39;s the <strong>Vault</strong> guide, right after.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Générer un squelette de rôle avec <strong><code>ansible-galaxy init</code></strong> et expliquer chaque dossier.</li><li>Remplir un rôle : <code>defaults/</code>, <code>tasks/</code>, <code>templates/</code>, <code>handlers/</code>, et l&#39;appeler avec <code>roles:</code>.</li><li>Distinguer <strong><code>defaults/</code> (faible précédence)</strong> de <strong><code>vars/</code> (forte)</strong> et surcharger proprement.</li><li>Ajouter une <strong>dépendance</strong> de rôle (<code>meta/main.yml</code>) et voir l&#39;ordre d&#39;exécution.</li><li>Choisir entre <strong><code>import_role</code></strong> (statique) et <strong><code>include_role</code></strong> (dynamique).</li><li>Comprendre les <strong>collections</strong> et appeler un module par son <strong>FQCN</strong>.</li><li>Écrire un <strong><code>requirements.yml</code></strong> (rôles + collections) et l&#39;installer avec <code>ansible-galaxy</code>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Generate a role skeleton with <strong><code>ansible-galaxy init</code></strong> and explain each folder.</li><li>Fill a role: <code>defaults/</code>, <code>tasks/</code>, <code>templates/</code>, <code>handlers/</code>, and call it with <code>roles:</code>.</li><li>Tell <strong><code>defaults/</code> (low precedence)</strong> from <strong><code>vars/</code> (high)</strong> and override cleanly.</li><li>Add a role <strong>dependency</strong> (<code>meta/main.yml</code>) and see the execution order.</li><li>Choose between <strong><code>import_role</code></strong> (static) and <strong><code>include_role</code></strong> (dynamic).</li><li>Understand <strong>collections</strong> and call a module by its <strong>FQCN</strong>.</li><li>Write a <strong><code>requirements.yml</code></strong> (roles + collections) and install it with <code>ansible-galaxy</code>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides Ansible précédents du track (jusqu&#39;à <em>variables, facts &amp; templates</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>) et <strong><code>ansible-galaxy</code></strong> (fourni avec).</li><li>Un dossier de travail. Le rôle de démo est testable sur <code>localhost</code> en <code>connection: local</code>, sans VM.</li><li>(Facultatif) Un <strong>accès réseau</strong> vers <code>galaxy.ansible.com</code> pour l&#39;étape collections/Galaxy. Sans réseau, tu fais quand même tout le reste : on te donne un repli hors-ligne à chaque fois.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The previous Ansible track guides (through <em>variables, facts &amp; templates</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>) and <strong><code>ansible-galaxy</code></strong> (bundled).</li><li>A working folder. The demo role is testable on <code>localhost</code> with <code>connection: local</code>, no VM.</li><li>(Optional) <strong>Network access</strong> to <code>galaxy.ansible.com</code> for the collections/Galaxy step. Without network you still do everything else: we give an offline fallback each time.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-variables-facts-templates/">
+    <span class="num">23</span>
+    <span class="title-line" data-lang="fr">Ansible — variables, facts &amp; templates Jinja2</span>
+    <span class="title-line" data-lang="en">Ansible — variables, facts &amp; Jinja2 templates</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Rôle.</strong> Un dossier au nom standardisé qui contient des sous-dossiers <strong>conventionnels</strong>. Ansible sait automatiquement où chercher : les tâches dans <code>tasks/main.yml</code>, les handlers dans <code>handlers/main.yml</code>, les templates dans <code>templates/</code>, les fichiers dans <code>files/</code>, les valeurs par défaut dans <code>defaults/main.yml</code>, les variables « fortes » dans <code>vars/main.yml</code>, les métadonnées dans <code>meta/main.yml</code>. Tu appelles le rôle, Ansible charge le reste.</p>
+<p><strong><code>defaults/</code> vs <code>vars/</code>.</strong> Deux endroits pour les variables d&#39;un rôle, mais à des <strong>précédences opposées</strong> : <code>defaults/main.yml</code> est <strong>le plus faible</strong> de toute la hiérarchie (fait pour être surchargé par l&#39;utilisateur), <code>vars/main.yml</code> est <strong>fort</strong> (difficile à surcharger, réservé aux constantes internes du rôle). Règle : tes variables <strong>paramétrables</strong> vont dans <code>defaults/</code>.</p>
+<p><strong><code>meta/main.yml</code> &amp; dépendances.</strong> Décrit le rôle (auteur, plateformes) et surtout ses <strong>dépendances</strong> : d&#39;autres rôles qui doivent tourner <strong>avant</strong> lui. <code>dependencies: [commun]</code> garantit que le rôle <code>commun</code> s&#39;exécute d&#39;abord.</p>
+<p><strong><code>import_role</code> vs <code>include_role</code>.</strong> Deux façons d&#39;appeler un rôle depuis les <code>tasks:</code>. <code>import_role</code> est <strong>statique</strong> (résolu au parsing, avant l&#39;exécution) ; <code>include_role</code> est <strong>dynamique</strong> (résolu à l&#39;exécution, donc utilisable dans une boucle ou derrière un <code>when</code> variable). Le mot-clé <code>roles:</code> en tête de play, lui, est un import statique qui tourne <strong>avant</strong> les <code>tasks:</code>.</p>
+<p><strong>Collection.</strong> Un paquet distribuable de modules, rôles et plugins, nommé <code>namespace.nom</code> (ex. <code>community.general</code>, <code>ansible.posix</code>). Le cœur historique est la collection <code>ansible.builtin</code> (toujours présente).</p>
+<p><strong>FQCN (Fully-Qualified Collection Name).</strong> Le nom <strong>complet</strong> d&#39;un module : <code>ansible.builtin.copy</code>, <code>ansible.posix.firewalld</code>, <code>community.general.timezone</code>. Depuis Ansible moderne, on <strong>écrit toujours le FQCN</strong> — c&#39;est explicite et sans ambiguïté (deux collections peuvent avoir un module <code>user</code>).</p>
+<p><strong><code>requirements.yml</code>.</strong> Le fichier qui déclare les <strong>rôles</strong> et <strong>collections</strong> à installer depuis Galaxy (ou Git, ou un chemin). On l&#39;installe avec <code>ansible-galaxy install -r requirements.yml</code> (rôles) et <code>ansible-galaxy collection install -r requirements.yml</code> (collections).</p>
+</div>
+<div data-lang="en"><p><strong>Role.</strong> A standard-named folder containing <strong>conventional</strong> subfolders. Ansible automatically knows where to look: tasks in <code>tasks/main.yml</code>, handlers in <code>handlers/main.yml</code>, templates in <code>templates/</code>, files in <code>files/</code>, defaults in <code>defaults/main.yml</code>, &quot;strong&quot; variables in <code>vars/main.yml</code>, metadata in <code>meta/main.yml</code>. You call the role, Ansible loads the rest.</p>
+<p><strong><code>defaults/</code> vs <code>vars/</code>.</strong> Two places for a role&#39;s variables, but at <strong>opposite precedences</strong>: <code>defaults/main.yml</code> is <strong>the weakest</strong> of the whole hierarchy (meant to be overridden by the user), <code>vars/main.yml</code> is <strong>strong</strong> (hard to override, reserved for the role&#39;s internal constants). Rule: your <strong>parameterizable</strong> variables go in <code>defaults/</code>.</p>
+<p><strong><code>meta/main.yml</code> &amp; dependencies.</strong> Describes the role (author, platforms) and above all its <strong>dependencies</strong>: other roles that must run <strong>before</strong> it. <code>dependencies: [commun]</code> guarantees the <code>commun</code> role runs first.</p>
+<p><strong><code>import_role</code> vs <code>include_role</code>.</strong> Two ways to call a role from <code>tasks:</code>. <code>import_role</code> is <strong>static</strong> (resolved at parse time, before execution); <code>include_role</code> is <strong>dynamic</strong> (resolved at run time, so usable in a loop or behind a variable <code>when</code>). The play-level <code>roles:</code> keyword is a static import that runs <strong>before</strong> <code>tasks:</code>.</p>
+<p><strong>Collection.</strong> A distributable package of modules, roles and plugins, named <code>namespace.name</code> (e.g. <code>community.general</code>, <code>ansible.posix</code>). The historic core is the <code>ansible.builtin</code> collection (always present).</p>
+<p><strong>FQCN (Fully-Qualified Collection Name).</strong> A module&#39;s <strong>full</strong> name: <code>ansible.builtin.copy</code>, <code>ansible.posix.firewalld</code>, <code>community.general.timezone</code>. In modern Ansible, you <strong>always write the FQCN</strong> — it&#39;s explicit and unambiguous (two collections can each have a <code>user</code> module).</p>
+<p><strong><code>requirements.yml</code>.</strong> The file declaring the <strong>roles</strong> and <strong>collections</strong> to install from Galaxy (or Git, or a path). Install it with <code>ansible-galaxy install -r requirements.yml</code> (roles) and <code>ansible-galaxy collection install -r requirements.yml</code> (collections).</p>
+</div>
+
+<figure class="schema" id="figure-ansible-role-structure">
+  <svg viewBox="0 0 760 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-ansible-role-structure">
+  <title id="s-ansible-role-structure">Anatomie d’un rôle (main.yml auto-chargé)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Anatomie d’un rôle (main.yml auto-chargé)</text><rect class="box" x="16" y="40" width="230" height="62" rx="3"/><text class="lbl" x="131" y="68.5" text-anchor="middle">tasks/</text><text class="sub" x="131" y="81.5" text-anchor="middle">le quoi</text><rect class="box" x="264" y="40" width="230" height="62" rx="3"/><text class="lbl" x="379" y="68.5" text-anchor="middle">handlers/</text><text class="sub" x="379" y="81.5" text-anchor="middle">réactions</text><rect class="box" x="512" y="40" width="230" height="62" rx="3"/><text class="lbl" x="627" y="68.5" text-anchor="middle">templates/</text><text class="sub" x="627" y="81.5" text-anchor="middle">j2</text><rect class="box" x="16" y="118" width="230" height="62" rx="3"/><text class="lbl" x="131" y="146.5" text-anchor="middle">files/</text><text class="sub" x="131" y="159.5" text-anchor="middle">statiques</text><rect class="box" x="264" y="118" width="230" height="62" rx="3"/><text class="lbl" x="379" y="146.5" text-anchor="middle">defaults/ · vars/</text><text class="sub" x="379" y="159.5" text-anchor="middle">variables</text><rect class="box" x="512" y="118" width="230" height="62" rx="3"/><text class="lbl" x="627" y="146.5" text-anchor="middle">meta/</text><text class="sub" x="627" y="159.5" text-anchor="middle">dépendances</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;anatomie d&#39;un rôle : chaque sous-dossier a un rôle conventionnel, et Ansible charge automatiquement le main.yml de chacun quand le rôle est appelé.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A role&#39;s anatomy: each subfolder has a conventional purpose, and Ansible automatically loads each one&#39;s main.yml when the role is invoked.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer un <strong>squelette de rôle</strong> avec <code>ansible-galaxy init</code> et comprendre chaque dossier.</p>
+<p><strong>🤔 Pourquoi <code>init</code> plutôt que créer les dossiers à la main ?</strong> Parce que la structure est <strong>conventionnelle</strong> : Ansible cherche <code>tasks/main.yml</code>, <code>handlers/main.yml</code>, etc. à des chemins précis. <code>init</code> te donne la structure exacte, tu ne risques pas une faute de frappe qui ferait qu&#39;un rôle « ne trouve pas ses tâches ».</p>
+<p>Crée le projet et le rôle :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate a <strong>role skeleton</strong> with <code>ansible-galaxy init</code> and understand each folder.</p>
+<p><strong>🤔 Why <code>init</code> rather than making folders by hand?</strong> Because the structure is <strong>conventional</strong>: Ansible looks for <code>tasks/main.yml</code>, <code>handlers/main.yml</code>, etc. at precise paths. <code>init</code> gives you the exact structure, no typo that would make a role &quot;not find its tasks&quot;.</p>
+<p>Create the project and the role:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/ansible-roles &amp;&amp; cd ~/ansible-roles
+ansible-galaxy init roles/appli
+find roles/appli -maxdepth 2 -type f | sort</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>find</code> montre l&#39;arborescence conventionnelle du rôle <code>appli</code> :</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>roles/appli/README.md
+roles/appli/defaults/main.yml
+roles/appli/handlers/main.yml
+roles/appli/meta/main.yml
+roles/appli/tasks/main.yml
+roles/appli/tests/inventory
+roles/appli/tests/test.yml
+roles/appli/vars/main.yml</code></pre>
+<p>Les dossiers <code>files/</code> et <code>templates/</code> sont créés <strong>vides</strong> (d&#39;où leur absence dans un <code>find -type f</code>), et <code>init</code> ajoute un dossier <code>tests/</code> (un mini-inventaire + un playbook de test). L&#39;arborescence exacte peut varier d&#39;une version d&#39;ansible-core à l&#39;autre — ce qui compte, c&#39;est la présence des <code>main.yml</code> par dossier.</p>
+<p>Chaque <code>main.yml</code> est le point d&#39;entrée que charge Ansible quand le rôle est appelé. <code>defaults/</code> (surchargeable) et <code>vars/</code> (fort) sont deux fichiers <strong>distincts</strong> — retiens la différence, elle tombe à l&#39;examen.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>find</code> shows the conventional tree of the <code>appli</code> role:</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>roles/appli/README.md
+roles/appli/defaults/main.yml
+roles/appli/handlers/main.yml
+roles/appli/meta/main.yml
+roles/appli/tasks/main.yml
+roles/appli/tests/inventory
+roles/appli/tests/test.yml
+roles/appli/vars/main.yml</code></pre>
+<p>The <code>files/</code> and <code>templates/</code> folders are created <strong>empty</strong> (hence their absence from a <code>find -type f</code>), and <code>init</code> adds a <code>tests/</code> folder (a mini-inventory + a test playbook). The exact tree may vary from one ansible-core version to another — what matters is the presence of each folder&#39;s <code>main.yml</code>.</p>
+<p>Each <code>main.yml</code> is the entry point Ansible loads when the role is called. <code>defaults/</code> (overridable) and <code>vars/</code> (strong) are two <strong>distinct</strong> files — remember the difference, it shows up on the exam.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Remplir</strong> le rôle <code>appli</code> (defaults, template, tâches, handler) et l&#39;appeler depuis un <code>site.yml</code>.</p>
+<p><strong>🤔 Le geste clé.</strong> Un rôle bien fait expose ses réglages en <code>defaults/</code>, met sa logique en <code>tasks/</code>, ses gabarits en <code>templates/</code>, et réagit via <code>handlers/</code>. On garde le rôle <strong>file-based</strong> (écrit dans <code>/tmp/appli</code>) pour le tester partout sans installer de paquet.</p>
+<p>Écris les quatre fichiers du rôle :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Fill</strong> the <code>appli</code> role (defaults, template, tasks, handler) and call it from a <code>site.yml</code>.</p>
+<p><strong>🤔 The key move.</strong> A well-made role exposes its settings in <code>defaults/</code>, puts its logic in <code>tasks/</code>, its templates in <code>templates/</code>, and reacts via <code>handlers/</code>. We keep the role <strong>file-based</strong> (writes into <code>/tmp/appli</code>) to test it anywhere without installing a package.</p>
+<p>Write the role&#39;s four files:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/appli/defaults/main.yml
+appli_port: 8080
+appli_message: &quot;Bonjour depuis le rôle appli&quot;
+appli_dir: /tmp/appli</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/appli/tasks/main.yml
+- name: Créer le dossier de l&#39;appli
+  ansible.builtin.file:
+    path: &quot;{{ appli_dir }}&quot;
+    state: directory
+
+- name: Déposer la config depuis le template
+  ansible.builtin.template:
+    src: appli.conf.j2
+    dest: &quot;{{ appli_dir }}/appli.conf&quot;
+  notify: Recharger appli</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# roles/appli/templates/appli.conf.j2 #}
+# Généré par le rôle appli
+message = {{ appli_message }}
+port = {{ appli_port }}</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/appli/handlers/main.yml
+- name: Recharger appli
+  ansible.builtin.debug:
+    msg: &quot;&gt;&gt;&gt; handler du rôle : je recharge l&#39;appli sur le port {{ appli_port }} &lt;&lt;&lt;&quot;</code></pre>
+<div data-lang="fr"><p>Puis, à la racine du projet, un <code>site.yml</code> qui <strong>utilise</strong> le rôle :</p>
+</div>
+<div data-lang="en"><p>Then, at the project root, a <code>site.yml</code> that <strong>uses</strong> the role:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-roles/site.yml
+- name: Déployer l&#39;appli
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - appli</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook site.yml
+cat /tmp/appli/appli.conf</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au 1er passage, tu vois <code>TASK [appli : Créer le dossier...]</code> et <code>[appli : Déposer la config...]</code> (le préfixe <code>appli :</code> prouve que ça vient du rôle), puis en fin de play <code>RUNNING HANDLER [appli : Recharger appli]</code>. <code>/tmp/appli/appli.conf</code> contient <code>message = Bonjour depuis le rôle appli</code> et <code>port = 8080</code> (les valeurs de <code>defaults/</code>). Relance : les tâches passent <code>ok</code>, le handler ne se déclenche pas (idempotence).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the 1st pass, you see <code>TASK [appli : Créer le dossier...]</code> and <code>[appli : Déposer la config...]</code> (the <code>appli :</code> prefix proves it comes from the role), then at end of play <code>RUNNING HANDLER [appli : Recharger appli]</code>. <code>/tmp/appli/appli.conf</code> contains <code>message = Bonjour depuis le rôle appli</code> and <code>port = 8080</code> (the <code>defaults/</code> values). Rerun: tasks go <code>ok</code>, the handler doesn&#39;t fire (idempotence).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Surcharger</strong> un <code>defaults</code> proprement, et voir que <code>vars/</code> du rôle, lui, résiste.</p>
+<p><strong>🤔 Le piège d&#39;examen.</strong> <code>defaults/</code> est <strong>le niveau le plus faible</strong> : tout le surcharge (vars du play, host_vars, <code>-e</code>). <code>vars/</code> du rôle est <strong>fort</strong> : un simple <code>vars:</code> de play ne le bat pas. On te demandera de « paramétrer un rôle » : la bonne réponse est de surcharger un <strong>default</strong>, pas de toucher au rôle.</p>
+<p>Surcharge <code>appli_port</code> depuis le play, puis teste <code>-e</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Override</strong> a <code>defaults</code> cleanly, and see that the role&#39;s <code>vars/</code> resists.</p>
+<p><strong>🤔 Exam trap.</strong> <code>defaults/</code> is <strong>the weakest level</strong>: everything overrides it (play vars, host_vars, <code>-e</code>). A role&#39;s <code>vars/</code> is <strong>strong</strong>: a plain play <code>vars:</code> doesn&#39;t beat it. You&#39;ll be asked to &quot;parameterize a role&quot;: the right answer is to override a <strong>default</strong>, not to touch the role.</p>
+<p>Override <code>appli_port</code> from the play, then test <code>-e</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># site.yml — variante avec surcharge / variant with override
+- name: Déployer l&#39;appli
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    appli_port: 9090        # surcharge le default (8080) / overrides the default (8080)
+  roles:
+    - appli</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook site.yml                 # port = 9090 (vars du play battent le default)
+ansible-playbook site.yml -e appli_port=7000   # port = 7000 (-e bat tout)
+cat /tmp/appli/appli.conf</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sans <code>-e</code>, <code>appli.conf</code> montre <code>port = 9090</code> — le <code>vars:</code> du play a battu le <code>default</code> (8080). Avec <code>-e appli_port=7000</code>, il montre <code>port = 7000</code> — extra-vars gagne, comme toujours. Le rôle n&#39;a <strong>pas</strong> été modifié : tu l&#39;as paramétré de l&#39;extérieur, exactement ce qu&#39;on attend d&#39;un composant réutilisable.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> without <code>-e</code>, <code>appli.conf</code> shows <code>port = 9090</code> — the play <code>vars:</code> beat the <code>default</code> (8080). With <code>-e appli_port=7000</code>, it shows <code>port = 7000</code> — extra-vars wins, as always. The role was <strong>not</strong> modified: you parameterized it from outside, exactly what&#39;s expected of a reusable component.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter une <strong>dépendance de rôle</strong> — <code>appli</code> dépend d&#39;un rôle <code>commun</code> qui doit tourner <strong>avant</strong>.</p>
+<p><strong>🤔 À quoi ça sert ?</strong> À garantir un ordre : « avant de déployer l&#39;appli, pose toujours la base commune (utilisateur applicatif, dossier racine, réglages système) ». La dépendance vit dans <code>meta/main.yml</code> et Ansible exécute le rôle dépendant <strong>en premier</strong>, automatiquement.</p>
+<p>Crée le rôle <code>commun</code>, puis déclare-le en dépendance de <code>appli</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Add a <strong>role dependency</strong> — <code>appli</code> depends on a <code>commun</code> role that must run <strong>before</strong>.</p>
+<p><strong>🤔 What&#39;s it for?</strong> To guarantee ordering: &quot;before deploying the app, always lay the common base (app user, root folder, system settings)&quot;. The dependency lives in <code>meta/main.yml</code> and Ansible runs the dependency role <strong>first</strong>, automatically.</p>
+<p>Create the <code>commun</code> role, then declare it as a dependency of <code>appli</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-galaxy init roles/commun</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/commun/tasks/main.yml
+- name: Poser un marqueur de base commune
+  ansible.builtin.copy:
+    dest: /tmp/appli-base.txt
+    content: &quot;base commune posée\n&quot;</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/appli/meta/main.yml  (remplace le bloc dependencies vide)
+dependencies:
+  - role: commun</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook site.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans la sortie, la tâche <code>TASK [commun : Poser un marqueur...]</code> s&#39;exécute <strong>avant</strong> les tâches de <code>appli</code> — c&#39;est l&#39;ordre imposé par la dépendance, sans que tu l&#39;aies listée dans <code>roles:</code>. Le fichier <code>/tmp/appli-base.txt</code> existe. ⚠️ Attention : le <code>meta/main.yml</code> généré par <code>init</code> contient <strong>déjà</strong> une ligne <code>dependencies: []</code> (vide) au niveau racine, en plus du bloc <code>galaxy_info</code>. <strong>Remplace</strong> cette ligne vide par ton bloc <code>dependencies:</code> — n&#39;en ajoute <strong>pas</strong> un second, sinon tu obtiens un avertissement <code>Found duplicate mapping key &#39;dependencies&#39;</code> et un comportement fragile.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in the output, the <code>TASK [commun : Poser un marqueur...]</code> task runs <strong>before</strong> <code>appli</code>&#39;s tasks — the order imposed by the dependency, without you listing it in <code>roles:</code>. The <code>/tmp/appli-base.txt</code> file exists. ⚠️ Careful: the <code>meta/main.yml</code> generated by <code>init</code> <strong>already</strong> contains a (empty) <code>dependencies: []</code> line at root level, besides the <code>galaxy_info</code> block. <strong>Replace</strong> that empty line with your <code>dependencies:</code> block — do <strong>not</strong> add a second one, otherwise you get a <code>Found duplicate mapping key &#39;dependencies&#39;</code> warning and fragile behavior.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Appeler un rôle avec <strong><code>import_role</code></strong> (statique) et <strong><code>include_role</code></strong> (dynamique) depuis les <code>tasks:</code>.</p>
+<p><strong>🤔 La vraie différence.</strong> <code>roles:</code> (en tête de play) et <code>import_role</code> sont <strong>statiques</strong> : Ansible les résout au parsing, avant d&#39;exécuter. <code>include_role</code> est <strong>dynamique</strong> : résolu à l&#39;exécution — donc le seul qui marche dans une <strong>boucle</strong> ou derrière un <code>when</code> qui dépend d&#39;une variable calculée. À l&#39;examen, si tu veux « appliquer un rôle seulement si une condition runtime », c&#39;est <code>include_role</code>.</p>
+<p>Crée <code>flexible.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Call a role with <strong><code>import_role</code></strong> (static) and <strong><code>include_role</code></strong> (dynamic) from <code>tasks:</code>.</p>
+<p><strong>🤔 The real difference.</strong> <code>roles:</code> (play header) and <code>import_role</code> are <strong>static</strong>: Ansible resolves them at parse time, before running. <code>include_role</code> is <strong>dynamic</strong>: resolved at run time — so the only one that works in a <strong>loop</strong> or behind a <code>when</code> that depends on a computed variable. On the exam, if you want to &quot;apply a role only if a runtime condition&quot;, it&#39;s <code>include_role</code>.</p>
+<p>Create <code>flexible.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-roles/flexible.yml
+- name: Import vs include
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    deployer_appli: true
+  tasks:
+    - name: Base commune (import statique, toujours)
+      ansible.builtin.import_role:
+        name: commun
+
+    - name: Appli (include dynamique, conditionnel)
+      ansible.builtin.include_role:
+        name: appli
+      when: deployer_appli | bool</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook flexible.yml                       # les deux rôles s&#39;appliquent
+ansible-playbook flexible.yml -e deployer_appli=false  # seul commun s&#39;applique</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avec les valeurs par défaut, les deux rôles tournent. Avec <code>-e deployer_appli=false</code>, seul <code>commun</code> s&#39;exécute (le bloc <code>include_role</code> de <code>appli</code> est <strong>sauté</strong> par le <code>when</code>). Un détail important : un <code>when</code> sur <code>include_role</code> conditionne l&#39;<strong>inclusion entière</strong> du rôle ; sur <code>import_role</code>, le <code>when</code> serait appliqué à <strong>chaque tâche</strong> du rôle. C&#39;est la nuance statique/dynamique en pratique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> with default values, both roles run. With <code>-e deployer_appli=false</code>, only <code>commun</code> runs (the <code>include_role</code> block of <code>appli</code> is <strong>skipped</strong> by the <code>when</code>). An important detail: a <code>when</code> on <code>include_role</code> conditions the <strong>whole inclusion</strong> of the role; on <code>import_role</code>, the <code>when</code> would be applied to <strong>each task</strong> of the role. That&#39;s the static/dynamic nuance in practice.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>collections</strong> et appeler un module par son <strong>FQCN</strong>.</p>
+<p><strong>🤔 Pourquoi le FQCN ?</strong> Depuis Ansible 2.10, les modules vivent dans des collections. <code>copy</code> seul est ambigu ; <code>ansible.builtin.copy</code> ne l&#39;est pas. Écrire le nom complet est la règle moderne (et une exigence tacite de l&#39;examen : c&#39;est plus lisible et sans collision).</p>
+<p>D&#39;abord, liste ce que tu as déjà, puis (si tu as le réseau) installe une collection :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>collections</strong> and call a module by its <strong>FQCN</strong>.</p>
+<p><strong>🤔 Why the FQCN?</strong> Since Ansible 2.10, modules live in collections. <code>copy</code> alone is ambiguous; <code>ansible.builtin.copy</code> is not. Writing the full name is the modern rule (and a tacit exam requirement: more readable, no collision).</p>
+<p>First, list what you already have, then (if you have network) install a collection:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Ce qui est déjà installé / what&#39;s already installed
+ansible-galaxy collection list | head -n 20
+
+# ansible.builtin est TOUJOURS là (le cœur) / ansible.builtin is ALWAYS there (the core)
+ansible-doc -l ansible.builtin | head -n 5
+
+# Avec réseau : installer une collection communautaire / with network: install a community collection
+ansible-galaxy collection install community.general
+ansible-doc community.general.timezone | head -n 5     # doc d&#39;un module de la collection</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-galaxy collection list</code> liste les collections <strong>installées séparément</strong> ; selon ton install, <code>ansible.builtin</code> peut <strong>ne pas</strong> y figurer (il est embarqué dans ansible-core, pas listé comme collection). Pour prouver qu&#39;il est bien là : <code>ansible-doc -l ansible.builtin</code> affiche ses modules. Sur une install packagée (RPM/paquet <code>ansible</code>), tu verras en plus des collections préinstallées comme <code>community.general</code>, <code>ansible.posix</code>. Tu as utilisé le <strong>FQCN</strong> partout depuis le début de ce track (<code>ansible.builtin.copy</code>, <code>ansible.builtin.template</code>…) — c&#39;est ça, la bonne pratique. <strong>Sans réseau :</strong> saute <code>collection install</code> ; <code>ansible.builtin</code> suffit pour tout ce guide. <strong>Avec réseau :</strong> <code>ansible-galaxy collection install community.general</code> termine par <code>... was installed successfully</code> et <code>ansible-doc community.general.timezone</code> affiche la doc du module.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-galaxy collection list</code> lists <strong>separately installed</strong> collections; depending on your install, <code>ansible.builtin</code> may <strong>not</strong> appear (it&#39;s embedded in ansible-core, not listed as a collection). To prove it&#39;s there: <code>ansible-doc -l ansible.builtin</code> shows its modules. On a packaged install (RPM/<code>ansible</code> package), you&#39;ll also see preinstalled collections like <code>community.general</code>, <code>ansible.posix</code>. You&#39;ve used the <strong>FQCN</strong> everywhere since the start of this track (<code>ansible.builtin.copy</code>, <code>ansible.builtin.template</code>…) — that&#39;s the best practice. <strong>Without network:</strong> skip <code>collection install</code>; <code>ansible.builtin</code> covers this whole guide. <strong>With network:</strong> <code>ansible-galaxy collection install community.general</code> ends with <code>... was installed successfully</code> and <code>ansible-doc community.general.timezone</code> shows the module&#39;s doc.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire un <strong><code>requirements.yml</code></strong> qui déclare rôles <strong>et</strong> collections, et l&#39;installer.</p>
+<p><strong>🤔 Pourquoi c&#39;est central au RHCE.</strong> On te livre un projet ; tu dois installer ses dépendances <strong>de façon reproductible</strong>. Le <code>requirements.yml</code> est le manifeste : quiconque clone le repo lance une commande et obtient exactement les mêmes rôles/collections. Deux syntaxes cohabitent dans le fichier : une clé <code>roles:</code> et une clé <code>collections:</code>.</p>
+<p>Crée <code>requirements.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong><code>requirements.yml</code></strong> declaring roles <strong>and</strong> collections, and install it.</p>
+<p><strong>🤔 Why it&#39;s central to RHCE.</strong> You&#39;re handed a project; you must install its dependencies <strong>reproducibly</strong>. The <code>requirements.yml</code> is the manifest: anyone who clones the repo runs one command and gets exactly the same roles/collections. Two syntaxes coexist in the file: a <code>roles:</code> key and a <code>collections:</code> key.</p>
+<p>Create <code>requirements.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-roles/requirements.yml
+roles:
+  # depuis Galaxy / from Galaxy
+  - name: geerlingguy.ntp
+    version: &quot;2.4.1&quot;
+collections:
+  - name: community.general
+    version: &quot;&gt;=8.0.0&quot;
+  - name: ansible.posix</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Installer les rôles (dans ./roles par défaut si configuré) / install roles
+ansible-galaxy role install -r requirements.yml -p roles/
+
+# Installer les collections / install collections
+ansible-galaxy collection install -r requirements.yml
+
+# Vérifier / verify
+ls roles/ &amp;&amp; ansible-galaxy collection list | grep -E &quot;community.general|ansible.posix&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification (avec réseau) :</strong> <code>ansible-galaxy role install -r requirements.yml -p roles/</code> télécharge <code>geerlingguy.ntp</code> dans <code>roles/</code>, et <code>collection install -r requirements.yml</code> installe <code>community.general</code> et <code>ansible.posix</code>. <code>ls roles/</code> montre <code>appli commun geerlingguy.ntp</code>. <strong>Sans réseau :</strong> l&#39;installation échoue (normal, pas d&#39;accès Galaxy) — mais le <strong>fichier</strong> <code>requirements.yml</code> est l&#39;essentiel à savoir écrire pour l&#39;examen. Retiens la structure : deux clés <code>roles:</code> et <code>collections:</code>, chacune avec <code>name</code> et éventuellement <code>version</code>. C&#39;est le manifeste de dépendances que tout projet Ansible sérieux embarque.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check (with network):</strong> <code>ansible-galaxy role install -r requirements.yml -p roles/</code> downloads <code>geerlingguy.ntp</code> into <code>roles/</code>, and <code>collection install -r requirements.yml</code> installs <code>community.general</code> and <code>ansible.posix</code>. <code>ls roles/</code> shows <code>appli commun geerlingguy.ntp</code>. <strong>Without network:</strong> installation fails (normal, no Galaxy access) — but the <strong>file</strong> <code>requirements.yml</code> is the essential thing to know how to write for the exam. Remember the structure: two keys <code>roles:</code> and <code>collections:</code>, each with <code>name</code> and optionally <code>version</code>. It&#39;s the dependency manifest every serious Ansible project ships.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Mettre une variable paramétrable dans <code>vars/</code> du rôle.</strong> <code>vars/</code> est <strong>fort</strong> : l&#39;utilisateur ne peut plus la surcharger simplement. Les réglages destinés à être changés vont dans <strong><code>defaults/</code></strong> (le niveau le plus faible). Erreur de conception classique.</p>
+<p><strong>2. Oublier le FQCN.</strong> <code>copy:</code> peut marcher par « collection search path », mais c&#39;est fragile. Écris <strong>toujours</strong> <code>ansible.builtin.copy</code>. Deux collections peuvent avoir un module du même nom.</p>
+<p><strong>3. Dupliquer <code>dependencies:</code> dans <code>meta/main.yml</code>.</strong> Le fichier généré contient <strong>déjà</strong> un <code>dependencies: []</code> au niveau racine. <strong>Remplace-le</strong> — si tu en ajoutes un second, tu obtiens <code>Found duplicate mapping key</code> (et si ton bloc est placé au-dessus du <code>[]</code>, la dépendance est silencieusement ignorée). Garde-le toujours au niveau racine (colonne 0), jamais sous <code>galaxy_info:</code>.</p>
+<p><strong>4. Attendre qu&#39;<code>include_role</code> se comporte comme <code>import_role</code>.</strong> Un <code>when</code> sur <code>import_role</code> s&#39;applique à <strong>chaque tâche</strong> du rôle ; sur <code>include_role</code>, il conditionne <strong>toute l&#39;inclusion</strong>. Et seul <code>include_role</code> marche dans un <code>loop</code>.</p>
+<p><strong>5. <code>ansible-galaxy install</code> pour une collection.</strong> <code>ansible-galaxy install -r ...</code> gère les <strong>rôles</strong> ; les collections, c&#39;est <code>ansible-galaxy collection install -r ...</code>. Deux sous-commandes distinctes (même si <code>requirements.yml</code> peut contenir les deux).</p>
+<p><strong>6. Chemins de rôles non trouvés.</strong> Ansible cherche les rôles dans <code>roles/</code> <strong>relatif au playbook</strong>, puis dans <code>roles_path</code> (config). Si <code>site.yml</code> ne « voit » pas ton rôle, vérifie que <code>roles/&lt;nom&gt;/</code> est bien à côté du playbook, ou configure <code>roles_path</code> dans <code>ansible.cfg</code>.</p>
+<p><strong>7. Croire que <code>roles:</code> et <code>tasks:</code> s&#39;exécutent dans l&#39;ordre écrit.</strong> Les rôles listés sous <code>roles:</code> tournent <strong>avant</strong> les <code>tasks:</code> du même play (sauf <code>pre_tasks</code>/<code>post_tasks</code>). Si tu veux un ordre précis mêlant tâches et rôles, utilise <code>import_role</code>/<code>include_role</code> <strong>dans</strong> <code>tasks:</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Putting a parameterizable variable in the role&#39;s <code>vars/</code>.</strong> <code>vars/</code> is <strong>strong</strong>: the user can no longer simply override it. Settings meant to change go in <strong><code>defaults/</code></strong> (the weakest level). Classic design mistake.</p>
+<p><strong>2. Forgetting the FQCN.</strong> <code>copy:</code> may work via &quot;collection search path&quot;, but it&#39;s fragile. <strong>Always</strong> write <code>ansible.builtin.copy</code>. Two collections can have a same-named module.</p>
+<p><strong>3. Duplicating <code>dependencies:</code> in <code>meta/main.yml</code>.</strong> The generated file <strong>already</strong> contains a root-level <code>dependencies: []</code>. <strong>Replace it</strong> — if you add a second one, you get <code>Found duplicate mapping key</code> (and if your block sits above the <code>[]</code>, the dependency is silently ignored). Always keep it at root level (column 0), never under <code>galaxy_info:</code>.</p>
+<p><strong>4. Expecting <code>include_role</code> to behave like <code>import_role</code>.</strong> A <code>when</code> on <code>import_role</code> applies to <strong>each task</strong> of the role; on <code>include_role</code>, it conditions <strong>the whole inclusion</strong>. And only <code>include_role</code> works in a <code>loop</code>.</p>
+<p><strong>5. <code>ansible-galaxy install</code> for a collection.</strong> <code>ansible-galaxy install -r ...</code> handles <strong>roles</strong>; collections are <code>ansible-galaxy collection install -r ...</code>. Two distinct subcommands (even if <code>requirements.yml</code> can hold both).</p>
+<p><strong>6. Role paths not found.</strong> Ansible looks for roles in <code>roles/</code> <strong>relative to the playbook</strong>, then in <code>roles_path</code> (config). If <code>site.yml</code> doesn&#39;t &quot;see&quot; your role, check <code>roles/&lt;name&gt;/</code> sits next to the playbook, or set <code>roles_path</code> in <code>ansible.cfg</code>.</p>
+<p><strong>7. Thinking <code>roles:</code> and <code>tasks:</code> run in written order.</strong> Roles listed under <code>roles:</code> run <strong>before</strong> the same play&#39;s <code>tasks:</code> (except <code>pre_tasks</code>/<code>post_tasks</code>). For a precise order mixing tasks and roles, use <code>import_role</code>/<code>include_role</code> <strong>inside</strong> <code>tasks:</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu génères un rôle avec <code>ansible-galaxy init</code> et tu nommes chaque dossier.</li><li>Tu remplis <code>defaults/</code>, <code>tasks/</code>, <code>templates/</code>, <code>handlers/</code> et tu appelles le rôle avec <code>roles:</code>.</li><li>Tu surcharges un <code>default</code> depuis le play et avec <code>-e</code>, et tu sais pourquoi <code>vars/</code> résiste.</li><li>Une dépendance <code>meta/main.yml</code> fait tourner un rôle <strong>avant</strong> un autre.</li><li>Tu choisis <code>import_role</code> (statique) vs <code>include_role</code> (dynamique) à bon escient.</li><li>Tu appelles tes modules en <strong>FQCN</strong> et tu listes tes collections.</li><li>Tu écris un <code>requirements.yml</code> avec <code>roles:</code> <strong>et</strong> <code>collections:</code>.</li></ul>
+<p>Sept cases = ton code Ansible est factorisé et distribuable. La suite : chiffrer les secrets avec Vault.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You generate a role with <code>ansible-galaxy init</code> and name each folder.</li><li>You fill <code>defaults/</code>, <code>tasks/</code>, <code>templates/</code>, <code>handlers/</code> and call the role with <code>roles:</code>.</li><li>You override a <code>default</code> from the play and with <code>-e</code>, and know why <code>vars/</code> resists.</li><li>A <code>meta/main.yml</code> dependency runs one role <strong>before</strong> another.</li><li>You choose <code>import_role</code> (static) vs <code>include_role</code> (dynamic) wisely.</li><li>You call your modules in <strong>FQCN</strong> and list your collections.</li><li>You write a <code>requirements.yml</code> with <code>roles:</code> <strong>and</strong> <code>collections:</code>.</li></ul>
+<p>Seven boxes = your Ansible code is factored and distributable. Next up: encrypt secrets with Vault.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track RHCE :</p>
+<ol><li><strong>Ansible — Vault</strong> : chiffrer les variables et fichiers sensibles (<code>ansible-vault</code>), <code>encrypt_string</code>, vault-id, fichier de mot de passe — pour que tes rôles versionnés ne fuitent aucun secret.</li><li>Plus loin : administration système par modules, puis le <strong>projet d&#39;entreprise</strong> RHCE qui assemble rôles, templates, Vault et inventaire.</li></ol>
+</div>
+<div data-lang="en"><p>The RHCE track continues:</p>
+<ol><li><strong>Ansible — Vault</strong>: encrypt sensitive variables and files (<code>ansible-vault</code>), <code>encrypt_string</code>, vault-id, password file — so your versioned roles leak no secret.</li><li>Further along: system administration via modules, then the RHCE <strong>enterprise project</strong> assembling roles, templates, Vault and inventory.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-vault/">
+    <span class="num">25</span>
+    <span class="title-line" data-lang="fr">Ansible — Vault : chiffrer les secrets</span>
+    <span class="title-line" data-lang="en">Ansible — Vault: encrypting secrets</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire rôles &amp; collections.</p>
+</div>
+<div data-lang="en"><p>Roles &amp; collections cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Rôles / Roles
+ansible-galaxy init roles/monrole          # squelette / scaffold
+ansible-galaxy role list                    # rôles installés / installed roles
+ansible-galaxy role install -r requirements.yml -p roles/
+
+# Collections
+ansible-galaxy collection list              # collections installées / installed
+ansible-galaxy collection install community.general
+ansible-galaxy collection install -r requirements.yml
+
+# Doc &amp; FQCN
+ansible-doc -l ansible.builtin              # modules d&#39;une collection / a collection&#39;s modules
+ansible-doc ansible.builtin.template        # doc d&#39;un module / a module&#39;s doc</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># Utiliser un rôle / use a role
+- hosts: web
+  roles:
+    - appli                 # import statique en tête de play / static import
+  tasks:
+    - ansible.builtin.import_role:  { name: commun }   # statique / static
+    - ansible.builtin.include_role: { name: appli }    # dynamique (loop, when) / dynamic
+      when: condition_runtime
+
+# meta/main.yml — dépendances (au niveau racine !) / dependencies (root level!)
+dependencies:
+  - role: commun
+
+# requirements.yml
+roles:
+  - name: geerlingguy.ntp
+    version: &quot;2.4.1&quot;
+collections:
+  - name: community.general
+  - name: ansible.posix</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html">Rôles Ansible</a> — structure, <code>roles:</code>, <code>import</code>/<code>include</code>, dépendances.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse.html">Réutiliser (import vs include)</a> — statique vs dynamique.</li><li><a href="https://docs.ansible.com/ansible/latest/collections_guide/collections_using_playbooks.html">Utiliser les collections</a> — FQCN, <code>collections:</code>, recherche.</li><li><a href="https://docs.ansible.com/ansible/latest/galaxy/user_guide.html">Installer contenu depuis Galaxy</a> — <code>ansible-galaxy</code>, <code>requirements.yml</code>.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html">Ansible roles</a> — structure, <code>roles:</code>, <code>import</code>/<code>include</code>, dependencies.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse.html">Re-using (import vs include)</a> — static vs dynamic.</li><li><a href="https://docs.ansible.com/ansible/latest/collections_guide/collections_using_playbooks.html">Using collections</a> — FQCN, <code>collections:</code>, search.</li><li><a href="https://docs.ansible.com/ansible/latest/galaxy/user_guide.html">Installing content from Galaxy</a> — <code>ansible-galaxy</code>, <code>requirements.yml</code>.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>ERROR! the role &#39;appli&#39; was not found</code>.</strong> Ansible ne trouve pas le rôle. Vérifie que <code>roles/appli/</code> est <strong>à côté</strong> du playbook, ou configure <code>roles_path = roles</code> dans <code>ansible.cfg</code>. Le nom sous <code>roles:</code> doit correspondre au <strong>nom du dossier</strong>.</p>
+<p><strong>Ma dépendance ne s&#39;exécute pas.</strong> <code>dependencies:</code> est probablement indenté sous <code>galaxy_info:</code> dans <code>meta/main.yml</code>. Remets-le au niveau racine (colonne 0).</p>
+<p><strong>Le <code>when</code> sur mon rôle importé filtre chaque tâche, pas le rôle entier.</strong> C&#39;est le comportement d&#39;<code>import_role</code> (statique). Pour conditionner l&#39;inclusion complète, utilise <code>include_role</code>.</p>
+<p><strong><code>ansible-galaxy collection install</code> échoue en réseau.</strong> Vérifie l&#39;accès à <code>galaxy.ansible.com</code> (proxy, DNS). Sans réseau, <code>ansible.builtin</code> reste disponible pour tout ce guide.</p>
+<p><strong>Une variable de <code>defaults/</code> n&#39;est pas prise en compte.</strong> Elle est peut-être surchargée plus haut (group_vars, host_vars, <code>-e</code>). Rappelle-toi : <code>defaults/</code> est le niveau <strong>le plus faible</strong>. Trace avec <code>ansible-playbook ... -e</code> ou un <code>debug</code>.</p>
+<p><strong><code>ansible-galaxy role install -r</code> ne trouve pas les collections.</strong> Normal : cette sous-commande n&#39;installe que les <strong>rôles</strong>. Lance en plus <code>ansible-galaxy collection install -r requirements.yml</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>ERROR! the role &#39;appli&#39; was not found</code>.</strong> Ansible can&#39;t find the role. Check that <code>roles/appli/</code> sits <strong>next to</strong> the playbook, or set <code>roles_path = roles</code> in <code>ansible.cfg</code>. The name under <code>roles:</code> must match the <strong>folder name</strong>.</p>
+<p><strong>My dependency doesn&#39;t run.</strong> <code>dependencies:</code> is probably indented under <code>galaxy_info:</code> in <code>meta/main.yml</code>. Move it to root level (column 0).</p>
+<p><strong>The <code>when</code> on my imported role filters each task, not the whole role.</strong> That&#39;s <code>import_role</code>&#39;s (static) behavior. To condition the whole inclusion, use <code>include_role</code>.</p>
+<p><strong><code>ansible-galaxy collection install</code> fails on network.</strong> Check access to <code>galaxy.ansible.com</code> (proxy, DNS). Without network, <code>ansible.builtin</code> stays available for this whole guide.</p>
+<p><strong>A <code>defaults/</code> variable isn&#39;t taken into account.</strong> It&#39;s probably overridden higher up (group_vars, host_vars, <code>-e</code>). Remember: <code>defaults/</code> is the <strong>weakest</strong> level. Trace with <code>ansible-playbook ... -e</code> or a <code>debug</code>.</p>
+<p><strong><code>ansible-galaxy role install -r</code> doesn&#39;t find the collections.</strong> Normal: that subcommand installs only <strong>roles</strong>. Additionally run <code>ansible-galaxy collection install -r requirements.yml</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

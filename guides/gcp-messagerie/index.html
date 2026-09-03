@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">GCP — messagerie Pub/Sub : découplage &amp; événementiel — jiha.tech</title>
+  <title data-lang="en">GCP — Pub/Sub messaging: decoupling &amp; event-driven — jiha.tech</title>
+  <meta name="description" content="Pub/Sub en profondeur pour l&#39;ACE, entièrement sur l&#39;émulateur officiel : sujets et abonnements, fan-out (un événement, plusieurs consommateurs), pull vs push, accusés de réception (ack/nack) et redistribution, attributs de message et filtres d&#39;abonnement, clés d&#39;ordre, et dead-letter. Le cœur événementiel de GCP, testé en local, sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Pub/Sub in depth for ACE, fully on the official emulator: topics and subscriptions, fan-out (one event, many consumers), pull vs push, acknowledgements (ack/nack) and redelivery, message attributes and subscription filters, ordering keys, and dead-letter. GCP&#39;s event-driven core, tested locally, no account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="GCP — messagerie Pub/Sub : découplage &amp; événementiel">
+  <meta property="og:description" content="Pub/Sub en profondeur pour l&#39;ACE, entièrement sur l&#39;émulateur officiel : sujets et abonnements, fan-out (un événement, plusieurs consommateurs), pull vs push, accusés de réception (ack/nack) et redistribution, attributs de message et filtres d&#39;abonnement, clés d&#39;ordre, et dead-letter. Le cœur événementiel de GCP, testé en local, sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/gcp-messagerie/">
+  <link rel="canonical" href="https://jiha.tech/guides/gcp-messagerie/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="gcp-messagerie">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/gcp-messagerie</div>
+    <div class="prompt" data-lang="en">~/guides/gcp-messagerie</div>
+    <h1 data-lang="fr">GCP — messagerie Pub/Sub : découplage &amp; événementiel</h1>
+    <h1 data-lang="en">GCP — Pub/Sub messaging: decoupling &amp; event-driven</h1>
+    <p class="tagline" data-lang="fr">sujets, abonnements, ack/nack, filtres, ordre, dead-letter.</p>
+    <p class="tagline" data-lang="en">topics, subscriptions, ack/nack, filters, ordering, dead-letter.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-20</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-20</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Une application moderne n&#39;est pas un bloc : c&#39;est un <strong>ensemble de services</strong> qui doivent se parler <strong>sans se bloquer</strong>. Quand une commande est passée, il faut débiter le stock, envoyer un e-mail, mettre à jour l&#39;analytique… si chaque étape attend la précédente, tout s&#39;effondre à la première lenteur. La solution : la <strong>messagerie asynchrone</strong>, et sur GCP elle a un nom — <strong>Pub/Sub</strong>. L&#39;examen <strong>Associate Cloud Engineer</strong> en fait un pilier de son domaine « déployer et opérer ».</p>
+<p>Tu as créé ton premier sujet au guide <em>fondamentaux</em> (publier → tirer → acquitter). Ici, on va <strong>en profondeur</strong>, et <strong>tout est live</strong> sur l&#39;émulateur officiel : le <strong>fan-out</strong> (un événement, plusieurs consommateurs indépendants — comme <strong>SNS+SQS réunis</strong> chez AWS), les modes <strong>pull et push</strong>, les <strong>accusés de réception</strong> (<code>ack</code>/<code>nack</code>) et la <strong>redistribution</strong> d&#39;un message non traité, les <strong>attributs</strong> de message et les <strong>filtres</strong> d&#39;abonnement, les <strong>clés d&#39;ordre</strong>, et enfin le <strong>dead-letter</strong> (que faire des messages « empoisonnés »).</p>
+<p>Bonne nouvelle labo : l&#39;émulateur Pub/Sub de Google est <strong>remarquablement complet</strong>. Fan-out, filtres, redistribution, ordre, politique de dead-letter — tout se pilote <strong>pour de vrai</strong> en local, via la <strong>bibliothèque cliente</strong> Python (l&#39;émulateur ne se pilote pas par <code>gcloud pubsub</code>, qui vise toujours le vrai GCP). Une seule nuance signalée au fil du texte : le <strong>routage effectif</strong> vers le dead-letter, qui dépend d&#39;un long cycle de redistributions, se <strong>conceptualise</strong> ici (on crée la politique en live, on la relit).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as monté le labo local (guide <em>fondamentaux</em>) et tu veux maîtriser l&#39;événementiel GCP.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Ton labo n&#39;est pas monté (émulateurs éteints) → refais l&#39;étape « labo local » de <em>fondamentaux</em>.</li><li>Tu cherches une <strong>file de tâches</strong> stricte façon Celery/RabbitMQ maison → Pub/Sub couvre le besoin, mais l&#39;angle ici est <strong>cloud/ACE</strong>, pas l&#39;ops d&#39;un broker auto-hébergé.</li></ul>
+</div>
+<div data-lang="en"><p>A modern application isn&#39;t one block: it&#39;s a <strong>set of services</strong> that must talk to each other <strong>without blocking</strong>. When an order is placed, you must debit stock, send an email, update analytics… if each step waits for the previous one, everything collapses at the first slowdown. The fix: <strong>asynchronous messaging</strong>, and on GCP it has a name — <strong>Pub/Sub</strong>. The <strong>Associate Cloud Engineer</strong> exam makes it a pillar of its &quot;deploy and operate&quot; domain.</p>
+<p>You created your first topic in the <em>fundamentals</em> guide (publish → pull → acknowledge). Here we go <strong>deep</strong>, and <strong>everything is live</strong> on the official emulator: <strong>fan-out</strong> (one event, many independent consumers — like <strong>SNS+SQS combined</strong> on AWS), the <strong>pull and push</strong> modes, <strong>acknowledgements</strong> (<code>ack</code>/<code>nack</code>) and <strong>redelivery</strong> of an unprocessed message, message <strong>attributes</strong> and subscription <strong>filters</strong>, <strong>ordering keys</strong>, and finally <strong>dead-letter</strong> (what to do with &quot;poison&quot; messages).</p>
+<p>Lab good news: Google&#39;s Pub/Sub emulator is <strong>remarkably complete</strong>. Fan-out, filters, redelivery, ordering, dead-letter policy — all driven <strong>for real</strong> locally, via the Python <strong>client library</strong> (the emulator isn&#39;t driven by <code>gcloud pubsub</code>, which always targets real GCP). One nuance flagged throughout: the <strong>actual routing</strong> to dead-letter, which depends on a long redelivery cycle, is <strong>conceptualized</strong> here (we create the policy live and read it back).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve set up the local lab (<em>fundamentals</em> guide) and want to master GCP event-driven messaging.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>Your lab isn&#39;t up (emulators off) → redo the &quot;local lab&quot; step of <em>fundamentals</em>.</li><li>You want a strict <strong>task queue</strong> à la home-grown Celery/RabbitMQ → Pub/Sub covers it, but the angle here is <strong>cloud/ACE</strong>, not operating a self-hosted broker.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer un <strong>sujet</strong> et plusieurs <strong>abonnements</strong>, et expliquer le <strong>fan-out</strong>.</li><li>Distinguer les abonnements <strong>pull</strong> et <strong>push</strong> (et quand choisir chacun).</li><li>Gérer les <strong>accusés de réception</strong> : <code>ack</code>, <code>nack</code>, délai d&#39;accusé, <strong>redistribution</strong>.</li><li>Publier des <strong>attributs</strong> et <strong>filtrer</strong> un abonnement dessus.</li><li>Garantir l&#39;<strong>ordre</strong> avec une <strong>clé d&#39;ordre</strong>.</li><li>Configurer une politique de <strong>dead-letter</strong> et de <strong>nouvelle tentative</strong>.</li><li>Reconnaître le <strong>pattern événementiel</strong> et l&#39;appliquer.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create a <strong>topic</strong> and several <strong>subscriptions</strong>, and explain <strong>fan-out</strong>.</li><li>Tell <strong>pull</strong> and <strong>push</strong> subscriptions apart (and when to choose each).</li><li>Handle <strong>acknowledgements</strong>: <code>ack</code>, <code>nack</code>, ack deadline, <strong>redelivery</strong>.</li><li>Publish <strong>attributes</strong> and <strong>filter</strong> a subscription on them.</li><li>Guarantee <strong>ordering</strong> with an <strong>ordering key</strong>.</li><li>Configure a <strong>dead-letter</strong> and <strong>retry</strong> policy.</li><li>Recognize the <strong>event-driven pattern</strong> and apply it.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>GCP fondamentaux</strong> terminé, avec le <strong>labo local qui tourne</strong> (au minimum l&#39;émulateur <strong>Pub/Sub</strong> sur <code>localhost:8085</code>).</li><li>La variable <strong><code>PUBSUB_EMULATOR_HOST=localhost:8085</code></strong> exportée dans ton shell (sinon le client vise le vrai GCP).</li><li>Le client Python <strong><code>google-cloud-pubsub</code></strong> (<code>pip install google-cloud-pubsub</code>).</li><li>Rappel : l&#39;émulateur se pilote par la <strong>bibliothèque cliente</strong>, pas par <code>gcloud pubsub</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>GCP fundamentals</strong> guide done, with the <strong>local lab running</strong> (at minimum the <strong>Pub/Sub</strong> emulator on <code>localhost:8085</code>).</li><li>The variable <strong><code>PUBSUB_EMULATOR_HOST=localhost:8085</code></strong> exported in your shell (otherwise the client targets real GCP).</li><li>The Python client <strong><code>google-cloud-pubsub</code></strong> (<code>pip install google-cloud-pubsub</code>).</li><li>Reminder: the emulator is driven by the <strong>client library</strong>, not by <code>gcloud pubsub</code>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../gcp-fondamentaux/">
+    <span class="num">52</span>
+    <span class="title-line" data-lang="fr">GCP — les fondamentaux, en local</span>
+    <span class="title-line" data-lang="en">GCP — the fundamentals, locally</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le modèle publish/subscribe.</strong> Un <strong>producteur</strong> (publisher) envoie des messages à un <strong>sujet</strong> (topic) sans savoir qui les lira. Des <strong>consommateurs</strong> (subscribers) lisent via des <strong>abonnements</strong> (subscriptions). Producteur et consommateur sont <strong>découplés</strong> : ils ne se connaissent pas, ne s&#39;attendent pas, montent en charge séparément. C&#39;est le cœur de l&#39;asynchrone.</p>
+<p><strong>Sujet et abonnements.</strong> Un <strong>sujet</strong> est un canal nommé. Chaque <strong>abonnement</strong> attaché à ce sujet reçoit <strong>sa propre copie</strong> de chaque message publié après sa création. C&#39;est la clé du <strong>fan-out</strong> : un événement <code>commande.passée</code> → un abonnement <code>facturation</code>, un abonnement <code>email</code>, un abonnement <code>analytique</code>, chacun consomme à son rythme. (Chez AWS, il fallait SNS <strong>et</strong> SQS ; Pub/Sub réunit les deux.)</p>
+<p><strong>Pull vs push.</strong> Un abonnement <strong>pull</strong> : le consommateur <strong>tire</strong> activement les messages (<code>pull</code>) quand il est prêt — idéal pour un worker qui contrôle son débit. Un abonnement <strong>push</strong> : Pub/Sub <strong>pousse</strong> chaque message en <strong>POST HTTPS</strong> vers une URL que tu fournis (un endpoint web, une Cloud Function/Run) — idéal pour du serverless réactif, sans worker à faire tourner.</p>
+<p><strong>Accusé de réception (ack).</strong> Un message tiré n&#39;est <strong>pas</strong> supprimé tout de suite : le consommateur a un <strong>délai d&#39;accusé</strong> (ack deadline) pour le traiter puis l&#39;<strong>acquitter</strong> (<code>ack</code>). S&#39;il acquitte, le message disparaît. S&#39;il <strong>n&#39;acquitte pas</strong> (échec, <code>nack</code>, ou délai dépassé), Pub/Sub le <strong>redistribue</strong> — la livraison est <strong>au moins une fois</strong> (at-least-once). Le consommateur doit donc être <strong>idempotent</strong>.</p>
+<p><strong>Attributs &amp; filtres.</strong> Un message porte des <strong>données</strong> (le corps, en octets) et des <strong>attributs</strong> (paires clé-valeur, ex. <code>region=eu</code>, <code>type=commande</code>). Un abonnement peut déclarer un <strong>filtre</strong> (<code>attributes.type = &quot;commande&quot;</code>) : il ne reçoit <strong>que</strong> les messages correspondants. On trie le flux <strong>à la source</strong>, sans code côté consommateur.</p>
+<p><strong>Clés d&#39;ordre.</strong> Par défaut, Pub/Sub ne garantit <strong>pas</strong> l&#39;ordre (priorité au débit). Si l&#39;ordre compte (événements d&#39;un même compte, d&#39;un même appareil), on publie avec une <strong>clé d&#39;ordre</strong> (<code>ordering_key</code>) : tous les messages d&#39;une même clé sont livrés <strong>dans l&#39;ordre</strong> de publication.</p>
+<p><strong>Dead-letter &amp; retry.</strong> Un message « empoisonné » (qui échoue à chaque tentative) pourrait tourner en boucle. Une politique de <strong>dead-letter</strong> dit : « après N tentatives de livraison, déplace ce message vers un <strong>sujet de rebut</strong> (dead-letter topic) ». On y branche un abonnement de surveillance pour inspecter les échecs. On règle aussi la <strong>politique de nouvelle tentative</strong> (retry, avec back-off).</p>
+</div>
+<div data-lang="en"><p><strong>The publish/subscribe model.</strong> A <strong>publisher</strong> sends messages to a <strong>topic</strong> without knowing who will read them. <strong>Subscribers</strong> read via <strong>subscriptions</strong>. Publisher and subscriber are <strong>decoupled</strong>: they don&#39;t know each other, don&#39;t wait for each other, scale separately. That&#39;s the heart of async.</p>
+<p><strong>Topic and subscriptions.</strong> A <strong>topic</strong> is a named channel. Each <strong>subscription</strong> attached to that topic gets <strong>its own copy</strong> of every message published after it was created. That&#39;s the key to <strong>fan-out</strong>: an <code>order.placed</code> event → a <code>billing</code> subscription, an <code>email</code> subscription, an <code>analytics</code> subscription, each consuming at its own pace. (On AWS you needed SNS <strong>and</strong> SQS; Pub/Sub combines both.)</p>
+<p><strong>Pull vs push.</strong> A <strong>pull</strong> subscription: the consumer actively <strong>pulls</strong> messages (<code>pull</code>) when ready — ideal for a worker controlling its own throughput. A <strong>push</strong> subscription: Pub/Sub <strong>pushes</strong> each message as an <strong>HTTPS POST</strong> to a URL you provide (a web endpoint, a Cloud Function/Run) — ideal for reactive serverless, with no worker to keep running.</p>
+<p><strong>Acknowledgement (ack).</strong> A pulled message is <strong>not</strong> deleted right away: the consumer has an <strong>ack deadline</strong> to process then <strong>acknowledge</strong> it (<code>ack</code>). If it acks, the message is gone. If it <strong>doesn&#39;t ack</strong> (failure, <code>nack</code>, or deadline exceeded), Pub/Sub <strong>redelivers</strong> it — delivery is <strong>at-least-once</strong>. The consumer must therefore be <strong>idempotent</strong>.</p>
+<p><strong>Attributes &amp; filters.</strong> A message carries <strong>data</strong> (the body, in bytes) and <strong>attributes</strong> (key-value pairs, e.g. <code>region=eu</code>, <code>type=order</code>). A subscription can declare a <strong>filter</strong> (<code>attributes.type = &quot;order&quot;</code>): it receives <strong>only</strong> matching messages. You sort the stream <strong>at the source</strong>, with no consumer-side code.</p>
+<p><strong>Ordering keys.</strong> By default, Pub/Sub does <strong>not</strong> guarantee ordering (throughput first). If order matters (events for one account, one device), you publish with an <strong>ordering key</strong> (<code>ordering_key</code>): all messages with the same key are delivered <strong>in</strong> publish order.</p>
+<p><strong>Dead-letter &amp; retry.</strong> A &quot;poison&quot; message (failing every attempt) could loop forever. A <strong>dead-letter</strong> policy says: &quot;after N delivery attempts, move this message to a <strong>dead-letter topic</strong>.&quot; You attach a watch subscription there to inspect failures. You also tune the <strong>retry policy</strong> (with back-off).</p>
+</div>
+
+<figure class="schema" id="figure-gcp-pubsub-fanout">
+  <svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-gcp-pubsub-fanout">
+  <title id="s-gcp-pubsub-fanout">Pub/Sub en fan-out</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Pub/Sub en fan-out</text><path class="arrow" d="M 380 200 L 380 70"/><path class="arrow" d="M 380 200 L 600 200"/><path class="arrow" d="M 380 200 L 380 330"/><path class="arrow" d="M 380 200 L 160 200.00000000000003"/><rect class="box-soft" x="305" y="42" width="150" height="56" rx="3"/><text class="lbl lbl-blue" x="380" y="74" text-anchor="middle">facturation</text><rect class="box-soft" x="525" y="172" width="150" height="56" rx="3"/><text class="lbl lbl-blue" x="600" y="204" text-anchor="middle">email</text><rect class="box-soft" x="305" y="302" width="150" height="56" rx="3"/><text class="lbl lbl-blue" x="380" y="334" text-anchor="middle">analytique</text><rect class="box" x="85" y="172.00000000000003" width="150" height="56" rx="3"/><text class="lbl" x="160" y="197.50000000000003" text-anchor="middle">dead-letter</text><text class="sub" x="160" y="210.50000000000003" text-anchor="middle">après N échecs</text><rect class="box-accent" x="280" y="165" width="200" height="70" rx="3"/><text class="lbl lbl-fill" x="380" y="197.5" text-anchor="middle">Sujet</text><text class="sub sub-fill" x="380" y="210.5" text-anchor="middle">un producteur publie</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Pub/Sub en fan-out : un producteur publie sur un sujet ; chaque abonnement (facturation, email, analytique) reçoit sa propre copie et consomme à son rythme (pull ou push). Un message non acquitté est redistribué ; après N échecs, il part vers le sujet de dead-letter. Producteur et consommateurs restent découplés.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Pub/Sub fan-out: a publisher publishes to a topic; each subscription (billing, email, analytics) gets its own copy and consumes at its own pace (pull or push). An unacked message is redelivered; after N failures, it goes to the dead-letter topic. Publisher and consumers stay decoupled.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>sujet</strong> et <strong>deux abonnements</strong>, et voir le <strong>fan-out</strong> en action — live.</p>
+<p><strong>🤔 Une source, plusieurs consommateurs.</strong> Chaque abonnement reçoit <strong>sa</strong> copie. Publie <strong>un</strong> message sur le sujet <code>commandes</code>, tire-le sur <strong>deux</strong> abonnements (<code>facturation</code>, <code>email</code>) : les deux le reçoivent, indépendamment. C&#39;est ça, le découplage un-vers-plusieurs.</p>
+<p>Crée le sujet, les abonnements, publie et tire des deux côtés :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>topic</strong> and <strong>two subscriptions</strong>, and see <strong>fan-out</strong> in action — live.</p>
+<p><strong>🤔 One source, many consumers.</strong> Each subscription gets <strong>its</strong> copy. Publish <strong>one</strong> message to the <code>commandes</code> topic, pull it from <strong>two</strong> subscriptions (<code>facturation</code>, <code>email</code>): both receive it, independently. That&#39;s one-to-many decoupling.</p>
+<p>Create the topic, the subscriptions, publish and pull from both sides:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># fanout.py
+from google.cloud import pubsub_v1
+projet = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient()
+sub = pubsub_v1.SubscriberClient()
+
+sujet = pub.topic_path(projet, &quot;commandes&quot;)
+fact  = sub.subscription_path(projet, &quot;facturation&quot;)
+email = sub.subscription_path(projet, &quot;email&quot;)
+
+pub.create_topic(request={&quot;name&quot;: sujet})
+sub.create_subscription(request={&quot;name&quot;: fact,  &quot;topic&quot;: sujet})
+sub.create_subscription(request={&quot;name&quot;: email, &quot;topic&quot;: sujet})
+print(&quot;sujet + 2 abonnements créés&quot;)
+
+# Publier UN message / publish ONE message
+pub.publish(sujet, b&quot;commande #42&quot;).result()
+
+# Chaque abonnement reçoit sa copie / each subscription gets its copy
+for nom, ab in [(&quot;facturation&quot;, fact), (&quot;email&quot;, email)]:
+    rep = sub.pull(request={&quot;subscription&quot;: ab, &quot;max_messages&quot;: 10})
+    for m in rep.received_messages:
+        print(f&quot;{nom} reçoit :&quot;, m.message.data.decode())
+        sub.acknowledge(request={&quot;subscription&quot;: ab, &quot;ack_ids&quot;: [m.ack_id]})</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export PUBSUB_EMULATOR_HOST=localhost:8085
+python3 fanout.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>sujet + 2 abonnements créés</code>, puis <code>facturation reçoit : commande #42</code> <strong>et</strong> <code>email reçoit : commande #42</code>. Un seul <code>publish</code>, <strong>deux</strong> consommateurs servis : c&#39;est le fan-out. Chaque abonnement a sa file logique indépendante — si <code>email</code> est lent ou en panne, <code>facturation</code> avance quand même. ⚠️ Un abonnement ne reçoit que les messages publiés <strong>après</strong> sa création : crée toujours l&#39;abonnement <strong>avant</strong> de publier.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>sujet + 2 abonnements créés</code>, then <code>facturation reçoit : commande #42</code> <strong>and</strong> <code>email reçoit : commande #42</code>. One <code>publish</code>, <strong>two</strong> consumers served: that&#39;s fan-out. Each subscription has its own independent logical queue — if <code>email</code> is slow or down, <code>facturation</code> still progresses. ⚠️ A subscription only receives messages published <strong>after</strong> its creation: always create the subscription <strong>before</strong> publishing.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Distinguer les abonnements <strong>pull</strong> et <strong>push</strong> — concept, avec le pull en live.</p>
+<p><strong>🤔 Qui déclenche la livraison ?</strong> En <strong>pull</strong>, c&#39;est le <strong>consommateur</strong> : il appelle <code>pull()</code> quand il est prêt (idéal pour un worker qui maîtrise son débit, retraite par lots, tourne en continu). En <strong>push</strong>, c&#39;est <strong>Pub/Sub</strong> : il envoie un <strong>POST HTTPS</strong> vers ton <strong>endpoint</strong> (une Cloud Function/Run, un service web) à chaque message (idéal pour du serverless réactif, sans processus à maintenir). Même sujet, même message — seule la <strong>mécanique de livraison</strong> change.</p>
+<p>⚠️ <strong>Note émulateur :</strong> le <strong>pull</strong> est ce qu&#39;on utilise partout ici, <strong>pleinement émulé</strong>. Le <strong>push</strong> nécessite un endpoint HTTPS joignable ; il se <strong>décrit</strong> (concept + syntaxe) mais on ne le déclenche pas dans le labo. La commande de création d&#39;un abonnement push (vrai GCP) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tell <strong>pull</strong> and <strong>push</strong> subscriptions apart — concept, with pull live.</p>
+<p><strong>🤔 Who triggers delivery?</strong> In <strong>pull</strong>, the <strong>consumer</strong> does: it calls <code>pull()</code> when ready (ideal for a worker that controls throughput, batches, runs continuously). In <strong>push</strong>, <strong>Pub/Sub</strong> does: it sends an <strong>HTTPS POST</strong> to your <strong>endpoint</strong> (a Cloud Function/Run, a web service) for each message (ideal for reactive serverless, no process to maintain). Same topic, same message — only the <strong>delivery mechanics</strong> change.</p>
+<p>⚠️ <strong>Emulator note:</strong> <strong>pull</strong> is what we use everywhere here, <strong>fully emulated</strong>. <strong>Push</strong> needs a reachable HTTPS endpoint; it&#39;s <strong>described</strong> (concept + syntax) but we don&#39;t trigger it in the lab. The push-subscription creation command (real GCP):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># PULL (le mode qu&#39;on utilise ici — créé plus haut via la bibliothèque cliente) : le worker tire
+# Équivalent CLI sur le VRAI GCP / CLI equivalent on REAL GCP:
+gcloud pubsub subscriptions create facturation --topic=commandes
+
+# PUSH (vrai GCP) : Pub/Sub POST vers ton endpoint HTTPS
+gcloud pubsub subscriptions create notif-web \
+  --topic=commandes \
+  --push-endpoint=https://mon-service.example.com/pubsub \
+  --ack-deadline=10</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> en <strong>pull</strong> (émulateur), tu as déjà vu la livraison marcher à l&#39;étape 1. Retiens la grille de choix : <strong>pull</strong> = worker qui maîtrise son rythme, gros volumes, retraitement ; <strong>push</strong> = réaction immédiate vers un service HTTP/serverless, pas de worker à faire tourner. En push, l&#39;endpoint doit <strong>répondre 2xx</strong> pour valoir <code>ack</code> (sinon Pub/Sub redistribue, exactement comme en pull). ⚠️ <code>gcloud pubsub</code> vise le <strong>vrai</strong> GCP : ces commandes ne s&#39;exécutent pas contre l&#39;émulateur (qui, lui, se pilote par la bibliothèque cliente) — elles sont là pour l&#39;examen et le vrai projet.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in <strong>pull</strong> (emulator), you already saw delivery work in step 1. Remember the choice grid: <strong>pull</strong> = a worker that controls its pace, high volumes, reprocessing; <strong>push</strong> = immediate reaction to an HTTP/serverless service, no worker to keep running. In push, the endpoint must <strong>return 2xx</strong> to count as <code>ack</code> (otherwise Pub/Sub redelivers, exactly like pull). ⚠️ <code>gcloud pubsub</code> targets <strong>real</strong> GCP: these commands don&#39;t run against the emulator (which is driven by the client library) — they&#39;re here for the exam and the real project.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Maîtriser l&#39;<strong>accusé de réception</strong> : <code>ack</code>, <code>nack</code>, délai, et la <strong>redistribution</strong> — live.</p>
+<p><strong>🤔 At-least-once.</strong> Un message tiré reste « en vol » jusqu&#39;à l&#39;<code>ack</code>. Si le consommateur échoue et <strong>n&#39;acquitte pas</strong> (ou renvoie un <code>nack</code>), Pub/Sub le <strong>redistribue</strong> : la garantie est <strong>au moins une fois</strong>. Ici on simule un échec en <strong>remettant le message à disposition</strong> (<code>modify_ack_deadline</code> à <code>0</code> = « je n&#39;ai pas fini, redonne-le »), puis on le re-tire et on l&#39;acquitte pour de bon.</p>
+<p>Simule un échec puis un succès :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Master <strong>acknowledgement</strong>: <code>ack</code>, <code>nack</code>, deadline, and <strong>redelivery</strong> — live.</p>
+<p><strong>🤔 At-least-once.</strong> A pulled message stays &quot;in flight&quot; until <code>ack</code>. If the consumer fails and <strong>doesn&#39;t ack</strong> (or sends a <code>nack</code>), Pub/Sub <strong>redelivers</strong> it: the guarantee is <strong>at-least-once</strong>. Here we simulate a failure by <strong>making the message available again</strong> (<code>modify_ack_deadline</code> to <code>0</code> = &quot;I&#39;m not done, give it back&quot;), then re-pull it and ack it for real.</p>
+<p>Simulate a failure then a success:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># ack_nack.py
+from google.cloud import pubsub_v1
+from google.api_core.exceptions import DeadlineExceeded, RetryError
+projet = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient(); sub = pubsub_v1.SubscriberClient()
+sujet = pub.topic_path(projet, &quot;commandes&quot;)
+fact  = sub.subscription_path(projet, &quot;facturation&quot;)
+
+# Un corps de message est en octets : on encode une chaîne accentuée (jamais b&quot;…à…&quot;).
+# A message body is bytes: encode an accented string (never a b&quot;…à…&quot; literal).
+pub.publish(sujet, &quot;paiement à traiter&quot;.encode()).result()
+
+# 1er tir : on SIMULE un échec -&gt; nack (remettre à dispo) / simulate failure -&gt; nack
+rep = sub.pull(request={&quot;subscription&quot;: fact, &quot;max_messages&quot;: 10})
+for m in rep.received_messages:
+    print(&quot;tentative 1, reçu :&quot;, m.message.data.decode(), &quot;-&gt; nack (échec simulé)&quot;)
+    sub.modify_ack_deadline(request={&quot;subscription&quot;: fact,
+                                     &quot;ack_ids&quot;: [m.ack_id], &quot;ack_deadline_seconds&quot;: 0})
+
+# 2e tir : Pub/Sub a redistribué -&gt; cette fois on ACK / redelivered -&gt; now ack
+import time; time.sleep(1)
+rep = sub.pull(request={&quot;subscription&quot;: fact, &quot;max_messages&quot;: 10})
+for m in rep.received_messages:
+    print(&quot;tentative 2, reçu :&quot;, m.message.data.decode(), &quot;-&gt; ack (succès)&quot;)
+    sub.acknowledge(request={&quot;subscription&quot;: fact, &quot;ack_ids&quot;: [m.ack_id]})
+
+# 3e tir : plus rien. Un pull sur file vide peut &quot;attendre&quot; (long-poll) : on le borne à 5 s.
+# nothing left. A pull on an empty queue may long-poll: we bound it to 5 s.
+try:
+    rep = sub.pull(request={&quot;subscription&quot;: fact, &quot;max_messages&quot;: 10}, timeout=5)
+    restants = len(rep.received_messages)
+except (DeadlineExceeded, RetryError):
+    restants = 0
+print(&quot;tentative 3, messages restants :&quot;, restants)</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 ack_nack.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>tentative 1 ... -&gt; nack</code>, puis <code>tentative 2 ... -&gt; ack</code>, puis <code>tentative 3, messages restants : 0</code>. Le même message a été <strong>redistribué</strong> après le nack, puis a <strong>disparu</strong> après l&#39;ack. C&#39;est la garantie <strong>at-least-once</strong> en action. (Le 3ᵉ tir est <strong>borné à 5 s</strong> : un <code>pull</code> synchrone sur une file vide peut sinon patienter le temps d&#39;un long-poll côté serveur — d&#39;où le <code>try/except</code> autour.) ⚠️ <strong>Conséquence majeure (point ACE) :</strong> comme un message peut arriver <strong>plusieurs fois</strong>, ton traitement doit être <strong>idempotent</strong> (traiter deux fois « paiement #42 » ne doit pas débiter deux fois). Le <strong>délai d&#39;accusé</strong> (ack deadline) fixe le temps avant redistribution automatique : trop court, tu retraites en boucle ; trop long, un vrai échec traîne.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>tentative 1 ... -&gt; nack</code>, then <code>tentative 2 ... -&gt; ack</code>, then <code>tentative 3, messages restants : 0</code>. The same message was <strong>redelivered</strong> after the nack, then <strong>vanished</strong> after the ack. That&#39;s the <strong>at-least-once</strong> guarantee in action. (The 3rd pull is <strong>bounded to 5 s</strong>: a synchronous <code>pull</code> on an empty queue can otherwise wait out a server-side long-poll — hence the <code>try/except</code>.) ⚠️ <strong>Major consequence (ACE point):</strong> since a message can arrive <strong>several times</strong>, your processing must be <strong>idempotent</strong> (handling &quot;payment #42&quot; twice must not debit twice). The <strong>ack deadline</strong> sets the time before automatic redelivery: too short, you reprocess in a loop; too long, a real failure lingers.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Publier des <strong>attributs</strong> et <strong>filtrer</strong> un abonnement dessus — live.</p>
+<p><strong>🤔 Trier à la source.</strong> Plutôt que de tout recevoir et jeter côté code, on attache un <strong>filtre</strong> à l&#39;abonnement : il ne reçoit <strong>que</strong> les messages dont les <strong>attributs</strong> correspondent. Moins de trafic, moins de code, moins d&#39;erreurs. Le filtre se déclare <strong>à la création</strong> de l&#39;abonnement (immuable ensuite).</p>
+<p>⚠️ <strong>Note émulateur :</strong> les attributs <strong>et</strong> les filtres sont <strong>pleinement émulés</strong> ici — tu verras réellement le tri. Crée un abonnement filtré <code>prio = &quot;haute&quot;</code>, publie deux messages, vérifie qu&#39;un seul passe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Publish <strong>attributes</strong> and <strong>filter</strong> a subscription on them — live.</p>
+<p><strong>🤔 Sort at the source.</strong> Rather than receiving everything and discarding in code, you attach a <strong>filter</strong> to the subscription: it receives <strong>only</strong> messages whose <strong>attributes</strong> match. Less traffic, less code, fewer bugs. The filter is declared <strong>at subscription creation</strong> (immutable afterwards).</p>
+<p>⚠️ <strong>Emulator note:</strong> attributes <strong>and</strong> filters are <strong>fully emulated</strong> here — you&#39;ll really see the sorting. Create a filtered subscription <code>prio = &quot;haute&quot;</code>, publish two messages, check that only one gets through:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># filtres.py
+from google.cloud import pubsub_v1
+projet = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient(); sub = pubsub_v1.SubscriberClient()
+sujet = pub.topic_path(projet, &quot;commandes&quot;)
+urgent = sub.subscription_path(projet, &quot;urgentes&quot;)
+
+# Abonnement avec FILTRE sur un attribut / subscription with attribute FILTER
+sub.create_subscription(request={
+    &quot;name&quot;: urgent, &quot;topic&quot;: sujet,
+    &quot;filter&quot;: &#39;attributes.prio = &quot;haute&quot;&#39;
+})
+print(&quot;abonnement filtré (prio=haute) créé&quot;)
+
+# Publier avec ATTRIBUTS / publish WITH attributes (kwargs = attributs)
+pub.publish(sujet, b&quot;petite commande&quot;, prio=&quot;basse&quot;).result()
+pub.publish(sujet, b&quot;commande VIP&quot;,    prio=&quot;haute&quot;).result()
+
+import time; time.sleep(1)
+rep = sub.pull(request={&quot;subscription&quot;: urgent, &quot;max_messages&quot;: 10})
+for m in rep.received_messages:
+    print(&quot;urgentes reçoit :&quot;, m.message.data.decode(), &quot;| attrs :&quot;, dict(m.message.attributes))
+    sub.acknowledge(request={&quot;subscription&quot;: urgent, &quot;ack_ids&quot;: [m.ack_id]})
+print(&quot;nb messages passés le filtre :&quot;, len(rep.received_messages))</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 filtres.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>abonnement filtré (prio=haute) créé</code>, puis <strong>une seule</strong> ligne <code>urgentes reçoit : commande VIP | attrs : {&#39;prio&#39;: &#39;haute&#39;}</code>, et <code>nb messages passés le filtre : 1</code>. Le message <code>prio=basse</code> a été <strong>écarté à la source</strong> — l&#39;abonnement ne l&#39;a jamais vu. Tu viens de router par contenu <strong>sans une ligne de logique côté consommateur</strong>. ⚠️ Le filtre porte sur les <strong>attributs</strong>, pas sur le corps du message (les données en octets) : mets dans les attributs ce sur quoi tu veux filtrer (type, région, priorité).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>abonnement filtré (prio=haute) créé</code>, then <strong>a single</strong> line <code>urgentes reçoit : commande VIP | attrs : {&#39;prio&#39;: &#39;haute&#39;}</code>, and <code>nb messages passés le filtre : 1</code>. The <code>prio=basse</code> message was <strong>dropped at the source</strong> — the subscription never saw it. You just routed by content <strong>without a single line of consumer logic</strong>. ⚠️ The filter is on <strong>attributes</strong>, not on the message body (the byte data): put in attributes whatever you want to filter on (type, region, priority).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Garantir l&#39;<strong>ordre</strong> avec une <strong>clé d&#39;ordre</strong> — live.</p>
+<p><strong>🤔 Ordre vs débit.</strong> Par défaut, Pub/Sub privilégie le <strong>débit</strong> et ne garantit <strong>pas</strong> l&#39;ordre : deux messages peuvent arriver inversés. Quand l&#39;ordre compte (les événements d&#39;<strong>un même</strong> compte, d&#39;<strong>un même</strong> appareil), on publie avec une <strong>clé d&#39;ordre</strong> : Pub/Sub livre alors, <strong>par clé</strong>, dans l&#39;ordre de publication. Il faut activer l&#39;ordre côté <strong>publisher</strong> (<code>enable_message_ordering</code>).</p>
+<p>Publie trois messages ordonnés sur une même clé :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Guarantee <strong>ordering</strong> with an <strong>ordering key</strong> — live.</p>
+<p><strong>🤔 Order vs throughput.</strong> By default, Pub/Sub favors <strong>throughput</strong> and does <strong>not</strong> guarantee order: two messages can arrive swapped. When order matters (events for <strong>one</strong> account, <strong>one</strong> device), you publish with an <strong>ordering key</strong>: Pub/Sub then delivers, <strong>per key</strong>, in publish order. You must enable ordering on the <strong>publisher</strong> side (<code>enable_message_ordering</code>).</p>
+<p>Publish three ordered messages on the same key:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># ordre.py
+from google.cloud import pubsub_v1
+projet = &quot;demo-projet&quot;
+# Publisher avec ordre activé / publisher with ordering enabled
+opts = pubsub_v1.types.PublisherOptions(enable_message_ordering=True)
+pub = pubsub_v1.PublisherClient(publisher_options=opts)
+sub = pubsub_v1.SubscriberClient()
+sujet = pub.topic_path(projet, &quot;commandes&quot;)
+suivi = sub.subscription_path(projet, &quot;suivi-compte&quot;)
+
+# L&#39;ordre doit AUSSI être activé côté abonnement (obligatoire sur le vrai GCP).
+# Ordering must ALSO be enabled on the subscription (required on real GCP).
+sub.create_subscription(request={&quot;name&quot;: suivi, &quot;topic&quot;: sujet,
+                                 &quot;enable_message_ordering&quot;: True})
+
+# 3 événements d&#39;un même compte, avec clé d&#39;ordre / same account, ordering key
+for etape in [&quot;créée&quot;, &quot;payée&quot;, &quot;expédiée&quot;]:
+    pub.publish(sujet, f&quot;commande {etape}&quot;.encode(), ordering_key=&quot;compte-7&quot;).result()
+
+import time; time.sleep(1)
+rep = sub.pull(request={&quot;subscription&quot;: suivi, &quot;max_messages&quot;: 10})
+recus = [m.message.data.decode() for m in rep.received_messages]
+print(&quot;ordre reçu :&quot;, recus)
+for m in rep.received_messages:
+    sub.acknowledge(request={&quot;subscription&quot;: suivi, &quot;ack_ids&quot;: [m.ack_id]})</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 ordre.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>ordre reçu : [&#39;commande créée&#39;, &#39;commande payée&#39;, &#39;commande expédiée&#39;]</code> — <strong>exactement</strong> l&#39;ordre de publication. Sans clé d&#39;ordre, <code>payée</code> pourrait précéder <code>créée</code>. La clé garantit la séquence <strong>par entité</strong> (ici <code>compte-7</code>), pas globalement : deux comptes différents restent parallèles (et rapides). ⚠️ En vrai GCP, l&#39;ordre a un <strong>coût de débit</strong> (les messages d&#39;une clé se sérialisent) : ne l&#39;active <strong>que</strong> là où c&#39;est nécessaire. Côté consommateur, l&#39;abonnement doit aussi <strong>activer</strong> la livraison ordonnée (dans la console/<code>gcloud</code>, <code>--enable-message-ordering</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>ordre reçu : [&#39;commande créée&#39;, &#39;commande payée&#39;, &#39;commande expédiée&#39;]</code> — <strong>exactly</strong> the publish order. Without an ordering key, <code>payée</code> could precede <code>créée</code>. The key guarantees the sequence <strong>per entity</strong> (here <code>compte-7</code>), not globally: two different accounts stay parallel (and fast). ⚠️ On real GCP, ordering has a <strong>throughput cost</strong> (a key&#39;s messages serialize): enable it <strong>only</strong> where needed. On the consumer side, the subscription must also <strong>enable</strong> ordered delivery (in the console/<code>gcloud</code>, <code>--enable-message-ordering</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Configurer une politique de <strong>dead-letter</strong> et de <strong>nouvelle tentative</strong> — création live, routage en concept.</p>
+<p><strong>🤔 Le message empoisonné.</strong> Un message qui échoue <strong>à chaque</strong> tentative (données corrompues, bug) tournerait en boucle et bloquerait la file. La parade : une politique de <strong>dead-letter</strong> — « après <strong>N</strong> tentatives de livraison, envoie ce message vers un <strong>sujet de rebut</strong> ». On y branche un abonnement de surveillance pour l&#39;inspecter à froid. On règle aussi le <strong>back-off</strong> des nouvelles tentatives.</p>
+<p>⚠️ <strong>Note émulateur :</strong> la <strong>création</strong> de la politique (dead-letter + max de tentatives) est <strong>émulée</strong> — on la crée et on la <strong>relit</strong> en live. En revanche, le <strong>routage effectif</strong> vers le sujet de rebut (qui suppose de dépasser réellement N tentatives) se <strong>conceptualise</strong> : on ne le déclenche pas ici.</p>
+<p>Crée le sujet de rebut et un abonnement avec politique de dead-letter :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Configure a <strong>dead-letter</strong> and <strong>retry</strong> policy — creation live, routing as concept.</p>
+<p><strong>🤔 The poison message.</strong> A message failing <strong>every</strong> attempt (corrupt data, a bug) would loop forever and block the queue. The fix: a <strong>dead-letter</strong> policy — &quot;after <strong>N</strong> delivery attempts, send this message to a <strong>dead-letter topic</strong>.&quot; You attach a watch subscription there to inspect it cold. You also tune the retry <strong>back-off</strong>.</p>
+<p>⚠️ <strong>Emulator note:</strong> the policy <strong>creation</strong> (dead-letter + max attempts) is <strong>emulated</strong> — we create it and <strong>read it back</strong> live. However, the <strong>actual routing</strong> to the dead-letter topic (which requires really exceeding N attempts) is <strong>conceptualized</strong>: we don&#39;t trigger it here.</p>
+<p>Create the dead-letter topic and a subscription with a dead-letter policy:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># deadletter.py
+from google.cloud import pubsub_v1
+projet = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient(); sub = pubsub_v1.SubscriberClient()
+
+sujet   = pub.topic_path(projet, &quot;commandes&quot;)
+rebut   = pub.topic_path(projet, &quot;commandes-rebut&quot;)     # dead-letter topic
+travail = sub.subscription_path(projet, &quot;traitement&quot;)
+veille  = sub.subscription_path(projet, &quot;rebut-veille&quot;)
+
+pub.create_topic(request={&quot;name&quot;: rebut})
+sub.create_subscription(request={&quot;name&quot;: veille, &quot;topic&quot;: rebut})
+
+# Abonnement de travail AVEC politique de dead-letter / with dead-letter policy
+sub.create_subscription(request={
+    &quot;name&quot;: travail, &quot;topic&quot;: sujet,
+    &quot;dead_letter_policy&quot;: {
+        &quot;dead_letter_topic&quot;: rebut,
+        &quot;max_delivery_attempts&quot;: 5,
+    },
+})
+print(&quot;abonnement avec dead-letter créé&quot;)
+
+# Relire la politique pour confirmer / read the policy back to confirm
+got = sub.get_subscription(request={&quot;subscription&quot;: travail})
+print(&quot;dead-letter topic :&quot;, got.dead_letter_policy.dead_letter_topic)
+print(&quot;max tentatives     :&quot;, got.dead_letter_policy.max_delivery_attempts)</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 deadletter.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>abonnement avec dead-letter créé</code>, puis <code>dead-letter topic : projects/demo-projet/topics/commandes-rebut</code> et <code>max tentatives : 5</code>. La politique est <strong>bien enregistrée</strong> sur l&#39;abonnement (création émulée, relue en live). En <strong>réel</strong>, après 5 livraisons non acquittées, Pub/Sub déplacerait le message vers <code>commandes-rebut</code>, où l&#39;abonnement <code>rebut-veille</code> te permet de l&#39;analyser. ⚠️ <strong>Points ACE :</strong> (1) le dead-letter topic doit être <strong>différent</strong> du sujet source ; (2) Pub/Sub a besoin des <strong>droits</strong> de publier dans le rebut et d&#39;acquitter la source (IAM — vu au guide suivant) ; (3) <code>delivery_attempt</code> sur le message reçu te dit combien de fois il a déjà été livré.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints <code>abonnement avec dead-letter créé</code>, then <code>dead-letter topic : projects/demo-projet/topics/commandes-rebut</code> and <code>max tentatives : 5</code>. The policy is <strong>properly recorded</strong> on the subscription (creation emulated, read back live). On <strong>real</strong> GCP, after 5 unacked deliveries, Pub/Sub would move the message to <code>commandes-rebut</code>, where the <code>rebut-veille</code> subscription lets you analyze it. ⚠️ <strong>ACE points:</strong> (1) the dead-letter topic must be <strong>different</strong> from the source topic; (2) Pub/Sub needs the <strong>rights</strong> to publish to the dead-letter and ack the source (IAM — next guide); (3) <code>delivery_attempt</code> on the received message tells you how many times it&#39;s already been delivered.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer le <strong>pattern événementiel</strong>, puis nettoyer.</p>
+<p><strong>🤔 Le déclic d&#39;architecte.</strong> Pub/Sub, c&#39;est le <strong>système nerveux</strong> d&#39;une architecture cloud : un service <strong>émet un événement</strong> (« commande passée »), et <strong>plusieurs</strong> services y réagissent <strong>sans se connaître</strong> (facturation, e-mail, analytique, stock). Ajouter un consommateur = <strong>ajouter un abonnement</strong>, sans toucher au producteur. C&#39;est ce <strong>découplage</strong> qui rend les systèmes cloud extensibles et résilients — et c&#39;est <strong>exactement</strong> ce que le projet d&#39;entreprise GCP construira.</p>
+<p>Récapitule tes abonnements, puis nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>event-driven pattern</strong>, then clean up.</p>
+<p><strong>🤔 The architect&#39;s click.</strong> Pub/Sub is the <strong>nervous system</strong> of a cloud architecture: a service <strong>emits an event</strong> (&quot;order placed&quot;), and <strong>several</strong> services react to it <strong>without knowing each other</strong> (billing, email, analytics, stock). Adding a consumer = <strong>adding a subscription</strong>, without touching the producer. This <strong>decoupling</strong> is what makes cloud systems extensible and resilient — and it&#39;s <strong>exactly</strong> what the GCP enterprise project will build.</p>
+<p>Recap your subscriptions, then clean up:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># recap_nettoyage.py
+from google.cloud import pubsub_v1
+projet = &quot;demo-projet&quot;
+pub = pubsub_v1.PublisherClient(); sub = pubsub_v1.SubscriberClient()
+chemin_projet = f&quot;projects/{projet}&quot;
+
+# Récap : les abonnements du projet / recap: the project&#39;s subscriptions
+subs = list(sub.list_subscriptions(request={&quot;project&quot;: chemin_projet}))
+print(&quot;abonnements :&quot;, [s.name.split(&#39;/&#39;)[-1] for s in subs])
+
+# Nettoyage : supprimer abonnements puis sujets / delete subs then topics
+for s in subs:
+    sub.delete_subscription(request={&quot;subscription&quot;: s.name})
+for t in pub.list_topics(request={&quot;project&quot;: chemin_projet}):
+    pub.delete_topic(request={&quot;topic&quot;: t.name})
+
+restants = len(list(pub.list_topics(request={&quot;project&quot;: chemin_projet})))
+print(&quot;sujets restants après nettoyage :&quot;, restants)</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 recap_nettoyage.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le récap liste tes abonnements (<code>facturation</code>, <code>email</code>, <code>urgentes</code>, <code>suivi-compte</code>, <code>traitement</code>, <code>rebut-veille</code>…), puis <code>sujets restants après nettoyage : 0</code>. Ton émulateur est propre. Tu maîtrises maintenant Pub/Sub au niveau ACE : <strong>fan-out</strong>, <strong>pull/push</strong>, <strong>ack/nack &amp; redistribution</strong>, <strong>filtres</strong>, <strong>ordre</strong>, <strong>dead-letter</strong>. ⚠️ <strong>Ordre de suppression :</strong> abonnements <strong>puis</strong> sujets (un sujet avec abonnements attachés se supprime, mais on nettoie proprement de bas en haut). La suite : <strong>IAM &amp; Terraform</strong> — donner les bons droits, et décrire tout ça en infrastructure-as-code.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the recap lists your subscriptions (<code>facturation</code>, <code>email</code>, <code>urgentes</code>, <code>suivi-compte</code>, <code>traitement</code>, <code>rebut-veille</code>…), then <code>sujets restants après nettoyage : 0</code>. Your emulator is clean. You now master Pub/Sub at ACE level: <strong>fan-out</strong>, <strong>pull/push</strong>, <strong>ack/nack &amp; redelivery</strong>, <strong>filters</strong>, <strong>ordering</strong>, <strong>dead-letter</strong>. ⚠️ <strong>Deletion order:</strong> subscriptions <strong>then</strong> topics (a topic with attached subscriptions can be deleted, but we clean bottom-up). Next up: <strong>IAM &amp; Terraform</strong> — granting the right rights, and describing all this as infrastructure-as-code.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire qu&#39;un sujet garde les messages sans abonnement.</strong> Un message publié n&#39;est retenu que pour les <strong>abonnements existants au moment de la publication</strong>. Pas d&#39;abonnement = message perdu. Crée l&#39;abonnement <strong>avant</strong> de publier.</p>
+<p><strong>2. Oublier l&#39;idempotence.</strong> Livraison <strong>at-least-once</strong> = un message peut arriver <strong>deux fois</strong>. Un traitement non idempotent (débiter, incrémenter) produit des doublons. Déduplique (par <code>message_id</code> ou une clé métier).</p>
+<p><strong>3. Confondre données et attributs.</strong> Le <strong>corps</strong> (<code>data</code>, octets) porte la charge ; les <strong>attributs</strong> portent les métadonnées <strong>filtrables</strong>. On ne filtre <strong>pas</strong> sur le corps.</p>
+<p><strong>4. Attendre l&#39;ordre sans clé d&#39;ordre.</strong> Par défaut, <strong>aucune</strong> garantie d&#39;ordre. Il faut une <strong>clé d&#39;ordre</strong> (et l&#39;activer côté publisher). Et ça sérialise par clé — coûteux si mal ciblé.</p>
+<p><strong>5. Régler un ack deadline absurde.</strong> Trop court → le message est redistribué avant la fin du traitement (boucles). Trop long → un vrai échec bloque longtemps. Ajuste au temps de traitement réel (et prolonge dynamiquement pour les longs).</p>
+<p><strong>6. Dead-letter = même sujet.</strong> Le sujet de rebut doit être <strong>distinct</strong> du sujet source, sinon boucle. Et il faut les <strong>droits IAM</strong> pour que Pub/Sub y publie.</p>
+<p><strong>7. Vouloir piloter l&#39;émulateur avec <code>gcloud pubsub</code>.</strong> <code>gcloud pubsub</code> vise <strong>toujours</strong> le vrai GCP. L&#39;émulateur se pilote par la <strong>bibliothèque cliente</strong> (<code>PUBSUB_EMULATOR_HOST</code>).</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking a topic keeps messages with no subscription.</strong> A published message is retained only for <strong>subscriptions existing at publish time</strong>. No subscription = message lost. Create the subscription <strong>before</strong> publishing.</p>
+<p><strong>2. Forgetting idempotence.</strong> <strong>At-least-once</strong> delivery = a message can arrive <strong>twice</strong>. Non-idempotent processing (debiting, incrementing) produces duplicates. Deduplicate (by <code>message_id</code> or a business key).</p>
+<p><strong>3. Confusing data and attributes.</strong> The <strong>body</strong> (<code>data</code>, bytes) carries the payload; <strong>attributes</strong> carry the <strong>filterable</strong> metadata. You do <strong>not</strong> filter on the body.</p>
+<p><strong>4. Expecting ordering without an ordering key.</strong> By default, <strong>no</strong> ordering guarantee. You need an <strong>ordering key</strong> (and to enable it on the publisher). And it serializes per key — costly if badly targeted.</p>
+<p><strong>5. Setting an absurd ack deadline.</strong> Too short → the message is redelivered before processing finishes (loops). Too long → a real failure blocks for a while. Tune it to actual processing time (and extend dynamically for long ones).</p>
+<p><strong>6. Dead-letter = same topic.</strong> The dead-letter topic must be <strong>distinct</strong> from the source topic, else a loop. And Pub/Sub needs the <strong>IAM rights</strong> to publish to it.</p>
+<p><strong>7. Trying to drive the emulator with <code>gcloud pubsub</code>.</strong> <code>gcloud pubsub</code> <strong>always</strong> targets real GCP. The emulator is driven by the <strong>client library</strong> (<code>PUBSUB_EMULATOR_HOST</code>).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un sujet et <strong>plusieurs abonnements</strong>, et tu expliques le fan-out.</li><li>Tu distingues <strong>pull</strong> et <strong>push</strong> et sais quand choisir chacun.</li><li>Tu provoques une <strong>redistribution</strong> (nack) puis un <strong>ack</strong> propre.</li><li>Tu publies des <strong>attributs</strong> et <strong>filtres</strong> un abonnement dessus.</li><li>Tu garantis l&#39;<strong>ordre</strong> avec une clé d&#39;ordre.</li><li>Tu configures une politique de <strong>dead-letter</strong> et la relis.</li><li>Tu expliques pourquoi le consommateur doit être <strong>idempotent</strong>.</li></ul>
+<p>Sept cases = tu tiens Pub/Sub au niveau ACE. La suite : IAM &amp; Terraform.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a topic and <strong>several subscriptions</strong>, and explain fan-out.</li><li>You tell <strong>pull</strong> and <strong>push</strong> apart and know when to choose each.</li><li>You trigger a <strong>redelivery</strong> (nack) then a clean <strong>ack</strong>.</li><li>You publish <strong>attributes</strong> and <strong>filter</strong> a subscription on them.</li><li>You guarantee <strong>ordering</strong> with an ordering key.</li><li>You configure a <strong>dead-letter</strong> policy and read it back.</li><li>You explain why the consumer must be <strong>idempotent</strong>.</li></ul>
+<p>Seven boxes = you hold Pub/Sub at ACE level. Next up: IAM &amp; Terraform.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track GCP → ACE :</p>
+<ol><li><strong>GCP — IAM &amp; Terraform</strong> : rôles, comptes de service, principe du moindre privilège, et décrire ton infra en <strong>Terraform</strong> (provider <code>google</code>) — la compétence pro de l&#39;ACE.</li><li>Plus loin : le <strong>projet d&#39;entreprise</strong> (pipeline événementiel complet sur émulateurs + Terraform), puis <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The GCP → ACE track continues:</p>
+<ol><li><strong>GCP — IAM &amp; Terraform</strong>: roles, service accounts, least privilege, and describing your infra in <strong>Terraform</strong> (<code>google</code> provider) — the ACE&#39;s pro skill.</li><li>Further along: the <strong>enterprise project</strong> (a full event-driven pipeline on emulators + Terraform), then <strong>going real</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../gcp-iam-terraform/">
+    <span class="num">55</span>
+    <span class="title-line" data-lang="fr">GCP — IAM &amp; Terraform : droits et infrastructure-as-code</span>
+    <span class="title-line" data-lang="en">GCP — IAM &amp; Terraform: permissions and infrastructure-as-code</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire Pub/Sub (bibliothèque cliente Python, <code>PUBSUB_EMULATOR_HOST</code>).</p>
+</div>
+<div data-lang="en"><p>Pub/Sub cheat sheet (Python client library, <code>PUBSUB_EMULATOR_HOST</code>).</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code>from google.cloud import pubsub_v1
+pub = pubsub_v1.PublisherClient(); sub = pubsub_v1.SubscriberClient()
+t = pub.topic_path(&quot;demo-projet&quot;,&quot;commandes&quot;); a = sub.subscription_path(&quot;demo-projet&quot;,&quot;w&quot;)
+
+pub.create_topic(request={&quot;name&quot;: t})                       # sujet / topic
+sub.create_subscription(request={&quot;name&quot;: a, &quot;topic&quot;: t})    # abonnement pull / pull sub
+sub.create_subscription(request={&quot;name&quot;: a, &quot;topic&quot;: t, &quot;filter&quot;: &#39;attributes.prio = &quot;haute&quot;&#39;})  # filtre
+pub.publish(t, b&quot;corps&quot;, prio=&quot;haute&quot;).result()             # publier + attributs / publish + attrs
+rep = sub.pull(request={&quot;subscription&quot;: a, &quot;max_messages&quot;: 10})
+sub.acknowledge(request={&quot;subscription&quot;: a, &quot;ack_ids&quot;: [m.ack_id for m in rep.received_messages]})
+sub.modify_ack_deadline(request={&quot;subscription&quot;: a, &quot;ack_ids&quot;:[id], &quot;ack_deadline_seconds&quot;: 0})   # nack</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Ordre (publisher) / ordering (publisher)
+#   PublisherClient(publisher_options=pubsub_v1.types.PublisherOptions(enable_message_ordering=True))
+#   pub.publish(t, b&quot;...&quot;, ordering_key=&quot;compte-7&quot;)
+# Dead-letter (sur l&#39;abonnement) / on the subscription:
+#   &quot;dead_letter_policy&quot;: {&quot;dead_letter_topic&quot;: rebut, &quot;max_delivery_attempts&quot;: 5}
+# Push (VRAI GCP, pas l&#39;émulateur) / push (REAL GCP):
+gcloud pubsub subscriptions create s --topic=commandes --push-endpoint=https://ex/pubsub</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://cloud.google.com/pubsub/docs">Pub/Sub — documentation</a> — sujets, abonnements, garanties.</li><li><a href="https://cloud.google.com/pubsub/docs/subscriber">Pull vs push</a> — modes de livraison.</li><li><a href="https://cloud.google.com/pubsub/docs/subscription-message-filter">Filtres d&#39;abonnement</a> — syntaxe des filtres d&#39;attributs.</li><li><a href="https://cloud.google.com/pubsub/docs/ordering">Ordre des messages</a> — clés d&#39;ordre.</li><li><a href="https://cloud.google.com/pubsub/docs/handling-failures">Dead-letter &amp; retry</a> — sujet de rebut, back-off.</li><li><a href="https://cloud.google.com/pubsub/docs/emulator">Émulateur Pub/Sub</a> — le labo local.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://cloud.google.com/pubsub/docs">Pub/Sub — documentation</a> — topics, subscriptions, guarantees.</li><li><a href="https://cloud.google.com/pubsub/docs/subscriber">Pull vs push</a> — delivery modes.</li><li><a href="https://cloud.google.com/pubsub/docs/subscription-message-filter">Subscription filters</a> — attribute-filter syntax.</li><li><a href="https://cloud.google.com/pubsub/docs/ordering">Message ordering</a> — ordering keys.</li><li><a href="https://cloud.google.com/pubsub/docs/handling-failures">Dead-letter &amp; retry</a> — dead-letter topic, back-off.</li><li><a href="https://cloud.google.com/pubsub/docs/emulator">Pub/Sub emulator</a> — the local lab.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le <code>pull</code> ne renvoie rien.</strong> L&#39;abonnement a-t-il été créé <strong>avant</strong> le <code>publish</code> ? Un abonnement ne reçoit que les messages postérieurs à sa création. Republie après création, ou augmente <code>max_messages</code> et réessaie (le premier <code>pull</code> peut revenir vide, retente).</p>
+<p><strong>Le client vise le vrai GCP (erreur d&#39;auth).</strong> <code>PUBSUB_EMULATOR_HOST=localhost:8085</code> n&#39;est pas exporté dans <strong>ce</strong> shell. Ré-exporte-le avant de lancer python3.</p>
+<p><strong><code>gcloud pubsub topics list</code> ne montre pas mes sujets.</strong> Normal : <code>gcloud pubsub</code> vise le vrai GCP, <strong>pas</strong> l&#39;émulateur. Liste via la bibliothèque cliente (<code>pub.list_topics</code>).</p>
+<p><strong>Mon message n&#39;arrive jamais sur l&#39;abonnement filtré.</strong> Vérifie que tu publies bien l&#39;<strong>attribut</strong> attendu (kwargs du <code>publish</code>) et que la <strong>syntaxe</strong> du filtre correspond (<code>attributes.cle = &quot;valeur&quot;</code>, guillemets compris). Le filtre est <strong>immuable</strong> : recrée l&#39;abonnement pour le changer.</p>
+<p><strong>Les messages arrivent dans le désordre.</strong> Sans <strong>clé d&#39;ordre</strong> + <code>enable_message_ordering</code> côté publisher, aucun ordre garanti. Ajoute la clé, et côté abonnement active la livraison ordonnée.</p>
+<p><strong>Un message revient sans cesse.</strong> Tu ne l&#39;acquittes pas (<code>ack</code>) à temps, ou ton traitement échoue : Pub/Sub redistribue (at-least-once). Corrige le traitement, ajuste l&#39;ack deadline, et pour les cas irrécupérables ajoute une politique de <strong>dead-letter</strong>.</p>
+</div>
+<div data-lang="en"><p><strong><code>pull</code> returns nothing.</strong> Was the subscription created <strong>before</strong> the <code>publish</code>? A subscription only receives messages after its creation. Re-publish after creation, or raise <code>max_messages</code> and retry (the first <code>pull</code> may come back empty — retry).</p>
+<p><strong>The client targets real GCP (auth error).</strong> <code>PUBSUB_EMULATOR_HOST=localhost:8085</code> isn&#39;t exported in <strong>this</strong> shell. Re-export it before running python3.</p>
+<p><strong><code>gcloud pubsub topics list</code> doesn&#39;t show my topics.</strong> Normal: <code>gcloud pubsub</code> targets real GCP, <strong>not</strong> the emulator. List via the client library (<code>pub.list_topics</code>).</p>
+<p><strong>My message never reaches the filtered subscription.</strong> Check you publish the expected <strong>attribute</strong> (kwargs of <code>publish</code>) and that the filter <strong>syntax</strong> matches (<code>attributes.key = &quot;value&quot;</code>, quotes included). The filter is <strong>immutable</strong>: recreate the subscription to change it.</p>
+<p><strong>Messages arrive out of order.</strong> Without an <strong>ordering key</strong> + <code>enable_message_ordering</code> on the publisher, no ordering is guaranteed. Add the key, and on the subscription enable ordered delivery.</p>
+<p><strong>A message keeps coming back.</strong> You&#39;re not acking it in time, or your processing fails: Pub/Sub redelivers (at-least-once). Fix the processing, tune the ack deadline, and for unrecoverable cases add a <strong>dead-letter</strong> policy.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

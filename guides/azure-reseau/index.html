@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — réseau (AZ-104) : VNet, sous-réseaux, NSG, en Terraform live — jiha.tech</title>
+  <title data-lang="en">Azure — networking (AZ-104): VNet, subnets, NSG, live in Terraform — jiha.tech</title>
+  <meta name="description" content="Le réseau Azure pour l&#39;AZ-104, déployé POUR DE VRAI en local : connecte Terraform (provider azurerm) à miniblue, crée un réseau virtuel (VNet) et des sous-réseaux (segmentation web/app/data), un groupe de sécurité réseau (NSG) avec ses règles (priorité, direction, autoriser/refuser) associé à un sous-réseau, et une adresse IP publique — le tout appliqué et détruit en live sur l&#39;émulateur, sans compte ni facture. Peering et DNS privé vus en concept + config Terraform réelle." data-lang="fr">
+  <meta name="description" content="Azure networking for AZ-104, deployed FOR REAL locally: connect Terraform (azurerm provider) to miniblue, create a virtual network (VNet) and subnets (web/app/data segmentation), a network security group (NSG) with its rules (priority, direction, allow/deny) associated to a subnet, and a public IP — all applied and destroyed live on the emulator, no account or bill. Peering and private DNS seen as concept + real Terraform config." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — réseau (AZ-104) : VNet, sous-réseaux, NSG, en Terraform live">
+  <meta property="og:description" content="Le réseau Azure pour l&#39;AZ-104, déployé POUR DE VRAI en local : connecte Terraform (provider azurerm) à miniblue, crée un réseau virtuel (VNet) et des sous-réseaux (segmentation web/app/data), un groupe de sécurité réseau (NSG) avec ses règles (priorité, direction, autoriser/refuser) associé à un sous-réseau, et une adresse IP publique — le tout appliqué et détruit en live sur l&#39;émulateur, sans compte ni facture. Peering et DNS privé vus en concept + config Terraform réelle.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-reseau/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-reseau/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-reseau">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-reseau</div>
+    <div class="prompt" data-lang="en">~/guides/azure-reseau</div>
+    <h1 data-lang="fr">Azure — réseau (AZ-104) : VNet, sous-réseaux, NSG, en Terraform live</h1>
+    <h1 data-lang="en">Azure — networking (AZ-104): VNet, subnets, NSG, live in Terraform</h1>
+    <p class="tagline" data-lang="fr">segmenter, filtrer, exposer — déployé en local sur miniblue.</p>
+    <p class="tagline" data-lang="en">segment, filter, expose — deployed locally on miniblue.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Le <strong>réseau</strong> est la colonne vertébrale de toute infrastructure Azure : c&#39;est lui qui <strong>isole</strong>, <strong>segmente</strong>, <strong>filtre</strong> et <strong>expose</strong> tes ressources. L&#39;examen <strong>AZ-104</strong> lui consacre un domaine entier, et en production, un réseau mal conçu, c&#39;est une faille de sécurité ou une panne. Bonne nouvelle : grâce à <strong>miniblue</strong>, tu vas construire un vrai réseau Azure <strong>en local</strong>, avec <strong>Terraform</strong>, et le voir <strong>se déployer et se détruire pour de vrai</strong> — pas seulement le valider.</p>
+<p>Tu vas connecter <strong>Terraform</strong> (provider <code>azurerm</code>) à <strong>miniblue</strong> (le plan de contrôle émulé), puis construire, couche par couche : un <strong>réseau virtuel</strong> (VNet) avec son espace d&#39;adressage, des <strong>sous-réseaux</strong> (pour segmenter web / app / data), un <strong>groupe de sécurité réseau</strong> (NSG) avec ses <strong>règles</strong> (priorité, direction, autoriser/refuser) associé à un sous-réseau, et une <strong>adresse IP publique</strong> pour exposer un service. Chaque couche est <strong>appliquée en live</strong> (<code>terraform apply</code>) et vérifiée, puis <strong>détruite</strong> (<code>terraform destroy</code>). C&#39;est <strong>exactement</strong> le workflow d&#39;un administrateur Azure — sans compte, sans facture.</p>
+<p>C&#39;est le premier guide de profondeur du track <strong>AZ-104</strong>. On y ancre le réflexe <strong>infrastructure-as-code</strong> : on ne clique pas dans un portail, on <strong>décrit</strong> le réseau et on le <strong>déploie</strong> de façon reproductible.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>Azure fondamentaux</em> (labo miniblue + Azurite monté) et tu veux le réseau Azure, en pratique.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Ton labo n&#39;est pas monté → refais <em>Azure fondamentaux</em> (miniblue + Terraform).</li><li>Tu veux d&#39;abord la théorie pure du réseau (OSI, TCP/IP) → ce guide suppose ces bases et se concentre sur <strong>Azure</strong>.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Networking</strong> is the backbone of any Azure infrastructure: it&#39;s what <strong>isolates</strong>, <strong>segments</strong>, <strong>filters</strong> and <strong>exposes</strong> your resources. The <strong>AZ-104</strong> exam devotes a whole domain to it, and in production, a badly-designed network is a security hole or an outage. Good news: thanks to <strong>miniblue</strong>, you&#39;ll build a real Azure network <strong>locally</strong>, with <strong>Terraform</strong>, and watch it <strong>deploy and destroy for real</strong> — not just validate it.</p>
+<p>You&#39;ll connect <strong>Terraform</strong> (<code>azurerm</code> provider) to <strong>miniblue</strong> (the emulated control plane), then build, layer by layer: a <strong>virtual network</strong> (VNet) with its address space, <strong>subnets</strong> (to segment web / app / data), a <strong>network security group</strong> (NSG) with its <strong>rules</strong> (priority, direction, allow/deny) associated to a subnet, and a <strong>public IP</strong> to expose a service. Each layer is <strong>applied live</strong> (<code>terraform apply</code>) and verified, then <strong>destroyed</strong> (<code>terraform destroy</code>). It&#39;s <strong>exactly</strong> an Azure administrator&#39;s workflow — no account, no bill.</p>
+<p>This is the first depth guide of the <strong>AZ-104</strong> track. We anchor the <strong>infrastructure-as-code</strong> reflex here: you don&#39;t click in a portal, you <strong>describe</strong> the network and <strong>deploy</strong> it reproducibly.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>Azure fundamentals</em> (miniblue + Azurite lab set up) and want Azure networking, in practice.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>Your lab isn&#39;t set up → redo <em>Azure fundamentals</em> (miniblue + Terraform).</li><li>You want pure networking theory first (OSI, TCP/IP) → this guide assumes those basics and focuses on <strong>Azure</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Connecter <strong>Terraform</strong> (provider <code>azurerm</code>) à <strong>miniblue</strong> pour déployer en local.</li><li>Créer un <strong>réseau virtuel</strong> (VNet) et son <strong>espace d&#39;adressage</strong>.</li><li>Découper en <strong>sous-réseaux</strong> (segmentation web / app / data).</li><li>Créer un <strong>NSG</strong> et ses <strong>règles</strong> (priorité, direction, autoriser/refuser).</li><li><strong>Associer</strong> un NSG à un sous-réseau.</li><li>Créer une <strong>adresse IP publique</strong> (exposer un service).</li><li>Expliquer le <strong>peering</strong> et le <strong>DNS privé</strong> (concept + config réelle).</li><li><strong>Appliquer</strong>, <strong>vérifier</strong> et <strong>détruire</strong> le réseau (cycle IaC complet).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Connect <strong>Terraform</strong> (<code>azurerm</code> provider) to <strong>miniblue</strong> to deploy locally.</li><li>Create a <strong>virtual network</strong> (VNet) and its <strong>address space</strong>.</li><li>Split into <strong>subnets</strong> (web / app / data segmentation).</li><li>Create an <strong>NSG</strong> and its <strong>rules</strong> (priority, direction, allow/deny).</li><li><strong>Associate</strong> an NSG to a subnet.</li><li>Create a <strong>public IP</strong> (expose a service).</li><li>Explain <strong>peering</strong> and <strong>private DNS</strong> (concept + real config).</li><li><strong>Apply</strong>, <strong>verify</strong> and <strong>destroy</strong> the network (full IaC cycle).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure fondamentaux</strong> terminé, et <strong>miniblue qui tourne</strong> (<code>azlocal health</code> répond).</li><li><strong>Terraform</strong> installé.</li><li>La <strong>confiance du certificat</strong> de miniblue : au démarrage, miniblue affiche un chemin (<code>~/.miniblue/cert.pem</code>). On l&#39;exporte pour que Terraform accepte l&#39;endpoint HTTPS local (<code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>).</li><li>Rappel : miniblue émule le <strong>plan de contrôle</strong> (ARM) sur <code>localhost:4566/4567</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure fundamentals</strong> guide done, and <strong>miniblue running</strong> (<code>azlocal health</code> answers).</li><li><strong>Terraform</strong> installed.</li><li>miniblue&#39;s <strong>certificate trust</strong>: on startup, miniblue prints a path (<code>~/.miniblue/cert.pem</code>). We export it so Terraform accepts the local HTTPS endpoint (<code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>).</li><li>Reminder: miniblue emulates the <strong>control plane</strong> (ARM) on <code>localhost:4566/4567</code>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-fondamentaux/">
+    <span class="num">58</span>
+    <span class="title-line" data-lang="fr">Azure — fondamentaux : le labo local (miniblue) et le modèle Azure</span>
+    <span class="title-line" data-lang="en">Azure — fundamentals: the local lab (miniblue) and the Azure model</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Réseau virtuel (VNet).</strong> L&#39;unité d&#39;isolation réseau d&#39;Azure : un espace privé, défini par un ou plusieurs <strong>espaces d&#39;adressage</strong> (en CIDR, ex. <code>10.0.0.0/16</code>). Tout ce qui communique en privé vit dans un VNet. Deux VNets sont <strong>isolés</strong> par défaut (on les relie par <strong>peering</strong>).</p>
+<p><strong>Sous-réseaux (subnets).</strong> On découpe l&#39;espace du VNet en <strong>sous-réseaux</strong> (ex. <code>10.0.1.0/24</code> pour le web, <code>10.0.2.0/24</code> pour l&#39;app, <code>10.0.3.0/24</code> pour les données). La <strong>segmentation</strong> permet d&#39;appliquer des règles de sécurité différentes par tier — le socle d&#39;une architecture défendable.</p>
+<p><strong>Groupe de sécurité réseau (NSG).</strong> Un <strong>pare-feu</strong> de niveau réseau, <strong>avec état</strong> (stateful) : si tu autorises une connexion entrante, la réponse sortante est automatiquement permise. Un NSG contient des <strong>règles</strong> évaluées par <strong>priorité</strong> (100 à 4096, plus petit = prioritaire), chacune avec une <strong>direction</strong> (entrant/sortant), une <strong>action</strong> (Autoriser/Refuser), un protocole, des ports et des plages d&#39;adresses source/destination. Des <strong>règles par défaut</strong> (non supprimables) autorisent le trafic intra-VNet et refusent le reste. On <strong>associe</strong> un NSG à un <strong>sous-réseau</strong> (ou à une carte réseau).</p>
+<p><strong>Carte réseau (NIC) &amp; IP publique.</strong> Une machine se connecte au réseau par une <strong>carte réseau</strong> (NIC), qui reçoit une <strong>IP privée</strong> dans le sous-réseau. Pour être joignable depuis Internet, on lui attache une <strong>adresse IP publique</strong> (statique ou dynamique, SKU Basic/Standard). Sans IP publique, la ressource reste <strong>privée</strong>.</p>
+<p><strong>Peering.</strong> Pour relier deux VNets (même région ou non), on crée un <strong>peering</strong> : les ressources communiquent alors en privé, comme sur un même réseau. C&#39;est la base de l&#39;architecture <strong>hub-and-spoke</strong> (un VNet central « hub » relié à des VNets « spokes »).</p>
+<p><strong>DNS privé.</strong> Azure fournit une <strong>résolution de noms privée</strong> (zones DNS privées) pour que tes ressources s&#39;appellent par nom (<code>db.labo.interne</code>) plutôt que par IP, à l&#39;intérieur de tes VNets.</p>
+<p><strong>Ce qui est live ici.</strong> Sur <strong>miniblue</strong>, tu déploies <strong>pour de vrai</strong> : VNet, sous-réseaux, NSG + règles, association, IP publique. Le <strong>peering</strong> et le <strong>DNS privé</strong> sont vus en <strong>concept + config Terraform réelle</strong> (l&#39;émulateur ne les provisionne pas complètement — on te le signale). Le workflow <code>apply</code> → <code>destroy</code>, lui, est <strong>identique</strong> au vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong>Virtual network (VNet).</strong> Azure&#39;s network isolation unit: a private space, defined by one or more <strong>address spaces</strong> (in CIDR, e.g. <code>10.0.0.0/16</code>). Everything that communicates privately lives in a VNet. Two VNets are <strong>isolated</strong> by default (you link them with <strong>peering</strong>).</p>
+<p><strong>Subnets.</strong> You split the VNet&#39;s space into <strong>subnets</strong> (e.g. <code>10.0.1.0/24</code> for web, <code>10.0.2.0/24</code> for app, <code>10.0.3.0/24</code> for data). <strong>Segmentation</strong> lets you apply different security rules per tier — the base of a defensible architecture.</p>
+<p><strong>Network security group (NSG).</strong> A network-level <strong>firewall</strong>, <strong>stateful</strong>: if you allow an inbound connection, the outbound reply is automatically permitted. An NSG contains <strong>rules</strong> evaluated by <strong>priority</strong> (100 to 4096, smaller = higher priority), each with a <strong>direction</strong> (inbound/outbound), an <strong>action</strong> (Allow/Deny), a protocol, ports and source/destination address ranges. <strong>Default rules</strong> (non-removable) allow intra-VNet traffic and deny the rest. You <strong>associate</strong> an NSG to a <strong>subnet</strong> (or a network card).</p>
+<p><strong>Network card (NIC) &amp; public IP.</strong> A machine connects to the network via a <strong>network card</strong> (NIC), which gets a <strong>private IP</strong> in the subnet. To be reachable from the Internet, you attach a <strong>public IP</strong> (static or dynamic, Basic/Standard SKU). Without a public IP, the resource stays <strong>private</strong>.</p>
+<p><strong>Peering.</strong> To link two VNets (same region or not), you create a <strong>peering</strong>: the resources then communicate privately, as if on one network. It&#39;s the base of the <strong>hub-and-spoke</strong> architecture (a central &quot;hub&quot; VNet linked to &quot;spoke&quot; VNets).</p>
+<p><strong>Private DNS.</strong> Azure provides <strong>private name resolution</strong> (private DNS zones) so your resources call each other by name (<code>db.labo.interne</code>) rather than by IP, inside your VNets.</p>
+<p><strong>What&#39;s live here.</strong> On <strong>miniblue</strong>, you deploy <strong>for real</strong>: VNet, subnets, NSG + rules, association, public IP. <strong>Peering</strong> and <strong>private DNS</strong> are seen as <strong>concept + real Terraform config</strong> (the emulator doesn&#39;t fully provision them — we flag it). The <code>apply</code> → <code>destroy</code> workflow, though, is <strong>identical</strong> to real Azure.</p>
+</div>
+
+<figure class="schema" id="figure-azure-reseau-topologie">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-reseau-topologie">
+  <title id="s-azure-reseau-topologie">Topologie construite (live sur miniblue)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Topologie construite (live sur miniblue)</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="77" text-anchor="middle">VNet 10.0.0.0/16</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-soft" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="286" y="70.5" text-anchor="middle">web 10.0.1.0/24</text><text class="sub sub-blue" x="286" y="83.5" text-anchor="middle">NSG + IP publique</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="77" text-anchor="middle">app 10.0.2.0/24</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="77" text-anchor="middle">data 10.0.3.0/24</text><text class="sub" x="380" y="144" text-anchor="middle">peering vers un spoke + DNS privé en concept · déployé via Terraform</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La topologie construite : un VNet (10.0.0.0/16) découpé en trois sous-réseaux (web 10.0.1.0/24, app 10.0.2.0/24, data 10.0.3.0/24) ; un NSG avec une règle « autoriser HTTPS » associé au sous-réseau web ; une IP publique exposant le tier web. Peering vers un VNet spoke et DNS privé en pointillés (concept). Tout déployé en live sur miniblue via Terraform.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The topology built: a VNet (10.0.0.0/16) split into three subnets (web 10.0.1.0/24, app 10.0.2.0/24, data 10.0.3.0/24); an NSG with an &#39;allow HTTPS&#39; rule associated to the web subnet; a public IP exposing the web tier. Peering to a spoke VNet and private DNS dashed (concept). All deployed live on miniblue via Terraform.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Connecter <strong>Terraform</strong> à <strong>miniblue</strong> et déployer un premier <strong>groupe de ressources</strong> — en live.</p>
+<p><strong>🤔 Le provider qui vise l&#39;émulateur.</strong> On configure le provider <code>azurerm</code> pour taper miniblue (<code>metadata_host</code> local, identifiants factices, <code>skip_provider_registration</code>). Puis on fait confiance au <strong>certificat</strong> de miniblue (<code>SSL_CERT_FILE</code>). Dès lors, <code>terraform apply</code> crée <strong>de vraies ressources</strong> sur l&#39;émulateur.</p>
+<p>Crée <code>providers.tf</code> et <code>main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Connect <strong>Terraform</strong> to <strong>miniblue</strong> and deploy a first <strong>resource group</strong> — live.</p>
+<p><strong>🤔 The provider that targets the emulator.</strong> We configure the <code>azurerm</code> provider to hit miniblue (local <code>metadata_host</code>, dummy credentials, <code>skip_provider_registration</code>). Then we trust miniblue&#39;s <strong>certificate</strong> (<code>SSL_CERT_FILE</code>). From then on, <code>terraform apply</code> creates <strong>real resources</strong> on the emulator.</p>
+<p>Create <code>providers.tf</code> and <code>main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># providers.tf — Terraform pointé sur miniblue (émulateur local)
+terraform {
+  required_providers {
+    azurerm = {
+      source  = &quot;hashicorp/azurerm&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+
+provider &quot;azurerm&quot; {
+  features {}
+
+  # --- Ciblage de l&#39;émulateur miniblue (à retirer pour le vrai Azure) ---
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># main.tf — un groupe de ressources pour héberger le réseau
+resource &quot;azurerm_resource_group&quot; &quot;reseau&quot; {
+  name     = &quot;rg-reseau&quot;
+  location = &quot;westeurope&quot;
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Faire confiance au certificat de miniblue (chemin affiché à son démarrage)
+export SSL_CERT_FILE=~/.miniblue/cert.pem
+
+terraform init
+terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init</code> installe le provider <code>hashicorp/azurerm</code>. <code>terraform apply</code> affiche <code>azurerm_resource_group.reseau: Creation complete</code> puis <code>Apply complete! Resources: 1 added.</code>. Tu viens de créer une <strong>vraie ressource Azure en local</strong> via Terraform — le cycle IaC <strong>fonctionne</strong> contre miniblue. ⚠️ Le bloc de ciblage (<code>metadata_host</code>, identifiants <code>miniblue</code>, <code>SSL_CERT_FILE</code>) est <strong>spécifique à l&#39;émulateur</strong> : pour déployer sur le <strong>vrai</strong> Azure, on le retire et on s&#39;authentifie normalement (guide <em>passer en réel</em>). Garde miniblue lancé pendant tout le guide.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init</code> installs the <code>hashicorp/azurerm</code> provider. <code>terraform apply</code> shows <code>azurerm_resource_group.reseau: Creation complete</code> then <code>Apply complete! Resources: 1 added.</code>. You just created a <strong>real Azure resource locally</strong> via Terraform — the IaC cycle <strong>works</strong> against miniblue. ⚠️ The targeting block (<code>metadata_host</code>, <code>miniblue</code> credentials, <code>SSL_CERT_FILE</code>) is <strong>emulator-specific</strong>: to deploy to <strong>real</strong> Azure, you remove it and authenticate normally (<em>going real</em> guide). Keep miniblue running throughout the guide.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>réseau virtuel</strong> et le découper en <strong>sous-réseaux</strong> — en live.</p>
+<p><strong>🤔 Segmenter dès le départ.</strong> Un VNet avec un espace <code>10.0.0.0/16</code> offre 65 536 adresses. On le découpe en <strong>sous-réseaux</strong> par fonction : <code>web</code> (exposé), <code>app</code> (logique), <code>data</code> (base de données). Cette <strong>segmentation</strong> est la base pour appliquer ensuite des règles de sécurité différentes par tier.</p>
+<p>Ajoute le VNet et trois sous-réseaux à <code>main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>virtual network</strong> and split it into <strong>subnets</strong> — live.</p>
+<p><strong>🤔 Segment from the start.</strong> A VNet with a <code>10.0.0.0/16</code> space offers 65,536 addresses. You split it into <strong>subnets</strong> by function: <code>web</code> (exposed), <code>app</code> (logic), <code>data</code> (database). This <strong>segmentation</strong> is the base for then applying different security rules per tier.</p>
+<p>Add the VNet and three subnets to <code>main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># main.tf (suite) — réseau virtuel + sous-réseaux
+resource &quot;azurerm_virtual_network&quot; &quot;vnet&quot; {
+  name                = &quot;vnet-app&quot;
+  address_space       = [&quot;10.0.0.0/16&quot;]
+  location            = azurerm_resource_group.reseau.location
+  resource_group_name = azurerm_resource_group.reseau.name
+}
+
+resource &quot;azurerm_subnet&quot; &quot;web&quot; {
+  name                 = &quot;snet-web&quot;
+  resource_group_name  = azurerm_resource_group.reseau.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [&quot;10.0.1.0/24&quot;]
+}
+
+resource &quot;azurerm_subnet&quot; &quot;app&quot; {
+  name                 = &quot;snet-app&quot;
+  resource_group_name  = azurerm_resource_group.reseau.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [&quot;10.0.2.0/24&quot;]
+}
+
+resource &quot;azurerm_subnet&quot; &quot;data&quot; {
+  name                 = &quot;snet-data&quot;
+  resource_group_name  = azurerm_resource_group.reseau.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [&quot;10.0.3.0/24&quot;]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> affiche la création du VNet puis des trois sous-réseaux (<code>Creation complete</code> pour chacun), et <code>Apply complete! Resources: 4 added.</code>. Le VNet <code>vnet-app</code> porte l&#39;espace <code>10.0.0.0/16</code>, découpé en <code>snet-web</code> / <code>snet-app</code> / <code>snet-data</code>. Tu as une <strong>segmentation</strong> en trois tiers — la fondation d&#39;une architecture défendable. ⚠️ Les plages de sous-réseaux ne doivent <strong>pas se chevaucher</strong> et doivent tenir <strong>dans</strong> l&#39;espace du VNet ; Azure réserve <strong>5 adresses</strong> par sous-réseau (réseau, passerelle, DNS×2, diffusion).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> shows the VNet then the three subnets being created (<code>Creation complete</code> for each), and <code>Apply complete! Resources: 4 added.</code>. The <code>vnet-app</code> VNet carries the <code>10.0.0.0/16</code> space, split into <code>snet-web</code> / <code>snet-app</code> / <code>snet-data</code>. You have a three-tier <strong>segmentation</strong> — the foundation of a defensible architecture. ⚠️ Subnet ranges must <strong>not overlap</strong> and must fit <strong>within</strong> the VNet&#39;s space; Azure reserves <strong>5 addresses</strong> per subnet (network, gateway, DNS×2, broadcast).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>NSG</strong> avec des <strong>règles</strong> et l&#39;<strong>associer</strong> au sous-réseau web — en live.</p>
+<p><strong>🤔 Le pare-feu du sous-réseau.</strong> Un NSG filtre le trafic. On y met une règle <strong>autoriser HTTPS entrant</strong> (port 443, priorité 100) pour le tier web, et on s&#39;appuie sur les <strong>règles par défaut</strong> (qui refusent le reste depuis Internet). On <strong>associe</strong> ensuite le NSG au sous-réseau <code>web</code>.</p>
+<p>Ajoute le NSG, sa règle et l&#39;association :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create an <strong>NSG</strong> with <strong>rules</strong> and <strong>associate</strong> it to the web subnet — live.</p>
+<p><strong>🤔 The subnet&#39;s firewall.</strong> An NSG filters traffic. We put an <strong>allow inbound HTTPS</strong> rule (port 443, priority 100) for the web tier, and rely on the <strong>default rules</strong> (which deny the rest from the Internet). We then <strong>associate</strong> the NSG to the <code>web</code> subnet.</p>
+<p>Add the NSG, its rule and the association:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># main.tf (suite) — NSG + règle + association
+resource &quot;azurerm_network_security_group&quot; &quot;web&quot; {
+  name                = &quot;nsg-web&quot;
+  location            = azurerm_resource_group.reseau.location
+  resource_group_name = azurerm_resource_group.reseau.name
+
+  security_rule {
+    name                       = &quot;autoriser-https&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;443&quot;
+    source_address_prefix      = &quot;Internet&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+}
+
+resource &quot;azurerm_subnet_network_security_group_association&quot; &quot;web&quot; {
+  subnet_id                 = azurerm_subnet.web.id
+  network_security_group_id = azurerm_network_security_group.web.id
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> crée le NSG <code>nsg-web</code> (avec sa règle <code>autoriser-https</code>) puis l&#39;association au sous-réseau <code>snet-web</code> (<code>Apply complete! Resources: 2 added.</code>). Le tier web autorise désormais <strong>HTTPS entrant</strong> ; le reste du trafic Internet est refusé par les règles par défaut. Retiens la mécanique : <strong>priorité</strong> (plus petit = évalué d&#39;abord), <strong>direction</strong>, <strong>action</strong> (Allow/Deny). ⚠️ Un NSG est <strong>avec état</strong> : autoriser l&#39;entrée HTTPS suffit, la réponse sortante est automatique — pas besoin de règle sortante symétrique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> creates the <code>nsg-web</code> NSG (with its <code>autoriser-https</code> rule) then the association to the <code>snet-web</code> subnet (<code>Apply complete! Resources: 2 added.</code>). The web tier now allows <strong>inbound HTTPS</strong>; the rest of Internet traffic is denied by the default rules. Remember the mechanics: <strong>priority</strong> (smaller = evaluated first), <strong>direction</strong>, <strong>action</strong> (Allow/Deny). ⚠️ An NSG is <strong>stateful</strong>: allowing inbound HTTPS is enough, the outbound reply is automatic — no symmetric outbound rule needed.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>adresse IP publique</strong> — exposer un service, en live.</p>
+<p><strong>🤔 Rendre joignable.</strong> Par défaut, tout est <strong>privé</strong> dans le VNet. Pour exposer un service (un serveur web, un équilibreur de charge), on crée une <strong>IP publique</strong> qu&#39;on attachera (en réel) à une carte réseau ou un load balancer. On la crée <strong>statique</strong> (elle ne change pas) — ce qu&#39;on veut pour un point d&#39;entrée stable.</p>
+<p>Ajoute l&#39;IP publique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>public IP</strong> — expose a service, live.</p>
+<p><strong>🤔 Make it reachable.</strong> By default, everything is <strong>private</strong> in the VNet. To expose a service (a web server, a load balancer), you create a <strong>public IP</strong> that you&#39;ll attach (for real) to a network card or a load balancer. You create it <strong>static</strong> (it doesn&#39;t change) — what you want for a stable entry point.</p>
+<p>Add the public IP:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># main.tf (suite) — adresse IP publique
+resource &quot;azurerm_public_ip&quot; &quot;web&quot; {
+  name                = &quot;pip-web&quot;
+  location            = azurerm_resource_group.reseau.location
+  resource_group_name = azurerm_resource_group.reseau.name
+  allocation_method   = &quot;Static&quot;
+  sku                 = &quot;Standard&quot;
+}
+
+output &quot;ip_publique_id&quot; {
+  value = azurerm_public_ip.web.id
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> crée <code>pip-web</code> (<code>Apply complete! Resources: 1 added.</code>) et affiche l&#39;<code>output</code> <code>ip_publique_id</code> (l&#39;identifiant ARM de l&#39;IP). Tu tiens un <strong>point d&#39;entrée public</strong> stable. ⚠️ En réel, l&#39;IP publique <strong>seule</strong> ne fait rien : on l&#39;<strong>attache</strong> à une carte réseau (pour une VM) ou à un <strong>équilibreur de charge</strong> (pour plusieurs). Le SKU <strong>Standard</strong> (sécurisé par défaut, zone-redondant) est le choix moderne recommandé par Azure — le SKU Basic est en fin de vie.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> creates <code>pip-web</code> (<code>Apply complete! Resources: 1 added.</code>) and prints the <code>ip_publique_id</code> <code>output</code> (the IP&#39;s ARM id). You hold a stable <strong>public entry point</strong>. ⚠️ For real, a public IP <strong>alone</strong> does nothing: you <strong>attach</strong> it to a network card (for a VM) or a <strong>load balancer</strong> (for several). The <strong>Standard</strong> SKU (secure by default, zone-redundant) is Azure&#39;s recommended modern choice — the Basic SKU is being retired.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>peering</strong> (hub-and-spoke) — concept + config Terraform réelle.</p>
+<p><strong>🤔 Relier deux réseaux.</strong> Deux VNets sont isolés. Pour les relier en privé, on crée un <strong>peering</strong> (dans les deux sens). C&#39;est la base du <strong>hub-and-spoke</strong> : un VNet « hub » central (services partagés : pare-feu, passerelle) relié à des VNets « spokes » (les applications). Le trafic circule en privé, sans passer par Internet.</p>
+<p>La config (réelle Azure) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>peering</strong> (hub-and-spoke) — concept + real Terraform config.</p>
+<p><strong>🤔 Link two networks.</strong> Two VNets are isolated. To link them privately, you create a <strong>peering</strong> (in both directions). It&#39;s the base of <strong>hub-and-spoke</strong>: a central &quot;hub&quot; VNet (shared services: firewall, gateway) linked to &quot;spoke&quot; VNets (the applications). Traffic flows privately, without going through the Internet.</p>
+<p>The config (real Azure):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># peering.tf — hub &lt;-&gt; spoke (syntaxe réelle Azure)
+resource &quot;azurerm_virtual_network&quot; &quot;spoke&quot; {
+  name                = &quot;vnet-spoke&quot;
+  address_space       = [&quot;10.1.0.0/16&quot;]
+  location            = azurerm_resource_group.reseau.location
+  resource_group_name = azurerm_resource_group.reseau.name
+}
+
+resource &quot;azurerm_virtual_network_peering&quot; &quot;hub_vers_spoke&quot; {
+  name                      = &quot;hub-vers-spoke&quot;
+  resource_group_name       = azurerm_resource_group.reseau.name
+  virtual_network_name      = azurerm_virtual_network.vnet.name
+  remote_virtual_network_id = azurerm_virtual_network.spoke.id
+  allow_forwarded_traffic   = true
+}
+
+resource &quot;azurerm_virtual_network_peering&quot; &quot;spoke_vers_hub&quot; {
+  name                      = &quot;spoke-vers-hub&quot;
+  resource_group_name       = azurerm_resource_group.reseau.name
+  virtual_network_name      = azurerm_virtual_network.spoke.name
+  remote_virtual_network_id = azurerm_virtual_network.vnet.id
+  allow_forwarded_traffic   = true
+}</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu comprends le <strong>hub-and-spoke</strong> et sais écrire un peering <strong>bidirectionnel</strong> (un objet par sens). Retiens : le peering est <strong>non transitif</strong> (si A↔B et B↔C, alors A ne parle <strong>pas</strong> à C automatiquement) — un point d&#39;examen AZ-104 classique. ⚠️ <strong>Note émulateur :</strong> miniblue crée les VNets mais <strong>ne provisionne pas complètement</strong> le peering (l&#39;état reste en attente) — la <strong>syntaxe</strong> ci-dessus est celle du vrai Azure, à connaître pour l&#39;examen ; le peering <strong>réel</strong> se vérifie sur un vrai compte (guide <em>passer en réel</em>). Les VNets, sous-réseaux, NSG et IP publiques, eux, sont bien déployés en live (étapes précédentes).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you understand <strong>hub-and-spoke</strong> and can write a <strong>bidirectional</strong> peering (one object per direction). Remember: peering is <strong>non-transitive</strong> (if A↔B and B↔C, then A does <strong>not</strong> talk to C automatically) — a classic AZ-104 exam point. ⚠️ <strong>Emulator note:</strong> miniblue creates the VNets but <strong>doesn&#39;t fully provision</strong> the peering (the state stays pending) — the <strong>syntax</strong> above is real Azure&#39;s, to know for the exam; <strong>real</strong> peering is verified on a real account (<em>going real</em> guide). VNets, subnets, NSGs and public IPs, though, are deployed live (previous steps).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Vérifier</strong> la topologie déployée.</p>
+<p><strong>🤔 La preuve par l&#39;état.</strong> Terraform garde l&#39;<strong>état</strong> de ce qu&#39;il a créé. On liste les ressources gérées et on interroge miniblue directement pour confirmer que le réseau existe vraiment.</p>
+<p>Inspecte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Verify</strong> the deployed topology.</p>
+<p><strong>🤔 Proof by state.</strong> Terraform keeps the <strong>state</strong> of what it created. We list the managed resources and query miniblue directly to confirm the network really exists.</p>
+<p>Inspect:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Ce que Terraform gère / what Terraform manages
+terraform state list
+
+# Interroger miniblue directement / query miniblue directly
+azlocal network vnet list --resource-group rg-reseau
+azlocal group show --name rg-reseau</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform state list</code> énumère tes ressources (<code>azurerm_resource_group.reseau</code>, <code>azurerm_virtual_network.vnet</code>, les trois <code>azurerm_subnet.*</code>, <code>azurerm_network_security_group.web</code>, l&#39;association, <code>azurerm_public_ip.web</code>…). <code>azlocal network vnet list --resource-group rg-reseau</code> montre <code>vnet-app</code> <strong>côté émulateur</strong> (preuve indépendante que Terraform a bien créé la ressource sur miniblue). Tu vois les <strong>deux points de vue</strong> : l&#39;état Terraform (ce que le code gère) et l&#39;état réel de l&#39;émulateur (ce qui existe). C&#39;est le réflexe de vérification d&#39;un administrateur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform state list</code> enumerates your resources (<code>azurerm_resource_group.reseau</code>, <code>azurerm_virtual_network.vnet</code>, the three <code>azurerm_subnet.*</code>, <code>azurerm_network_security_group.web</code>, the association, <code>azurerm_public_ip.web</code>…). <code>azlocal network vnet list --resource-group rg-reseau</code> shows <code>vnet-app</code> <strong>on the emulator side</strong> (independent proof that Terraform really created the resource on miniblue). You see <strong>both viewpoints</strong>: the Terraform state (what the code manages) and the emulator&#39;s real state (what exists). It&#39;s an administrator&#39;s verification reflex.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Détruire</strong> le réseau — le cycle IaC complet.</p>
+<p><strong>🤔 Créer → utiliser → détruire.</strong> La force de l&#39;IaC : ce que tu as déployé, tu le retires <strong>d&#39;une commande</strong>, dans le bon ordre (associations d&#39;abord, groupe de ressources en dernier). <code>terraform destroy</code> s&#39;en charge.</p>
+<p>Détruis :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Destroy</strong> the network — the full IaC cycle.</p>
+<p><strong>🤔 Create → use → destroy.</strong> IaC&#39;s strength: what you deployed, you remove <strong>in one command</strong>, in the right order (associations first, resource group last). <code>terraform destroy</code> handles it.</p>
+<p>Destroy:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform destroy -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform destroy</code> détruit les ressources dans l&#39;ordre inverse des dépendances (l&#39;association, puis NSG/sous-réseaux/IP, puis le VNet, puis le groupe de ressources) et affiche <code>Destroy complete! Resources: N destroyed.</code>. <code>azlocal network vnet list --resource-group rg-reseau</code> ne montre plus rien. Tu as bouclé le <strong>cycle IaC complet</strong> — créer, vérifier, détruire — <strong>en local</strong>. C&#39;est exactement ce que tu feras sur le vrai Azure, à la différence près qu&#39;ici c&#39;est <strong>gratuit et sans risque</strong>. La suite du track AZ-104 : le <strong>stockage</strong> (comptes, blob, niveaux d&#39;accès), puis le <strong>calcul</strong> (VM) et la <strong>gouvernance</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform destroy</code> destroys the resources in reverse dependency order (the association, then NSG/subnets/IP, then the VNet, then the resource group) and shows <code>Destroy complete! Resources: N destroyed.</code>. <code>azlocal network vnet list --resource-group rg-reseau</code> shows nothing anymore. You closed the <strong>full IaC cycle</strong> — create, verify, destroy — <strong>locally</strong>. It&#39;s exactly what you&#39;ll do on real Azure, except here it&#39;s <strong>free and risk-free</strong>. The AZ-104 track continues: <strong>storage</strong> (accounts, blob, access tiers), then <strong>compute</strong> (VMs) and <strong>governance</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Sous-réseaux qui se chevauchent.</strong> Les plages doivent être <strong>disjointes</strong> et <strong>incluses</strong> dans l&#39;espace du VNet. <code>10.0.1.0/24</code> et <code>10.0.1.128/25</code> se chevauchent → erreur.</p>
+<p><strong>2. Oublier que le NSG est avec état.</strong> Autoriser l&#39;entrée suffit ; la réponse sortante est automatique. Pas besoin de règle sortante symétrique.</p>
+<p><strong>3. Mal ordonner les priorités.</strong> La règle de <strong>plus petite priorité</strong> gagne. Une règle « Deny » à 100 l&#39;emporte sur un « Allow » à 200. Vérifie l&#39;ordre.</p>
+<p><strong>4. Croire que le peering est transitif.</strong> A↔B et B↔C ne relient <strong>pas</strong> A à C. Chaque paire a besoin de son propre peering.</p>
+<p><strong>5. IP publique orpheline.</strong> Une IP publique <strong>seule</strong> n&#39;expose rien : il faut l&#39;<strong>attacher</strong> (NIC, load balancer). Et une IP publique statique <strong>non attachée</strong> coûte (en réel).</p>
+<p><strong>6. Oublier le certificat de miniblue.</strong> Sans <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>, Terraform refuse l&#39;endpoint HTTPS local. Exporte-le avant <code>terraform</code>.</p>
+<p><strong>7. Attendre du peering/DNS live sur l&#39;émulateur.</strong> miniblue couvre le cœur (VNet, sous-réseaux, NSG, IP) mais pas ces fonctions avancées. La <strong>syntaxe</strong> est réelle ; l&#39;effet complet est sur le vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong>1. Overlapping subnets.</strong> Ranges must be <strong>disjoint</strong> and <strong>within</strong> the VNet&#39;s space. <code>10.0.1.0/24</code> and <code>10.0.1.128/25</code> overlap → error.</p>
+<p><strong>2. Forgetting the NSG is stateful.</strong> Allowing inbound is enough; the outbound reply is automatic. No symmetric outbound rule needed.</p>
+<p><strong>3. Mis-ordering priorities.</strong> The <strong>smallest-priority</strong> rule wins. A &quot;Deny&quot; at 100 beats an &quot;Allow&quot; at 200. Check the order.</p>
+<p><strong>4. Thinking peering is transitive.</strong> A↔B and B↔C do <strong>not</strong> link A to C. Each pair needs its own peering.</p>
+<p><strong>5. Orphan public IP.</strong> A public IP <strong>alone</strong> exposes nothing: you must <strong>attach</strong> it (NIC, load balancer). And an unattached static public IP costs money (for real).</p>
+<p><strong>6. Forgetting miniblue&#39;s certificate.</strong> Without <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>, Terraform refuses the local HTTPS endpoint. Export it before <code>terraform</code>.</p>
+<p><strong>7. Expecting live peering/DNS on the emulator.</strong> miniblue covers the core (VNet, subnets, NSG, IP) but not these advanced features. The <strong>syntax</strong> is real; the full effect is on real Azure.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Terraform est connecté à miniblue (<code>apply</code> crée un groupe de ressources).</li><li>Tu déploies un <strong>VNet</strong> et trois <strong>sous-réseaux</strong> en live.</li><li>Tu crées un <strong>NSG</strong> + règle et l&#39;<strong>associes</strong> au sous-réseau web.</li><li>Tu crées une <strong>IP publique</strong> (statique, SKU Standard).</li><li>Tu expliques <strong>peering</strong> (non transitif) et <strong>hub-and-spoke</strong>.</li><li>Tu <strong>vérifies</strong> via <code>terraform state list</code> et <code>azlocal network vnet list</code>.</li><li>Tu <strong>détruis</strong> tout avec <code>terraform destroy</code>.</li></ul>
+<p>Sept cases = tu tiens le réseau Azure au niveau AZ-104. La suite : le <strong>stockage</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>Terraform is connected to miniblue (<code>apply</code> creates a resource group).</li><li>You deploy a <strong>VNet</strong> and three <strong>subnets</strong> live.</li><li>You create an <strong>NSG</strong> + rule and <strong>associate</strong> it to the web subnet.</li><li>You create a <strong>public IP</strong> (static, Standard SKU).</li><li>You explain <strong>peering</strong> (non-transitive) and <strong>hub-and-spoke</strong>.</li><li>You <strong>verify</strong> via <code>terraform state list</code> and <code>azlocal network vnet list</code>.</li><li>You <strong>destroy</strong> everything with <code>terraform destroy</code>.</li></ul>
+<p>Seven boxes = you hold Azure networking at AZ-104 level. Next up: <strong>storage</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-104 continue :</p>
+<ol><li><strong>Azure — stockage</strong> : comptes de stockage, conteneurs Blob, niveaux d&#39;accès (chaud/froid/archive), cycle de vie, SAS, partages de fichiers — plan de contrôle live (miniblue) + plan de données (Azurite).</li><li>Plus loin : <strong>calcul</strong> (machines virtuelles), <strong>identité &amp; gouvernance</strong> (RBAC, policies), puis le <strong>projet d&#39;entreprise</strong> AZ-104 et <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-104 track continues:</p>
+<ol><li><strong>Azure — storage</strong>: storage accounts, Blob containers, access tiers (hot/cool/archive), lifecycle, SAS, file shares — live control plane (miniblue) + data plane (Azurite).</li><li>Further along: <strong>compute</strong> (virtual machines), <strong>identity &amp; governance</strong> (RBAC, policies), then the AZ-104 <strong>enterprise project</strong> and <strong>going real</strong>.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire réseau Azure (Terraform contre miniblue).</p>
+</div>
+<div data-lang="en"><p>Azure networking cheat sheet (Terraform against miniblue).</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Provider vers miniblue (émulateur) / provider to miniblue (emulator)
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+}
+
+# Réseau / networking
+resource &quot;azurerm_virtual_network&quot; &quot;v&quot; { name = &quot;vnet&quot;; address_space = [&quot;10.0.0.0/16&quot;]; ... }
+resource &quot;azurerm_subnet&quot; &quot;s&quot;          { address_prefixes = [&quot;10.0.1.0/24&quot;]; ... }
+resource &quot;azurerm_network_security_group&quot; &quot;n&quot; { security_rule { priority = 100; direction = &quot;Inbound&quot;; access = &quot;Allow&quot;; ... } }
+resource &quot;azurerm_subnet_network_security_group_association&quot; &quot;a&quot; { subnet_id = ...; network_security_group_id = ... }
+resource &quot;azurerm_public_ip&quot; &quot;p&quot;       { allocation_method = &quot;Static&quot;; sku = &quot;Standard&quot;; ... }</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=~/.miniblue/cert.pem     # confiance du certificat miniblue
+terraform init ; terraform apply -auto-approve
+terraform state list                          # ce que Terraform gère
+azlocal network vnet list --resource-group rg-reseau   # côté émulateur
+terraform destroy -auto-approve               # tout retirer</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/virtual-network/virtual-networks-overview">Réseau virtuel Azure</a> — VNet, sous-réseaux.</li><li><a href="https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview">Groupes de sécurité réseau</a> — NSG, règles, priorités.</li><li><a href="https://learn.microsoft.com/azure/virtual-network/virtual-network-peering-overview">Peering de réseaux virtuels</a> — hub-and-spoke.</li><li><a href="https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-addresses">Adresses IP publiques</a> — SKU, allocation.</li><li><a href="https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs">Provider Terraform azurerm</a> — la référence des ressources.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/virtual-network/virtual-networks-overview">Azure virtual network</a> — VNet, subnets.</li><li><a href="https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview">Network security groups</a> — NSG, rules, priorities.</li><li><a href="https://learn.microsoft.com/azure/virtual-network/virtual-network-peering-overview">Virtual network peering</a> — hub-and-spoke.</li><li><a href="https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-addresses">Public IP addresses</a> — SKU, allocation.</li><li><a href="https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs">Terraform azurerm provider</a> — the resource reference.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform apply</code> : erreur de certificat (x509 / TLS).</strong> Tu n&#39;as pas fait confiance au certificat de miniblue. <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> (chemin affiché au démarrage de miniblue), puis relance.</p>
+<p><strong><code>terraform apply</code> : connexion refusée sur <code>localhost:4567</code>.</strong> miniblue ne tourne pas. Lance-le (<code>miniblue</code>) et vérifie <code>azlocal health</code>.</p>
+<p><strong>Erreur « address space overlaps ».</strong> Deux sous-réseaux se chevauchent, ou dépassent l&#39;espace du VNet. Choisis des plages disjointes incluses dans <code>10.0.0.0/16</code>.</p>
+<p><strong>Le peering reste « en attente » / échoue.</strong> Attendu sur l&#39;émulateur : miniblue ne provisionne pas complètement le peering. La syntaxe est correcte pour le vrai Azure ; retire ce bloc pour tester le reste en local.</p>
+<p><strong><code>terraform destroy</code> bloque sur une association.</strong> Détruis d&#39;abord l&#39;association NSG↔sous-réseau (Terraform le fait dans le bon ordre automatiquement ; en cas de blocage, <code>terraform destroy</code> à nouveau).</p>
+<p><strong>Le state Terraform ne correspond plus à miniblue (après un <code>azlocal reset</code>).</strong> Si tu as réinitialisé miniblue, l&#39;état Terraform est désynchronisé. Supprime <code>terraform.tfstate</code> et recommence, ou <code>terraform apply</code> pour recréer.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform apply</code>: certificate error (x509 / TLS).</strong> You didn&#39;t trust miniblue&#39;s certificate. <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> (path printed at miniblue startup), then retry.</p>
+<p><strong><code>terraform apply</code>: connection refused on <code>localhost:4567</code>.</strong> miniblue isn&#39;t running. Start it (<code>miniblue</code>) and check <code>azlocal health</code>.</p>
+<p><strong>&quot;address space overlaps&quot; error.</strong> Two subnets overlap, or exceed the VNet&#39;s space. Pick disjoint ranges within <code>10.0.0.0/16</code>.</p>
+<p><strong>Peering stays &quot;pending&quot; / fails.</strong> Expected on the emulator: miniblue doesn&#39;t fully provision peering. The syntax is correct for real Azure; remove that block to test the rest locally.</p>
+<p><strong><code>terraform destroy</code> stalls on an association.</strong> Destroy the NSG↔subnet association first (Terraform does it in the right order automatically; if it stalls, run <code>terraform destroy</code> again).</p>
+<p><strong>Terraform state no longer matches miniblue (after an <code>azlocal reset</code>).</strong> If you reset miniblue, the Terraform state is out of sync. Delete <code>terraform.tfstate</code> and start over, or <code>terraform apply</code> to recreate.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

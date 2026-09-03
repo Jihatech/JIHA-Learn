@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — sécurité des données (AZ-500) : chiffrement, coffre, rotation — jiha.tech</title>
+  <title data-lang="en">Azure — data security (AZ-500): encryption, vault, rotation — jiha.tech</title>
+  <meta name="description" content="&quot;Sécuriser les données pour l&#39;AZ-500, en local et pour de vrai : classer la donnée pour en déduire les contrôles (Public → Secret), le chiffrement au repos (par défaut + clés gérées par le client / CMK) validé par checkov, le chiffrement en transit (TLS 1.2 + HTTPS obligatoire, checkov), le coffre Key Vault et la rotation d&#39;un secret (v1 → v2, live sur miniblue), la rotation des clés de stockage (motif à deux clés, live), et une ressource de données entièrement durcie qui passe le scan au vert. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Securing data for AZ-500, locally and for real: classifying data to derive its controls (Public → Secret), encryption at rest (default + customer-managed keys / CMK) validated by checkov, encryption in transit (TLS 1.2 + HTTPS required, checkov), the Key Vault and rotating a secret (v1 → v2, live on miniblue), rotating storage keys (two-key pattern, live), and a fully hardened data resource that passes the scan green. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — sécurité des données (AZ-500) : chiffrement, coffre, rotation">
+  <meta property="og:description" content="&quot;Sécuriser les données pour l&#39;AZ-500, en local et pour de vrai : classer la donnée pour en déduire les contrôles (Public → Secret), le chiffrement au repos (par défaut + clés gérées par le client / CMK) validé par checkov, le chiffrement en transit (TLS 1.2 + HTTPS obligatoire, checkov), le coffre Key Vault et la rotation d&#39;un secret (v1 → v2, live sur miniblue), la rotation des clés de stockage (motif à deux clés, live), et une ressource de données entièrement durcie qui passe le scan au vert. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-securite-donnees/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-securite-donnees/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-securite-donnees">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-securite-donnees</div>
+    <div class="prompt" data-lang="en">~/guides/azure-securite-donnees</div>
+    <h1 data-lang="fr">Azure — sécurité des données (AZ-500) : chiffrement, coffre, rotation</h1>
+    <h1 data-lang="en">Azure — data security (AZ-500): encryption, vault, rotation</h1>
+    <p class="tagline" data-lang="fr">classer, chiffrer au repos et en transit, faire tourner les secrets.</p>
+    <p class="tagline" data-lang="en">classify, encrypt at rest and in transit, rotate the secrets.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Au bout de la chaîne, il y a la <strong>donnée</strong> — ce qu&#39;un attaquant veut vraiment. L&#39;identité et le réseau la protègent <strong>autour</strong> ; ici, on la protège <strong>elle-même</strong>. L&#39;<strong>AZ-500</strong> attend que tu saches <strong>classer</strong> la donnée, la <strong>chiffrer</strong> au repos et en transit, gérer les <strong>clés</strong> et <strong>faire tourner</strong> les secrets. C&#39;est la couche la plus <strong>proche</strong> de la valeur.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on <strong>classe</strong> la donnée (Public → Secret) pour en <strong>déduire les contrôles</strong>, on valide le <strong>chiffrement au repos</strong> (par défaut + <strong>clés gérées par le client</strong>, CMK) et le <strong>chiffrement en transit</strong> (<strong>TLS 1.2</strong> + HTTPS obligatoire) avec <strong>checkov</strong>, on <strong>stocke</strong> et on <strong>fait tourner</strong> un secret dans <strong>Key Vault</strong> (v1 → v2, <strong>live</strong> sur <strong>miniblue</strong>), on <strong>rotationne</strong> les <strong>clés de stockage</strong> (motif à <strong>deux clés</strong>, live), et on assemble une <strong>ressource de données entièrement durcie</strong> qui <strong>passe le scan au vert</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as l&#39;identité et le réseau (guides précédents) et tu veux <strong>verrouiller la donnée</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne connais pas Key Vault → révise <em>Azure — sécurité fondamentaux (AZ-500)</em>.</li><li>Tu veux la <strong>conformité</strong> réglementaire détaillée (RGPD, PCI-DSS) → ici c&#39;est la <strong>mécanique</strong> technique.</li></ul>
+</div>
+<div data-lang="en"><p>At the end of the chain is the <strong>data</strong> — what an attacker really wants. Identity and network protect it <strong>around</strong>; here, we protect it <strong>itself</strong>. <strong>AZ-500</strong> expects you to <strong>classify</strong> data, <strong>encrypt</strong> it at rest and in transit, manage <strong>keys</strong> and <strong>rotate</strong> secrets. It&#39;s the layer <strong>closest</strong> to the value.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we <strong>classify</strong> data (Public → Secret) to <strong>derive its controls</strong>, we validate <strong>encryption at rest</strong> (default + <strong>customer-managed keys</strong>, CMK) and <strong>encryption in transit</strong> (<strong>TLS 1.2</strong> + HTTPS required) with <strong>checkov</strong>, we <strong>store</strong> and <strong>rotate</strong> a secret in <strong>Key Vault</strong> (v1 → v2, <strong>live</strong> on <strong>miniblue</strong>), we <strong>rotate</strong> the <strong>storage keys</strong> (<strong>two-key</strong> pattern, live), and we assemble a <strong>fully hardened data resource</strong> that <strong>passes the scan green</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you have identity and network (previous guides) and want to <strong>lock down the data</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know Key Vault → review <em>Azure — security fundamentals (AZ-500)</em>.</li><li>You want detailed regulatory <strong>compliance</strong> (GDPR, PCI-DSS) → here it&#39;s the technical <strong>mechanics</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Classer</strong> la donnée (Public → Secret) et en <strong>déduire les contrôles</strong>.</li><li>Expliquer le <strong>chiffrement au repos</strong> (par défaut vs <strong>clé gérée par le client</strong>, CMK).</li><li>Imposer le <strong>chiffrement en transit</strong> (<strong>TLS 1.2</strong>, HTTPS obligatoire) et le <strong>valider</strong>.</li><li>Utiliser <strong>Key Vault</strong> et <strong>faire tourner</strong> un secret (nouvelles versions).</li><li><strong>Rotationner</strong> des <strong>clés de stockage</strong> avec le motif à <strong>deux clés</strong>.</li><li>Assembler une <strong>ressource de données durcie</strong> qui <strong>passe</strong> le scan de sécurité.</li><li>Distinguer <strong>clés gérées par la plateforme</strong> et <strong>par le client</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Classify</strong> data (Public → Secret) and <strong>derive its controls</strong>.</li><li>Explain <strong>encryption at rest</strong> (default vs <strong>customer-managed key</strong>, CMK).</li><li>Enforce <strong>encryption in transit</strong> (<strong>TLS 1.2</strong>, HTTPS required) and <strong>validate</strong> it.</li><li>Use <strong>Key Vault</strong> and <strong>rotate</strong> a secret (new versions).</li><li><strong>Rotate</strong> <strong>storage keys</strong> with the <strong>two-key</strong> pattern.</li><li>Assemble a <strong>hardened data resource</strong> that <strong>passes</strong> the security scan.</li><li>Distinguish <strong>platform-managed</strong> and <strong>customer-managed</strong> keys.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Azure — sécurité fondamentaux / identité / réseau (AZ-500)</strong>.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré, <code>azlocal</code> sur le <code>PATH</code>, <strong>Python 3</strong>, <code>pip install checkov</code>.</li><li><strong>Aucun compte cloud</strong> : coffre et rotation live, chiffrement validé par policy (checkov).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — security fundamentals / identity / network (AZ-500)</strong> guides.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started, <code>azlocal</code> on <code>PATH</code>, <strong>Python 3</strong>, <code>pip install checkov</code>.</li><li><strong>No cloud account</strong>: vault and rotation live, encryption validated by policy (checkov).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-securite-reseau/">
+    <span class="num">78</span>
+    <span class="title-line" data-lang="fr">Azure — sécurité réseau (AZ-500) : segmentation, pare-feu, WAF</span>
+    <span class="title-line" data-lang="en">Azure — network security (AZ-500): segmentation, firewall, WAF</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Classer avant de protéger.</strong> On ne protège pas tout <strong>pareil</strong> : ce serait trop cher (Secret) ou trop faible (Public). La <strong>classification</strong> attribue une <strong>sensibilité</strong> — <em>Public</em>, <em>Interne</em>, <em>Confidentiel</em>, <em>Secret</em> — et <strong>chaque classe</strong> impose des <strong>contrôles</strong>. Plus c&#39;est sensible, plus on empile : chiffrement, TLS, RBAC serré, point privé, journalisation. La classification <strong>pilote</strong> tout le reste.</p>
+<p><strong>Chiffrement au repos.</strong> La donnée stockée est <strong>chiffrée sur le disque</strong>. Azure le fait <strong>par défaut</strong> avec des <strong>clés gérées par la plateforme</strong> (Microsoft). Pour un contrôle accru, on utilise des <strong>clés gérées par le client</strong> (<strong>CMK</strong>) stockées dans <strong>Key Vault</strong> : c&#39;est <strong>toi</strong> qui possèdes et <strong>révoques</strong> la clé — révoquer la clé rend la donnée <strong>illisible</strong>, même pour l&#39;hébergeur. Option supplémentaire : le <strong>chiffrement d&#39;infrastructure</strong> (double couche).</p>
+<p><strong>Chiffrement en transit.</strong> La donnée <strong>en mouvement</strong> (réseau) doit être chiffrée : <strong>TLS 1.2</strong> minimum, <strong>HTTPS obligatoire</strong>. Un service qui accepte HTTP en clair ou un vieux TLS 1.0 est une <strong>fuite</strong> attendue. C&#39;est un contrôle <strong>non négociable</strong>, et un scan de sécurité l&#39;<strong>exige</strong>.</p>
+<p><strong>Le coffre : secrets, clés, certificats.</strong> <strong>Key Vault</strong> stocke trois types d&#39;objets : <strong>secrets</strong> (chaînes : mots de passe, chaînes de connexion), <strong>clés</strong> (cryptographiques : chiffrement, signature — dont les CMK), <strong>certificats</strong> (TLS). Contrôle d&#39;accès (RBAC/politiques), <strong>audit</strong>, et <strong>versionnement</strong> intégré.</p>
+<p><strong>La rotation.</strong> Un secret ou une clé ne doit <strong>pas</strong> vivre éternellement : plus il est ancien, plus le risque de fuite augmente. La <strong>rotation</strong> remplace régulièrement la valeur. Key Vault <strong>versionne</strong> : une nouvelle valeur crée une <strong>nouvelle version</strong>, l&#39;ancienne reste consultable le temps de la transition. Pour un <strong>compte de stockage</strong>, le <strong>motif à deux clés</strong> (<code>key1</code>, <code>key2</code>) permet de <strong>rotationner sans coupure</strong> : on bascule les apps sur <code>key2</code>, on régénère <code>key1</code>, puis on rebascule — jamais d&#39;interruption.</p>
+<p><strong>Ce qui est live ici.</strong> La <strong>classification</strong> est un <strong>moteur exécutable</strong> (classe → contrôles). Le <strong>chiffrement au repos et en transit</strong> se <strong>valide</strong> avec <strong>checkov</strong> (TLS 1.2, HTTPS, chiffrement d&#39;infra). Le <strong>secret</strong> se <strong>stocke</strong> et se <strong>fait tourner</strong> dans Key Vault (v1 → v2, live). Les <strong>clés de stockage</strong> se <strong>listent</strong> pour le motif à deux clés (live). Les <strong>CMK</strong> et le versionnement fin se <strong>raisonnent</strong> (miniblue n&#39;émule que les secrets). Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>Classify before protecting.</strong> You don&#39;t protect everything the <strong>same</strong>: that would be too costly (Secret) or too weak (Public). <strong>Classification</strong> assigns a <strong>sensitivity</strong> — <em>Public</em>, <em>Internal</em>, <em>Confidential</em>, <em>Secret</em> — and <strong>each class</strong> mandates <strong>controls</strong>. The more sensitive, the more you stack: encryption, TLS, tight RBAC, private endpoint, logging. Classification <strong>drives</strong> everything else.</p>
+<p><strong>Encryption at rest.</strong> Stored data is <strong>encrypted on disk</strong>. Azure does it <strong>by default</strong> with <strong>platform-managed keys</strong> (Microsoft). For more control, you use <strong>customer-managed keys</strong> (<strong>CMK</strong>) stored in <strong>Key Vault</strong>: <strong>you</strong> own and <strong>revoke</strong> the key — revoking it makes the data <strong>unreadable</strong>, even to the host. Extra option: <strong>infrastructure encryption</strong> (double layer).</p>
+<p><strong>Encryption in transit.</strong> Data <strong>in motion</strong> (network) must be encrypted: <strong>TLS 1.2</strong> minimum, <strong>HTTPS required</strong>. A service accepting cleartext HTTP or old TLS 1.0 is an expected <strong>leak</strong>. It&#39;s a <strong>non-negotiable</strong> control, and a security scan <strong>requires</strong> it.</p>
+<p><strong>The vault: secrets, keys, certificates.</strong> <strong>Key Vault</strong> stores three object types: <strong>secrets</strong> (strings: passwords, connection strings), <strong>keys</strong> (cryptographic: encryption, signing — including CMKs), <strong>certificates</strong> (TLS). Access control (RBAC/policies), <strong>audit</strong>, and built-in <strong>versioning</strong>.</p>
+<p><strong>Rotation.</strong> A secret or key must <strong>not</strong> live forever: the older it is, the higher the leak risk. <strong>Rotation</strong> regularly replaces the value. Key Vault <strong>versions</strong>: a new value creates a <strong>new version</strong>, the old one stays readable during transition. For a <strong>storage account</strong>, the <strong>two-key pattern</strong> (<code>key1</code>, <code>key2</code>) allows <strong>rotation without downtime</strong>: switch apps to <code>key2</code>, regenerate <code>key1</code>, then switch back — never an interruption.</p>
+<p><strong>What&#39;s live here.</strong> <strong>Classification</strong> is a <strong>runnable engine</strong> (class → controls). <strong>Encryption at rest and in transit</strong> is <strong>validated</strong> with <strong>checkov</strong> (TLS 1.2, HTTPS, infra encryption). The <strong>secret</strong> is <strong>stored</strong> and <strong>rotated</strong> in Key Vault (v1 → v2, live). The <strong>storage keys</strong> are <strong>listed</strong> for the two-key pattern (live). <strong>CMKs</strong> and fine versioning are <strong>reasoned</strong> (miniblue only emulates secrets). All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-securite-donnees-couches">
+  <svg viewBox="0 0 760 304" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-securite-donnees-couches">
+  <title id="s-azure-securite-donnees-couches">Sécurité des données</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Sécurité des données</text><rect class="box-accent" x="90" y="40" width="580" height="40" rx="3"/><text class="lbl lbl-fill" x="380" y="57.5" text-anchor="middle">Classification</text><text class="sub sub-fill" x="380" y="70.5" text-anchor="middle">Public → Secret</text><rect class="box" x="90" y="90" width="580" height="40" rx="3"/><text class="lbl" x="380" y="107.5" text-anchor="middle">Chiffrement au repos</text><text class="sub" x="380" y="120.5" text-anchor="middle">défaut → CMK → double couche</text><rect class="box" x="90" y="140" width="580" height="40" rx="3"/><text class="lbl" x="380" y="157.5" text-anchor="middle">Chiffrement en transit</text><text class="sub" x="380" y="170.5" text-anchor="middle">TLS 1.2 + HTTPS</text><rect class="box" x="90" y="190" width="580" height="40" rx="3"/><text class="lbl" x="380" y="207.5" text-anchor="middle">Coffre</text><text class="sub" x="380" y="220.5" text-anchor="middle">Key Vault + audit</text><rect class="box" x="90" y="240" width="580" height="40" rx="3"/><text class="lbl" x="380" y="257.5" text-anchor="middle">Rotation</text><text class="sub" x="380" y="270.5" text-anchor="middle">versions · motif 2 clés</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La sécurité des données : la CLASSIFICATION (Public → Secret) pilote les contrôles. AU REPOS : chiffrement par défaut (clé plateforme) ou CMK (clé client dans Key Vault, révocable). EN TRANSIT : TLS 1.2 + HTTPS obligatoire. Le COFFRE (secrets/clés/certificats) versionne et audite. ROTATION : nouvelles versions de secret ; motif à deux clés (key1/key2) pour rotationner sans coupure. Plus c&#39;est sensible, plus on empile de contrôles.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Data security: CLASSIFICATION (Public → Secret) drives the controls. AT REST: default encryption (platform key) or CMK (customer key in Key Vault, revocable). IN TRANSIT: TLS 1.2 + HTTPS required. The VAULT (secrets/keys/certificates) versions and audits. ROTATION: new secret versions; two-key pattern (key1/key2) to rotate without downtime. The more sensitive, the more controls you stack.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Classer</strong> la donnée pour en <strong>déduire les contrôles</strong>.</p>
+<p><strong>🤔 Tout ne mérite pas le même effort.</strong> On attribue une <strong>sensibilité</strong> à chaque donnée, et <strong>la classe impose les contrôles</strong>. Un catalogue public n&#39;a pas besoin de CMK ; des cartes bancaires, si. On écrit le moteur de classification.</p>
+<p>Écris le moteur de classification et applique-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Classify</strong> data to <strong>derive its controls</strong>.</p>
+<p><strong>🤔 Not everything deserves the same effort.</strong> We assign a <strong>sensitivity</strong> to each data, and <strong>the class mandates the controls</strong>. A public catalog needs no CMK; credit cards do. We write the classification engine.</p>
+<p>Write the classification engine and apply it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p data-securite &amp;&amp; cd data-securite
+cat &gt; classif.py &lt;&lt;&#39;PY&#39;
+# Classer la donnee -&gt; deriver les controles requis (plus c&#39;est sensible, plus on empile)
+CONTROLES = {
+    &quot;Public&quot;:       [&quot;chiffrement au repos (defaut)&quot;],
+    &quot;Interne&quot;:      [&quot;chiffrement au repos&quot;, &quot;TLS 1.2&quot;, &quot;RBAC&quot;],
+    &quot;Confidentiel&quot;: [&quot;chiffrement au repos&quot;, &quot;TLS 1.2&quot;, &quot;RBAC moindre privilege&quot;, &quot;point de terminaison prive&quot;],
+    &quot;Secret&quot;:       [&quot;chiffrement CMK (cle client)&quot;, &quot;TLS 1.2&quot;, &quot;RBAC + PIM&quot;, &quot;point prive&quot;, &quot;journalisation des acces&quot;],
+}
+donnees = [
+    (&quot;catalogue produits&quot;, &quot;Public&quot;),
+    (&quot;logs applicatifs&quot;,   &quot;Interne&quot;),
+    (&quot;donnees clients&quot;,    &quot;Confidentiel&quot;),
+    (&quot;cartes bancaires&quot;,   &quot;Secret&quot;),
+]
+for nom, classe in donnees:
+    print(f&quot;{nom:20} [{classe:12}] -&gt; {&#39;, &#39;.join(CONTROLES[classe])}&quot;)
+PY
+python3 classif.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> chaque donnée reçoit sa <strong>classe</strong> et ses <strong>contrôles</strong> : <code>catalogue produits [Public] -&gt; chiffrement au repos (defaut)</code> … jusqu&#39;à <code>cartes bancaires [Secret] -&gt; chiffrement CMK (cle client), TLS 1.2, RBAC + PIM, point prive, journalisation des acces</code>. La <strong>sensibilité pilote</strong> l&#39;effort : on n&#39;empile les contrôles coûteux (CMK, PIM, point privé) que là où c&#39;est <strong>justifié</strong>. C&#39;est la première décision de sécurité des données — <strong>avant</strong> de choisir la moindre technologie. On applique maintenant ces contrôles, en commençant par le <strong>chiffrement</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> each data gets its <strong>class</strong> and <strong>controls</strong>: <code>catalogue produits [Public] -&gt; chiffrement au repos (defaut)</code> … up to <code>cartes bancaires [Secret] -&gt; chiffrement CMK (cle client), TLS 1.2, RBAC + PIM, point prive, journalisation des acces</code>. <strong>Sensitivity drives</strong> the effort: you only stack costly controls (CMK, PIM, private endpoint) where it&#39;s <strong>justified</strong>. It&#39;s the first data-security decision — <strong>before</strong> choosing any technology. We now apply these controls, starting with <strong>encryption</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Valider le <strong>chiffrement au repos</strong> — par défaut et <strong>clé gérée par le client</strong> (CMK).</p>
+<p><strong>🤔 Chiffré sur le disque, et par qui ?</strong> La donnée au repos est chiffrée <strong>par défaut</strong> (clé plateforme). Pour les données <strong>Secret</strong>, on veut une <strong>CMK</strong> (tu possèdes/révoques la clé) et le <strong>chiffrement d&#39;infrastructure</strong> (double couche). On écrit une ressource <strong>durcie</strong> et on <strong>vérifie</strong> que le chiffrement d&#39;infra est bien activé.</p>
+<p>Vérifie le chiffrement au repos :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Validate <strong>encryption at rest</strong> — default and <strong>customer-managed key</strong> (CMK).</p>
+<p><strong>🤔 Encrypted on disk, and by whom?</strong> Data at rest is encrypted <strong>by default</strong> (platform key). For <strong>Secret</strong> data, we want a <strong>CMK</strong> (you own/revoke the key) and <strong>infrastructure encryption</strong> (double layer). We write a <strong>hardened</strong> resource and <strong>check</strong> that infra encryption is on.</p>
+<p>Check encryption at rest:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p infra
+cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;donnees&quot; {
+  name                              = &quot;stdonneessecure1&quot;
+  resource_group_name               = &quot;rg-data&quot;
+  location                          = &quot;westeurope&quot;
+  account_tier                      = &quot;Standard&quot;
+  account_replication_type          = &quot;GRS&quot;
+  enable_https_traffic_only         = true
+  min_tls_version                   = &quot;TLS1_2&quot;
+  public_network_access_enabled     = false
+  infrastructure_encryption_enabled = true   # double couche de chiffrement au repos
+}
+TF
+
+# Verifier le chiffrement d&#39;infrastructure (double couche au repos)
+checkov -d infra --check CKV_AZURE_43,CKV2_AZURE_1,CKV_AZURE_33 --compact 2&gt;/dev/null | grep -iE &quot;encryption|infrastructure&quot; | head -3
+grep -q &quot;infrastructure_encryption_enabled = true&quot; infra/main.tf &amp;&amp; echo &quot;✅ chiffrement d&#39;infrastructure (double couche) active&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>grep</code> confirme <code>✅ chiffrement d&#39;infrastructure (double couche) active</code> — la ressource impose une <strong>seconde couche</strong> de chiffrement au repos, au-delà du chiffrement par défaut. Retiens la hiérarchie : (1) <strong>par défaut</strong>, tout est chiffré au repos (clé <strong>plateforme</strong>) ; (2) pour un contrôle accru, une <strong>CMK</strong> (clé <strong>client</strong> dans Key Vault) — tu la <strong>révoques</strong> pour rendre la donnée illisible ; (3) le <strong>chiffrement d&#39;infrastructure</strong> ajoute une <strong>double couche</strong>. La classe <strong>Secret</strong> de l&#39;étape 1 exige les trois. On passe au transit.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>grep</code> confirms <code>✅ chiffrement d&#39;infrastructure (double couche) active</code> — the resource enforces a <strong>second layer</strong> of encryption at rest, beyond the default. Remember the hierarchy: (1) <strong>by default</strong>, everything is encrypted at rest (<strong>platform</strong> key); (2) for more control, a <strong>CMK</strong> (<strong>customer</strong> key in Key Vault) — you <strong>revoke</strong> it to make data unreadable; (3) <strong>infrastructure encryption</strong> adds a <strong>double layer</strong>. The <strong>Secret</strong> class from step 1 requires all three. On to transit.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Imposer le <strong>chiffrement en transit</strong> — TLS 1.2 + HTTPS obligatoire.</p>
+<p><strong>🤔 Le réseau n&#39;est pas de confiance.</strong> La donnée qui circule doit être chiffrée : <strong>TLS 1.2</strong> minimum, <strong>HTTPS obligatoire</strong>. Un scan de sécurité <strong>exige</strong> ces réglages. On les <strong>vérifie</strong> sur notre ressource durcie.</p>
+<p>Valide le chiffrement en transit :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enforce <strong>encryption in transit</strong> — TLS 1.2 + HTTPS required.</p>
+<p><strong>🤔 The network isn&#39;t trusted.</strong> Data in motion must be encrypted: <strong>TLS 1.2</strong> minimum, <strong>HTTPS required</strong>. A security scan <strong>requires</strong> these settings. We <strong>check</strong> them on our hardened resource.</p>
+<p>Validate encryption in transit:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Les regles cle : HTTPS obligatoire (CKV_AZURE_3) et TLS recent (CKV_AZURE_44)
+checkov -d infra --check CKV_AZURE_3,CKV_AZURE_44 --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov affiche <code>Passed checks: 2, Failed checks: 0</code> — <strong>HTTPS obligatoire</strong> (<code>CKV_AZURE_3</code>) et <strong>TLS récent</strong> (<code>CKV_AZURE_44</code>) sont <strong>respectés</strong>. Aucune donnée ne circule en clair, aucun vieux protocole n&#39;est accepté. C&#39;est un contrôle <strong>non négociable</strong> : un <code>enable_https_traffic_only = false</code> ou un <code>min_tls_version = &quot;TLS1_0&quot;</code> <strong>échouerait</strong> le scan (et donc la porte de CI). Le chiffrement <strong>au repos</strong> (étape 2) <strong>et en transit</strong> (ici) couvre la donnée à l&#39;arrêt <strong>et</strong> en mouvement. Reste à protéger les <strong>secrets</strong> eux-mêmes.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov shows <code>Passed checks: 2, Failed checks: 0</code> — <strong>HTTPS required</strong> (<code>CKV_AZURE_3</code>) and <strong>recent TLS</strong> (<code>CKV_AZURE_44</code>) are <strong>respected</strong>. No data travels in cleartext, no old protocol is accepted. It&#39;s a <strong>non-negotiable</strong> control: an <code>enable_https_traffic_only = false</code> or <code>min_tls_version = &quot;TLS1_0&quot;</code> would <strong>fail</strong> the scan (and thus the CI gate). Encryption <strong>at rest</strong> (step 2) <strong>and in transit</strong> (here) covers data at rest <strong>and</strong> in motion. Now to protect the <strong>secrets</strong> themselves.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Stocker et <strong>faire tourner</strong> un secret dans <strong>Key Vault</strong> (v1 → v2).</p>
+<p><strong>🤔 Un secret ancien est un secret à risque.</strong> On stocke une chaîne de connexion, puis on la <strong>fait tourner</strong> : une nouvelle valeur crée une <strong>nouvelle version</strong>, et la <strong>valeur courante</strong> devient la dernière. On le fait <strong>pour de vrai</strong>.</p>
+<p>Stocke puis fais tourner un secret :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Store and <strong>rotate</strong> a secret in <strong>Key Vault</strong> (v1 → v2).</p>
+<p><strong>🤔 An old secret is a risky secret.</strong> We store a connection string, then <strong>rotate</strong> it: a new value creates a <strong>new version</strong>, and the <strong>current value</strong> becomes the latest. We do it <strong>for real</strong>.</p>
+<p>Store then rotate a secret:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-data --location westeurope &gt;/dev/null 2&gt;&amp;1
+
+# Version 1 (ancienne) / version 1 (old)
+azlocal keyvault secret set --vault kv-data --name db-conn --value &quot;conn-v1-ancien&quot; 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;v1 stockee / stored:&#39;, json.load(sys.stdin)[&#39;value&#39;])&quot;
+
+# Rotation -&gt; version 2 (nouvelle) / rotation -&gt; version 2 (new)
+azlocal keyvault secret set --vault kv-data --name db-conn --value &quot;conn-v2-apres-rotation&quot; 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;v2 (rotation) :&#39;, json.load(sys.stdin)[&#39;value&#39;])&quot;
+
+# La valeur COURANTE est la derniere / the CURRENT value is the latest
+azlocal keyvault secret show --vault kv-data --name db-conn 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;valeur courante / current:&#39;, json.load(sys.stdin)[&#39;value&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre <code>v1 stockee : conn-v1-ancien</code>, puis <code>v2 (rotation) : conn-v2-apres-rotation</code>, et enfin <code>valeur courante : conn-v2-apres-rotation</code>. La <strong>rotation</strong> a remplacé la valeur : les apps qui lisent le secret par son <strong>nom</strong> obtiennent <strong>automatiquement</strong> la nouvelle version — <strong>sans redéploiement</strong>. En vrai Azure, Key Vault garde les <strong>versions</strong> (l&#39;ancienne reste consultable le temps de la transition) et peut <strong>rotationner automatiquement</strong> (politique de rotation). Le secret ne <strong>stagne</strong> jamais. Passons aux <strong>clés</strong> de stockage.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>v1 stockee : conn-v1-ancien</code>, then <code>v2 (rotation) : conn-v2-apres-rotation</code>, and finally <code>valeur courante : conn-v2-apres-rotation</code>. <strong>Rotation</strong> replaced the value: apps that read the secret by its <strong>name</strong> get the new version <strong>automatically</strong> — <strong>without redeployment</strong>. In real Azure, Key Vault keeps the <strong>versions</strong> (the old one stays readable during transition) and can <strong>rotate automatically</strong> (rotation policy). The secret never <strong>stagnates</strong>. On to storage <strong>keys</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Rotationner</strong> les <strong>clés de stockage</strong> — le motif à <strong>deux clés</strong>, sans coupure.</p>
+<p><strong>🤔 Rotationner sans casser.</strong> Un compte de stockage a <strong>deux</strong> clés d&#39;accès (<code>key1</code>, <code>key2</code>) précisément pour <strong>tourner sans interruption</strong> : les apps utilisent <code>key2</code>, on <strong>régénère</strong> <code>key1</code>, puis on rebascule. On observe les deux clés et on décrit le cycle.</p>
+<p>Liste les deux clés et décris la rotation :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Rotate</strong> the <strong>storage keys</strong> — the <strong>two-key</strong> pattern, no downtime.</p>
+<p><strong>🤔 Rotate without breaking.</strong> A storage account has <strong>two</strong> access keys (<code>key1</code>, <code>key2</code>) precisely to <strong>rotate without interruption</strong>: apps use <code>key2</code>, you <strong>regenerate</strong> <code>key1</code>, then switch back. We observe both keys and describe the cycle.</p>
+<p>List the two keys and describe the rotation:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal storage account create --resource-group rg-data --name stdata001 &gt;/dev/null 2&gt;&amp;1
+
+azlocal storage account list-keys --resource-group rg-data --name stdata001 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;clés disponibles / keys:&#39;, [k[&#39;keyName&#39;] for k in d[&#39;keys&#39;]])&quot;
+
+cat &lt;&lt;&#39;TXT&#39;
+Cycle de rotation sans coupure / zero-downtime rotation cycle :
+  1. Les apps utilisent key2                 (bascule)
+  2. Regenerer key1                          (l&#39;ancienne key1 est invalidee)
+  3. Basculer les apps sur key1 regeneree
+  4. Regenerer key2                          (prochaine rotation)
+-&gt; A aucun moment le service n&#39;est interrompu ; une cle sert pendant que l&#39;autre tourne.
+TXT</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie liste <code>clés disponibles / keys: [&#39;key1&#39;, &#39;key2&#39;]</code>, puis décrit le <strong>cycle sans coupure</strong>. L&#39;existence de <strong>deux</strong> clés n&#39;est pas un hasard : c&#39;est <strong>exactement</strong> ce qui permet la rotation <strong>sans interruption</strong> — on bascule sur l&#39;une, on régénère l&#39;autre, et on alterne. ⚠️ Rappel du guide précédent : ces clés <code>Full</code> restent un <strong>anti-pattern</strong> si distribuées ; préfère l&#39;<strong>identité managée</strong> + RBAC. Mais <strong>quand</strong> on doit les utiliser, on les <strong>fait tourner</strong> avec ce motif. La donnée est protégée au repos, en transit, et ses <strong>secrets/clés tournent</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output lists <code>clés disponibles / keys: [&#39;key1&#39;, &#39;key2&#39;]</code>, then describes the <strong>zero-downtime cycle</strong>. The existence of <strong>two</strong> keys is no accident: it&#39;s <strong>exactly</strong> what enables rotation <strong>without interruption</strong> — switch to one, regenerate the other, alternate. ⚠️ Reminder from the previous guide: these <code>Full</code> keys remain an <strong>anti-pattern</strong> if distributed; prefer <strong>managed identity</strong> + RBAC. But <strong>when</strong> you must use them, you <strong>rotate</strong> them with this pattern. Data is protected at rest, in transit, and its <strong>secrets/keys rotate</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler une <strong>ressource de données entièrement durcie</strong> — le scan au vert.</p>
+<p><strong>🤔 Tous les contrôles, ensemble.</strong> On rassemble sur une même ressource : chiffrement au repos (double couche), TLS 1.2, HTTPS obligatoire, accès public fermé, réplication géo-redondante. On <strong>scanne</strong> l&#39;ensemble des règles clés : elles doivent <strong>toutes</strong> passer.</p>
+<p>Scanne la ressource durcie sur les règles clés :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble a <strong>fully hardened data resource</strong> — the scan green.</p>
+<p><strong>🤔 All controls, together.</strong> We gather on one resource: encryption at rest (double layer), TLS 1.2, HTTPS required, public access closed, geo-redundant replication. We <strong>scan</strong> all the key rules: they must <strong>all</strong> pass.</p>
+<p>Scan the hardened resource on the key rules:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Toutes les regles cle de securite des donnees, d&#39;un coup
+checkov -d infra --check CKV_AZURE_3,CKV_AZURE_44,CKV_AZURE_59 --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot;
+echo &quot;Controles de la ressource durcie :&quot;
+grep -E &quot;https_traffic_only|min_tls_version|public_network_access|replication_type|infrastructure_encryption&quot; infra/main.tf | sed &#39;s/^ *//&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov affiche <code>Passed checks: 3, Failed checks: 0</code> sur les règles clés (HTTPS, TLS, accès public), et le <code>grep</code> liste les contrôles actifs : <code>enable_https_traffic_only = true</code>, <code>min_tls_version = &quot;TLS1_2&quot;</code>, <code>public_network_access_enabled = false</code>, <code>account_replication_type = &quot;GRS&quot;</code>, <code>infrastructure_encryption_enabled = true</code>. La ressource <strong>cumule</strong> tous les contrôles de données : chiffrée (double couche), TLS récent, HTTPS only, hors d&#39;Internet, géo-redondante (disponibilité). C&#39;est le <strong>livrable</strong> de la sécurité des données — une ressource qui <strong>passe</strong> la porte de sécurité. On récapitule.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov shows <code>Passed checks: 3, Failed checks: 0</code> on the key rules (HTTPS, TLS, public access), and <code>grep</code> lists the active controls: <code>enable_https_traffic_only = true</code>, <code>min_tls_version = &quot;TLS1_2&quot;</code>, <code>public_network_access_enabled = false</code>, <code>account_replication_type = &quot;GRS&quot;</code>, <code>infrastructure_encryption_enabled = true</code>. The resource <strong>stacks</strong> all data controls: encrypted (double layer), recent TLS, HTTPS only, off the Internet, geo-redundant (availability). It&#39;s the <strong>deliverable</strong> of data security — a resource that <strong>passes</strong> the security gate. Let&#39;s recap.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>posture données</strong> et nettoyer.</p>
+<p><strong>🤔 Toutes les couches données.</strong> On récapitule ce qui protège la donnée — classification, chiffrement au repos/en transit, coffre, rotation — puis on nettoie le lab.</p>
+<p>Récapitule la posture et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>data posture</strong> and clean up.</p>
+<p><strong>🤔 All the data layers.</strong> We recap what protects data — classification, encryption at rest/in transit, vault, rotation — then clean the lab.</p>
+<p>Recap the posture and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Posture donnees (defense en profondeur) / data posture ===&quot;
+printf &quot;%-24s %s\n&quot; &quot;Classification&quot;       &quot;Public -&gt; Secret : la classe impose les controles&quot;
+printf &quot;%-24s %s\n&quot; &quot;Chiffrement au repos&quot; &quot;defaut (cle plateforme) -&gt; CMK (cle client) -&gt; double couche&quot;
+printf &quot;%-24s %s\n&quot; &quot;Chiffrement transit&quot;  &quot;TLS 1.2 + HTTPS obligatoire (non negociable)&quot;
+printf &quot;%-24s %s\n&quot; &quot;Coffre (Key Vault)&quot;   &quot;secrets / cles / certificats, RBAC + audit&quot;
+printf &quot;%-24s %s\n&quot; &quot;Rotation&quot;             &quot;secret : nouvelles versions ; stockage : motif 2 cles&quot;
+
+# Nettoyer le lab / clean up
+azlocal group delete --name rg-data &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-data supprime / deleted&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>cinq leviers</strong> de la sécurité des données, puis <code>rg-data supprime</code> nettoie le lab. Tu tiens le pilier <strong>données</strong> de l&#39;AZ-500 : <strong>classer</strong> (piloter l&#39;effort), <strong>chiffrer au repos</strong> (défaut → CMK → double couche), <strong>chiffrer en transit</strong> (TLS 1.2/HTTPS), <strong>coffrer</strong> (Key Vault) et <strong>faire tourner</strong> (secrets versionnés, clés à deux temps). La donnée — la cible ultime — est protégée <strong>elle-même</strong>, pas seulement autour. La suite (et fin) du track AZ-500 : les <strong>opérations de sécurité</strong> — Defender for Cloud, Sentinel/SIEM, Azure Policy — surveiller, détecter, répondre.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>five levers</strong> of data security, then <code>rg-data supprime</code> cleans the lab. You hold the <strong>data</strong> pillar of AZ-500: <strong>classify</strong> (drive the effort), <strong>encrypt at rest</strong> (default → CMK → double layer), <strong>encrypt in transit</strong> (TLS 1.2/HTTPS), <strong>vault</strong> (Key Vault) and <strong>rotate</strong> (versioned secrets, two-stage keys). The data — the ultimate target — is protected <strong>itself</strong>, not just around. Next (and last) in the AZ-500 track: <strong>security operations</strong> — Defender for Cloud, Sentinel/SIEM, Azure Policy — monitor, detect, respond.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Tout protéger pareil.</strong> Sans <strong>classification</strong>, on sur-protège le public (coûteux) ou sous-protège le secret (dangereux). Classe <strong>d&#39;abord</strong>.</p>
+<p><strong>2. Croire que « chiffré par défaut » suffit.</strong> Pour les données <strong>Secret</strong>, la clé <strong>plateforme</strong> ne suffit pas : passe à la <strong>CMK</strong> (que <strong>tu</strong> révoques).</p>
+<p><strong>3. HTTP ou vieux TLS toléré.</strong> Un <code>min_tls_version</code> bas ou HTTP en clair = fuite en transit. <strong>TLS 1.2 + HTTPS obligatoire</strong>, non négociable.</p>
+<p><strong>4. Secrets qui ne tournent jamais.</strong> Un secret ancien fuit tôt ou tard. <strong>Rotationne</strong> (versions Key Vault, politique de rotation).</p>
+<p><strong>5. Rotationner en cassant.</strong> Régénérer LA clé unique coupe le service. Utilise le <strong>motif à deux clés</strong> (bascule → régénère → rebascule).</p>
+<p><strong>6. Clés/secrets hors du coffre.</strong> Une clé dans un fichier de config ou une variable en clair annule tout. <strong>Key Vault</strong>, avec RBAC et audit.</p>
+<p><strong>7. Oublier la disponibilité.</strong> Le chiffrement protège la <strong>confidentialité</strong> ; la <strong>réplication</strong> (GRS) protège la <strong>disponibilité</strong>. La donnée doit être <strong>sûre ET dispo</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Protecting everything the same.</strong> Without <strong>classification</strong>, you over-protect public data (costly) or under-protect secret data (dangerous). Classify <strong>first</strong>.</p>
+<p><strong>2. Thinking &quot;encrypted by default&quot; is enough.</strong> For <strong>Secret</strong> data, the <strong>platform</strong> key isn&#39;t enough: switch to a <strong>CMK</strong> (that <strong>you</strong> revoke).</p>
+<p><strong>3. Tolerating HTTP or old TLS.</strong> A low <code>min_tls_version</code> or cleartext HTTP = leak in transit. <strong>TLS 1.2 + HTTPS required</strong>, non-negotiable.</p>
+<p><strong>4. Secrets that never rotate.</strong> An old secret leaks sooner or later. <strong>Rotate</strong> (Key Vault versions, rotation policy).</p>
+<p><strong>5. Rotating by breaking.</strong> Regenerating THE single key cuts the service. Use the <strong>two-key pattern</strong> (switch → regenerate → switch back).</p>
+<p><strong>6. Keys/secrets outside the vault.</strong> A key in a config file or a cleartext variable undoes everything. <strong>Key Vault</strong>, with RBAC and audit.</p>
+<p><strong>7. Forgetting availability.</strong> Encryption protects <strong>confidentiality</strong>; <strong>replication</strong> (GRS) protects <strong>availability</strong>. Data must be <strong>safe AND available</strong>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>classes</strong> la donnée et en <strong>déduis</strong> les contrôles (Public → Secret).</li><li>Tu expliques le <strong>chiffrement au repos</strong> (défaut → CMK → double couche).</li><li>Tu imposes et <strong>valides</strong> le <strong>chiffrement en transit</strong> (TLS 1.2, HTTPS).</li><li>Tu <strong>stockes</strong> et <strong>fais tourner</strong> un secret dans Key Vault (v1 → v2).</li><li>Tu décris la <strong>rotation</strong> des clés de stockage (motif à deux clés).</li><li>Tu assembles une <strong>ressource durcie</strong> qui <strong>passe</strong> le scan de sécurité.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>classify</strong> data and <strong>derive</strong> its controls (Public → Secret).</li><li>You explain <strong>encryption at rest</strong> (default → CMK → double layer).</li><li>You enforce and <strong>validate</strong> <strong>encryption in transit</strong> (TLS 1.2, HTTPS).</li><li>You <strong>store</strong> and <strong>rotate</strong> a secret in Key Vault (v1 → v2).</li><li>You describe <strong>storage-key rotation</strong> (two-key pattern).</li><li>You assemble a <strong>hardened resource</strong> that <strong>passes</strong> the security scan.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — opérations de sécurité (AZ-500)</em> — Defender for Cloud, Sentinel/SIEM, Azure Policy.</li><li><strong>Réviser :</strong> <em>Azure — sécurité fondamentaux (AZ-500)</em> pour Key Vault.</li><li><strong>S&#39;entraîner :</strong> ajoute une classe <em>Réglementé</em> à <code>classif.py</code> (avec journalisation renforcée), et une politique de rotation à 90 jours.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — security operations (AZ-500)</em> — Defender for Cloud, Sentinel/SIEM, Azure Policy.</li><li><strong>Review:</strong> <em>Azure — security fundamentals (AZ-500)</em> for Key Vault.</li><li><strong>Practice:</strong> add a <em>Regulated</em> class to <code>classif.py</code> (with enhanced logging), and a 90-day rotation policy.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Classification -&gt; contrôles</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Public       chiffrement au repos (defaut)
+Interne      + TLS 1.2 + RBAC
+Confidentiel + RBAC moindre privilege + point de terminaison prive
+Secret       + CMK (cle client) + PIM + journalisation des acces</code></pre>
+<p><strong>Chiffrement (Terraform / checkov)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Au repos :   chiffre par defaut (cle plateforme)
+             CMK -&gt; cle client dans Key Vault (tu revoques)
+             infrastructure_encryption_enabled = true  (double couche)
+En transit : enable_https_traffic_only = true          (CKV_AZURE_3)
+             min_tls_version = &quot;TLS1_2&quot;                 (CKV_AZURE_44)</code></pre>
+<p><strong>Coffre &amp; rotation (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal keyvault secret set  --vault V --name N --value &quot;...&quot;   # nouvelle version = rotation
+azlocal keyvault secret show --vault V --name N                 # valeur courante (derniere)
+azlocal storage account list-keys ...                           # key1/key2 : rotation sans coupure</code></pre>
+</div>
+<div data-lang="en"><p><strong>Classification -&gt; controls</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Public       encryption at rest (default)
+Internal     + TLS 1.2 + RBAC
+Confidential + least-privilege RBAC + private endpoint
+Secret       + CMK (customer key) + PIM + access logging</code></pre>
+<p><strong>Encryption (Terraform / checkov)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>At rest :    encrypted by default (platform key)
+             CMK -&gt; customer key in Key Vault (you revoke)
+             infrastructure_encryption_enabled = true  (double layer)
+In transit : enable_https_traffic_only = true          (CKV_AZURE_3)
+             min_tls_version = &quot;TLS1_2&quot;                 (CKV_AZURE_44)</code></pre>
+<p><strong>Vault &amp; rotation (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal keyvault secret set  --vault V --name N --value &quot;...&quot;   # new version = rotation
+azlocal keyvault secret show --vault V --name N                 # current value (latest)
+azlocal storage account list-keys ...                           # key1/key2: zero-downtime rotation</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Chiffrement Azure au repos</strong> : clés gérées plateforme vs client (CMK), chiffrement d&#39;infrastructure — Microsoft Learn.</li><li><strong>Key Vault</strong> : secrets, clés, certificats, versions, politiques de rotation — Microsoft Learn.</li><li><strong>Rotation des clés de stockage</strong> : motif à deux clés, régénération — Microsoft Learn.</li><li><strong>TLS &amp; chiffrement en transit</strong> : min TLS version, HTTPS obligatoire — Microsoft Learn (AZ-500).</li><li><strong>Classification des données</strong> : Microsoft Purview, étiquettes de sensibilité — Microsoft Learn.</li><li><strong>checkov</strong> : règles de chiffrement (CKV_AZURE_3/44/59…) — docs checkov.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Azure encryption at rest</strong>: platform vs customer-managed keys (CMK), infrastructure encryption — Microsoft Learn.</li><li><strong>Key Vault</strong>: secrets, keys, certificates, versions, rotation policies — Microsoft Learn.</li><li><strong>Storage key rotation</strong>: two-key pattern, regeneration — Microsoft Learn.</li><li><strong>TLS &amp; encryption in transit</strong>: min TLS version, HTTPS required — Microsoft Learn (AZ-500).</li><li><strong>Data classification</strong>: Microsoft Purview, sensitivity labels — Microsoft Learn.</li><li><strong>checkov</strong>: encryption rules (CKV_AZURE_3/44/59…) — checkov docs.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal keyvault : --vault is required</code>.</strong> Le drapeau est <code>--vault</code> (pas <code>--vault-name</code>). Vérifie aussi que miniblue tourne (port 4567).</p>
+<p><strong>checkov signale <code>Failed checks</code> sur ma ressource durcie.</strong> Vérifie que les cinq réglages sont présents (<code>enable_https_traffic_only</code>, <code>min_tls_version = &quot;TLS1_2&quot;</code>, <code>public_network_access_enabled = false</code>, <code>infrastructure_encryption_enabled</code>, réplication). Un oubli fait échouer la règle concernée.</p>
+<p><strong>La rotation ne « garde » pas les versions en local.</strong> miniblue <strong>écrase</strong> la valeur (il n&#39;émule pas le versionnement complet). Le <strong>principe</strong> — nouvelle valeur = rotation, lecture par nom = dernière version — reste exact ; en vrai Azure, les versions sont conservées.</p>
+<p><strong>Les CMK ne se créent pas en local.</strong> miniblue n&#39;émule que les <strong>secrets</strong> (pas les clés cryptographiques ni les certificats). On <strong>raisonne</strong> les CMK et on les <strong>déploie</strong> sur du vrai Azure (clé dans Key Vault + configuration du compte).</p>
+<p><strong>checkov : <code>command not found</code>.</strong> <code>pip install checkov</code> ; s&#39;il atterrit dans <code>~/.local/bin</code> hors PATH, ajoute ce dossier au <code>PATH</code>.</p>
+<p><strong>Quelle règle checkov pour quoi ?</strong> <code>CKV_AZURE_3</code> = HTTPS obligatoire ; <code>CKV_AZURE_44</code> = TLS récent ; <code>CKV_AZURE_59</code> = pas d&#39;accès public. Cible-les avec <code>--check</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal keyvault: --vault is required</code>.</strong> The flag is <code>--vault</code> (not <code>--vault-name</code>). Also check miniblue is running (port 4567).</p>
+<p><strong>checkov reports <code>Failed checks</code> on my hardened resource.</strong> Check the five settings are present (<code>enable_https_traffic_only</code>, <code>min_tls_version = &quot;TLS1_2&quot;</code>, <code>public_network_access_enabled = false</code>, <code>infrastructure_encryption_enabled</code>, replication). A missing one fails the relevant rule.</p>
+<p><strong>Rotation doesn&#39;t &quot;keep&quot; versions locally.</strong> miniblue <strong>overwrites</strong> the value (it doesn&#39;t emulate full versioning). The <strong>principle</strong> — new value = rotation, read by name = latest version — stays accurate; in real Azure, versions are kept.</p>
+<p><strong>CMKs won&#39;t create locally.</strong> miniblue only emulates <strong>secrets</strong> (not cryptographic keys or certificates). We <strong>reason</strong> about CMKs and <strong>deploy</strong> them to real Azure (key in Key Vault + account configuration).</p>
+<p><strong>checkov: <code>command not found</code>.</strong> <code>pip install checkov</code>; if it lands in <code>~/.local/bin</code> off PATH, add that folder to <code>PATH</code>.</p>
+<p><strong>Which checkov rule for what?</strong> <code>CKV_AZURE_3</code> = HTTPS required; <code>CKV_AZURE_44</code> = recent TLS; <code>CKV_AZURE_59</code> = no public access. Target them with <code>--check</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

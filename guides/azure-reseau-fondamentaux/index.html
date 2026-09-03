@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — réseau fondamentaux (AZ-700) : VNet, adressage, DNS — jiha.tech</title>
+  <title data-lang="en">Azure — network fundamentals (AZ-700): VNet, addressing, DNS — jiha.tech</title>
+  <meta name="description" content="&quot;Poser les fondations réseau pour l&#39;AZ-700, en local et pour de vrai (miniblue) : planifier l&#39;espace d&#39;adressage (calculatrice CIDR exécutable, sous-réseaux non chevauchants, les 5 IP réservées par Azure), déployer un VNet avec sous-réseaux en tiers (Terraform live), la résolution de noms avec une zone DNS privée + enregistrement A (azlocal live), et la topologie hub-and-spoke avec la contrainte de non-chevauchement des plages (vérifiée en code). Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Laying network foundations for AZ-700, locally and for real (miniblue): planning the address space (a runnable CIDR calculator, non-overlapping subnets, the 5 IPs Azure reserves), deploying a VNet with tiered subnets (Terraform live), name resolution with a private DNS zone + A record (azlocal live), and the hub-and-spoke topology with the non-overlapping ranges constraint (checked in code). No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — réseau fondamentaux (AZ-700) : VNet, adressage, DNS">
+  <meta property="og:description" content="&quot;Poser les fondations réseau pour l&#39;AZ-700, en local et pour de vrai (miniblue) : planifier l&#39;espace d&#39;adressage (calculatrice CIDR exécutable, sous-réseaux non chevauchants, les 5 IP réservées par Azure), déployer un VNet avec sous-réseaux en tiers (Terraform live), la résolution de noms avec une zone DNS privée + enregistrement A (azlocal live), et la topologie hub-and-spoke avec la contrainte de non-chevauchement des plages (vérifiée en code). Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-reseau-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-reseau-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-reseau-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-reseau-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/azure-reseau-fondamentaux</div>
+    <h1 data-lang="fr">Azure — réseau fondamentaux (AZ-700) : VNet, adressage, DNS</h1>
+    <h1 data-lang="en">Azure — network fundamentals (AZ-700): VNet, addressing, DNS</h1>
+    <p class="tagline" data-lang="fr">planifier l&#39;espace d&#39;adressage, segmenter, résoudre les noms.</p>
+    <p class="tagline" data-lang="en">plan the address space, segment, resolve names.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Le réseau est le <strong>socle</strong> sur lequel tout repose. L&#39;examen <strong>AZ-700</strong> (Azure Network Engineer) en fait un métier à part entière : concevoir l&#39;<strong>adressage</strong>, les <strong>VNets</strong>, le <strong>routage</strong>, la <strong>connectivité hybride</strong>, la <strong>distribution</strong> applicative. Ce premier guide pose les <strong>fondations</strong> — l&#39;espace d&#39;adressage, la segmentation et la résolution de noms — que toute la suite réutilise.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> avec <strong>miniblue</strong> : on <strong>planifie l&#39;espace d&#39;adressage</strong> avec une <strong>calculatrice CIDR exécutable</strong> (sous-réseaux non chevauchants, les <strong>5 IP réservées</strong> par Azure), on <strong>déploie un VNet</strong> avec des <strong>sous-réseaux en tiers</strong> (Terraform, <strong>live</strong>), on met en place la <strong>résolution de noms</strong> avec une <strong>zone DNS privée</strong> et un <strong>enregistrement A</strong> (azlocal, live), et on raisonne la <strong>topologie hub-and-spoke</strong> avec la contrainte clé — <strong>pas de chevauchement</strong> des plages — vérifiée <strong>en code</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu connais Azure (AZ-104/305) et tu veux <strong>maîtriser le réseau</strong> en profondeur.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes → fais <em>Azure — réseau (AZ-104)</em> d&#39;abord.</li><li>Tu cherches la sécurité réseau (NSG, WAF) → c&#39;est l&#39;<strong>AZ-500</strong> ; ici c&#39;est la <strong>conception</strong> réseau.</li></ul>
+</div>
+<div data-lang="en"><p>The network is the <strong>foundation</strong> everything rests on. The <strong>AZ-700</strong> exam (Azure Network Engineer) makes it a full profession: designing <strong>addressing</strong>, <strong>VNets</strong>, <strong>routing</strong>, <strong>hybrid connectivity</strong>, application <strong>delivery</strong>. This first guide lays the <strong>foundations</strong> — the address space, segmentation and name resolution — the whole track reuses.</p>
+<p>True to the method, we practice <strong>locally and for real</strong> with <strong>miniblue</strong>: we <strong>plan the address space</strong> with a <strong>runnable CIDR calculator</strong> (non-overlapping subnets, the <strong>5 IPs</strong> Azure reserves), we <strong>deploy a VNet</strong> with <strong>tiered subnets</strong> (Terraform, <strong>live</strong>), we set up <strong>name resolution</strong> with a <strong>private DNS zone</strong> and an <strong>A record</strong> (azlocal, live), and we reason about the <strong>hub-and-spoke topology</strong> with the key constraint — <strong>no overlap</strong> of ranges — checked <strong>in code</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you know Azure (AZ-104/305) and want to <strong>master networking</strong> in depth.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re a beginner → do <em>Azure — networking (AZ-104)</em> first.</li><li>You want network security (NSG, WAF) → that&#39;s <strong>AZ-500</strong>; here it&#39;s network <strong>design</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Planifier</strong> un espace d&#39;adressage (CIDR) sans chevauchement.</li><li>Calculer la <strong>taille</strong> d&#39;un sous-réseau (et les <strong>5 IP réservées</strong> par Azure).</li><li><strong>Déployer</strong> un VNet avec des <strong>sous-réseaux en tiers</strong>.</li><li>Comprendre le rôle du <strong>GatewaySubnet</strong> et des sous-réseaux spéciaux.</li><li>Mettre en place la <strong>résolution de noms</strong> (zone <strong>DNS privée</strong> + enregistrement).</li><li>Concevoir une <strong>topologie hub-and-spoke</strong> et vérifier le <strong>non-chevauchement</strong>.</li><li>Distinguer <strong>VNet</strong>, <strong>sous-réseau</strong>, <strong>peering</strong> et <strong>DNS</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Plan</strong> a CIDR address space with no overlap.</li><li>Compute a subnet&#39;s <strong>size</strong> (and the <strong>5 IPs</strong> Azure reserves).</li><li><strong>Deploy</strong> a VNet with <strong>tiered subnets</strong>.</li><li>Understand the role of the <strong>GatewaySubnet</strong> and special subnets.</li><li>Set up <strong>name resolution</strong> (a <strong>private DNS zone</strong> + record).</li><li>Design a <strong>hub-and-spoke topology</strong> and check <strong>non-overlap</strong>.</li><li>Distinguish <strong>VNet</strong>, <strong>subnet</strong>, <strong>peering</strong> and <strong>DNS</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Un <strong>parcours Azure</strong> : AZ-104 (réseau) et idéalement AZ-305.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré (ports 4566/4567), <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> sur le <code>PATH</code>.</li><li><strong>Python 3</strong> (module <code>ipaddress</code>, standard). <strong>Aucun compte cloud</strong> : VNet et DNS live, calculs en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>An <strong>Azure path</strong>: AZ-104 (networking) and ideally AZ-305.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started (ports 4566/4567), <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> on <code>PATH</code>.</li><li><strong>Python 3</strong> (<code>ipaddress</code> module, standard). <strong>No cloud account</strong>: VNet and DNS live, calculations local.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-projet-architecte/">
+    <span class="num">69</span>
+    <span class="title-line" data-lang="fr">Azure — projet d&#39;architecte (AZ-305) : une solution Well-Architected</span>
+    <span class="title-line" data-lang="en">Azure — architect project (AZ-305): a Well-Architected solution</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le VNet : ton réseau privé.</strong> Un <strong>réseau virtuel</strong> (VNet) est ton espace réseau <strong>isolé</strong> dans Azure, défini par un <strong>espace d&#39;adressage</strong> (CIDR, ex. <code>10.0.0.0/16</code>). Il se découpe en <strong>sous-réseaux</strong> (subnets), chacun une <strong>plage</strong> plus fine (ex. <code>10.0.1.0/24</code>). Les ressources reçoivent une <strong>IP privée</strong> dans leur sous-réseau. Le VNet est le <strong>contenant</strong> ; les sous-réseaux <strong>segmentent</strong>.</p>
+<p><strong>L&#39;adressage CIDR.</strong> Une plage <code>10.0.0.0/16</code> = <strong>65 536</strong> adresses ; un <code>/24</code> = <strong>256</strong>. Le <strong>préfixe</strong> (<code>/16</code>, <code>/24</code>) dit combien de bits sont <strong>fixes</strong> : plus il est grand, plus la plage est <strong>petite</strong>. Règle d&#39;or : <strong>planifier avant</strong> de déployer — les plages ne doivent <strong>jamais se chevaucher</strong> (ni entre sous-réseaux, ni entre VNets qu&#39;on connectera). Un chevauchement <strong>casse</strong> le routage et le peering.</p>
+<p><strong>Les 5 IP réservées.</strong> Azure <strong>réserve 5 adresses</strong> par sous-réseau : la <strong>première</strong> (adresse réseau), les <strong>trois suivantes</strong> (passerelle par défaut + DNS Azure), et la <strong>dernière</strong> (broadcast). Sur un <code>/24</code> (256 adresses), il reste donc <strong>251 utilisables</strong>. À prendre en compte pour dimensionner (un sous-réseau trop petit <strong>manque</strong> d&#39;IP).</p>
+<p><strong>Les sous-réseaux spéciaux.</strong> Certains ont un <strong>nom imposé</strong> et un <strong>rôle</strong> : <strong>GatewaySubnet</strong> (obligatoire pour une passerelle VPN/ExpressRoute), <strong>AzureBastionSubnet</strong> (accès sécurisé), <strong>AzureFirewallSubnet</strong> (pare-feu). Leur <strong>taille minimale</strong> est contrainte (souvent <code>/27</code> ou plus large). On les <strong>réserve</strong> dans le plan d&#39;adressage.</p>
+<p><strong>La résolution de noms (DNS).</strong> Les IP privées, c&#39;est illisible. Le <strong>DNS</strong> traduit un <strong>nom</strong> (<code>app.interne.jiha.lab</code>) en <strong>IP</strong> (<code>10.0.1.10</code>). Azure fournit un DNS par défaut ; pour tes noms internes, tu crées une <strong>zone DNS privée</strong> avec des <strong>enregistrements</strong> (A, CNAME…). Liée à un VNet, elle résout tes noms <strong>à l&#39;intérieur</strong> du réseau.</p>
+<p><strong>La topologie hub-and-spoke.</strong> Plutôt qu&#39;un maillage complexe, on centralise : un <strong>hub</strong> (services partagés — pare-feu, passerelle, DNS) et des <strong>spokes</strong> (charges de travail) reliés au hub par <strong>peering</strong>. Le peering connecte deux VNets <strong>directement</strong> (trafic privé, faible latence) — à condition que leurs <strong>plages ne se chevauchent pas</strong>. C&#39;est la topologie <strong>de référence</strong> en entreprise.</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>VNet</strong> et ses <strong>sous-réseaux</strong> se <strong>déploient</strong> sur miniblue (Terraform, live). La <strong>zone DNS privée</strong> et un <strong>enregistrement A</strong> se <strong>créent</strong> (azlocal, live). Le <strong>plan d&#39;adressage</strong> (CIDR, non-chevauchement) est un <strong>calcul exécutable</strong> (<code>ipaddress</code>). Le <strong>peering</strong> se <strong>raisonne</strong> (miniblue ne l&#39;émule pas) mais sa <strong>contrainte</strong> (non-chevauchement) est <strong>vérifiée en code</strong>. Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>The VNet: your private network.</strong> A <strong>virtual network</strong> (VNet) is your <strong>isolated</strong> network space in Azure, defined by an <strong>address space</strong> (CIDR, e.g. <code>10.0.0.0/16</code>). It&#39;s carved into <strong>subnets</strong>, each a finer <strong>range</strong> (e.g. <code>10.0.1.0/24</code>). Resources get a <strong>private IP</strong> in their subnet. The VNet is the <strong>container</strong>; subnets <strong>segment</strong>.</p>
+<p><strong>CIDR addressing.</strong> A <code>10.0.0.0/16</code> range = <strong>65,536</strong> addresses; a <code>/24</code> = <strong>256</strong>. The <strong>prefix</strong> (<code>/16</code>, <code>/24</code>) says how many bits are <strong>fixed</strong>: the bigger it is, the <strong>smaller</strong> the range. Golden rule: <strong>plan before</strong> deploying — ranges must <strong>never overlap</strong> (neither between subnets, nor between VNets you&#39;ll connect). An overlap <strong>breaks</strong> routing and peering.</p>
+<p><strong>The 5 reserved IPs.</strong> Azure <strong>reserves 5 addresses</strong> per subnet: the <strong>first</strong> (network address), the <strong>next three</strong> (default gateway + Azure DNS), and the <strong>last</strong> (broadcast). On a <code>/24</code> (256 addresses), <strong>251 are usable</strong>. Factor this into sizing (a too-small subnet <strong>runs out</strong> of IPs).</p>
+<p><strong>Special subnets.</strong> Some have a <strong>mandatory name</strong> and a <strong>role</strong>: <strong>GatewaySubnet</strong> (required for a VPN/ExpressRoute gateway), <strong>AzureBastionSubnet</strong> (secure access), <strong>AzureFirewallSubnet</strong> (firewall). Their <strong>minimum size</strong> is constrained (often <code>/27</code> or wider). You <strong>reserve</strong> them in the address plan.</p>
+<p><strong>Name resolution (DNS).</strong> Private IPs are unreadable. <strong>DNS</strong> translates a <strong>name</strong> (<code>app.interne.jiha.lab</code>) into an <strong>IP</strong> (<code>10.0.1.10</code>). Azure provides a default DNS; for your internal names, you create a <strong>private DNS zone</strong> with <strong>records</strong> (A, CNAME…). Linked to a VNet, it resolves your names <strong>inside</strong> the network.</p>
+<p><strong>The hub-and-spoke topology.</strong> Rather than a complex mesh, we centralize: a <strong>hub</strong> (shared services — firewall, gateway, DNS) and <strong>spokes</strong> (workloads) linked to the hub by <strong>peering</strong>. Peering connects two VNets <strong>directly</strong> (private traffic, low latency) — provided their <strong>ranges don&#39;t overlap</strong>. It&#39;s the enterprise <strong>reference</strong> topology.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>VNet</strong> and its <strong>subnets</strong> are <strong>deployed</strong> on miniblue (Terraform, live). The <strong>private DNS zone</strong> and an <strong>A record</strong> are <strong>created</strong> (azlocal, live). The <strong>address plan</strong> (CIDR, non-overlap) is a <strong>runnable calculation</strong> (<code>ipaddress</code>). <strong>Peering</strong> is <strong>reasoned</strong> (miniblue doesn&#39;t emulate it) but its <strong>constraint</strong> (non-overlap) is <strong>checked in code</strong>. All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-reseau-fondamentaux-topologie">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-reseau-fondamentaux-topologie">
+  <title id="s-azure-reseau-fondamentaux-topologie">Fondations réseau</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Fondations réseau</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">Espace d’adressage</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">CIDR sans chevauchement</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-soft" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="286" y="64" text-anchor="middle">Sous-réseaux</text><text class="sub sub-blue" x="286" y="77" text-anchor="middle">web/app/data/gateway · 5 IP</text><text class="sub sub-blue" x="286" y="89" text-anchor="middle">réservées</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">DNS privé</text><text class="sub" x="474" y="83.5" text-anchor="middle">app → 10.0.1.10</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">Hub-and-spoke</text><text class="sub" x="662" y="83.5" text-anchor="middle">peering</text><text class="sub" x="380" y="144" text-anchor="middle">peering seulement si les plages ne se chevauchent pas</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Les fondations réseau : un ESPACE D&#39;ADRESSAGE planifié (CIDR sans chevauchement) découpé en SOUS-RÉSEAUX en tiers (web/app/data/gateway), chacun avec 5 IP réservées par Azure. Une ZONE DNS PRIVÉE résout les noms internes (app -&gt; 10.0.1.10). Topologie HUB-AND-SPOKE : un hub (services partagés) et des spokes (charges) reliés par PEERING — à condition que les plages ne se chevauchent pas.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Network foundations: a planned ADDRESS SPACE (non-overlapping CIDR) carved into tiered SUBNETS (web/app/data/gateway), each with 5 IPs reserved by Azure. A PRIVATE DNS ZONE resolves internal names (app -&gt; 10.0.1.10). HUB-AND-SPOKE topology: a hub (shared services) and spokes (workloads) linked by PEERING — provided ranges don&#39;t overlap.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Planifier</strong> l&#39;espace d&#39;adressage — CIDR, sous-réseaux non chevauchants.</p>
+<p><strong>🤔 Planifier avant de déployer.</strong> L&#39;adressage est la <strong>première</strong> décision réseau — et la plus dure à changer après coup. On écrit une <strong>calculatrice CIDR</strong> qui découpe un VNet en sous-réseaux et calcule les IP utilisables.</p>
+<p>Écris la calculatrice d&#39;adressage et lance-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Plan</strong> the address space — CIDR, non-overlapping subnets.</p>
+<p><strong>🤔 Plan before deploying.</strong> Addressing is the <strong>first</strong> network decision — and the hardest to change later. We write a <strong>CIDR calculator</strong> that carves a VNet into subnets and computes usable IPs.</p>
+<p>Write the addressing calculator and run it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p reseau-fond &amp;&amp; cd reseau-fond
+cat &gt; adressage.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+vnet = ipaddress.ip_network(&quot;10.0.0.0/16&quot;)
+print(f&quot;VNet : {vnet} -&gt; {vnet.num_addresses} adresses&quot;)
+
+noms = [&quot;web&quot;, &quot;app&quot;, &quot;data&quot;, &quot;gateway&quot;]
+sousreseaux = list(vnet.subnets(new_prefix=24))[:len(noms)]
+for nom, s in zip(noms, sousreseaux):
+    utilisables = s.num_addresses - 5   # Azure reserve 5 IP par sous-reseau
+    print(f&quot;  snet-{nom:8} {s} -&gt; {utilisables} IP utilisables (Azure reserve 5)&quot;)
+PY
+python3 adressage.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>VNet : 10.0.0.0/16 -&gt; 65536 adresses</code>, puis les quatre sous-réseaux : <code>snet-web 10.0.0.0/24 -&gt; 251 IP utilisables</code>, <code>snet-app 10.0.1.0/24</code>, <code>snet-data 10.0.2.0/24</code>, <code>snet-gateway 10.0.3.0/24</code>. Chaque <code>/24</code> offre <strong>251 IP utilisables</strong> (256 − 5 réservées). Le VNet <code>/16</code> laisse une <strong>large marge</strong> pour ajouter des sous-réseaux. C&#39;est le <strong>plan d&#39;adressage</strong> : décidé <strong>avant</strong> tout déploiement, sans chevauchement. On le <strong>matérialise</strong> maintenant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>VNet : 10.0.0.0/16 -&gt; 65536 adresses</code>, then the four subnets: <code>snet-web 10.0.0.0/24 -&gt; 251 IP utilisables</code>, <code>snet-app 10.0.1.0/24</code>, <code>snet-data 10.0.2.0/24</code>, <code>snet-gateway 10.0.3.0/24</code>. Each <code>/24</code> offers <strong>251 usable IPs</strong> (256 − 5 reserved). The <code>/16</code> VNet leaves <strong>plenty of room</strong> to add subnets. That&#39;s the <strong>address plan</strong>: decided <strong>before</strong> any deployment, no overlap. We <strong>materialize</strong> it now.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Déployer</strong> le VNet avec ses <strong>sous-réseaux en tiers</strong>.</p>
+<p><strong>🤔 Du plan au réel.</strong> On traduit le plan d&#39;adressage en Terraform : un VNet <code>10.0.0.0/16</code> et trois sous-réseaux (web, app, data). On déploie <strong>pour de vrai</strong> sur miniblue.</p>
+<p>Déploie le VNet et ses sous-réseaux :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Deploy</strong> the VNet with its <strong>tiered subnets</strong>.</p>
+<p><strong>🤔 From plan to reality.</strong> We translate the address plan into Terraform: a <code>10.0.0.0/16</code> VNet and three subnets (web, app, data). We deploy <strong>for real</strong> on miniblue.</p>
+<p>Deploy the VNet and its subnets:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+cat &gt; providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers {
+    azurerm = {
+      source  = &quot;hashicorp/azurerm&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}
+TF
+cat &gt; main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;net&quot; {
+  name     = &quot;rg-reseau-fond&quot;
+  location = &quot;westeurope&quot;
+}
+resource &quot;azurerm_virtual_network&quot; &quot;hub&quot; {
+  name                = &quot;vnet-hub&quot;
+  location            = azurerm_resource_group.net.location
+  resource_group_name = azurerm_resource_group.net.name
+  address_space       = [&quot;10.0.0.0/16&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;web&quot; {
+  name                 = &quot;snet-web&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [&quot;10.0.0.0/24&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;app&quot; {
+  name                 = &quot;snet-app&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [&quot;10.0.1.0/24&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;data&quot; {
+  name                 = &quot;snet-data&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [&quot;10.0.2.0/24&quot;]
+}
+TF
+terraform init -no-color &gt;/dev/null 2&gt;&amp;1
+terraform apply -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Apply complete&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> confirme <code>Apply complete! Resources: 5 added</code> — le groupe, le <strong>VNet</strong> <code>10.0.0.0/16</code> et ses <strong>trois sous-réseaux</strong> (web, app, data) sont <strong>déployés</strong> sur miniblue. Le plan d&#39;adressage de l&#39;étape 1 est maintenant <strong>réel</strong> : un réseau isolé, segmenté en tiers, prêt à héberger des ressources. Chaque sous-réseau a sa <strong>plage</strong> distincte — pas de chevauchement. On approfondit le <strong>dimensionnement</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> confirms <code>Apply complete! Resources: 5 added</code> — the group, the <strong>VNet</strong> <code>10.0.0.0/16</code> and its <strong>three subnets</strong> (web, app, data) are <strong>deployed</strong> on miniblue. The address plan from step 1 is now <strong>real</strong>: an isolated network, segmented into tiers, ready to host resources. Each subnet has its distinct <strong>range</strong> — no overlap. Let&#39;s go deeper on <strong>sizing</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>dimensionnement</strong> — IP réservées et sous-réseaux spéciaux.</p>
+<p><strong>🤔 Une adresse n&#39;est pas toujours utilisable.</strong> Azure <strong>réserve 5 IP</strong> par sous-réseau, et certains sous-réseaux (<strong>GatewaySubnet</strong>…) ont un <strong>nom</strong> et une <strong>taille minimale</strong> imposés. On calcule l&#39;impact pour bien dimensionner.</p>
+<p>Calcule les réservations et les tailles minimales :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>sizing</strong> — reserved IPs and special subnets.</p>
+<p><strong>🤔 An address isn&#39;t always usable.</strong> Azure <strong>reserves 5 IPs</strong> per subnet, and some subnets (<strong>GatewaySubnet</strong>…) have a <strong>mandatory name</strong> and <strong>minimum size</strong>. We compute the impact to size correctly.</p>
+<p>Compute reservations and minimum sizes:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; dimensionnement.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+print(&quot;=== IP utilisables selon le prefixe (Azure reserve 5) ===&quot;)
+for prefixe in [24, 26, 27, 28, 29]:
+    net = ipaddress.ip_network(f&quot;10.0.0.0/{prefixe}&quot;)
+    utilisables = net.num_addresses - 5
+    print(f&quot;  /{prefixe:2} -&gt; {net.num_addresses:4} adresses -&gt; {utilisables:4} utilisables&quot;)
+
+print(&quot;=== Sous-reseaux speciaux (nom + taille mini imposes) ===&quot;)
+speciaux = [
+    (&quot;GatewaySubnet&quot;,      &quot;/27 (ou plus large) — passerelle VPN/ExpressRoute&quot;),
+    (&quot;AzureBastionSubnet&quot;, &quot;/26 (ou plus large) — acces securise&quot;),
+    (&quot;AzureFirewallSubnet&quot;,&quot;/26 — pare-feu Azure&quot;),
+]
+for nom, regle in speciaux:
+    print(f&quot;  {nom:20} {regle}&quot;)
+PY
+python3 dimensionnement.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre l&#39;impact des réservations : un <code>/29</code> (8 adresses) n&#39;offre que <strong>3 IP utilisables</strong> — trop petit pour la plupart des usages ; un <code>/24</code> en laisse <strong>251</strong>. Puis les <strong>sous-réseaux spéciaux</strong> : <code>GatewaySubnet</code> (nom <strong>obligatoire</strong>, <code>/27</code> minimum pour une passerelle), <code>AzureBastionSubnet</code>, <code>AzureFirewallSubnet</code>. Deux enseignements : (1) ne <strong>sous-dimensionne</strong> pas un sous-réseau (les 5 IP réservées font mal sur les petites plages) ; (2) <strong>réserve</strong> les plages des sous-réseaux spéciaux <strong>dès le plan</strong>. Le dimensionnement se pense <strong>avant</strong>, pas après.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows the reservation impact: a <code>/29</code> (8 addresses) offers only <strong>3 usable IPs</strong> — too small for most uses; a <code>/24</code> leaves <strong>251</strong>. Then the <strong>special subnets</strong>: <code>GatewaySubnet</code> (<strong>mandatory</strong> name, <code>/27</code> minimum for a gateway), <code>AzureBastionSubnet</code>, <code>AzureFirewallSubnet</code>. Two lessons: (1) don&#39;t <strong>undersize</strong> a subnet (the 5 reserved IPs hurt on small ranges); (2) <strong>reserve</strong> the special subnets&#39; ranges <strong>from the plan</strong>. Sizing is thought <strong>before</strong>, not after.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mettre en place la <strong>résolution de noms</strong> — zone DNS privée + enregistrement.</p>
+<p><strong>🤔 Des noms, pas des IP.</strong> <code>10.0.1.10</code> est illisible ; <code>app.interne.jiha.lab</code> parle. On crée une <strong>zone DNS privée</strong> et un <strong>enregistrement A</strong> qui associe un nom à une IP — <strong>pour de vrai</strong> sur miniblue.</p>
+<p>Crée la zone DNS et un enregistrement :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set up <strong>name resolution</strong> — private DNS zone + record.</p>
+<p><strong>🤔 Names, not IPs.</strong> <code>10.0.1.10</code> is unreadable; <code>app.interne.jiha.lab</code> speaks. We create a <strong>private DNS zone</strong> and an <strong>A record</strong> mapping a name to an IP — <strong>for real</strong> on miniblue.</p>
+<p>Create the DNS zone and a record:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-reseau-fond --location westeurope &gt;/dev/null 2&gt;&amp;1
+
+# Zone DNS privee / private DNS zone
+azlocal dns zone create --resource-group rg-reseau-fond --name interne.jiha.lab 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;zone creee / zone created:&#39;, json.load(sys.stdin)[&#39;name&#39;])&quot;
+
+# Enregistrement A : app -&gt; 10.0.1.10 / A record
+azlocal dns record create --resource-group rg-reseau-fond --zone interne.jiha.lab --name app --type A --value 10.0.1.10 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;enregistrement / record:&#39;, d[&#39;name&#39;], &#39;(type&#39;, d.get(&#39;type&#39;,&#39;A&#39;).split(&#39;/&#39;)[-1] + &#39;)&#39;)&quot;
+
+# Lister les zones / list zones
+azlocal dns zone list --resource-group rg-reseau-fond 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); z=d[&#39;value&#39;] if isinstance(d,dict) else d; print(&#39;zones:&#39;, [x[&#39;name&#39;] for x in z])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie confirme <code>zone creee : interne.jiha.lab</code>, <code>enregistrement : app (type A)</code>, et <code>zones: [&#39;interne.jiha.lab&#39;]</code>. Tu as une <strong>zone DNS privée</strong> avec un enregistrement <code>app</code> → <code>10.0.1.10</code>. Liée à un VNet (en vrai Azure), elle résout <code>app.interne.jiha.lab</code> en <code>10.0.1.10</code> <strong>à l&#39;intérieur</strong> du réseau — les apps s&#39;appellent par <strong>nom</strong>, pas par IP (qui peut changer). C&#39;est la <strong>résolution de noms interne</strong>, indispensable dès qu&#39;on a plus de deux ressources. Reste à connecter plusieurs réseaux : la <strong>topologie</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output confirms <code>zone creee : interne.jiha.lab</code>, <code>enregistrement : app (type A)</code>, and <code>zones: [&#39;interne.jiha.lab&#39;]</code>. You have a <strong>private DNS zone</strong> with an <code>app</code> → <code>10.0.1.10</code> record. Linked to a VNet (in real Azure), it resolves <code>app.interne.jiha.lab</code> to <code>10.0.1.10</code> <strong>inside</strong> the network — apps call each other by <strong>name</strong>, not IP (which can change). That&#39;s <strong>internal name resolution</strong>, essential as soon as you have more than two resources. Now to connect several networks: the <strong>topology</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir une <strong>topologie hub-and-spoke</strong> — et vérifier le <strong>non-chevauchement</strong>.</p>
+<p><strong>🤔 Centraliser, sans chevaucher.</strong> Un <strong>hub</strong> (services partagés) et des <strong>spokes</strong> (charges) reliés par <strong>peering</strong>. La contrainte <strong>absolue</strong> : les plages des VNets <strong>ne doivent pas se chevaucher</strong>, sinon le peering <strong>échoue</strong>. On écrit un vérificateur.</p>
+<p>Vérifie la compatibilité des plages hub/spoke :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design a <strong>hub-and-spoke topology</strong> — and check <strong>non-overlap</strong>.</p>
+<p><strong>🤔 Centralize, without overlapping.</strong> A <strong>hub</strong> (shared services) and <strong>spokes</strong> (workloads) linked by <strong>peering</strong>. The <strong>absolute</strong> constraint: the VNets&#39; ranges <strong>must not overlap</strong>, otherwise peering <strong>fails</strong>. We write a checker.</p>
+<p>Check hub/spoke range compatibility:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; topologie.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+hub = ipaddress.ip_network(&quot;10.0.0.0/16&quot;)
+spokes = {
+    &quot;spoke-prod&quot;: &quot;10.1.0.0/16&quot;,
+    &quot;spoke-dev&quot;:  &quot;10.2.0.0/16&quot;,
+    &quot;spoke-faux&quot;: &quot;10.0.5.0/24&quot;,   # CHEVAUCHE le hub -&gt; peering impossible
+}
+print(f&quot;HUB : {hub}&quot;)
+for nom, plage in spokes.items():
+    net = ipaddress.ip_network(plage)
+    chevauche = net.overlaps(hub)
+    verdict = &quot;❌ CHEVAUCHE le hub (peering impossible)&quot; if chevauche else &quot;✅ compatible (peering OK)&quot;
+    print(f&quot;  {nom:12} {plage:14} -&gt; {verdict}&quot;)
+PY
+python3 topologie.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre <code>HUB : 10.0.0.0/16</code>, puis <code>spoke-prod 10.1.0.0/16 -&gt; ✅ compatible</code>, <code>spoke-dev 10.2.0.0/16 -&gt; ✅ compatible</code>, mais <code>spoke-faux 10.0.5.0/24 -&gt; ❌ CHEVAUCHE le hub (peering impossible)</code>. La topologie <strong>hub-and-spoke</strong> relie chaque spoke au hub par <strong>peering</strong> — mais <strong>uniquement</strong> si les plages <strong>ne se chevauchent pas</strong>. <code>spoke-faux</code> est <strong>inclus</strong> dans le hub (<code>10.0.x</code>) : le peering <strong>échouerait</strong>. C&#39;est <strong>la</strong> raison pour laquelle on <strong>planifie l&#39;adressage globalement</strong> (étape 1) avant de créer le moindre VNet. Non-chevauchement = règle d&#39;or du réseau Azure.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>HUB : 10.0.0.0/16</code>, then <code>spoke-prod 10.1.0.0/16 -&gt; ✅ compatible</code>, <code>spoke-dev 10.2.0.0/16 -&gt; ✅ compatible</code>, but <code>spoke-faux 10.0.5.0/24 -&gt; ❌ CHEVAUCHE le hub (peering impossible)</code>. The <strong>hub-and-spoke</strong> topology links each spoke to the hub by <strong>peering</strong> — but <strong>only</strong> if ranges <strong>don&#39;t overlap</strong>. <code>spoke-faux</code> is <strong>inside</strong> the hub (<code>10.0.x</code>): peering <strong>would fail</strong>. That&#39;s <strong>the</strong> reason you <strong>plan addressing globally</strong> (step 1) before creating any VNet. Non-overlap = golden rule of Azure networking.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Vérifier</strong> la fondation déployée — sous-réseaux et résolution.</p>
+<p><strong>🤔 Contrôler ce qui est en place.</strong> On liste ce qu&#39;on a déployé (VNet, sous-réseaux) et on confirme la <strong>cohérence</strong> du plan d&#39;adressage sur le réel.</p>
+<p>Vérifie les sous-réseaux déployés :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Verify</strong> the deployed foundation — subnets and resolution.</p>
+<p><strong>🤔 Check what&#39;s in place.</strong> We list what we deployed (VNet, subnets) and confirm the address plan&#39;s <strong>consistency</strong> against reality.</p>
+<p>Verify the deployed subnets:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ..
+cd reseau-fond
+# Confirmer les plages depuis l&#39;etat Terraform / confirm ranges from Terraform state
+terraform state list 2&gt;/dev/null | grep -E &quot;subnet|virtual_network&quot; | head
+echo &quot;--- plages planifiees (rappel) / planned ranges (recap) ---&quot;
+python3 -c &quot;
+import ipaddress
+vnet = ipaddress.ip_network(&#39;10.0.0.0/16&#39;)
+subs = {&#39;web&#39;:&#39;10.0.0.0/24&#39;,&#39;app&#39;:&#39;10.0.1.0/24&#39;,&#39;data&#39;:&#39;10.0.2.0/24&#39;}
+for nom, plage in subs.items():
+    net = ipaddress.ip_network(plage)
+    dans = net.subnet_of(vnet)
+    print(f&#39;  snet-{nom:5} {plage} -&gt; {\&quot;dans le VNet\&quot; if dans else \&quot;HORS VNet\&quot;} ✓&#39; if dans else f&#39;  snet-{nom} HORS VNet&#39;)
+&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform state list</code> confirme le VNet et les trois sous-réseaux (<code>azurerm_subnet.web/app/data</code>, <code>azurerm_virtual_network.hub</code>), et le calcul confirme que <strong>chaque sous-réseau est bien inclus</strong> dans le VNet <code>10.0.0.0/16</code> (<code>dans le VNet ✓</code>). La fondation est <strong>cohérente</strong> : le plan d&#39;adressage (étape 1) correspond au <strong>déployé</strong> (étape 2), sans chevauchement, avec la résolution de noms (étape 4). C&#39;est ce contrôle qui évite les surprises de routage. On récapitule la fondation.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform state list</code> confirms the VNet and the three subnets (<code>azurerm_subnet.web/app/data</code>, <code>azurerm_virtual_network.hub</code>), and the calculation confirms <strong>each subnet is indeed inside</strong> the <code>10.0.0.0/16</code> VNet (<code>dans le VNet ✓</code>). The foundation is <strong>consistent</strong>: the address plan (step 1) matches the <strong>deployed</strong> (step 2), no overlap, with name resolution (step 4). This check avoids routing surprises. Let&#39;s recap the foundation.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>fondation réseau</strong> et nettoyer.</p>
+<p><strong>🤔 Les fondations, ensemble.</strong> On récapitule ce qui compose une base réseau saine — adressage, segmentation, DNS, topologie — puis on nettoie le lab.</p>
+<p>Récapitule la fondation et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>network foundation</strong> and clean up.</p>
+<p><strong>🤔 The foundations, together.</strong> We recap what makes a sound network base — addressing, segmentation, DNS, topology — then clean the lab.</p>
+<p>Recap the foundation and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Fondation reseau (AZ-700) / network foundation ===&quot;
+printf &quot;%-22s %s\n&quot; &quot;Adressage (CIDR)&quot;   &quot;planifie AVANT, sans chevauchement (regle d&#39;or)&quot;
+printf &quot;%-22s %s\n&quot; &quot;VNet + sous-reseaux&quot; &quot;un contenant /16, des tiers /24 (web/app/data)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Dimensionnement&quot;    &quot;5 IP reservees/sous-reseau ; sous-reseaux speciaux&quot;
+printf &quot;%-22s %s\n&quot; &quot;Resolution (DNS)&quot;   &quot;zone privee + enregistrements (nom -&gt; IP)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Topologie&quot;          &quot;hub-and-spoke, peering (plages non chevauchantes)&quot;
+
+# Nettoyer le lab / clean up
+terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete&quot;
+azlocal group delete --name rg-reseau-fond &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-reseau-fond supprime / deleted&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>cinq briques</strong> de la fondation réseau, puis <code>Destroy complete!</code> et <code>rg-reseau-fond supprime</code> nettoient le lab. Tu tiens les <strong>fondations AZ-700</strong> : <strong>planifier l&#39;adressage</strong> (CIDR, non-chevauchement), <strong>segmenter</strong> (VNet + sous-réseaux), <strong>dimensionner</strong> (IP réservées, sous-réseaux spéciaux), <strong>résoudre les noms</strong> (DNS privé) et concevoir la <strong>topologie</strong> (hub-and-spoke). Sur cette base saine, tout le reste tient : le <strong>routage</strong>, la <strong>connectivité hybride</strong>, la <strong>distribution</strong> applicative — la suite du track AZ-700.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>five building blocks</strong> of the network foundation, then <code>Destroy complete!</code> and <code>rg-reseau-fond supprime</code> clean the lab. You hold the <strong>AZ-700 foundations</strong>: <strong>plan addressing</strong> (CIDR, non-overlap), <strong>segment</strong> (VNet + subnets), <strong>size</strong> (reserved IPs, special subnets), <strong>resolve names</strong> (private DNS) and design the <strong>topology</strong> (hub-and-spoke). On this sound base, everything else stands: <strong>routing</strong>, <strong>hybrid connectivity</strong>, application <strong>delivery</strong> — the rest of the AZ-700 track.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Ne pas planifier l&#39;adressage.</strong> Improviser les plages mène au <strong>chevauchement</strong> — qui casse peering et routage. Planifie <strong>globalement, avant</strong>.</p>
+<p><strong>2. Sous-réseaux qui se chevauchent.</strong> Deux sous-réseaux (ou VNets) sur des plages qui se recoupent = <strong>erreur</strong>. Vérifie en amont.</p>
+<p><strong>3. Oublier les 5 IP réservées.</strong> Un <code>/29</code> ne donne que <strong>3</strong> IP utilisables. Dimensionne en tenant compte des réservations.</p>
+<p><strong>4. Mal nommer les sous-réseaux spéciaux.</strong> <code>GatewaySubnet</code> doit s&#39;appeler <strong>exactement</strong> ainsi, avec une <strong>taille minimale</strong>. Réserve sa plage dès le plan.</p>
+<p><strong>5. Adresser par IP en dur.</strong> Les IP changent ; les <strong>noms</strong> non. Utilise le <strong>DNS</strong> (zone privée + enregistrements).</p>
+<p><strong>6. Peering avec plages qui se chevauchent.</strong> Le peering <strong>échoue</strong> si les espaces d&#39;adressage se recoupent. Non-chevauchement obligatoire.</p>
+<p><strong>7. VNet trop petit.</strong> Un <code>/24</code> de VNet limite fortement la croissance. Un <code>/16</code> laisse de la marge — dimensionne large au niveau VNet.</p>
+</div>
+<div data-lang="en"><p><strong>1. Not planning addressing.</strong> Improvising ranges leads to <strong>overlap</strong> — which breaks peering and routing. Plan <strong>globally, first</strong>.</p>
+<p><strong>2. Overlapping subnets.</strong> Two subnets (or VNets) on intersecting ranges = <strong>error</strong>. Check upfront.</p>
+<p><strong>3. Forgetting the 5 reserved IPs.</strong> A <code>/29</code> gives only <strong>3</strong> usable IPs. Size accounting for reservations.</p>
+<p><strong>4. Misnaming special subnets.</strong> <code>GatewaySubnet</code> must be named <strong>exactly</strong> that, with a <strong>minimum size</strong>. Reserve its range from the plan.</p>
+<p><strong>5. Addressing by hardcoded IP.</strong> IPs change; <strong>names</strong> don&#39;t. Use <strong>DNS</strong> (private zone + records).</p>
+<p><strong>6. Peering with overlapping ranges.</strong> Peering <strong>fails</strong> if address spaces intersect. Non-overlap is mandatory.</p>
+<p><strong>7. VNet too small.</strong> A <code>/24</code> VNet strongly limits growth. A <code>/16</code> leaves room — size wide at the VNet level.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>planifies</strong> un espace d&#39;adressage CIDR sans chevauchement.</li><li>Tu calcules les <strong>IP utilisables</strong> (les 5 réservées d&#39;Azure).</li><li>Tu <strong>déploies</strong> un VNet avec des <strong>sous-réseaux en tiers</strong>.</li><li>Tu connais les <strong>sous-réseaux spéciaux</strong> (GatewaySubnet…) et leur taille.</li><li>Tu crées une <strong>zone DNS privée</strong> + un enregistrement (nom → IP).</li><li>Tu vérifies le <strong>non-chevauchement</strong> pour une topologie <strong>hub-and-spoke</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>plan</strong> a non-overlapping CIDR address space.</li><li>You compute <strong>usable IPs</strong> (Azure&#39;s 5 reserved).</li><li>You <strong>deploy</strong> a VNet with <strong>tiered subnets</strong>.</li><li>You know the <strong>special subnets</strong> (GatewaySubnet…) and their size.</li><li>You create a <strong>private DNS zone</strong> + a record (name → IP).</li><li>You check <strong>non-overlap</strong> for a <strong>hub-and-spoke</strong> topology.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — routage réseau (AZ-700)</em> — tables de routes, UDR, routes effectives, tunneling forcé.</li><li><strong>Réviser :</strong> <em>Azure — réseau (AZ-104)</em> pour VNet/sous-réseaux.</li><li><strong>S&#39;entraîner :</strong> ajoute un <code>GatewaySubnet</code> et un 4e spoke à <code>topologie.py</code>, et calcule un plan d&#39;adressage pour 10 sous-réseaux.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — network routing (AZ-700)</em> — route tables, UDR, effective routes, forced tunneling.</li><li><strong>Review:</strong> <em>Azure — networking (AZ-104)</em> for VNet/subnets.</li><li><strong>Practice:</strong> add a <code>GatewaySubnet</code> and a 4th spoke to <code>topologie.py</code>, and compute an address plan for 10 subnets.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Adressage CIDR (Python <code>ipaddress</code>)</strong></p>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code>import ipaddress
+vnet = ipaddress.ip_network(&quot;10.0.0.0/16&quot;)   # 65536 adresses
+list(vnet.subnets(new_prefix=24))            # decouper en /24
+net.num_addresses - 5                        # IP utilisables (Azure reserve 5)
+a.overlaps(b)                                # deux plages se chevauchent-elles ?
+a.subnet_of(b)                               # a est-il inclus dans b ?</code></pre>
+<p><strong>Tailles utiles (Azure reserve 5 IP)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>/24 -&gt; 256 adr -&gt; 251 utilisables
+/26 -&gt;  64     -&gt;  59
+/27 -&gt;  32     -&gt;  27   (GatewaySubnet minimum)
+/29 -&gt;   8     -&gt;   3   (trop petit en general)</code></pre>
+<p><strong>Sous-reseaux speciaux (nom impose)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>GatewaySubnet        /27+  passerelle VPN/ExpressRoute
+AzureBastionSubnet   /26+  acces securise
+AzureFirewallSubnet  /26   pare-feu Azure</code></pre>
+<p><strong>DNS prive (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal dns zone create   --resource-group RG --name interne.exemple.lab
+azlocal dns record create --resource-group RG --zone interne.exemple.lab --name app --type A --value 10.0.1.10</code></pre>
+</div>
+<div data-lang="en"><p><strong>CIDR addressing (Python <code>ipaddress</code>)</strong></p>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code>import ipaddress
+vnet = ipaddress.ip_network(&quot;10.0.0.0/16&quot;)   # 65536 addresses
+list(vnet.subnets(new_prefix=24))            # carve into /24
+net.num_addresses - 5                        # usable IPs (Azure reserves 5)
+a.overlaps(b)                                # do two ranges overlap?
+a.subnet_of(b)                               # is a inside b?</code></pre>
+<p><strong>Useful sizes (Azure reserves 5 IPs)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>/24 -&gt; 256 addr -&gt; 251 usable
+/26 -&gt;  64      -&gt;  59
+/27 -&gt;  32      -&gt;  27   (GatewaySubnet minimum)
+/29 -&gt;   8      -&gt;   3   (usually too small)</code></pre>
+<p><strong>Special subnets (mandatory name)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>GatewaySubnet        /27+  VPN/ExpressRoute gateway
+AzureBastionSubnet   /26+  secure access
+AzureFirewallSubnet  /26   Azure firewall</code></pre>
+<p><strong>Private DNS (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal dns zone create   --resource-group RG --name internal.example.lab
+azlocal dns record create --resource-group RG --zone internal.example.lab --name app --type A --value 10.0.1.10</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>AZ-700</strong> : Designing and Implementing Microsoft Azure Networking Solutions — objectifs officiels, Microsoft Learn.</li><li><strong>Réseaux virtuels (VNet)</strong> : espaces d&#39;adressage, sous-réseaux, IP — Microsoft Learn.</li><li><strong>Adressage IP &amp; CIDR</strong> : plans d&#39;adressage, planification — Microsoft Learn.</li><li><strong>Azure DNS / DNS privé</strong> : zones, enregistrements, résolution — Microsoft Learn.</li><li><strong>Hub-and-spoke</strong> : topologie de référence, peering — Cloud Adoption Framework / Microsoft Learn.</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>AZ-700</strong>: Designing and Implementing Microsoft Azure Networking Solutions — official objectives, Microsoft Learn.</li><li><strong>Virtual networks (VNet)</strong>: address spaces, subnets, IP — Microsoft Learn.</li><li><strong>IP addressing &amp; CIDR</strong>: address plans, planning — Microsoft Learn.</li><li><strong>Azure DNS / private DNS</strong>: zones, records, resolution — Microsoft Learn.</li><li><strong>Hub-and-spoke</strong>: reference topology, peering — Cloud Adoption Framework / Microsoft Learn.</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform</code> : erreur TLS / certificat (step-02).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> et vérifie que miniblue tourne (port 4567).</p>
+<p><strong><code>Apply</code> déploie moins de 5 ressources.</strong> Vérifie que <code>main.tf</code> contient le RG, le VNet <strong>et</strong> les trois sous-réseaux, en HCL <strong>multi-ligne</strong> (un bloc sur une seule ligne casse tout).</p>
+<p><strong><code>azlocal dns</code> : erreur.</strong> Le groupe de ressources doit exister (<code>azlocal group create</code> au step-04). Vérifie aussi que miniblue tourne et que <code>azlocal</code> est sur le <code>PATH</code>.</p>
+<p><strong>Mon <code>/29</code> n&#39;a « que » 3 IP.</strong> C&#39;est normal : 8 adresses − 5 réservées par Azure = 3. Prends un préfixe <strong>plus large</strong> pour un vrai sous-réseau.</p>
+<p><strong>Le peering échoue (en vrai Azure).</strong> Les espaces d&#39;adressage se <strong>chevauchent</strong>. Vérifie avec <code>a.overlaps(b)</code> (step-05) : les plages des VNets à connecter doivent être <strong>disjointes</strong>.</p>
+<p><strong><code>ipaddress</code> : <code>has host bits set</code>.</strong> Ta plage n&#39;est pas alignée sur son préfixe (ex. <code>10.0.0.5/24</code>). Utilise l&#39;<strong>adresse réseau</strong> (<code>10.0.0.0/24</code>) ou ajoute <code>strict=False</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform</code>: TLS / certificate error (step-02).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> and check miniblue is running (port 4567).</p>
+<p><strong><code>Apply</code> deploys fewer than 5 resources.</strong> Check <code>main.tf</code> holds the RG, the VNet <strong>and</strong> the three subnets, in <strong>multi-line</strong> HCL (a single-line block breaks everything).</p>
+<p><strong><code>azlocal dns</code>: error.</strong> The resource group must exist (<code>azlocal group create</code> in step-04). Also check miniblue is running and <code>azlocal</code> is on <code>PATH</code>.</p>
+<p><strong>My <code>/29</code> has &quot;only&quot; 3 IPs.</strong> That&#39;s normal: 8 addresses − 5 reserved by Azure = 3. Use a <strong>wider</strong> prefix for a real subnet.</p>
+<p><strong>Peering fails (in real Azure).</strong> The address spaces <strong>overlap</strong>. Check with <code>a.overlaps(b)</code> (step-05): the VNets&#39; ranges to connect must be <strong>disjoint</strong>.</p>
+<p><strong><code>ipaddress</code>: <code>has host bits set</code>.</strong> Your range isn&#39;t aligned to its prefix (e.g. <code>10.0.0.5/24</code>). Use the <strong>network address</strong> (<code>10.0.0.0/24</code>) or add <code>strict=False</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

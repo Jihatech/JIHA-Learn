@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Terraform — l&#39;infrastructure en code — jiha.tech</title>
+  <title data-lang="en">Terraform — infrastructure as code — jiha.tech</title>
+  <meta name="description" content="Apprends Terraform sur ta propre machine, sans compte cloud : le provider Docker pour provisionner en local, plan/apply, le state, variables et outputs, le graphe de dépendances et les modules. Aligné Terraform Associate." data-lang="fr">
+  <meta name="description" content="Learn Terraform on your own machine, no cloud account: the Docker provider to provision locally, plan/apply, state, variables and outputs, the dependency graph and modules. Aligned with Terraform Associate." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Terraform — l&#39;infrastructure en code">
+  <meta property="og:description" content="Apprends Terraform sur ta propre machine, sans compte cloud : le provider Docker pour provisionner en local, plan/apply, le state, variables et outputs, le graphe de dépendances et les modules. Aligné Terraform Associate.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/terraform-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/terraform-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="terraform-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/terraform-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/terraform-fondamentaux</div>
+    <h1 data-lang="fr">Terraform — l&#39;infrastructure en code</h1>
+    <h1 data-lang="en">Terraform — infrastructure as code</h1>
+    <p class="tagline" data-lang="fr">Déclaratif, plan/apply, state, variables, modules.</p>
+    <p class="tagline" data-lang="en">Declarative, plan/apply, state, variables, modules.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 150 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 150 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Ansible <strong>configure</strong> des machines qui existent déjà. Mais qui <strong>crée</strong> les machines, les réseaux, les volumes ? À la main dans une console cloud, c&#39;est lent, non reproductible, et impossible à versionner. <strong>Terraform</strong> décrit ton infrastructure en <strong>code déclaratif</strong> : tu écris l&#39;état voulu (« je veux ce conteneur, ce réseau »), Terraform calcule les actions nécessaires et les applique.</p>
+<p>Deux idées le rendent puissant : le <strong>plan</strong> (Terraform te montre <em>exactement</em> ce qu&#39;il va créer/modifier/détruire <strong>avant</strong> d&#39;agir) et le <strong>state</strong> (il mémorise ce qu&#39;il gère, pour ne toucher qu&#39;aux différences). C&#39;est de l&#39;infrastructure <strong>comme du code</strong> : versionnée en Git, revue en pull request, rejouée à l&#39;identique.</p>
+<p>Le piège pour apprendre Terraform : la plupart des tutos exigent un compte AWS/Azure (carte bancaire, risque de facture). Ici, on utilise le <strong>provider Docker</strong> : tu provisionnes des conteneurs <strong>en local</strong>, sur ta machine, avec exactement la même grammaire Terraform qu&#39;en production cloud. Zéro compte, zéro coût.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu connais Docker (image, conteneur, port) et tu veux décrire ton infra en code plutôt qu&#39;à la main.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne maîtrises pas Docker → repasse par ce guide, c&#39;est le prérequis dur (on s&#39;en sert comme « infra » à provisionner).</li><li>Tu veux <strong>configurer l&#39;intérieur</strong> d&#39;une machine (installer des paquets, éditer des fichiers) : c&#39;est le rôle d&#39;Ansible. Terraform <strong>crée</strong> l&#39;infra, Ansible la <strong>configure</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>Ansible <strong>configures</strong> machines that already exist. But who <strong>creates</strong> the machines, networks, volumes? By hand in a cloud console, it&#39;s slow, not reproducible, and impossible to version. <strong>Terraform</strong> describes your infrastructure as <strong>declarative code</strong>: you write the desired state (&quot;I want this container, this network&quot;), Terraform computes the necessary actions and applies them.</p>
+<p>Two ideas make it powerful: the <strong>plan</strong> (Terraform shows you <em>exactly</em> what it will create/change/destroy <strong>before</strong> acting) and the <strong>state</strong> (it remembers what it manages, to touch only the differences). It&#39;s infrastructure <strong>as code</strong>: versioned in Git, reviewed in a pull request, replayed identically.</p>
+<p>The trap when learning Terraform: most tutorials require an AWS/Azure account (credit card, risk of a bill). Here, we use the <strong>Docker provider</strong>: you provision containers <strong>locally</strong>, on your machine, with the exact same Terraform grammar as in cloud production. Zero account, zero cost.</p>
+<p><strong>Who it&#39;s for:</strong> you know Docker (image, container, port) and you want to describe your infra as code rather than by hand.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable with Docker → go back through that guide, it&#39;s the hard prerequisite (we use it as the &quot;infra&quot; to provision).</li><li>You want to <strong>configure the inside</strong> of a machine (install packages, edit files): that&#39;s Ansible&#39;s job. Terraform <strong>creates</strong> the infra, Ansible <strong>configures</strong> it.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Ce qu&#39;est l&#39;<strong>IaC déclarative</strong> : décrire l&#39;état voulu, pas les étapes.</li><li>Écrire du <strong>HCL</strong> : <code>provider</code>, <code>resource</code>, références entre ressources.</li><li>Le cycle <strong><code>init</code> → <code>plan</code> → <code>apply</code> → <code>destroy</code></strong>.</li><li>Le rôle du <strong>state</strong> et pourquoi on ne l&#39;édite jamais à la main.</li><li>Paramétrer avec <strong>variables</strong> et exposer avec <strong>outputs</strong>.</li><li>Comment Terraform déduit un <strong>graphe de dépendances</strong>.</li><li>Factoriser avec un <strong>module</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know:</p>
+<ul><li>What <strong>declarative IaC</strong> is: describe the desired state, not the steps.</li><li>How to write <strong>HCL</strong>: <code>provider</code>, <code>resource</code>, references between resources.</li><li>The <strong><code>init</code> → <code>plan</code> → <code>apply</code> → <code>destroy</code></strong> cycle.</li><li>The role of <strong>state</strong> and why you never edit it by hand.</li><li>How to parameterize with <strong>variables</strong> and expose with <strong>outputs</strong>.</li><li>How Terraform derives a <strong>dependency graph</strong>.</li><li>How to factor things out with a <strong>module</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Docker fondamentaux</strong> acquis (image, conteneur, port — prérequis dur).</li><li><strong>Docker</strong> installé et fonctionnel (<code>docker run hello-world</code> marche).</li><li><strong>Terraform</strong> installé. Vérifie, ou suis la <a href="https://developer.hashicorp.com/terraform/install">doc d&#39;installation officielle</a> pour ton OS :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Docker fundamentals</strong> guide under your belt (image, container, port — hard prerequisite).</li><li><strong>Docker</strong> installed and working (<code>docker run hello-world</code> works).</li><li><strong>Terraform</strong> installed. Check, or follow the <a href="https://developer.hashicorp.com/terraform/install">official install docs</a> for your OS:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform version        # ex. Terraform v1.9.x
+mkdir tf-demo &amp;&amp; cd tf-demo   # dossier de travail / working directory</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Terraform s&#39;articule autour de quelques briques.</p>
+<ul><li>Un <strong>provider</strong> est un plugin qui sait parler à une plateforme (AWS, Azure, Docker…). Il traduit tes ressources en appels d&#39;API. Ici, le provider <strong>Docker</strong> parle à ton démon Docker local.</li><li>Une <strong>ressource</strong> (<code>resource</code>) est un objet géré : un conteneur, une image, un réseau. Tu décris ses attributs voulus ; Terraform se charge de l&#39;amener à cet état.</li><li>Le <strong>state</strong> (<code>terraform.tfstate</code>) est le carnet de comptes de Terraform : il mémorise la correspondance entre ton code et les objets réels. C&#39;est <strong>lui</strong> qui permet à Terraform de savoir ce qui existe déjà et donc quoi créer, modifier ou détruire. On n&#39;y touche <strong>jamais</strong> à la main.</li></ul>
+<p>Le cœur du modèle : le cycle <strong>plan / apply</strong>. <code>terraform plan</code> compare trois choses — ton <strong>code</strong> (l&#39;état voulu), le <strong>state</strong> (ce que Terraform croit exister) et le <strong>réel</strong> — et t&#39;affiche le diff : <code>+</code> créer, <code>~</code> modifier, <code>-</code> détruire. <code>terraform apply</code> exécute ce plan. Tu <strong>valides toujours le plan avant d&#39;appliquer</strong> : c&#39;est le garde-fou contre les surprises.</p>
+<p>Enfin, Terraform déduit un <strong>graphe de dépendances</strong> : si un conteneur référence une image, Terraform crée l&#39;image <strong>d&#39;abord</strong>, automatiquement. Tu décris le <em>quoi</em>, pas l&#39;<em>ordre</em>.</p>
+</div>
+<div data-lang="en"><p>Terraform revolves around a few building blocks.</p>
+<ul><li>A <strong>provider</strong> is a plugin that knows how to talk to a platform (AWS, Azure, Docker…). It translates your resources into API calls. Here, the <strong>Docker</strong> provider talks to your local Docker daemon.</li><li>A <strong>resource</strong> (<code>resource</code>) is a managed object: a container, an image, a network. You describe its desired attributes; Terraform brings it to that state.</li><li>The <strong>state</strong> (<code>terraform.tfstate</code>) is Terraform&#39;s ledger: it records the mapping between your code and the real objects. It&#39;s <strong>what</strong> lets Terraform know what already exists, hence what to create, change, or destroy. You <strong>never</strong> touch it by hand.</li></ul>
+<p>The heart of the model: the <strong>plan / apply</strong> cycle. <code>terraform plan</code> compares three things — your <strong>code</strong> (desired state), the <strong>state</strong> (what Terraform thinks exists), and <strong>reality</strong> — and shows you the diff: <code>+</code> create, <code>~</code> change, <code>-</code> destroy. <code>terraform apply</code> runs that plan. You <strong>always review the plan before applying</strong>: it&#39;s the guardrail against surprises.</p>
+<p>Finally, Terraform derives a <strong>dependency graph</strong>: if a container references an image, Terraform creates the image <strong>first</strong>, automatically. You describe the <em>what</em>, not the <em>order</em>.</p>
+</div>
+
+<figure class="schema" id="figure-terraform-plan-apply">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-terraform-plan-apply">
+  <title id="s-terraform-plan-apply">Cycle plan / apply</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Cycle plan / apply</text><rect class="box" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="129" y="77" text-anchor="middle">code + state + réel</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box-accent" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="380" y="70.5" text-anchor="middle">plan</text><text class="sub sub-fill" x="380" y="83.5" text-anchor="middle">diff</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="631" y="70.5" text-anchor="middle">apply</text><text class="sub" x="631" y="83.5" text-anchor="middle">application</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le cycle plan/apply : code + state + réel → diff → application.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The plan/apply cycle: code + state + reality → diff → apply.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance ainsi : premier provider &amp; init → première ressource (plan/apply) → le state → variables &amp; outputs → dépendances &amp; modification → module → destroy.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go like this: first provider &amp; init → first resource (plan/apply) → the state → variables &amp; outputs → dependencies &amp; change → module → destroy.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déclarer le provider Docker et initialiser le projet.</p>
+<p><strong>🤔 Pourquoi <code>terraform init</code> ?</strong> Terraform ne connaît aucun provider par défaut. <code>init</code> lit ton bloc <code>required_providers</code>, <strong>télécharge</strong> le plugin correspondant, et prépare le dossier. C&#39;est la première commande de tout projet — et à relancer quand tu ajoutes un provider.</p>
+<p>Crée <code>main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Declare the Docker provider and initialize the project.</p>
+<p><strong>🤔 Why <code>terraform init</code>?</strong> Terraform knows no providers by default. <code>init</code> reads your <code>required_providers</code> block, <strong>downloads</strong> the matching plugin, and prepares the folder. It&#39;s the first command of any project — and to re-run when you add a provider.</p>
+<p>Create <code>main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>terraform {
+  required_providers {
+    docker = {
+      source  = &quot;kreuzwerker/docker&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+
+provider &quot;docker&quot; {}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>init</code> affiche « Terraform has been successfully initialized! ». Un dossier <code>.terraform/</code> et un fichier <code>.terraform.lock.hcl</code> (qui <strong>fige</strong> la version du provider) sont apparus.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>init</code> prints &quot;Terraform has been successfully initialized!&quot;. A <code>.terraform/</code> folder and a <code>.terraform.lock.hcl</code> file (which <strong>pins</strong> the provider version) appeared.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Provisionner ta première ressource : une image + un conteneur nginx.</p>
+<p><strong>🤔 Pourquoi référencer <code>docker_image.nginx.image_id</code> ?</strong> Le conteneur a besoin d&#39;une image. En <strong>référençant</strong> l&#39;attribut de la ressource image plutôt qu&#39;en écrivant un nom en dur, tu crées une <strong>dépendance explicite</strong> : Terraform sait qu&#39;il doit créer l&#39;image avant le conteneur. C&#39;est ça, le graphe.</p>
+<p>Ajoute à <code>main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Provision your first resource: an image + an nginx container.</p>
+<p><strong>🤔 Why reference <code>docker_image.nginx.image_id</code>?</strong> The container needs an image. By <strong>referencing</strong> the image resource&#39;s attribute rather than hardcoding a name, you create an <strong>explicit dependency</strong>: Terraform knows it must create the image before the container. That&#39;s the graph.</p>
+<p>Add to <code>main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>resource &quot;docker_image&quot; &quot;nginx&quot; {
+  name = &quot;nginx:1.27&quot;
+}
+
+resource &quot;docker_container&quot; &quot;web&quot; {
+  name  = &quot;tf-web&quot;
+  image = docker_image.nginx.image_id
+  ports {
+    internal = 80
+    external = 8080
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform plan          # regarde AVANT d&#39;agir / look BEFORE acting
+terraform apply         # tape &quot;yes&quot; pour confirmer / type &quot;yes&quot; to confirm
+curl http://localhost:8080</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>plan</code> annonce <code>Plan: 2 to add</code>. Après <code>apply</code>, <code>curl http://localhost:8080</code> affiche la page nginx, et <code>docker ps</code> liste le conteneur <code>tf-web</code>. Tu viens de créer de l&#39;infra <strong>par du code</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>plan</code> announces <code>Plan: 2 to add</code>. After <code>apply</code>, <code>curl http://localhost:8080</code> shows the nginx page, and <code>docker ps</code> lists the <code>tf-web</code> container. You just created infrastructure <strong>with code</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>state</strong> et vérifier l&#39;idempotence.</p>
+<p><strong>🤔 Pourquoi le state est-il central ?</strong> Il mémorise ce que Terraform gère. Relance <code>apply</code> sans rien changer : Terraform compare code, state et réel → <strong>aucune</strong> action. Comme Ansible, Terraform est <strong>idempotent</strong> : il converge vers l&#39;état voulu, sans effet de bord.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>state</strong> and verify idempotence.</p>
+<p><strong>🤔 Why is state central?</strong> It records what Terraform manages. Re-run <code>apply</code> without changing anything: Terraform compares code, state, and reality → <strong>no</strong> action. Like Ansible, Terraform is <strong>idempotent</strong>: it converges to the desired state, with no side effects.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform state list          # les ressources gérées / the managed resources
+terraform show                # l&#39;état détaillé / the detailed state
+terraform apply               # relance : &quot;No changes.&quot; / re-run: &quot;No changes.&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>state list</code> montre <code>docker_image.nginx</code> et <code>docker_container.web</code>. Le second <code>apply</code> affiche « No changes. Your infrastructure matches the configuration ».</p>
+<p>⚠️ <strong>Ne modifie jamais <code>terraform.tfstate</code> à la main</strong> et ne le commite pas s&#39;il contient des secrets. Il reflète le réel : le corrompre, c&#39;est faire perdre à Terraform la trace de ton infra.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>state list</code> shows <code>docker_image.nginx</code> and <code>docker_container.web</code>. The second <code>apply</code> prints &quot;No changes. Your infrastructure matches the configuration&quot;.</p>
+<p>⚠️ <strong>Never edit <code>terraform.tfstate</code> by hand</strong> and don&#39;t commit it if it holds secrets. It reflects reality: corrupting it makes Terraform lose track of your infra.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Paramétrer avec des <strong>variables</strong> et exposer une <strong>output</strong>.</p>
+<p><strong>🤔 Pourquoi ?</strong> Coder le port <code>8080</code> en dur t&#39;oblige à éditer le code pour chaque environnement. Une <strong>variable</strong> externalise ce choix ; une <strong>output</strong> expose une valeur utile (ici l&#39;URL) après <code>apply</code>, réutilisable par un autre outil ou un humain.</p>
+<p>Crée <code>variables.tf</code>, <code>outputs.tf</code> et <code>terraform.tfvars</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Parameterize with <strong>variables</strong> and expose an <strong>output</strong>.</p>
+<p><strong>🤔 Why?</strong> Hardcoding port <code>8080</code> forces you to edit the code for every environment. A <strong>variable</strong> externalizes that choice; an <strong>output</strong> exposes a useful value (here the URL) after <code>apply</code>, reusable by another tool or a human.</p>
+<p>Create <code>variables.tf</code>, <code>outputs.tf</code> and <code>terraform.tfvars</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># variables.tf
+variable &quot;external_port&quot; {
+  type    = number
+  default = 8080
+}
+
+variable &quot;nginx_tag&quot; {
+  type    = string
+  default = &quot;1.27&quot;
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># outputs.tf
+output &quot;url&quot; {
+  value = &quot;http://localhost:${var.external_port}&quot;
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># terraform.tfvars — Terraform lit ce fichier automatiquement / Terraform reads this file automatically
+external_port = 9090
+nginx_tag     = &quot;1.27&quot;</code></pre>
+<div data-lang="fr"><p>Mets à jour <code>main.tf</code> pour utiliser les variables (le bloc <code>terraform</code>/<code>provider</code> du step-01 reste inchangé) :</p>
+</div>
+<div data-lang="en"><p>Update <code>main.tf</code> to use the variables (the <code>terraform</code>/<code>provider</code> block from step-01 stays unchanged):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>resource &quot;docker_image&quot; &quot;nginx&quot; {
+  name = &quot;nginx:${var.nginx_tag}&quot;
+}
+
+resource &quot;docker_container&quot; &quot;web&quot; {
+  name  = &quot;tf-web&quot;
+  image = docker_image.nginx.image_id
+  ports {
+    internal = 80
+    external = var.external_port
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply         # lit terraform.tfvars (port 9090) / reads terraform.tfvars (port 9090)
+terraform output url    # http://localhost:9090</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <code>plan</code> montre que le conteneur est <strong>remplacé</strong> (<code>-/+</code>, avec la ligne <code>forces replacement</code>) — un conteneur Docker est quasi immuable, Terraform le recrée pour changer son port. Après <code>apply</code>, <code>terraform output url</code> renvoie <code>http://localhost:9090</code> et le <code>curl</code> sur ce port répond.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>plan</code> shows the container is <strong>replaced</strong> (<code>-/+</code>, with the <code>forces replacement</code> line) — a Docker container is nearly immutable, Terraform recreates it to change its port. After <code>apply</code>, <code>terraform output url</code> returns <code>http://localhost:9090</code> and a <code>curl</code> on that port responds.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Observer le <strong>graphe de dépendances</strong> en changeant l&#39;image.</p>
+<p><strong>🤔 <code>~</code> (en place) vs <code>-/+</code> (remplacement) ?</strong> Sur beaucoup de ressources cloud, un changement se fait <strong>en place</strong> (<code>~</code>). Mais un conteneur Docker est <strong>quasi immuable</strong> : changer son image (comme son port à l&#39;étape précédente) impose de le <strong>remplacer</strong> (<code>-/+</code> : détruire puis recréer). L&#39;important ici, c&#39;est le <strong>graphe</strong> : la nouvelle image est créée <strong>avant</strong> que le conteneur soit recréé. Lis toujours le plan pour repérer les remplacements.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Observe the <strong>dependency graph</strong> by changing the image.</p>
+<p><strong>🤔 <code>~</code> (in place) vs <code>-/+</code> (replacement)?</strong> On many cloud resources, a change happens <strong>in place</strong> (<code>~</code>). But a Docker container is <strong>nearly immutable</strong>: changing its image (like its port in the previous step) forces a <strong>replace</strong> (<code>-/+</code>: destroy then recreate). What matters here is the <strong>graph</strong>: the new image is created <strong>before</strong> the container is recreated. Always read the plan to spot replacements.</p>
+</div>
+<div data-lang="fr"><p>Change <code>nginx_tag</code> à <code>1.26</code> dans <code>terraform.tfvars</code>, puis :</p>
+</div>
+<div data-lang="en"><p>Change <code>nginx_tag</code> to <code>1.26</code> in <code>terraform.tfvars</code>, then:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform plan          # cherche la ligne &quot;forces replacement&quot; / look for the &quot;forces replacement&quot; line
+terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <code>plan</code> annonce une nouvelle image <code>nginx:1.26</code> à <strong>créer</strong> et le conteneur à <strong>remplacer</strong> (<code>-/+ forces replacement</code>). Terraform gère l&#39;ordre tout seul : l&#39;image d&#39;abord, le conteneur ensuite — c&#39;est le graphe de dépendances. <em>(<code>-auto-approve</code> saute la confirmation — pratique pour itérer, à éviter en prod.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>plan</code> announces a new <code>nginx:1.26</code> image to <strong>create</strong> and the container to <strong>replace</strong> (<code>-/+ forces replacement</code>). Terraform handles the order itself: the image first, the container next — that&#39;s the dependency graph. <em>(<code>-auto-approve</code> skips confirmation — handy to iterate, avoid in prod.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Factoriser dans un <strong>module</strong> réutilisable.</p>
+<p><strong>🤔 Pourquoi un module ?</strong> Dès que tu répètes un schéma (« un conteneur web exposé »), un <strong>module</strong> l&#39;encapsule : un dossier avec ses <code>variables</code>, ses <code>resource</code>, ses <code>outputs</code>. Tu l&#39;appelles ensuite avec des paramètres différents, sans copier-coller. C&#39;est l&#39;unité de réutilisation de Terraform.</p>
+<p>Crée <code>modules/webserver/main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Factor things into a reusable <strong>module</strong>.</p>
+<p><strong>🤔 Why a module?</strong> As soon as you repeat a pattern (&quot;an exposed web container&quot;), a <strong>module</strong> encapsulates it: a folder with its <code>variables</code>, <code>resource</code>s, and <code>outputs</code>. You then call it with different parameters, no copy-paste. It&#39;s Terraform&#39;s unit of reuse.</p>
+<p>Create <code>modules/webserver/main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># modules/webserver/main.tf
+variable &quot;name&quot;          { type = string }
+variable &quot;external_port&quot; { type = number }
+variable &quot;nginx_tag&quot; {
+  type    = string
+  default = &quot;1.27&quot;
+}
+
+resource &quot;docker_image&quot; &quot;nginx&quot; {
+  name = &quot;nginx:${var.nginx_tag}&quot;
+}
+
+resource &quot;docker_container&quot; &quot;web&quot; {
+  name  = var.name
+  image = docker_image.nginx.image_id
+  ports {
+    internal = 80
+    external = var.external_port
+  }
+}
+
+output &quot;url&quot; { value = &quot;http://localhost:${var.external_port}&quot; }</code></pre>
+<div data-lang="fr"><p><strong>Remplace tout le contenu de <code>main.tf</code></strong> : garde uniquement le bloc <code>terraform</code>/<code>provider</code> (step-01), <strong>supprime les deux <code>resource</code></strong> <code>docker_image</code>/<code>docker_container</code>, et ajoute les deux appels de <code>module</code> ci-dessous. <em>(Supprime aussi <code>variables.tf</code>, <code>outputs.tf</code> et <code>terraform.tfvars</code> de la racine : le module porte désormais ses propres variables et outputs.)</em></p>
+</div>
+<div data-lang="en"><p><strong>Replace the entire contents of <code>main.tf</code></strong>: keep only the <code>terraform</code>/<code>provider</code> block (step-01), <strong>delete the two <code>resource</code>s</strong> <code>docker_image</code>/<code>docker_container</code>, and add the two <code>module</code> calls below. <em>(Also delete <code>variables.tf</code>, <code>outputs.tf</code> and <code>terraform.tfvars</code> from the root: the module now carries its own variables and outputs.)</em></p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>module &quot;site_a&quot; {
+  source        = &quot;./modules/webserver&quot;
+  name          = &quot;tf-site-a&quot;
+  external_port = 8081
+}
+
+module &quot;site_b&quot; {
+  source        = &quot;./modules/webserver&quot;
+  name          = &quot;tf-site-b&quot;
+  external_port = 8082
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init      # réindexe le nouveau module / re-index the new module
+terraform apply -auto-approve
+curl http://localhost:8081 &amp;&amp; curl http://localhost:8082</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> deux conteneurs (<code>tf-site-a</code>, <code>tf-site-b</code>) tournent, chacun sur son port, <strong>depuis le même module</strong> paramétré différemment. <code>terraform init</code> est nécessaire après l&#39;ajout d&#39;un module.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> two containers (<code>tf-site-a</code>, <code>tf-site-b</code>) run, each on its port, <strong>from the same module</strong> parameterized differently. <code>terraform init</code> is required after adding a module.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Tout détruire proprement, et connaître les commandes d&#39;hygiène.</p>
+<p><strong>🤔 Pourquoi <code>destroy</code> ?</strong> Terraform gère le cycle de vie <strong>complet</strong>, création <strong>et</strong> suppression. <code>destroy</code> supprime tout ce qui est dans le state — indispensable pour ne pas laisser traîner de ressources (surtout en cloud, où ça coûte). <code>fmt</code> et <code>validate</code> sont tes réflexes qualité avant de committer.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tear everything down cleanly, and know the hygiene commands.</p>
+<p><strong>🤔 Why <code>destroy</code>?</strong> Terraform manages the <strong>full</strong> lifecycle, creation <strong>and</strong> deletion. <code>destroy</code> removes everything in the state — essential to avoid leaving stray resources (especially in cloud, where it costs). <code>fmt</code> and <code>validate</code> are your quality reflexes before committing.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform fmt           # met en forme le HCL / formats the HCL
+terraform validate      # vérifie la syntaxe / checks the syntax
+terraform destroy       # supprime tout (tape &quot;yes&quot;) / removes everything (type &quot;yes&quot;)
+docker ps               # plus aucun conteneur tf-* / no more tf-* container</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>destroy</code> annonce <code>Destroy complete! Resources: N destroyed</code>, et <code>docker ps</code> ne montre plus aucun conteneur <code>tf-*</code>. Le <code>terraform.tfstate</code> est maintenant vide de ressources.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>destroy</code> announces <code>Destroy complete! Resources: N destroyed</code>, and <code>docker ps</code> no longer shows any <code>tf-*</code> container. The <code>terraform.tfstate</code> is now empty of resources.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Committer <code>terraform.tfstate</code> (surtout avec des secrets).</strong> Le state peut contenir des valeurs sensibles en clair. Ajoute-le à <code>.gitignore</code>. En équipe, utilise un <strong>backend distant</strong> (S3, Terraform Cloud) avec verrouillage, jamais le state local partagé par mail.</p>
+<p><strong>2. Éditer le state à la main.</strong> Tu désynchronises Terraform du réel. Pour corriger, utilise les commandes dédiées (<code>terraform state mv/rm</code>, <code>import</code>), jamais un éditeur de texte.</p>
+<p><strong>3. Appliquer sans lire le plan.</strong> Un <code>-/+</code> (remplacement) peut détruire une base de données. <strong>Lis toujours le plan</strong> ; en prod, <code>-auto-approve</code> est à proscrire.</p>
+<p><strong>4. Ne pas figer les versions.</strong> Sans <code>version = &quot;~&gt; 3.0&quot;</code> et sans committer <code>.terraform.lock.hcl</code>, une mise à jour du provider peut casser ton code en silence. Fige et commite le lock.</p>
+<p><strong>5. Confondre Terraform et Ansible.</strong> Terraform <strong>crée/détruit</strong> l&#39;infra (le <em>quoi</em>). Ansible <strong>configure l&#39;intérieur</strong> (installer, éditer). Ne demande pas à Terraform de faire du <code>apt install</code>.</p>
+<p><strong>6. Mettre des secrets en dur dans le <code>.tf</code>.</strong> Passe-les par des variables sensibles (<code>sensitive = true</code>), des variables d&#39;environnement (<code>TF_VAR_...</code>) ou un gestionnaire de secrets — jamais en clair dans le code versionné.</p>
+</div>
+<div data-lang="en"><p><strong>1. Committing <code>terraform.tfstate</code> (especially with secrets).</strong> State can hold sensitive values in clear text. Add it to <code>.gitignore</code>. On a team, use a <strong>remote backend</strong> (S3, Terraform Cloud) with locking, never the local state shared by email.</p>
+<p><strong>2. Editing state by hand.</strong> You desync Terraform from reality. To fix, use the dedicated commands (<code>terraform state mv/rm</code>, <code>import</code>), never a text editor.</p>
+<p><strong>3. Applying without reading the plan.</strong> A <code>-/+</code> (replacement) can destroy a database. <strong>Always read the plan</strong>; in prod, <code>-auto-approve</code> is to be banned.</p>
+<p><strong>4. Not pinning versions.</strong> Without <code>version = &quot;~&gt; 3.0&quot;</code> and without committing <code>.terraform.lock.hcl</code>, a provider update can silently break your code. Pin and commit the lock.</p>
+<p><strong>5. Confusing Terraform and Ansible.</strong> Terraform <strong>creates/destroys</strong> infra (the <em>what</em>). Ansible <strong>configures the inside</strong> (install, edit). Don&#39;t ask Terraform to run <code>apt install</code>.</p>
+<p><strong>6. Hardcoding secrets in the <code>.tf</code>.</strong> Pass them via sensitive variables (<code>sensitive = true</code>), environment variables (<code>TF_VAR_...</code>), or a secrets manager — never in clear text in versioned code.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques la différence entre <strong>déclaratif</strong> (Terraform) et impératif (un script).</li><li>Le cycle <code>init</code> → <code>plan</code> → <code>apply</code> → <code>destroy</code> est un réflexe, et tu <strong>lis toujours le plan</strong>.</li><li>Tu sais ce qu&#39;est le <strong>state</strong> et pourquoi on n&#39;y touche pas.</li><li>Tu paramètres avec des <strong>variables</strong> et exposes avec des <strong>outputs</strong>.</li><li>Tu repères dans un plan un <strong>remplacement</strong> (<code>-/+</code>) et tu comprends pourquoi.</li><li>Tu factorises en <strong>module</strong> réutilisable.</li></ul>
+<p>Six cases cochées = tu décris et versionnes de l&#39;infrastructure en code. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You can explain the difference between <strong>declarative</strong> (Terraform) and imperative (a script).</li><li>The <code>init</code> → <code>plan</code> → <code>apply</code> → <code>destroy</code> cycle is a reflex, and you <strong>always read the plan</strong>.</li><li>You know what <strong>state</strong> is and why you don&#39;t touch it.</li><li>You parameterize with <strong>variables</strong> and expose with <strong>outputs</strong>.</li><li>You spot a <strong>replacement</strong> (<code>-/+</code>) in a plan and understand why.</li><li>You factor into a reusable <strong>module</strong>.</li></ul>
+<p>Six boxes ticked = you describe and version infrastructure as code. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite logique :</p>
+<ol><li><strong>Traefik</strong> — exposer proprement, en HTTPS, les services que tu provisionnes.</li><li>Plus loin : <strong>Kubernetes</strong> (orchestration), puis le <strong>projet homelab</strong> où Terraform provisionne un vrai serveur qu&#39;Ansible configure — la combinaison gagnante.</li></ol>
+</div>
+<div data-lang="en"><p>The logical next steps:</p>
+<ol><li><strong>Traefik</strong> — cleanly expose, over HTTPS, the services you provision.</li><li>Further along: <strong>Kubernetes</strong> (orchestration), then the <strong>homelab project</strong> where Terraform provisions a real server that Ansible configures — the winning combo.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire Terraform.</p>
+</div>
+<div data-lang="en"><p>Terraform cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+terraform init          # télécharge les providers / download providers
+terraform plan          # montre le diff (toujours lire !) / show the diff (always read!)
+terraform apply         # applique / apply
+terraform destroy       # supprime tout / remove all
+terraform apply -var=&quot;port=9090&quot;      # passer une variable / pass a variable
+
+# State
+terraform state list    # ressources gérées / managed resources
+terraform show          # état détaillé / detailed state
+terraform output        # valeurs exposées / exposed outputs
+
+# Qualité / Quality
+terraform fmt           # met en forme / format
+terraform validate      # vérifie la syntaxe / check syntax</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Squelette / Skeleton
+terraform {
+  required_providers {
+    docker = { source = &quot;kreuzwerker/docker&quot;, version = &quot;~&gt; 3.0&quot; }
+  }
+}
+provider &quot;docker&quot; {}
+
+resource &quot;docker_container&quot; &quot;web&quot; {
+  name  = &quot;web&quot;
+  image = docker_image.nginx.image_id      # référence = dépendance / reference = dependency
+  ports {
+    internal = 80
+    external = var.port
+  }
+}</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://developer.hashicorp.com/terraform/docs">Documentation Terraform</a> — la référence.</li><li><a href="https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs">Provider Docker (registry)</a> — toutes les ressources <code>docker_*</code>.</li><li><a href="https://developer.hashicorp.com/terraform/tutorials/certification-003">Terraform Associate — préparation</a> — la certification que ce module prépare.</li><li><a href="https://developer.hashicorp.com/terraform/language/style">Style HCL &amp; bonnes pratiques</a> — conventions officielles.</li><li><strong>Pour compléter la prépa Associate</strong> : <code>data</code> sources, <code>count</code>/<code>for_each</code>, fonctions et expressions, <code>import</code>, workspaces, et backends distants (S3, Terraform Cloud).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://developer.hashicorp.com/terraform/docs">Terraform documentation</a> — the reference.</li><li><a href="https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs">Docker provider (registry)</a> — all the <code>docker_*</code> resources.</li><li><a href="https://developer.hashicorp.com/terraform/tutorials/certification-003">Terraform Associate — preparation</a> — the certification this module prepares for.</li><li><a href="https://developer.hashicorp.com/terraform/language/style">HCL style &amp; best practices</a> — official conventions.</li><li><strong>To round out the Associate prep</strong>: <code>data</code> sources, <code>count</code>/<code>for_each</code>, functions and expressions, <code>import</code>, workspaces, and remote backends (S3, Terraform Cloud).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>Error: Cannot connect to the Docker daemon</code>.</strong> Docker n&#39;est pas lancé, ou ton user n&#39;a pas les droits. Vérifie <code>docker ps</code> (cf. guide Docker : groupe <code>docker</code>).</p>
+<p><strong><code>port is already allocated</code>.</strong> Un autre service occupe déjà le port externe. Change la variable (<code>-var=&quot;external_port=9091&quot;</code>) ou libère le port.</p>
+<p><strong><code>terraform apply</code> propose un remplacement inattendu.</strong> Un attribut « force new » a changé (ex. l&#39;image d&#39;un conteneur). Lis le plan : la ligne <code># forces replacement</code> t&#39;indique lequel. C&#39;est voulu, pas un bug.</p>
+<p><strong><code>Error: Inconsistent dependency lock file</code> après un changement.</strong> Relance <code>terraform init</code> (voire <code>terraform init -upgrade</code>) pour resynchroniser le <code>.terraform.lock.hcl</code>.</p>
+<p><strong>Le state semble faux / une ressource a été supprimée hors Terraform.</strong> <code>terraform plan</code> te montrera qu&#39;il veut la recréer (drift). Ne modifie pas le state à la main ; laisse Terraform réconcilier via <code>apply</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>Error: Cannot connect to the Docker daemon</code>.</strong> Docker isn&#39;t running, or your user lacks rights. Check <code>docker ps</code> (see the Docker guide: <code>docker</code> group).</p>
+<p><strong><code>port is already allocated</code>.</strong> Another service already uses the external port. Change the variable (<code>-var=&quot;external_port=9091&quot;</code>) or free the port.</p>
+<p><strong><code>terraform apply</code> proposes an unexpected replacement.</strong> A &quot;force new&quot; attribute changed (e.g. a container&#39;s image). Read the plan: the <code># forces replacement</code> line tells you which. It&#39;s intended, not a bug.</p>
+<p><strong><code>Error: Inconsistent dependency lock file</code> after a change.</strong> Re-run <code>terraform init</code> (or <code>terraform init -upgrade</code>) to resync the <code>.terraform.lock.hcl</code>.</p>
+<p><strong>The state seems wrong / a resource was deleted outside Terraform.</strong> <code>terraform plan</code> will show it wants to recreate it (drift). Don&#39;t edit the state by hand; let Terraform reconcile via <code>apply</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

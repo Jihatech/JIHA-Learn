@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker — réseau — jiha.tech</title>
+  <title data-lang="en">Docker — networking — jiha.tech</title>
+  <meta name="description" content="Le réseau Docker au niveau DCA : les pilotes (bridge, host, none, overlay), la différence décisive entre le bridge par défaut et un bridge défini par l&#39;utilisateur (DNS par nom de conteneur), la publication de ports, les réseaux host/none, et la connexion multi-réseaux d&#39;un conteneur." data-lang="fr">
+  <meta name="description" content="Docker networking at DCA level: the drivers (bridge, host, none, overlay), the decisive difference between the default bridge and a user-defined bridge (DNS by container name), port publishing, host/none networks, and connecting a container to multiple networks." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker — réseau">
+  <meta property="og:description" content="Le réseau Docker au niveau DCA : les pilotes (bridge, host, none, overlay), la différence décisive entre le bridge par défaut et un bridge défini par l&#39;utilisateur (DNS par nom de conteneur), la publication de ports, les réseaux host/none, et la connexion multi-réseaux d&#39;un conteneur.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-reseau/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-reseau/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-reseau">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-reseau</div>
+    <div class="prompt" data-lang="en">~/guides/docker-reseau</div>
+    <h1 data-lang="fr">Docker — réseau</h1>
+    <h1 data-lang="en">Docker — networking</h1>
+    <p class="tagline" data-lang="fr">bridge, DNS, publication de ports, host, none, overlay.</p>
+    <p class="tagline" data-lang="en">bridge, DNS, port publishing, host, none, overlay.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 170 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 170 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Deux conteneurs qui ne se parlent pas ne servent à rien. Le réseau Docker décide <strong>qui joint qui</strong>, <strong>comment</strong>, et <strong>par quel nom</strong>. Le guide Compose te faisait bénéficier de son réseau automatique ; l&#39;examen <strong>DCA</strong> attend que tu comprennes <strong>ce qui se passe dessous</strong> : <em>quels sont les pilotes réseau ? pourquoi mes conteneurs se résolvent-ils par leur nom sur un réseau mais pas sur un autre ? comment publier un port ? quand utiliser <code>host</code> ou <code>none</code> ? comment brancher un conteneur sur plusieurs réseaux ?</em></p>
+<p>Ce guide couvre le domaine <strong>réseau</strong> en profondeur : les <strong>pilotes</strong> (<code>bridge</code>, <code>host</code>, <code>none</code>, <code>overlay</code>), la différence <strong>décisive</strong> entre le <strong>bridge par défaut</strong> et un <strong>bridge défini par l&#39;utilisateur</strong> (le <strong>DNS par nom de conteneur</strong>), la <strong>publication de ports</strong>, les réseaux <strong>host/none</strong>, et la <strong>connexion multi-réseaux</strong>.</p>
+<p>On travaille en <strong>local avec Docker</strong>. La plupart des manœuvres se font sur un seul hôte (les réseaux bridge) ; le réseau <strong>overlay</strong> (multi-hôtes) est présenté ici et pratiqué dans le guide Swarm.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides Docker précédents et tu vises le <strong>DCA</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas lancer un conteneur → reviens aux fondamentaux.</li><li>Tu veux le stockage, la sécurité ou Swarm → ce sont les guides suivants.</li></ul>
+</div>
+<div data-lang="en"><p>Two containers that don&#39;t talk to each other are useless. Docker networking decides <strong>who reaches whom</strong>, <strong>how</strong>, and <strong>by what name</strong>. The Compose guide gave you its automatic network for free; the <strong>DCA</strong> exam expects you to understand <strong>what happens underneath</strong>: <em>what are the network drivers? why do my containers resolve each other by name on one network but not another? how do you publish a port? when do you use <code>host</code> or <code>none</code>? how do you attach a container to several networks?</em></p>
+<p>This guide covers the <strong>networking</strong> domain in depth: the <strong>drivers</strong> (<code>bridge</code>, <code>host</code>, <code>none</code>, <code>overlay</code>), the <strong>decisive</strong> difference between the <strong>default bridge</strong> and a <strong>user-defined bridge</strong> (<strong>DNS by container name</strong>), <strong>port publishing</strong>, the <strong>host/none</strong> networks, and <strong>multi-network</strong> attachment.</p>
+<p>We work <strong>locally with Docker</strong>. Most maneuvers are on a single host (bridge networks); the <strong>overlay</strong> network (multi-host) is presented here and practiced in the Swarm guide.</p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier Docker guides and you&#39;re aiming for the <strong>DCA</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t launch a container → go back to the fundamentals.</li><li>You want storage, security or Swarm → those are the next guides.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Nommer les <strong>pilotes réseau</strong> (<code>bridge</code>, <code>host</code>, <code>none</code>, <code>overlay</code>) et leur rôle.</li><li>Inspecter le <strong>bridge par défaut</strong> et voir sa <strong>limite</strong> (pas de DNS par nom).</li><li>Créer un <strong>bridge défini par l&#39;utilisateur</strong> et résoudre les conteneurs <strong>par nom</strong>.</li><li><strong>Publier</strong> un port (<code>-p</code>) et distinguer <code>EXPOSE</code> de la publication.</li><li>Utiliser les réseaux <strong><code>host</code></strong> et <strong><code>none</code></strong>.</li><li><strong>Connecter/déconnecter</strong> un conteneur à plusieurs réseaux et <strong>inspecter</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Name the <strong>network drivers</strong> (<code>bridge</code>, <code>host</code>, <code>none</code>, <code>overlay</code>) and their role.</li><li>Inspect the <strong>default bridge</strong> and see its <strong>limit</strong> (no DNS by name).</li><li>Create a <strong>user-defined bridge</strong> and resolve containers <strong>by name</strong>.</li><li><strong>Publish</strong> a port (<code>-p</code>) and distinguish <code>EXPOSE</code> from publishing.</li><li>Use the <strong><code>host</code></strong> and <strong><code>none</code></strong> networks.</li><li><strong>Connect/disconnect</strong> a container to several networks and <strong>inspect</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides Docker précédents acquis.</li><li><strong>Docker</strong> installé et lancé.</li><li>Un terminal — pas de fichiers à créer pour ce guide.</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Docker guides under your belt.</li><li><strong>Docker</strong> installed and running.</li><li>A terminal — no files to create for this guide.</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network ls          # les réseaux existants : bridge, host, none / existing networks</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-images-dockerfile/">
+    <span class="num">13</span>
+    <span class="title-line" data-lang="fr">Docker — images &amp; Dockerfile avancés</span>
+    <span class="title-line" data-lang="en">Docker — advanced images &amp; Dockerfile</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Docker fournit des réseaux virtuels</strong> avec différents <strong>pilotes</strong> :</p>
+<ul><li><strong><code>bridge</code></strong> (défaut) : un réseau privé sur l&#39;hôte. Les conteneurs y ont une IP interne et sortent vers Internet via NAT. C&#39;est <strong>99 %</strong> des cas sur une seule machine.</li><li><strong><code>host</code></strong> : le conteneur <strong>partage la pile réseau de l&#39;hôte</strong> (pas d&#39;isolation, pas de NAT — son <code>:80</code> est le <code>:80</code> de l&#39;hôte). Rapide, mais sans isolation.</li><li><strong><code>none</code></strong> : <strong>aucun</strong> réseau (seulement <code>lo</code>). Isolation totale, pour un traitement hors-ligne.</li><li><strong><code>overlay</code></strong> : un réseau <strong>multi-hôtes</strong> qui relie des conteneurs de <strong>machines différentes</strong> (Swarm/Kubernetes). C&#39;est ce qui rend un cluster possible.</li></ul>
+<p><strong>LE point d&#39;examen : bridge par défaut vs bridge utilisateur.</strong> Tous les conteneurs lancés sans <code>--network</code> atterrissent sur le <strong>bridge par défaut</strong> (<code>bridge</code>). Or ce réseau <strong>n&#39;a PAS de résolution DNS par nom</strong> : un conteneur ne peut joindre un autre <strong>que par son IP</strong> (fragile, l&#39;IP change). Dès que tu <strong>crées ton propre réseau</strong> (<code>docker network create</code>), Docker y active un <strong>DNS interne</strong> (<code>127.0.0.11</code>) : les conteneurs se résolvent <strong>par leur nom</strong>. C&#39;est <strong>la</strong> raison pour laquelle on crée toujours un réseau dédié (et pourquoi Compose en crée un automatiquement).</p>
+<p><strong>La publication de ports.</strong> Un conteneur écoute sur un port <strong>interne</strong> ; pour le joindre <strong>depuis l&#39;hôte/l&#39;extérieur</strong>, il faut le <strong>publier</strong> avec <strong><code>-p hôte:conteneur</code></strong> (<code>-p 8080:80</code>). Attention à ne pas confondre avec <strong><code>EXPOSE</code></strong> dans le Dockerfile : <code>EXPOSE</code> n&#39;est que de la <strong>documentation</strong> (il n&#39;ouvre <strong>rien</strong>), c&#39;est <strong><code>-p</code></strong> (ou <code>--publish-all</code>) qui ouvre réellement le port.</p>
+<p><strong>La connexion multi-réseaux.</strong> Un conteneur peut être branché sur <strong>plusieurs</strong> réseaux (<code>docker network connect</code>) — un motif classique : un reverse proxy sur un réseau « frontend » <strong>et</strong> un réseau « backend ». <code>docker network inspect</code> montre qui est connecté à quoi.</p>
+</div>
+<div data-lang="en"><p><strong>Docker provides virtual networks</strong> with different <strong>drivers</strong>:</p>
+<ul><li><strong><code>bridge</code></strong> (default): a private network on the host. Containers get an internal IP and reach the Internet via NAT. It&#39;s <strong>99%</strong> of single-machine cases.</li><li><strong><code>host</code></strong>: the container <strong>shares the host&#39;s network stack</strong> (no isolation, no NAT — its <code>:80</code> is the host&#39;s <code>:80</code>). Fast, but no isolation.</li><li><strong><code>none</code></strong>: <strong>no</strong> network (only <code>lo</code>). Total isolation, for offline processing.</li><li><strong><code>overlay</code></strong>: a <strong>multi-host</strong> network linking containers on <strong>different machines</strong> (Swarm/Kubernetes). It&#39;s what makes a cluster possible.</li></ul>
+<p><strong>THE exam point: default bridge vs user bridge.</strong> All containers launched without <code>--network</code> land on the <strong>default bridge</strong> (<code>bridge</code>). But that network has <strong>NO DNS resolution by name</strong>: a container can reach another <strong>only by its IP</strong> (fragile, the IP changes). As soon as you <strong>create your own network</strong> (<code>docker network create</code>), Docker enables an <strong>internal DNS</strong> (<code>127.0.0.11</code>): containers resolve each other <strong>by name</strong>. That&#39;s <strong>the</strong> reason you always create a dedicated network (and why Compose creates one automatically).</p>
+<p><strong>Port publishing.</strong> A container listens on an <strong>internal</strong> port; to reach it <strong>from the host/outside</strong>, you must <strong>publish</strong> it with <strong><code>-p host:container</code></strong> (<code>-p 8080:80</code>). Don&#39;t confuse this with <strong><code>EXPOSE</code></strong> in the Dockerfile: <code>EXPOSE</code> is only <strong>documentation</strong> (it opens <strong>nothing</strong>); it&#39;s <strong><code>-p</code></strong> (or <code>--publish-all</code>) that actually opens the port.</p>
+<p><strong>Multi-network attachment.</strong> A container can be attached to <strong>several</strong> networks (<code>docker network connect</code>) — a classic pattern: a reverse proxy on a &quot;frontend&quot; network <strong>and</strong> a &quot;backend&quot; network. <code>docker network inspect</code> shows who&#39;s connected to what.</p>
+</div>
+
+<figure class="schema" id="figure-docker-networks">
+  <svg viewBox="0 0 760 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-docker-networks">
+  <title id="s-docker-networks">Réseaux Docker</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Réseaux Docker</text><rect class="box" x="16" y="40" width="230" height="62" rx="3"/><text class="lbl" x="131" y="68.5" text-anchor="middle">bridge défaut</text><text class="sub" x="131" y="81.5" text-anchor="middle">IP seulement</text><rect class="box-accent" x="264" y="40" width="230" height="62" rx="3"/><text class="lbl lbl-fill" x="379" y="68.5" text-anchor="middle">bridge utilisateur</text><text class="sub sub-fill" x="379" y="81.5" text-anchor="middle">DNS interne, par nom</text><rect class="box" x="512" y="40" width="230" height="62" rx="3"/><text class="lbl" x="627" y="68.5" text-anchor="middle">host</text><text class="sub" x="627" y="81.5" text-anchor="middle">pile de l’hôte</text><rect class="box" x="16" y="118" width="230" height="62" rx="3"/><text class="lbl" x="131" y="146.5" text-anchor="middle">none</text><text class="sub" x="131" y="159.5" text-anchor="middle">isolé</text><rect class="box" x="264" y="118" width="230" height="62" rx="3"/><text class="lbl" x="379" y="146.5" text-anchor="middle">overlay</text><text class="sub" x="379" y="159.5" text-anchor="middle">multi-hôtes</text><rect class="box" x="512" y="118" width="230" height="62" rx="3"/><text class="lbl" x="627" y="146.5" text-anchor="middle">résolution</text><text class="sub" x="627" y="159.5" text-anchor="middle">par nom de service</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Bridge par défaut : joignable par IP seulement. Bridge utilisateur : DNS interne, résolution par nom. host = pile de l&#39;hôte ; none = isolé ; overlay = multi-hôtes.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Default bridge: reachable by IP only. User bridge: internal DNS, resolution by name. host = host&#39;s stack; none = isolated; overlay = multi-host.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : bridge par défaut → sa limite DNS → bridge utilisateur (DNS par nom) → publication de ports → host &amp; none → connexion multi-réseaux.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: default bridge → its DNS limit → user bridge (DNS by name) → port publishing → host &amp; none → multi-network attachment.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Inspecter le <strong>bridge par défaut</strong> et voir les IP des conteneurs.</p>
+<p>Lance deux conteneurs (sans <code>--network</code> → bridge par défaut) et regarde :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Inspect the <strong>default bridge</strong> and see the containers&#39; IPs.</p>
+<p>Launch two containers (no <code>--network</code> → default bridge) and look:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name c1 alpine sleep 1000
+docker run -d --name c2 alpine sleep 1000
+docker network inspect bridge --format &#39;{{range .Containers}}{{.Name}}={{.IPv4Address}} {{end}}&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker network inspect bridge</code> liste <code>c1</code> et <code>c2</code> avec leurs <strong>IP</strong> (<code>172.17.x.x/16</code>). Les deux conteneurs sont sur le <strong>même</strong> réseau (le bridge par défaut) et peuvent se joindre <strong>par IP</strong>. Note ces IP — l&#39;étape suivante montre qu&#39;ils <strong>ne</strong> peuvent <strong>pas</strong> se joindre par <strong>nom</strong> sur ce réseau, contrairement à ce qu&#39;on attendrait.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker network inspect bridge</code> lists <code>c1</code> and <code>c2</code> with their <strong>IPs</strong> (<code>172.17.x.x/16</code>). Both containers are on the <strong>same</strong> network (the default bridge) and can reach each other <strong>by IP</strong>. Note these IPs — the next step shows they <strong>can&#39;t</strong> reach each other by <strong>name</strong> on this network, contrary to what you&#39;d expect.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Constater <strong>la limite du bridge par défaut</strong> : pas de DNS par nom.</p>
+<p><strong>🤔 Par IP oui, par nom non.</strong> Tente de joindre <code>c2</code> par son <strong>nom</strong> puis par son <strong>IP</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Observe <strong>the default bridge&#39;s limit</strong>: no DNS by name.</p>
+<p><strong>🤔 By IP yes, by name no.</strong> Try to reach <code>c2</code> by its <strong>name</strong> then by its <strong>IP</strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker exec c1 ping -c 2 c2                         # ÉCHOUE : pas de DNS par nom / FAILS: no DNS by name
+IP2=$(docker inspect -f &#39;{{.NetworkSettings.IPAddress}}&#39; c2)
+docker exec c1 ping -c 2 &quot;$IP2&quot;                     # MARCHE : par IP / WORKS: by IP</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker exec c1 ping c2</code> <strong>échoue</strong> (<code>bad address &#39;c2&#39;</code> — le nom n&#39;est pas résolu), tandis que <code>ping &quot;$IP2&quot;</code> <strong>réussit</strong> (par l&#39;adresse). C&#39;est <strong>contre-intuitif mais capital</strong> : le <strong>bridge par défaut ne fournit aucun DNS</strong> entre conteneurs. Se reposer sur les IP est fragile (elles changent à chaque redémarrage). La solution — un réseau utilisateur — est l&#39;étape suivante. <em>(L&#39;ancien mécanisme <code>--link</code> existait mais est <strong>déprécié</strong> ; ne l&#39;utilise pas.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker exec c1 ping c2</code> <strong>fails</strong> (<code>bad address &#39;c2&#39;</code> — the name isn&#39;t resolved), while <code>ping &quot;$IP2&quot;</code> <strong>succeeds</strong> (by address). It&#39;s <strong>counter-intuitive but crucial</strong>: the <strong>default bridge provides no DNS</strong> between containers. Relying on IPs is fragile (they change on each restart). The solution — a user network — is the next step. <em>(The old <code>--link</code> mechanism existed but is <strong>deprecated</strong>; don&#39;t use it.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>bridge utilisateur</strong> et résoudre les conteneurs <strong>par nom</strong>.</p>
+<p><strong>🤔 Le DNS interne.</strong> Sur un réseau <strong>que tu crées</strong>, Docker active un résolveur. Crée le réseau, lance-y un service <code>web</code>, et joins-le depuis un conteneur client du même réseau :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>user bridge</strong> and resolve containers <strong>by name</strong>.</p>
+<p><strong>🤔 The internal DNS.</strong> On a network <strong>you create</strong>, Docker enables a resolver. Create the network, launch a <code>web</code> service on it, and reach it from a client container on the same network:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create appnet                       # bridge utilisateur (DNS interne activé) / user bridge (internal DNS)
+docker run -d --name web --network appnet nginx:1.27-alpine
+docker run --rm --network appnet alpine ping -c 2 web    # joint &quot;web&quot; PAR NOM / reaches &quot;web&quot; BY NAME</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ping -c 2 web</code> <strong>réussit</strong> depuis un conteneur du même réseau <code>appnet</code> — <strong>par le nom</strong> <code>web</code>, pas par IP. La différence avec l&#39;étape 2 est <strong>entièrement</strong> due au réseau : un <strong>bridge utilisateur</strong> embarque un <strong>DNS interne</strong> (<code>127.0.0.11</code>) qui résout les noms de conteneurs, là où le bridge par défaut, non. <strong>C&#39;est pourquoi on crée toujours un réseau dédié</strong> — et pourquoi Docker Compose en génère un automatiquement pour chaque stack. Retiens la règle : <strong>un réseau utilisateur par application</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ping -c 2 web</code> <strong>succeeds</strong> from a container on the same <code>appnet</code> network — <strong>by the name</strong> <code>web</code>, not by IP. The difference from step 2 is <strong>entirely</strong> due to the network: a <strong>user bridge</strong> ships an <strong>internal DNS</strong> (<code>127.0.0.11</code>) that resolves container names, where the default bridge doesn&#39;t. <strong>That&#39;s why you always create a dedicated network</strong> — and why Docker Compose auto-generates one for each stack. Remember the rule: <strong>one user network per application</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Publier</strong> un port, et comprendre <code>EXPOSE</code> vs <code>-p</code>.</p>
+<p><strong>🤔 Interne ≠ joignable de l&#39;hôte.</strong> <code>web</code> (nginx) écoute sur <code>:80</code> <strong>dans</strong> le réseau, mais tu ne peux pas le joindre depuis ton navigateur… tant que tu ne <strong>publies</strong> pas le port :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Publish</strong> a port, and understand <code>EXPOSE</code> vs <code>-p</code>.</p>
+<p><strong>🤔 Internal ≠ reachable from the host.</strong> <code>web</code> (nginx) listens on <code>:80</code> <strong>inside</strong> the network, but you can&#39;t reach it from your browser… until you <strong>publish</strong> the port:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name web-pub --network appnet -p 8080:80 nginx:1.27-alpine   # -p HÔTE:CONTENEUR / HOST:CONTAINER
+curl -s localhost:8080 | grep -i nginx          # joignable depuis l&#39;hôte / reachable from the host
+docker port web-pub                              # récapitule les publications / lists the published ports</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl localhost:8080</code> renvoie la page nginx — le port <strong>80 du conteneur</strong> est <strong>publié</strong> sur le <strong>8080 de l&#39;hôte</strong> grâce à <code>-p 8080:80</code>. <code>docker port web-pub</code> confirme le mapping. Distinction d&#39;examen <strong>essentielle</strong> : <strong><code>EXPOSE</code></strong> (dans le Dockerfile) ne fait que <strong>documenter</strong> le port applicatif, il n&#39;<strong>ouvre rien</strong> ; seul <strong><code>-p</code></strong> (ou <code>-P</code> pour publier tous les ports exposés sur des ports aléatoires) rend le conteneur <strong>joignable depuis l&#39;extérieur</strong>. Sans publication, un service reste accessible <strong>seulement</strong> aux autres conteneurs du réseau.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl localhost:8080</code> returns the nginx page — the container&#39;s <strong>port 80</strong> is <strong>published</strong> on the host&#39;s <strong>8080</strong> thanks to <code>-p 8080:80</code>. <code>docker port web-pub</code> confirms the mapping. <strong>Essential</strong> exam distinction: <strong><code>EXPOSE</code></strong> (in the Dockerfile) only <strong>documents</strong> the app port, it opens <strong>nothing</strong>; only <strong><code>-p</code></strong> (or <code>-P</code> to publish all exposed ports on random ports) makes the container <strong>reachable from outside</strong>. Without publishing, a service stays reachable <strong>only</strong> to other containers on the network.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comparer les réseaux <strong><code>host</code></strong> et <strong><code>none</code></strong>.</p>
+<p><strong>🤔 Deux extrêmes.</strong> <code>host</code> = <strong>aucune</strong> isolation réseau ; <code>none</code> = <strong>aucun</strong> réseau. Observe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Compare the <strong><code>host</code></strong> and <strong><code>none</code></strong> networks.</p>
+<p><strong>🤔 Two extremes.</strong> <code>host</code> = <strong>no</strong> network isolation; <code>none</code> = <strong>no</strong> network. Observe:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm --network host alpine ip addr    # VOIT les interfaces de l&#39;HÔTE / SEES the HOST&#39;s interfaces
+docker run --rm --network none alpine ip addr    # ne voit QUE lo / sees ONLY lo</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avec <strong><code>--network host</code></strong>, <code>ip addr</code> dans le conteneur affiche <strong>les interfaces de l&#39;hôte</strong> (<code>eth0</code>, etc.) — le conteneur <strong>partage la pile réseau</strong> de la machine (son port 80 EST le port 80 de l&#39;hôte, sans <code>-p</code>). Avec <strong><code>--network none</code></strong>, il ne reste que <strong><code>lo</code></strong> (127.0.0.1) : <strong>zéro</strong> connectivité externe — l&#39;isolation maximale. Usages : <code>host</code> pour la <strong>performance</strong> (pas de NAT) ou un outil réseau ; <code>none</code> pour un traitement <strong>hors-ligne</strong> qui ne doit rien joindre. <em>(Sur Docker Desktop macOS/Windows, <code>host</code> est limité — Docker tourne dans une VM ; c&#39;est pleinement natif sur Linux.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> with <strong><code>--network host</code></strong>, <code>ip addr</code> in the container shows <strong>the host&#39;s interfaces</strong> (<code>eth0</code>, etc.) — the container <strong>shares the machine&#39;s network stack</strong> (its port 80 IS the host&#39;s port 80, no <code>-p</code> needed). With <strong><code>--network none</code></strong>, only <strong><code>lo</code></strong> (127.0.0.1) remains: <strong>zero</strong> external connectivity — maximum isolation. Uses: <code>host</code> for <strong>performance</strong> (no NAT) or a network tool; <code>none</code> for <strong>offline</strong> processing that must reach nothing. <em>(On Docker Desktop macOS/Windows, <code>host</code> is limited — Docker runs in a VM; it&#39;s fully native on Linux.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Connecter</strong> un conteneur à un <strong>second réseau</strong> (multi-homing) et <strong>inspecter</strong>.</p>
+<p><strong>🤔 Le motif du reverse proxy.</strong> Un conteneur peut vivre sur <strong>deux</strong> réseaux à la fois — par exemple un proxy exposé côté « frontend » <strong>et</strong> relié au « backend ». Crée un 2ᵉ réseau et connecte <code>web</code> dessus :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Connect</strong> a container to a <strong>second network</strong> (multi-homing) and <strong>inspect</strong>.</p>
+<p><strong>🤔 The reverse-proxy pattern.</strong> A container can live on <strong>two</strong> networks at once — e.g. a proxy exposed on the &quot;frontend&quot; <strong>and</strong> wired to the &quot;backend&quot;. Create a 2nd network and connect <code>web</code> to it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create backend
+docker network connect backend web                 # web est maintenant sur appnet ET backend / on BOTH now
+docker inspect web --format &#39;{{range $n,$_ := .NetworkSettings.Networks}}{{$n}} {{end}}&#39;   # appnet backend
+
+docker network disconnect backend web              # le retire du backend / detach from backend
+docker network inspect appnet --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;   # qui reste sur appnet / who&#39;s on appnet</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>docker network connect backend web</code>, l&#39;<code>inspect</code> de <code>web</code> liste <strong>deux</strong> réseaux (<code>appnet</code> <strong>et</strong> <code>backend</code>) — le conteneur est <strong>multi-homé</strong>, joignable des deux côtés. C&#39;est le motif d&#39;un <strong>reverse proxy</strong> (frontend public + backend privé) ou d&#39;une passerelle. <code>docker network inspect</code> répond à « <strong>qui est sur ce réseau ?</strong> ». Tu sais désormais <strong>segmenter</strong> : mettre les services qui doivent se parler sur un réseau commun, et <strong>isoler</strong> le reste — la base de la sécurité réseau des conteneurs.</p>
+<p><strong>🤔 Et l&#39;overlay ?</strong> Tout ceci est <strong>mono-hôte</strong> (bridge). Pour relier des conteneurs sur <strong>plusieurs machines</strong>, il faut le pilote <strong><code>overlay</code></strong> — qui exige un <strong>cluster Swarm</strong> (ou Kubernetes). On le pratique dans le guide <strong>Orchestration Swarm</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>docker network connect backend web</code>, <code>inspect</code>ing <code>web</code> lists <strong>two</strong> networks (<code>appnet</code> <strong>and</strong> <code>backend</code>) — the container is <strong>multi-homed</strong>, reachable from both sides. That&#39;s the <strong>reverse-proxy</strong> pattern (public frontend + private backend) or a gateway. <code>docker network inspect</code> answers &quot;<strong>who&#39;s on this network?</strong>&quot;. You can now <strong>segment</strong>: put services that must talk on a shared network, and <strong>isolate</strong> the rest — the basis of container network security.</p>
+<p><strong>🤔 And overlay?</strong> All this is <strong>single-host</strong> (bridge). To link containers across <strong>several machines</strong>, you need the <strong><code>overlay</code></strong> driver — which requires a <strong>Swarm cluster</strong> (or Kubernetes). We practice it in the <strong>Swarm orchestration</strong> guide.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Compter sur le DNS du bridge par défaut.</strong> Il n&#39;y en a <strong>pas</strong> : les conteneurs ne se résolvent pas par nom sur <code>bridge</code>. Crée <strong>toujours</strong> un réseau utilisateur pour avoir le DNS.</p>
+<p><strong>2. Confondre <code>EXPOSE</code> et <code>-p</code>.</strong> <code>EXPOSE</code> (Dockerfile) <strong>documente</strong> ; <code>-p</code> (au run) <strong>publie</strong> réellement. Un service « exposé » mais non publié n&#39;est <strong>pas</strong> joignable de l&#39;hôte.</p>
+<p><strong>3. Coder une IP de conteneur en dur.</strong> Les IP changent au redémarrage. Utilise les <strong>noms</strong> (sur un réseau utilisateur), jamais les IP.</p>
+<p><strong>4. Utiliser <code>--link</code>.</strong> Déprécié. Le remplacement est un <strong>réseau utilisateur</strong> (DNS intégré).</p>
+<p><strong>5. Croire que <code>host</code> isole encore un peu.</strong> Non : <code>--network host</code> <strong>supprime</strong> l&#39;isolation réseau (le conteneur EST sur le réseau de l&#39;hôte). À éviter si tu veux de l&#39;isolation ; et limité sur Docker Desktop (VM).</p>
+<p><strong>6. Publier sur <code>0.0.0.0</code> sans y penser.</strong> <code>-p 8080:80</code> écoute sur <strong>toutes</strong> les interfaces. Pour restreindre à la machine locale : <code>-p 127.0.0.1:8080:80</code>.</p>
+<p><strong>7. Oublier de nettoyer les réseaux.</strong> Les réseaux créés restent. <code>docker network prune</code> supprime ceux qui ne sont plus utilisés.</p>
+</div>
+<div data-lang="en"><p><strong>1. Relying on the default bridge&#39;s DNS.</strong> There is <strong>none</strong>: containers don&#39;t resolve by name on <code>bridge</code>. <strong>Always</strong> create a user network to get DNS.</p>
+<p><strong>2. Confusing <code>EXPOSE</code> and <code>-p</code>.</strong> <code>EXPOSE</code> (Dockerfile) <strong>documents</strong>; <code>-p</code> (at run) actually <strong>publishes</strong>. An &quot;exposed&quot; but unpublished service is <strong>not</strong> reachable from the host.</p>
+<p><strong>3. Hardcoding a container IP.</strong> IPs change on restart. Use <strong>names</strong> (on a user network), never IPs.</p>
+<p><strong>4. Using <code>--link</code>.</strong> Deprecated. The replacement is a <strong>user network</strong> (built-in DNS).</p>
+<p><strong>5. Believing <code>host</code> still isolates a bit.</strong> No: <code>--network host</code> <strong>removes</strong> network isolation (the container IS on the host&#39;s network). Avoid it if you want isolation; and it&#39;s limited on Docker Desktop (VM).</p>
+<p><strong>6. Publishing on <code>0.0.0.0</code> without thinking.</strong> <code>-p 8080:80</code> listens on <strong>all</strong> interfaces. To restrict to the local machine: <code>-p 127.0.0.1:8080:80</code>.</p>
+<p><strong>7. Forgetting to clean up networks.</strong> Created networks stick around. <code>docker network prune</code> removes unused ones.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu nommes les pilotes <strong>bridge/host/none/overlay</strong> et leur usage.</li><li>Tu montres que le <strong>bridge par défaut</strong> n&#39;a <strong>pas</strong> de DNS par nom.</li><li>Tu crées un <strong>réseau utilisateur</strong> et tu résous un conteneur <strong>par nom</strong>.</li><li>Tu <strong>publies</strong> un port et tu distingues <code>EXPOSE</code> de <code>-p</code>.</li><li>Tu compares <strong><code>host</code></strong> et <strong><code>none</code></strong>.</li><li>Tu <strong>connectes</strong> un conteneur à deux réseaux et tu <strong>inspectes</strong>.</li></ul>
+<p>Six cases cochées = tu tiens <strong>le réseau</strong> du DCA.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You name the <strong>bridge/host/none/overlay</strong> drivers and their use.</li><li>You show that the <strong>default bridge</strong> has <strong>no</strong> DNS by name.</li><li>You create a <strong>user network</strong> and resolve a container <strong>by name</strong>.</li><li>You <strong>publish</strong> a port and distinguish <code>EXPOSE</code> from <code>-p</code>.</li><li>You compare <strong><code>host</code></strong> and <strong><code>none</code></strong>.</li><li>You <strong>connect</strong> a container to two networks and <strong>inspect</strong>.</li></ul>
+<p>Six boxes ticked = you hold DCA <strong>networking</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Docker → DCA :</p>
+<ol><li><strong>Stockage &amp; volumes</strong> — volumes, bind mounts, tmpfs, sauvegarde de données.</li><li><strong>Sécurité</strong> — non-root, capabilities, read-only, limites, secrets.</li><li><strong>Orchestration Swarm</strong> — services, stacks, secrets, réseau <strong>overlay</strong> (en action).</li><li><strong>Projet d&#39;entreprise</strong> — image multi-stage → registre → stack Swarm.</li></ol>
+<p><strong>Ménage :</strong> <code>docker rm -f c1 c2 web web-pub 2&gt;/dev/null ; docker network rm appnet backend 2&gt;/dev/null</code>.</p>
+</div>
+<div data-lang="en"><p>The rest of the Docker → DCA track:</p>
+<ol><li><strong>Storage &amp; volumes</strong> — volumes, bind mounts, tmpfs, data backup.</li><li><strong>Security</strong> — non-root, capabilities, read-only, limits, secrets.</li><li><strong>Swarm orchestration</strong> — services, stacks, secrets, the <strong>overlay</strong> network (in action).</li><li><strong>Enterprise project</strong> — multi-stage image → registry → Swarm stack.</li></ol>
+<p><strong>Cleanup:</strong> <code>docker rm -f c1 c2 web web-pub 2&gt;/dev/null ; docker network rm appnet backend 2&gt;/dev/null</code>.</p>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../cicd-github-actions/">
+    <span class="num">19</span>
+    <span class="title-line" data-lang="fr">CI/CD avec GitHub Actions</span>
+    <span class="title-line" data-lang="en">CI/CD with GitHub Actions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire réseau Docker.</p>
+</div>
+<div data-lang="en"><p>Docker networking cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Pilotes / drivers : bridge (défaut) | host | none | overlay (swarm)
+docker network ls ; docker network inspect NOM
+
+# Réseau utilisateur = DNS par nom / user network = DNS by name
+docker network create appnet
+docker run -d --name web --network appnet nginx:1.27-alpine
+docker run --rm --network appnet alpine ping -c1 web       # résout par NOM / resolves by NAME
+
+# Publication de ports / port publishing  (EXPOSE ne publie RIEN / publishes NOTHING)
+docker run -d -p 8080:80 web              # -p HÔTE:CONTENEUR   (-P = tous, aléatoire / all, random)
+docker run -d -p 127.0.0.1:8080:80 web    # restreint à localhost / restrict to localhost
+docker port CONTENEUR
+
+# host / none
+docker run --network host ...             # partage la pile de l&#39;hôte / shares host stack
+docker run --network none ...             # isolé (lo seulement) / isolated
+
+# Multi-réseaux / multi-network &amp; nettoyage
+docker network connect backend web ; docker network disconnect backend web
+docker network prune                      # supprime les réseaux inutilisés / remove unused</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com/engine/network/">Vue d&#39;ensemble du réseau Docker</a> et <a href="https://docs.docker.com/engine/network/drivers/">les pilotes</a>.</li><li><a href="https://docs.docker.com/engine/network/drivers/bridge/">Bridge par défaut vs défini par l&#39;utilisateur</a> (le DNS).</li><li><a href="https://docs.docker.com/engine/network/#published-ports">Publier des ports</a>.</li><li>Domaine <strong>DCA « Networking »</strong> (~15 %).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com/engine/network/">Docker networking overview</a> and <a href="https://docs.docker.com/engine/network/drivers/">the drivers</a>.</li><li><a href="https://docs.docker.com/engine/network/drivers/bridge/">Default vs user-defined bridge</a> (the DNS).</li><li><a href="https://docs.docker.com/engine/network/#published-ports">Publishing ports</a>.</li><li><strong>DCA &quot;Networking&quot;</strong> domain (~15%).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>ping conteneur</code> échoue avec <code>bad address</code>.</strong> Tes conteneurs sont sur le <strong>bridge par défaut</strong> (pas de DNS). Mets-les sur un <strong>réseau utilisateur</strong> (<code>docker network create</code> + <code>--network</code>) pour résoudre par nom.</p>
+<p><strong><code>curl localhost:PORT</code> : connection refused.</strong> Le port n&#39;est pas <strong>publié</strong> (<code>-p</code> manquant), ou le service n&#39;écoute pas dans le conteneur. Vérifie <code>docker port CONTENEUR</code> et que l&#39;app écoute sur <code>0.0.0.0</code> (pas <code>127.0.0.1</code>) dans le conteneur.</p>
+<p><strong><code>docker network rm</code> : « network has active endpoints ».</strong> Des conteneurs y sont encore connectés. Supprime/déconnecte-les d&#39;abord, puis retire le réseau (<code>docker network prune</code> pour les inutilisés).</p>
+<p><strong>Deux conteneurs sur des réseaux différents ne se joignent pas.</strong> C&#39;est voulu : les réseaux sont <strong>isolés</strong>. Mets-les sur un réseau commun, ou <code>network connect</code> l&#39;un sur le réseau de l&#39;autre.</p>
+<p><strong><code>--network host</code> ne marche pas comme attendu (macOS/Windows).</strong> Docker Desktop tourne dans une VM Linux : <code>host</code> se réfère à la <strong>VM</strong>, pas à ton macOS/Windows. Sur Linux natif, c&#39;est le vrai hôte.</p>
+<p><strong>Le port publié n&#39;est joignable que localement / trop largement.</strong> Précise l&#39;interface : <code>-p 127.0.0.1:8080:80</code> (local) vs <code>-p 8080:80</code> (toutes les interfaces).</p>
+</div>
+<div data-lang="en"><p><strong><code>ping container</code> fails with <code>bad address</code>.</strong> Your containers are on the <strong>default bridge</strong> (no DNS). Put them on a <strong>user network</strong> (<code>docker network create</code> + <code>--network</code>) to resolve by name.</p>
+<p><strong><code>curl localhost:PORT</code>: connection refused.</strong> The port isn&#39;t <strong>published</strong> (<code>-p</code> missing), or the service isn&#39;t listening in the container. Check <code>docker port CONTAINER</code> and that the app listens on <code>0.0.0.0</code> (not <code>127.0.0.1</code>) inside the container.</p>
+<p><strong><code>docker network rm</code>: &quot;network has active endpoints&quot;.</strong> Containers are still connected. Remove/disconnect them first, then delete the network (<code>docker network prune</code> for unused ones).</p>
+<p><strong>Two containers on different networks can&#39;t reach each other.</strong> That&#39;s intended: networks are <strong>isolated</strong>. Put them on a shared network, or <code>network connect</code> one onto the other&#39;s network.</p>
+<p><strong><code>--network host</code> doesn&#39;t work as expected (macOS/Windows).</strong> Docker Desktop runs in a Linux VM: <code>host</code> refers to the <strong>VM</strong>, not your macOS/Windows. On native Linux, it&#39;s the real host.</p>
+<p><strong>The published port is reachable only locally / too broadly.</strong> Specify the interface: <code>-p 127.0.0.1:8080:80</code> (local) vs <code>-p 8080:80</code> (all interfaces).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

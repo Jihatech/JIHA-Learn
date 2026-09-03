@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — automatiser tes serveurs — jiha.tech</title>
+  <title data-lang="en">Ansible — automate your servers — jiha.tech</title>
+  <meta name="description" content="Apprends Ansible sur ta propre machine : nœud de contrôle, inventaire, premier playbook idempotent, une VM locale gérée en SSH, variables et templates Jinja2, handlers et rôles réutilisables." data-lang="fr">
+  <meta name="description" content="Learn Ansible on your own machine: control node, inventory, first idempotent playbook, a local VM managed over SSH, Jinja2 variables and templates, handlers and reusable roles." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — automatiser tes serveurs">
+  <meta property="og:description" content="Apprends Ansible sur ta propre machine : nœud de contrôle, inventaire, premier playbook idempotent, une VM locale gérée en SSH, variables et templates Jinja2, handlers et rôles réutilisables.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-fondamentaux</div>
+    <h1 data-lang="fr">Ansible — automatiser tes serveurs</h1>
+    <h1 data-lang="en">Ansible — automate your servers</h1>
+    <p class="tagline" data-lang="fr">Inventaire, playbooks idempotents, variables, rôles.</p>
+    <p class="tagline" data-lang="en">Inventory, idempotent playbooks, variables, roles.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 180 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 180 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Jusqu&#39;ici, tu configures tes machines <strong>à la main</strong> : tu te connectes, tu tapes des commandes, tu édites des fichiers. Ça marche pour une machine. Pour dix, c&#39;est ingérable — et surtout <strong>non reproductible</strong> : impossible de savoir si deux serveurs sont vraiment configurés pareil.</p>
+<p><strong>Ansible</strong> résout ça : tu décris l&#39;<strong>état voulu</strong> de tes machines dans des fichiers YAML (les <em>playbooks</em>), et Ansible se connecte en SSH pour l&#39;appliquer. Pas d&#39;agent à installer sur les machines, juste SSH et Python. Et surtout : c&#39;est <strong>idempotent</strong> — rejouer un playbook déjà appliqué ne casse rien, il ne change que ce qui doit l&#39;être.</p>
+<p>Ce guide se fait <strong>entièrement sur ta machine</strong> : ton laptop est le <em>nœud de contrôle</em>, et tu gères d&#39;abord <code>localhost</code>, puis une <strong>vraie VM locale</strong> (Multipass) en SSH — le même modèle qu&#39;un parc de serveurs, sans en louer aucun.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as le socle Linux (SSH, services, paquets) et tu veux arrêter de configurer tes machines à la main.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne maîtrises pas encore les fondamentaux Linux (permissions, systemd, paquets) → repasse par ce guide, c&#39;est un prérequis dur.</li><li>Tu cherches à <strong>provisionner de l&#39;infra</strong> (créer des serveurs, des réseaux) : c&#39;est le rôle de Terraform ; Ansible <strong>configure</strong> des machines qui existent déjà.</li></ul>
+</div>
+<div data-lang="en"><p>So far, you configure your machines <strong>by hand</strong>: you connect, type commands, edit files. That works for one machine. For ten, it&#39;s unmanageable — and above all <strong>not reproducible</strong>: there&#39;s no way to know if two servers are truly configured the same.</p>
+<p><strong>Ansible</strong> solves this: you describe the <strong>desired state</strong> of your machines in YAML files (<em>playbooks</em>), and Ansible connects over SSH to apply it. No agent to install on the machines, just SSH and Python. And crucially: it&#39;s <strong>idempotent</strong> — replaying an already-applied playbook breaks nothing, it changes only what must change.</p>
+<p>This guide is done <strong>entirely on your machine</strong>: your laptop is the <em>control node</em>, and you first manage <code>localhost</code>, then a <strong>real local VM</strong> (Multipass) over SSH — the same model as a fleet of servers, without renting any.</p>
+<p><strong>Who it&#39;s for:</strong> you have the Linux foundation (SSH, services, packages) and you want to stop configuring your machines by hand.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable with Linux fundamentals (permissions, systemd, packages) yet → go back through that guide, it&#39;s a hard prerequisite.</li><li>You&#39;re looking to <strong>provision infrastructure</strong> (create servers, networks): that&#39;s Terraform&#39;s job; Ansible <strong>configures</strong> machines that already exist.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Distinguer <strong>nœud de contrôle</strong> et <strong>nœuds gérés</strong>, et le rôle de SSH.</li><li>Écrire un <strong>inventaire</strong> et lancer des <strong>commandes ad-hoc</strong>.</li><li>Écrire un <strong>playbook</strong> et comprendre l&#39;<strong>idempotence</strong> (le concept central).</li><li>Gérer une <strong>VM locale</strong> en SSH comme un vrai serveur.</li><li>Utiliser <strong>variables</strong> et <strong>templates Jinja2</strong> pour générer des configs.</li><li>Déclencher une action conditionnelle avec un <strong>handler</strong> (<code>notify</code>).</li><li>Structurer ton code en <strong>rôle</strong> réutilisable.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Tell apart the <strong>control node</strong> and <strong>managed nodes</strong>, and SSH&#39;s role.</li><li>Write an <strong>inventory</strong> and run <strong>ad-hoc commands</strong>.</li><li>Write a <strong>playbook</strong> and understand <strong>idempotence</strong> (the central concept).</li><li>Manage a <strong>local VM</strong> over SSH like a real server.</li><li>Use <strong>variables</strong> and <strong>Jinja2 templates</strong> to generate configs.</li><li>Trigger a conditional action with a <strong>handler</strong> (<code>notify</code>).</li><li>Structure your code as a reusable <strong>role</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Linux fondamentaux</strong> acquis (SSH, <code>systemd</code>, paquets, permissions — prérequis dur).</li><li><strong>Ansible</strong> installé sur ton nœud de contrôle (ton laptop, ou une VM Linux) :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Linux fundamentals</strong> guide under your belt (SSH, <code>systemd</code>, packages, permissions — hard prerequisite).</li><li><strong>Ansible</strong> installed on your control node (your laptop, or a Linux VM):</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y ansible        # Debian/Ubuntu
+# Fedora : sudo dnf install ansible   ·   macOS : brew install ansible
+ansible --version                  # vérifie l&#39;install / check the install</code></pre>
+<div data-lang="fr"><ul><li><strong>Multipass</strong> pour créer une VM locale à gérer (étape 3) : <code>sudo snap install multipass</code> (Linux), <code>brew install --cask multipass</code> (macOS), ou l&#39;installeur Windows.</li><li>Une <strong>clé SSH</strong>. Si tu n&#39;en as pas encore, génère-la (on la réutilisera pour joindre la VM) :</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Multipass</strong> to create a local VM to manage (step 3): <code>sudo snap install multipass</code> (Linux), <code>brew install --cask multipass</code> (macOS), or the Windows installer.</li><li>An <strong>SSH key</strong>. If you don&#39;t have one yet, generate it (we&#39;ll reuse it to reach the VM):</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ls ~/.ssh/id_ed25519.pub 2&gt;/dev/null || ssh-keygen -t ed25519 -C &quot;ansible-lab&quot;
+cat ~/.ssh/id_ed25519.pub          # ta clé PUBLIQUE (on la copiera à l&#39;étape 3) / your PUBLIC key (we&#39;ll copy it in step 3)</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-fondamentaux/">
+    <span class="num">02</span>
+    <span class="title-line" data-lang="fr">Linux — les fondamentaux</span>
+    <span class="title-line" data-lang="en">Linux — the fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Ansible repose sur une architecture <strong>sans agent</strong> (<em>agentless</em>). D&#39;un côté le <strong>nœud de contrôle</strong> : ta machine, où Ansible est installé. De l&#39;autre les <strong>nœuds gérés</strong> : les machines que tu configures. Ansible se connecte à eux <strong>en SSH</strong> et y exécute des modules Python — rien à installer côté serveur au préalable.</p>
+<p>Le vocabulaire :</p>
+<ul><li><strong>Inventaire</strong> : la liste de tes machines (par IP ou nom), éventuellement groupées (<code>[web]</code>, <code>[db]</code>).</li><li><strong>Module</strong> : une unité d&#39;action idempotente (<code>apt</code> installe un paquet, <code>service</code> gère un service, <code>copy</code> copie un fichier). Tu décris <strong>l&#39;état voulu</strong>, pas les commandes pour y arriver.</li><li><strong>Tâche</strong> (<em>task</em>) : l&#39;usage d&#39;un module avec ses paramètres.</li><li><strong>Playbook</strong> : un fichier YAML qui enchaîne des tâches sur des groupes de machines.</li></ul>
+<p>Le concept qui change tout : l&#39;<strong>idempotence</strong>. Une tâche « le paquet nginx est présent » n&#39;installe nginx que s&#39;il manque. Rejoue le playbook dix fois : la première fois <code>changed</code>, les suivantes <code>ok</code>. Tu peux donc <strong>converger</strong> tes machines vers un état voulu, encore et encore, sans effet de bord.</p>
+</div>
+<div data-lang="en"><p>Ansible rests on an <strong>agentless</strong> architecture. On one side the <strong>control node</strong>: your machine, where Ansible is installed. On the other the <strong>managed nodes</strong>: the machines you configure. Ansible connects to them <strong>over SSH</strong> and runs Python modules there — nothing to install on the server beforehand.</p>
+<p>The vocabulary:</p>
+<ul><li><strong>Inventory</strong>: the list of your machines (by IP or name), optionally grouped (<code>[web]</code>, <code>[db]</code>).</li><li><strong>Module</strong>: an idempotent unit of action (<code>apt</code> installs a package, <code>service</code> manages a service, <code>copy</code> copies a file). You describe <strong>the desired state</strong>, not the commands to get there.</li><li><strong>Task</strong>: the use of a module with its parameters.</li><li><strong>Playbook</strong>: a YAML file chaining tasks over groups of machines.</li></ul>
+<p>The concept that changes everything: <strong>idempotence</strong>. A task &quot;the nginx package is present&quot; installs nginx only if it&#39;s missing. Replay the playbook ten times: the first time <code>changed</code>, the following times <code>ok</code>. So you can <strong>converge</strong> your machines toward a desired state, again and again, with no side effects.</p>
+</div>
+
+<figure class="schema" id="figure-ansible-architecture">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-ansible-architecture">
+  <title id="s-ansible-architecture">Architecture sans agent (SSH)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Architecture sans agent (SSH)</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="70.5" text-anchor="middle">Nœud de contrôle</text><text class="sub sub-fill" x="129" y="83.5" text-anchor="middle">ansible + playbooks</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="380" y="70.5" text-anchor="middle">SSH</text><text class="sub" x="380" y="83.5" text-anchor="middle">sans agent</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box-soft" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="631" y="70.5" text-anchor="middle">Nœuds gérés</text><text class="sub sub-blue" x="631" y="83.5" text-anchor="middle">app1 · app2 · db1</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Architecture sans agent : le nœud de contrôle applique des playbooks aux nœuds gérés via SSH.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Agentless architecture: the control node applies playbooks to managed nodes over SSH.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance ainsi : ad-hoc sur localhost → premier playbook &amp; idempotence → une VM gérée en SSH → variables &amp; templates → handlers → rôle.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go like this: ad-hoc on localhost → first playbook &amp; idempotence → a managed VM over SSH → variables &amp; templates → handlers → role.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire tes premiers pas avec une <strong>commande ad-hoc</strong> sur <code>localhost</code>, sans rien installer de distant.</p>
+<p><strong>🤔 Pourquoi commencer par localhost ?</strong> Pour isoler le concept Ansible (modules, résultat <code>ok</code>/<code>changed</code>) sans le bruit du SSH et des VM. <code>-m ping</code> n&#39;est pas un ping réseau : c&#39;est le module qui vérifie qu&#39;Ansible peut « parler » à la cible. <code>-c local</code> dit de ne pas passer par SSH.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Take your first steps with an <strong>ad-hoc command</strong> on <code>localhost</code>, without installing anything remote.</p>
+<p><strong>🤔 Why start with localhost?</strong> To isolate the Ansible concept (modules, <code>ok</code>/<code>changed</code> result) without the noise of SSH and VMs. <code>-m ping</code> is not a network ping: it&#39;s the module that checks Ansible can &quot;talk&quot; to the target. <code>-c local</code> says not to go through SSH.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible localhost -m ping -c local
+ansible localhost -m setup -c local | head -n 20   # les &quot;facts&quot; : infos collectées sur la machine / the &quot;facts&quot;: info gathered about the machine</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la première commande renvoie <code>&quot;ping&quot;: &quot;pong&quot;</code> avec un statut vert <code>SUCCESS</code>. La seconde affiche un JSON de « facts » (OS, IP, CPU…) — ces variables sont utilisables dans tes playbooks.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first command returns <code>&quot;ping&quot;: &quot;pong&quot;</code> with a green <code>SUCCESS</code> status. The second prints a JSON of &quot;facts&quot; (OS, IP, CPU…) — those variables are usable in your playbooks.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire ton premier <strong>playbook</strong> et <strong>vivre l&#39;idempotence</strong>. C&#39;est <strong>l&#39;étape clé du guide.</strong></p>
+<p><strong>🤔 Pourquoi <code>become</code> ?</strong> Installer un paquet exige les droits root : <code>become: true</code> fait l&#39;équivalent d&#39;un <code>sudo</code>. On décrit l&#39;état voulu (« <code>tree</code> est présent »), pas la commande. Le module <code>package</code> est <strong>générique</strong> (il choisit <code>apt</code> ou <code>dnf</code> selon la distro).</p>
+<p>⚠️ <strong>Cette étape locale suppose Linux</strong> (Debian/Ubuntu ou Fedora). Sur <strong>macOS</strong>, saute-la : tu retrouveras exactement la même leçon d&#39;idempotence à l&#39;étape 3, sur la VM Ubuntu.</p>
+<p>Crée <code>local.yml</code> (avec <code>nano local.yml</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write your first <strong>playbook</strong> and <strong>live idempotence</strong>. This is <strong>the key step of the guide.</strong></p>
+<p><strong>🤔 Why <code>become</code>?</strong> Installing a package requires root: <code>become: true</code> does the equivalent of <code>sudo</code>. We describe the desired state (&quot;<code>tree</code> is present&quot;), not the command. The <code>package</code> module is <strong>generic</strong> (it picks <code>apt</code> or <code>dnf</code> depending on the distro).</p>
+<p>⚠️ <strong>This local step assumes Linux</strong> (Debian/Ubuntu or Fedora). On <strong>macOS</strong>, skip it: you&#39;ll get the exact same idempotence lesson in step 3, on the Ubuntu VM.</p>
+<p>Create <code>local.yml</code> (with <code>nano local.yml</code>):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Configurer ma machine locale
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: tree est installé
+      ansible.builtin.package:
+        name: tree
+        state: present</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook local.yml --ask-become-pass   # demande ton mot de passe sudo / asks your sudo password</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au <strong>premier</strong> lancement, le récap affiche <code>changed=1</code> (tree a été installé). <strong>Relance exactement la même commande</strong> : cette fois <code>changed=0</code>, <code>ok=1</code>. Voilà l&#39;idempotence : Ansible n&#39;agit que si l&#39;état diffère de l&#39;état voulu.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the <strong>first</strong> run, the recap shows <code>changed=1</code> (tree was installed). <strong>Run the exact same command again</strong>: this time <code>changed=0</code>, <code>ok=1</code>. That&#39;s idempotence: Ansible acts only if the state differs from the desired one.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>vraie VM locale</strong> et la gérer en SSH — le modèle d&#39;un serveur distant, sur ta machine.</p>
+<p><strong>🤔 Pourquoi une VM et plus localhost ?</strong> Parce que le vrai métier, c&#39;est gérer des machines <strong>à distance</strong>. Multipass te donne un Ubuntu jetable ; on y injecte ta clé publique via <code>cloud-init</code> pour qu&#39;Ansible s&#39;y connecte en SSH sans mot de passe.</p>
+<p>⚠️ <strong>Windows/WSL2 :</strong> Multipass tourne côté Windows (Hyper-V) et joindre sa VM en SSH <em>depuis l&#39;intérieur de WSL2</em> pose des soucis réseau. Le plus simple : fais ce module <strong>sur du Linux natif ou une VM Linux</strong>. (Sur macOS et Linux, Multipass fonctionne directement.)</p>
+<p>Crée <code>cloud-init.yaml</code> en <strong>collant ta clé publique</strong> (celle affichée aux prérequis) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>real local VM</strong> and manage it over SSH — the model of a remote server, on your machine.</p>
+<p><strong>🤔 Why a VM and no longer localhost?</strong> Because the real job is managing machines <strong>remotely</strong>. Multipass gives you a disposable Ubuntu; we inject your public key via <code>cloud-init</code> so Ansible connects over SSH without a password.</p>
+<p>⚠️ <strong>Windows/WSL2:</strong> Multipass runs on the Windows side (Hyper-V) and reaching its VM over SSH <em>from inside WSL2</em> causes networking issues. Simplest: do this module <strong>on native Linux or a Linux VM</strong>. (On macOS and Linux, Multipass works directly.)</p>
+<p>Create <code>cloud-init.yaml</code>, <strong>pasting your public key</strong> (the one shown in the prerequisites):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>#cloud-config
+ssh_authorized_keys:
+  - ssh-ed25519 AAAA...colle-ta-cle-ici...  ansible-lab</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>multipass launch --name web --cloud-init cloud-init.yaml 24.04
+multipass info web | grep IPv4        # relève l&#39;IP de la VM / note the VM&#39;s IP</code></pre>
+<div data-lang="fr"><p>Crée l&#39;inventaire <code>inventory.ini</code> en remplaçant <code>&lt;IP-DE-TA-VM&gt;</code> par l&#39;IP relevée. L&#39;option <code>StrictHostKeyChecking=accept-new</code> accepte l&#39;empreinte SSH au <strong>premier contact</strong> (sans elle, le tout premier <code>ping</code> échoue en <code>UNREACHABLE</code>) :</p>
+</div>
+<div data-lang="en"><p>Create the inventory <code>inventory.ini</code>, replacing <code>&lt;IP-DE-TA-VM&gt;</code> with the IP you noted. The <code>StrictHostKeyChecking=accept-new</code> option accepts the SSH fingerprint on <strong>first contact</strong> (without it, the very first <code>ping</code> fails with <code>UNREACHABLE</code>):</p>
+</div>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code>[web]
+&lt;IP-DE-TA-VM&gt; ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_ssh_common_args=&#39;-o StrictHostKeyChecking=accept-new&#39;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible -i inventory.ini web -m ping   # cette fois, un VRAI ping SSH / this time, a REAL SSH ping</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>web | SUCCESS =&gt; {&quot;ping&quot;: &quot;pong&quot;}</code>. Ansible s&#39;est connecté en SSH à ta VM et a exécuté le module. Si tu obtiens une erreur SSH, voir <em>troubleshooting</em>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>web | SUCCESS =&gt; {&quot;ping&quot;: &quot;pong&quot;}</code>. Ansible connected over SSH to your VM and ran the module. If you get an SSH error, see <em>troubleshooting</em>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer et démarrer un service (nginx) sur la VM via un playbook.</p>
+<p><strong>🤔 Pourquoi <code>state: started</code> ET <code>enabled: true</code> ?</strong> <code>started</code> = le service tourne maintenant ; <code>enabled</code> = il redémarrera au boot. Deux garanties distinctes, comme <code>systemctl start</code> + <code>systemctl enable</code>. La VM Multipass a un <code>sudo</code> sans mot de passe, donc <code>become: true</code> suffit (pas de <code>--ask-become-pass</code>).</p>
+<p>Crée <code>web.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install and start a service (nginx) on the VM via a playbook.</p>
+<p><strong>🤔 Why <code>state: started</code> AND <code>enabled: true</code>?</strong> <code>started</code> = the service runs now; <code>enabled</code> = it will restart at boot. Two distinct guarantees, like <code>systemctl start</code> + <code>systemctl enable</code>. The Multipass VM has passwordless <code>sudo</code>, so <code>become: true</code> is enough (no <code>--ask-become-pass</code>).</p>
+<p>Create <code>web.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Serveur web
+  hosts: web
+  become: true
+  tasks:
+    - name: nginx est installé
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: nginx tourne et démarre au boot
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook -i inventory.ini web.yml
+curl http://&lt;IP-DE-TA-VM&gt;          # remplace par l&#39;IP de ta VM / replace with your VM&#39;s IP</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <code>curl</code> affiche la page « Welcome to nginx! ». Relance le playbook : <code>changed=0</code> partout — idempotent.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>curl</code> shows the &quot;Welcome to nginx!&quot; page. Re-run the playbook: <code>changed=0</code> everywhere — idempotent.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer une page personnalisée depuis un <strong>template Jinja2</strong> et une <strong>variable</strong>.</p>
+<p><strong>🤔 Pourquoi un template ?</strong> Une config est rarement figée : elle contient des valeurs qui changent selon la machine. Un <strong>template</strong> est un fichier avec des trous (<code>{{ variable }}</code>) qu&#39;Ansible remplit. Ici on injecte le nom d&#39;hôte de la VM (un <em>fact</em>) dans une page HTML.</p>
+<p>Crée le template <code>index.html.j2</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate a custom page from a <strong>Jinja2 template</strong> and a <strong>variable</strong>.</p>
+<p><strong>🤔 Why a template?</strong> A config is rarely fixed: it holds values that change per machine. A <strong>template</strong> is a file with blanks (<code>{{ variable }}</code>) that Ansible fills in. Here we inject the VM&#39;s hostname (a <em>fact</em>) into an HTML page.</p>
+<p>Create the template <code>index.html.j2</code>:</p>
+</div>
+<pre class="term lang-html"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">html</span><button class="copy-btn" type="button">Copy</button></div><code>&lt;h1&gt;Bienvenue sur {{ ansible_hostname }}&lt;/h1&gt;
+&lt;p&gt;Page déployée par Ansible — thème : {{ theme }}&lt;/p&gt;</code></pre>
+<div data-lang="fr"><p>Mets à jour <code>web.yml</code> avec le playbook <strong>complet</strong> ci-dessous (on ajoute le bloc <code>vars</code> et la tâche <code>template</code>) :</p>
+</div>
+<div data-lang="en"><p>Update <code>web.yml</code> with the <strong>complete</strong> playbook below (we add the <code>vars</code> block and the <code>template</code> task):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Serveur web
+  hosts: web
+  become: true
+  vars:
+    theme: &quot;jiha.tech&quot;
+  tasks:
+    - name: nginx est installé
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: nginx tourne et démarre au boot
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: page d&#39;accueil personnalisée
+      ansible.builtin.template:
+        src: index.html.j2
+        dest: /var/www/html/index.html</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook -i inventory.ini web.yml
+curl http://&lt;IP-DE-TA-VM&gt;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <code>curl</code> renvoie maintenant « Bienvenue sur web » (le hostname de la VM) et le thème. Ansible a rendu le template avec les bonnes valeurs. <em>(<code>ansible_hostname</code> provient des</em> facts<em>, collectés automatiquement — ne désactive pas <code>gather_facts</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>curl</code> now returns &quot;Bienvenue sur web&quot; (the VM&#39;s hostname) and the theme. Ansible rendered the template with the right values. <em>(<code>ansible_hostname</code> comes from the</em> facts<em>, gathered automatically — don&#39;t disable <code>gather_facts</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ne redémarrer nginx <strong>que si</strong> sa configuration change, avec un <strong>handler</strong>.</p>
+<p><strong>🤔 Pourquoi un handler ?</strong> Redémarrer un service à chaque exécution est inutile et coupe le service pour rien. Un <strong>handler</strong> est une tâche qui ne s&#39;exécute <strong>que si</strong> elle est notifiée (<code>notify</code>) par une tâche qui a réellement changé quelque chose. C&#39;est le pattern idempotent par excellence.</p>
+<p>Ajoute à <code>web.yml</code> un <code>notify</code> sur la tâche template, et un bloc <code>handlers</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Restart nginx <strong>only if</strong> its configuration changes, with a <strong>handler</strong>.</p>
+<p><strong>🤔 Why a handler?</strong> Restarting a service on every run is pointless and cuts the service for nothing. A <strong>handler</strong> is a task that runs <strong>only if</strong> it&#39;s notified (<code>notify</code>) by a task that actually changed something. It&#39;s the idempotent pattern par excellence.</p>
+<p>Add a <code>notify</code> to the template task in <code>web.yml</code>, and a <code>handlers</code> block:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: page d&#39;accueil personnalisée
+      ansible.builtin.template:
+        src: index.html.j2
+        dest: /var/www/html/index.html
+      notify: redémarrer nginx
+
+  handlers:
+    - name: redémarrer nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> relance le playbook <strong>sans rien changer</strong> → aucun handler ne se déclenche (<code>changed=0</code>). Modifie le template (change le texte), relance → la tâche <code>template</code> est <code>changed</code>, et <strong>seulement là</strong> le handler « redémarrer nginx » s&#39;exécute (visible en fin de run).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> re-run the playbook <strong>without changing anything</strong> → no handler fires (<code>changed=0</code>). Edit the template (change the text), re-run → the <code>template</code> task is <code>changed</code>, and <strong>only then</strong> the &quot;restart nginx&quot; handler runs (visible at the end of the run).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ranger tout ça dans un <strong>rôle</strong> réutilisable.</p>
+<p><strong>🤔 Pourquoi un rôle ?</strong> Un playbook qui grossit devient illisible. Un <strong>rôle</strong> est une structure de dossiers standard (<code>tasks/</code>, <code>templates/</code>, <code>handlers/</code>, <code>vars/</code>) qui encapsule une responsabilité (« serveur web ») et se réutilise d&#39;un projet à l&#39;autre. C&#39;est la brique de partage d&#39;Ansible (cf. Ansible Galaxy).</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tidy all this into a reusable <strong>role</strong>.</p>
+<p><strong>🤔 Why a role?</strong> A growing playbook becomes unreadable. A <strong>role</strong> is a standard folder structure (<code>tasks/</code>, <code>templates/</code>, <code>handlers/</code>, <code>vars/</code>) that encapsulates one responsibility (&quot;web server&quot;) and is reused across projects. It&#39;s Ansible&#39;s sharing unit (see Ansible Galaxy).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-galaxy init roles/webserver      # crée le squelette du rôle / scaffold the role</code></pre>
+<div data-lang="fr"><p>Répartis ton code dans les fichiers du rôle. <strong>Attention :</strong> dans un rôle, <code>tasks/main.yml</code> contient la <strong>liste des tâches directement</strong> (sans l&#39;en-tête <code>- name/hosts/tasks:</code>), et le template va dans <code>templates/</code> (Ansible l&#39;y trouve tout seul) :</p>
+</div>
+<div data-lang="en"><p>Split your code across the role&#39;s files. <strong>Note:</strong> in a role, <code>tasks/main.yml</code> holds the <strong>task list directly</strong> (without the <code>- name/hosts/tasks:</code> header), and the template goes in <code>templates/</code> (Ansible finds it there automatically):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># roles/webserver/tasks/main.yml
+- name: nginx est installé
+  ansible.builtin.apt: { name: nginx, state: present, update_cache: true }
+- name: nginx tourne et démarre au boot
+  ansible.builtin.service: { name: nginx, state: started, enabled: true }
+- name: page d&#39;accueil personnalisée
+  ansible.builtin.template: { src: index.html.j2, dest: /var/www/html/index.html }
+  notify: redémarrer nginx
+
+# roles/webserver/handlers/main.yml
+- name: redémarrer nginx
+  ansible.builtin.service: { name: nginx, state: restarted }
+
+# roles/webserver/templates/index.html.j2  (déplace le fichier existant ici / move the existing file here)</code></pre>
+<div data-lang="fr"><p>Le playbook <code>web.yml</code> se réduit alors à :</p>
+</div>
+<div data-lang="en"><p>The <code>web.yml</code> playbook then shrinks to:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Serveur web
+  hosts: web
+  become: true
+  vars:
+    theme: &quot;jiha.tech&quot;
+  roles:
+    - webserver</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ansible-playbook -i inventory.ini web.yml</code> produit <strong>le même résultat</strong> qu&#39;avant, mais ton code est maintenant modulaire et réutilisable. <code>curl</code> renvoie toujours ta page.</p>
+<p><em>(Nettoyage quand tu as fini : <code>multipass delete web &amp;&amp; multipass purge</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ansible-playbook -i inventory.ini web.yml</code> produces <strong>the same result</strong> as before, but your code is now modular and reusable. <code>curl</code> still returns your page.</p>
+<p><em>(Cleanup when done: <code>multipass delete web &amp;&amp; multipass purge</code>.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Utiliser <code>command</code>/<code>shell</code> pour tout.</strong> Lancer <code>apt install ...</code> via le module <code>shell</code> casse l&#39;idempotence (Ansible ne sait pas si ça a changé quelque chose). Préfère <strong>toujours</strong> le module dédié (<code>apt</code>, <code>service</code>, <code>copy</code>, <code>template</code>) : c&#39;est lui qui gère l&#39;état et l&#39;idempotence.</p>
+<p><strong>2. Oublier <code>become</code>.</strong> Une tâche qui exige root échoue en « Permission denied » sans <code>become: true</code>. À l&#39;inverse, ne mets pas <code>become</code> partout « au cas où » : moindre privilège.</p>
+<p><strong>3. Secrets en clair dans les playbooks.</strong> Mots de passe, clés API n&#39;ont rien à faire en clair dans le YAML (surtout versionné en Git). Utilise <strong>Ansible Vault</strong> (<code>ansible-vault encrypt</code>) pour les chiffrer.</p>
+<p><strong>4. Ne pas tester avant d&#39;appliquer.</strong> <code>--check</code> (dry-run) montre ce qui <em>changerait</em> sans rien modifier ; <code>--diff</code> montre les différences de fichiers. Le réflexe avant un playbook sur une vraie machine.</p>
+<p><strong>5. Un inventaire en dur, non groupé.</strong> Grouper (<code>[web]</code>, <code>[db]</code>) et utiliser des variables de groupe évite la duplication quand le parc grandit.</p>
+<p><strong>6. Confondre Ansible et Terraform.</strong> Ansible <strong>configure</strong> des machines existantes. Il ne les <strong>crée</strong> pas (c&#39;est le rôle de Terraform / du provider cloud). Ne t&#39;en sers pas pour provisionner de l&#39;infra.</p>
+</div>
+<div data-lang="en"><p><strong>1. Using <code>command</code>/<code>shell</code> for everything.</strong> Running <code>apt install ...</code> via the <code>shell</code> module breaks idempotence (Ansible can&#39;t tell if it changed anything). <strong>Always</strong> prefer the dedicated module (<code>apt</code>, <code>service</code>, <code>copy</code>, <code>template</code>): it handles state and idempotence.</p>
+<p><strong>2. Forgetting <code>become</code>.</strong> A task that needs root fails with &quot;Permission denied&quot; without <code>become: true</code>. Conversely, don&#39;t put <code>become</code> everywhere &quot;just in case&quot;: least privilege.</p>
+<p><strong>3. Clear-text secrets in playbooks.</strong> Passwords, API keys have no business in clear text in the YAML (especially versioned in Git). Use <strong>Ansible Vault</strong> (<code>ansible-vault encrypt</code>) to encrypt them.</p>
+<p><strong>4. Not testing before applying.</strong> <code>--check</code> (dry-run) shows what <em>would</em> change without modifying anything; <code>--diff</code> shows file differences. The reflex before a playbook on a real machine.</p>
+<p><strong>5. A hardcoded, ungrouped inventory.</strong> Grouping (<code>[web]</code>, <code>[db]</code>) and using group variables avoids duplication as the fleet grows.</p>
+<p><strong>6. Confusing Ansible and Terraform.</strong> Ansible <strong>configures</strong> existing machines. It doesn&#39;t <strong>create</strong> them (that&#39;s Terraform / the cloud provider&#39;s job). Don&#39;t use it to provision infrastructure.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques nœud de contrôle vs nœud géré, et pourquoi « agentless ».</li><li>Tu écris un playbook et tu <strong>prédis</strong> <code>changed</code> vs <code>ok</code> avant de le lancer.</li><li>L&#39;idempotence est un réflexe : tu rejoues sans crainte.</li><li>Tu gères une machine distante via un <strong>inventaire</strong> en SSH.</li><li>Tu génères une config avec un <strong>template Jinja2</strong> et une variable.</li><li>Tu déclenches un <strong>handler</strong> au bon moment et tu ranges en <strong>rôle</strong>.</li></ul>
+<p>Six cases cochées = tu automatises la configuration de machines de façon reproductible. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You can explain control node vs managed node, and why &quot;agentless&quot;.</li><li>You write a playbook and <strong>predict</strong> <code>changed</code> vs <code>ok</code> before running it.</li><li>Idempotence is a reflex: you replay without fear.</li><li>You manage a remote machine via an <strong>inventory</strong> over SSH.</li><li>You generate a config with a <strong>Jinja2 template</strong> and a variable.</li><li>You trigger a <strong>handler</strong> at the right moment and tidy into a <strong>role</strong>.</li></ul>
+<p>Six boxes ticked = you automate machine configuration reproducibly. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite logique :</p>
+<ol><li><strong>Traefik</strong> — exposer proprement, en HTTPS, les services que tu déploies.</li><li>Plus loin : <strong>Terraform</strong> (créer l&#39;infra, là où Ansible la configure), puis le <strong>projet homelab</strong> où Ansible provisionne toute ta stack sur un vrai serveur.</li></ol>
+</div>
+<div data-lang="en"><p>The logical next steps:</p>
+<ol><li><strong>Traefik</strong> — cleanly expose, over HTTPS, the services you deploy.</li><li>Further along: <strong>Terraform</strong> (create the infra, where Ansible configures it), then the <strong>homelab project</strong> where Ansible provisions your whole stack on a real server.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire Ansible.</p>
+</div>
+<div data-lang="en"><p>Ansible cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Ad-hoc
+ansible localhost -m ping -c local          # tester en local / test locally
+ansible -i inventory.ini web -m ping        # tester une cible SSH / test an SSH target
+ansible -i inventory.ini web -m setup       # voir les facts / see the facts
+
+# Playbooks
+ansible-playbook -i inventory.ini web.yml           # appliquer / apply
+ansible-playbook -i inventory.ini web.yml --check --diff   # dry-run + différences / dry-run + diffs
+ansible-playbook -i inventory.ini web.yml --ask-become-pass # demande le mot de passe sudo / ask sudo password
+
+# Rôles &amp; secrets / Roles &amp; secrets
+ansible-galaxy init roles/monrole           # squelette de rôle / role scaffold
+ansible-vault encrypt secrets.yml           # chiffrer des secrets / encrypt secrets</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># Modules essentiels / Essential modules
+ansible.builtin.apt:      { name: nginx, state: present, update_cache: true }
+ansible.builtin.service:  { name: nginx, state: started, enabled: true }
+ansible.builtin.copy:     { src: fichier, dest: /chemin }
+ansible.builtin.template: { src: f.j2, dest: /chemin }   # + notify: &lt;handler&gt;
+ansible.builtin.user:     { name: alice, groups: sudo, append: true }</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/">Documentation Ansible</a> — la référence.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/">Index des modules builtin</a> — tous les modules de base.</li><li><a href="https://galaxy.ansible.com">Ansible Galaxy</a> — rôles et collections partagés par la communauté.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification que ce module prépare.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/">Ansible documentation</a> — the reference.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/">Builtin module index</a> — all the core modules.</li><li><a href="https://galaxy.ansible.com">Ansible Galaxy</a> — roles and collections shared by the community.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the certification this module prepares for.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>web | UNREACHABLE</code> — erreur SSH.</strong> Vérifie l&#39;IP dans l&#39;inventaire (<code>multipass info web</code>), que ta clé publique est bien dans <code>cloud-init.yaml</code>, et teste à la main : <code>ssh ubuntu@&lt;IP&gt;</code>. Au premier contact SSH, accepte l&#39;empreinte (ou ajoute <code>ansible_ssh_common_args=&#39;-o StrictHostKeyChecking=accept-new&#39;</code>).</p>
+<p><strong><code>Permission denied</code> pendant une tâche.</strong> Il manque <code>become: true</code> sur la tâche ou le play (droits root requis).</p>
+<p><strong>« Missing sudo password ».</strong> Ta cible demande un mot de passe sudo : ajoute <code>--ask-become-pass</code>. (La VM Multipass, elle, a un sudo sans mot de passe : rien à ajouter.)</p>
+<p><strong>Une tâche est toujours <code>changed</code> à chaque exécution.</strong> Tu utilises probablement <code>command</code>/<code>shell</code> là où un module idempotent existe. Remplace-le, ou ajoute une condition (<code>creates:</code>, <code>when:</code>).</p>
+<p><strong><code>multipass launch</code> reste bloqué / pas d&#39;IPv4.</strong> Attends que la VM démarre (<code>multipass list</code>), et vérifie l&#39;hyperviseur (sur Windows, Hyper-V ; sur Linux, <code>snap</code>). En dernier recours : <code>multipass delete web --purge</code> puis relance.</p>
+</div>
+<div data-lang="en"><p><strong><code>web | UNREACHABLE</code> — SSH error.</strong> Check the IP in the inventory (<code>multipass info web</code>), that your public key is in <code>cloud-init.yaml</code>, and test by hand: <code>ssh ubuntu@&lt;IP&gt;</code>. On first SSH contact, accept the fingerprint (or add <code>ansible_ssh_common_args=&#39;-o StrictHostKeyChecking=accept-new&#39;</code>).</p>
+<p><strong><code>Permission denied</code> during a task.</strong> Missing <code>become: true</code> on the task or play (root rights required).</p>
+<p><strong>&quot;Missing sudo password&quot;.</strong> Your target asks for a sudo password: add <code>--ask-become-pass</code>. (The Multipass VM has passwordless sudo: nothing to add.)</p>
+<p><strong>A task is always <code>changed</code> on every run.</strong> You&#39;re probably using <code>command</code>/<code>shell</code> where an idempotent module exists. Replace it, or add a condition (<code>creates:</code>, <code>when:</code>).</p>
+<p><strong><code>multipass launch</code> hangs / no IPv4.</strong> Wait for the VM to boot (<code>multipass list</code>), and check the hypervisor (on Windows, Hyper-V; on Linux, <code>snap</code>). Last resort: <code>multipass delete web --purge</code> then relaunch.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

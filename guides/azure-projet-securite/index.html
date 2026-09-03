@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — projet de sécurité (AZ-500) : durcir et opérer un workload — jiha.tech</title>
+  <title data-lang="en">Azure — security project (AZ-500): harden and operate a workload — jiha.tech</title>
+  <meta name="description" content="&quot;Le projet de CV du track AZ-500 : durcir ET opérer un workload complet, en local et pour de vrai. Une base réseau segmentée avec NSG en refus par défaut (live sur miniblue), une identité managée sans mot de passe + secret au coffre Key Vault (live), des données durcies (chiffrement, TLS 1.2, hors d&#39;Internet — checkov au vert), une porte de gouvernance (Azure Policy deny + checkov), la détection d&#39;un incident (force brute) et sa réponse automatique (playbook), et la mesure de la posture (secure score). Puis l&#39;emballage CV. Sans compte ni facture.&quot;," data-lang="fr">
+  <meta name="description" content="The AZ-500 track&#39;s CV project: hardening AND operating a complete workload, locally and for real. A segmented network base with a deny-by-default NSG (live on miniblue), a passwordless managed identity + secret in Key Vault (live), hardened data (encryption, TLS 1.2, off the Internet — checkov green), a governance gate (Azure Policy deny + checkov), detecting an incident (brute force) and its automated response (playbook), and measuring posture (secure score). Then CV packaging. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — projet de sécurité (AZ-500) : durcir et opérer un workload">
+  <meta property="og:description" content="&quot;Le projet de CV du track AZ-500 : durcir ET opérer un workload complet, en local et pour de vrai. Une base réseau segmentée avec NSG en refus par défaut (live sur miniblue), une identité managée sans mot de passe + secret au coffre Key Vault (live), des données durcies (chiffrement, TLS 1.2, hors d&#39;Internet — checkov au vert), une porte de gouvernance (Azure Policy deny + checkov), la détection d&#39;un incident (force brute) et sa réponse automatique (playbook), et la mesure de la posture (secure score). Puis l&#39;emballage CV. Sans compte ni facture.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-projet-securite/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-projet-securite/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-projet-securite">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-projet-securite</div>
+    <div class="prompt" data-lang="en">~/guides/azure-projet-securite</div>
+    <h1 data-lang="fr">Azure — projet de sécurité (AZ-500) : durcir et opérer un workload</h1>
+    <h1 data-lang="en">Azure — security project (AZ-500): harden and operate a workload</h1>
+    <p class="tagline" data-lang="fr">identité, réseau, données, gouvernance, opérations — sur un workload réel.</p>
+    <p class="tagline" data-lang="en">identity, network, data, governance, operations — on a real workload.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>C&#39;est le <strong>projet de synthèse</strong> du track <strong>AZ-500</strong>. Tu as durci, un pilier à la fois : les <strong>fondamentaux</strong> (Zero Trust), l&#39;<strong>identité</strong>, le <strong>réseau</strong>, les <strong>données</strong>, les <strong>opérations</strong>. Ici, tu <strong>assembles tout</strong> sur <strong>un workload réel</strong> — et tu montres que tu sais non seulement le <strong>sécuriser</strong>, mais aussi l&#39;<strong>opérer</strong>. Le genre de projet qui tient sur un CV d&#39;<strong>ingénieur sécurité</strong>.</p>
+<p>Fidèle à la méthode, tout est <strong>local et pour de vrai</strong> : une <strong>base réseau segmentée</strong> avec <strong>NSG en refus par défaut</strong> (live sur <strong>miniblue</strong>), une <strong>identité managée</strong> sans mot de passe + <strong>secret au coffre</strong> (live), des <strong>données durcies</strong> (chiffrement, TLS 1.2, hors d&#39;Internet — <strong>checkov au vert</strong>), une <strong>porte de gouvernance</strong> (<strong>Azure Policy deny</strong> + checkov), la <strong>détection</strong> d&#39;un incident (force brute) et sa <strong>réponse automatique</strong> (playbook), et la <strong>mesure</strong> de la posture (<strong>secure score</strong>). On finit par l&#39;<strong>emballage CV</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait les cinq guides AZ-500 et tu veux un <strong>livrable</strong> qui prouve tes compétences sécurité.</p>
+<p><strong>Ce que tu vas produire :</strong> un workload <strong>durci et opéré</strong> — réseau + identité + données + gouvernance + détection/réponse — <strong>déployable sur l&#39;émulateur</strong>, avec un <strong>secure score</strong> et une <strong>fiche CV</strong> qui le résume.</p>
+</div>
+<div data-lang="en"><p>This is the <strong>capstone</strong> of the <strong>AZ-500</strong> track. You hardened, one pillar at a time: <strong>fundamentals</strong> (Zero Trust), <strong>identity</strong>, <strong>network</strong>, <strong>data</strong>, <strong>operations</strong>. Here you <strong>assemble everything</strong> on <strong>a real workload</strong> — and show you can not only <strong>secure</strong> it but also <strong>operate</strong> it. The kind of project that fits a <strong>security engineer</strong>&#39;s CV.</p>
+<p>True to the method, everything is <strong>local and for real</strong>: a <strong>segmented network base</strong> with a <strong>deny-by-default NSG</strong> (live on <strong>miniblue</strong>), a passwordless <strong>managed identity</strong> + <strong>secret in the vault</strong> (live), <strong>hardened data</strong> (encryption, TLS 1.2, off the Internet — <strong>checkov green</strong>), a <strong>governance gate</strong> (<strong>Azure Policy deny</strong> + checkov), the <strong>detection</strong> of an incident (brute force) and its <strong>automated response</strong> (playbook), and <strong>measuring</strong> posture (<strong>secure score</strong>). We finish with <strong>CV packaging</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you did the five AZ-500 guides and want a <strong>deliverable</strong> that proves your security skills.</p>
+<p><strong>What you&#39;ll produce:</strong> a <strong>hardened and operated</strong> workload — network + identity + data + governance + detection/response — <strong>deployable to the emulator</strong>, with a <strong>secure score</strong> and a <strong>CV sheet</strong> summarizing it.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu sais :</p>
+<ul><li>Déployer une <strong>base réseau segmentée</strong> avec <strong>NSG en refus par défaut</strong>.</li><li>Créer une <strong>identité managée</strong> sans mot de passe et un <strong>secret au coffre</strong>.</li><li><strong>Durcir les données</strong> (chiffrement, TLS, hors d&#39;Internet) et le <strong>valider</strong> (checkov).</li><li>Poser une <strong>porte de gouvernance</strong> (<strong>Azure Policy deny</strong> + checkov).</li><li><strong>Détecter</strong> un incident et déclencher une <strong>réponse automatique</strong>.</li><li><strong>Mesurer</strong> la posture du workload (<strong>secure score</strong>).</li><li><strong>Emballer</strong> le projet pour le CV.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you can:</p>
+<ul><li>Deploy a <strong>segmented network base</strong> with a <strong>deny-by-default NSG</strong>.</li><li>Create a passwordless <strong>managed identity</strong> and a <strong>secret in the vault</strong>.</li><li><strong>Harden data</strong> (encryption, TLS, off the Internet) and <strong>validate</strong> it (checkov).</li><li>Set a <strong>governance gate</strong> (<strong>Azure Policy deny</strong> + checkov).</li><li><strong>Detect</strong> an incident and trigger an <strong>automated response</strong>.</li><li><strong>Measure</strong> the workload&#39;s posture (<strong>secure score</strong>).</li><li><strong>Package</strong> the project for the CV.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Tous les guides AZ-500</strong> : fondamentaux, identité, réseau, données, opérations.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré, <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> sur le <code>PATH</code>.</li><li><strong>Python 3</strong>, <code>pip install checkov</code>. <strong>Aucun compte cloud</strong> : le workload cible l&#39;émulateur ; la gouvernance/détection s&#39;exécutent en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>All AZ-500 guides</strong>: fundamentals, identity, network, data, operations.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started, <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> on <code>PATH</code>.</li><li><strong>Python 3</strong>, <code>pip install checkov</code>. <strong>No cloud account</strong>: the workload targets the emulator; governance/detection run locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-securite-operations/">
+    <span class="num">80</span>
+    <span class="title-line" data-lang="fr">Azure — opérations de sécurité (AZ-500) : Policy, Defender, Sentinel</span>
+    <span class="title-line" data-lang="en">Azure — security operations (AZ-500): Policy, Defender, Sentinel</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Un workload sécurisé, cinq piliers superposés.</strong> Le projet relie ce que tu as vu séparément, sur <strong>une même charge de travail</strong> :</p>
+<ol><li><strong>Réseau (segmentation).</strong> Une base <strong>segmentée</strong> : le tier sensible (data) a son <strong>NSG en refus par défaut</strong> — n&#39;autoriser que l&#39;app, refuser le reste. La surface exposée est <strong>minimale</strong>.</li><li><strong>Identité (sans mot de passe).</strong> Une <strong>identité managée</strong> authentifie l&#39;app <strong>sans secret stocké</strong> ; le <strong>secret</strong> applicatif vit au <strong>coffre</strong> (Key Vault), jamais dans le code.</li><li><strong>Données (chiffrement).</strong> Les données sont <strong>chiffrées</strong> au repos et en transit (TLS 1.2, HTTPS), <strong>hors d&#39;Internet</strong> (accès public fermé). Un scan le <strong>prouve</strong>.</li><li><strong>Gouvernance (policy).</strong> Une <strong>porte</strong> empêche le non-conforme : <strong>Azure Policy</strong> (deny, côté plateforme) <strong>et</strong> <strong>checkov</strong> (shift-left, en CI). Rien de non sûr ne passe.</li><li><strong>Opérations (détecter/répondre).</strong> On <strong>surveille</strong> : une règle détecte un incident (force brute), un <strong>playbook</strong> répond <strong>automatiquement</strong>. Et un <strong>secure score</strong> mesure la posture globale.</li></ol>
+<p><strong>Durcir ET opérer.</strong> Un workload sécurisé ne se <strong>configure</strong> pas une fois : il se <strong>maintient</strong>. Les quatre premiers piliers <strong>durcissent</strong> (état statique) ; le cinquième <strong>opère</strong> (défense vivante : détection, réponse, mesure). Un vrai ingénieur sécurité fait <strong>les deux</strong> — et sait le <strong>démontrer</strong>.</p>
+<p><strong>Pourquoi ça vaut pour un CV.</strong> Ce projet prouve, <strong>preuves à l&#39;appui</strong>, que tu sais : segmenter un réseau (Zero Trust), gérer des identités sans mot de passe et des secrets, chiffrer et retirer les données d&#39;Internet, gouverner par policy (deny + shift-left), et détecter/répondre à un incident tout en mesurant la posture. C&#39;est <strong>exactement</strong> le périmètre <strong>AZ-500</strong> — et le quotidien d&#39;un <strong>Azure Security Engineer</strong>.</p>
+<p><strong>Ce qui est live ici.</strong> La <strong>base réseau</strong> (RG + NSG refus par défaut) se <strong>déploie</strong> sur miniblue (Terraform, live). L&#39;<strong>identité managée</strong> se <strong>crée</strong> (principalId réel, live), le <strong>secret</strong> vit au <strong>coffre</strong> (live). Le <strong>durcissement des données</strong>, la <strong>policy deny</strong>, la <strong>détection</strong> et le <strong>secure score</strong> sont <strong>validés/exécutés</strong> en local (checkov + moteurs Python). Tout <strong>sans compte cloud</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>A secured workload, five stacked pillars.</strong> The project connects what you saw separately, on <strong>one workload</strong>:</p>
+<ol><li><strong>Network (segmentation).</strong> A <strong>segmented</strong> base: the sensitive tier (data) has its <strong>deny-by-default NSG</strong> — allow only the app, deny the rest. The exposed surface is <strong>minimal</strong>.</li><li><strong>Identity (passwordless).</strong> A <strong>managed identity</strong> authenticates the app with <strong>no stored secret</strong>; the app <strong>secret</strong> lives in the <strong>vault</strong> (Key Vault), never in code.</li><li><strong>Data (encryption).</strong> Data is <strong>encrypted</strong> at rest and in transit (TLS 1.2, HTTPS), <strong>off the Internet</strong> (public access closed). A scan <strong>proves</strong> it.</li><li><strong>Governance (policy).</strong> A <strong>gate</strong> prevents the non-compliant: <strong>Azure Policy</strong> (deny, platform-side) <strong>and</strong> <strong>checkov</strong> (shift-left, in CI). Nothing unsafe passes.</li><li><strong>Operations (detect/respond).</strong> We <strong>monitor</strong>: a rule detects an incident (brute force), a <strong>playbook</strong> responds <strong>automatically</strong>. And a <strong>secure score</strong> measures overall posture.</li></ol>
+<p><strong>Harden AND operate.</strong> A secured workload isn&#39;t <strong>configured</strong> once: it&#39;s <strong>maintained</strong>. The first four pillars <strong>harden</strong> (static state); the fifth <strong>operates</strong> (living defense: detection, response, measurement). A real security engineer does <strong>both</strong> — and can <strong>demonstrate</strong> it.</p>
+<p><strong>Why it&#39;s CV-worthy.</strong> This project proves, <strong>with evidence</strong>, that you can: segment a network (Zero Trust), manage passwordless identities and secrets, encrypt and remove data from the Internet, govern by policy (deny + shift-left), and detect/respond to an incident while measuring posture. That&#39;s <strong>exactly</strong> the <strong>AZ-500</strong> scope — and an <strong>Azure Security Engineer</strong>&#39;s daily work.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>network base</strong> (RG + deny-by-default NSG) is <strong>deployed</strong> on miniblue (Terraform, live). The <strong>managed identity</strong> is <strong>created</strong> (real principalId, live), the <strong>secret</strong> lives in the <strong>vault</strong> (live). The <strong>data hardening</strong>, <strong>deny policy</strong>, <strong>detection</strong> and <strong>secure score</strong> are <strong>validated/run</strong> locally (checkov + Python engines). All <strong>without a cloud account</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-projet-securite-workload">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-projet-securite-workload">
+  <title id="s-azure-projet-securite-workload">Workload durci et opéré (projet)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Workload durci et opéré (projet)</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="70.5" text-anchor="middle">RÉSEAU + IDENTITÉ</text><text class="sub sub-fill" x="129" y="83.5" text-anchor="middle">NSG refus défaut · managée + coffre</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box-soft" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="380" y="70.5" text-anchor="middle">DONNÉES + GOUVERNANCE</text><text class="sub sub-blue" x="380" y="83.5" text-anchor="middle">chiffré/TLS · Policy deny + checkov</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="631" y="70.5" text-anchor="middle">OPÉRATIONS</text><text class="sub" x="631" y="83.5" text-anchor="middle">détection → playbook · secure score</text><text class="sub" x="380" y="144" text-anchor="middle">cinq piliers AZ-500 superposés · prête pour le CV</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le workload durci et opéré : une BASE RÉSEAU segmentée (NSG refus par défaut) → IDENTITÉ managée sans mot de passe + secret au coffre → DONNÉES chiffrées, TLS 1.2, hors d&#39;Internet (checkov vert) → GOUVERNANCE (Azure Policy deny + checkov shift-left) → OPÉRATIONS (détection d&#39;incident → playbook de réponse) → SECURE SCORE qui mesure le tout. Cinq piliers AZ-500 superposés sur une seule charge de travail, prête pour le CV.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The hardened and operated workload: a segmented NETWORK BASE (deny-by-default NSG) → passwordless managed IDENTITY + secret in vault → encrypted DATA, TLS 1.2, off the Internet (checkov green) → GOVERNANCE (Azure Policy deny + checkov shift-left) → OPERATIONS (incident detection → response playbook) → SECURE SCORE measuring it all. Five AZ-500 pillars stacked on one workload, CV-ready.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer la <strong>base réseau segmentée</strong> — NSG en <strong>refus par défaut</strong>.</p>
+<p><strong>🤔 Surface minimale d&#39;abord.</strong> On pose le socle : un groupe de ressources et un <strong>NSG</strong> qui n&#39;autorise <strong>que</strong> l&#39;app (10.0.2.0/24) sur HTTPS vers le tier data, et <strong>refuse</strong> tout le reste par défaut. On déploie <strong>pour de vrai</strong>.</p>
+<p>Déploie la base réseau durcie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>segmented network base</strong> — deny-by-default NSG.</p>
+<p><strong>🤔 Minimal surface first.</strong> We lay the foundation: a resource group and an <strong>NSG</strong> that allows <strong>only</strong> the app (10.0.2.0/24) on HTTPS to the data tier, and <strong>denies</strong> the rest by default. We deploy <strong>for real</strong>.</p>
+<p>Deploy the hardened network base:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+mkdir -p projet-securite/infra &amp;&amp; cd projet-securite
+cat &gt; infra/providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers {
+    azurerm = {
+      source  = &quot;hashicorp/azurerm&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}
+TF
+cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;sec&quot; {
+  name     = &quot;rg-secproj&quot;
+  location = &quot;westeurope&quot;
+}
+resource &quot;azurerm_network_security_group&quot; &quot;data&quot; {
+  name                = &quot;nsg-data&quot;
+  location            = azurerm_resource_group.sec.location
+  resource_group_name = azurerm_resource_group.sec.name
+  # N&#39;autoriser QUE l&#39;app (10.0.2.0/24) sur HTTPS ; tout le reste refuse par defaut
+  security_rule {
+    name                       = &quot;autoriser-app-https&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;443&quot;
+    source_address_prefix      = &quot;10.0.2.0/24&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+}
+TF
+cd infra &amp;&amp; terraform init -no-color &gt;/dev/null 2&gt;&amp;1
+terraform apply -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Apply complete&quot;
+cd ..</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> confirme <code>Apply complete! Resources: 2 added</code> — le groupe et le <strong>NSG en refus par défaut</strong> sont <strong>déployés</strong> sur miniblue. Le tier data n&#39;accepte <strong>que</strong> l&#39;app sur HTTPS ; tout autre trafic est <strong>refusé</strong> implicitement. C&#39;est le <strong>pilier réseau</strong> : la surface exposée est <strong>minimale</strong> dès le socle. On y ajoute maintenant l&#39;<strong>identité</strong> et le <strong>secret</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> confirms <code>Apply complete! Resources: 2 added</code> — the group and the <strong>deny-by-default NSG</strong> are <strong>deployed</strong> on miniblue. The data tier accepts <strong>only</strong> the app on HTTPS; any other traffic is <strong>denied</strong> implicitly. That&#39;s the <strong>network pillar</strong>: the exposed surface is <strong>minimal</strong> from the foundation. We now add <strong>identity</strong> and the <strong>secret</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter l&#39;<strong>identité managée</strong> sans mot de passe et le <strong>secret au coffre</strong>.</p>
+<p><strong>🤔 Sans secret pour accéder au secret.</strong> L&#39;app s&#39;authentifie via une <strong>identité managée</strong> (pas de mot de passe stocké) ; sa chaîne de connexion vit au <strong>coffre</strong> (Key Vault). On crée les deux <strong>pour de vrai</strong>.</p>
+<p>Crée l&#39;identité et dépose le secret :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Add the passwordless <strong>managed identity</strong> and the <strong>secret in the vault</strong>.</p>
+<p><strong>🤔 No secret to access the secret.</strong> The app authenticates via a <strong>managed identity</strong> (no stored password); its connection string lives in the <strong>vault</strong> (Key Vault). We create both <strong>for real</strong>.</p>
+<p>Create the identity and deposit the secret:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Identite managee (le &quot;qui&quot; sans mot de passe) / managed identity (passwordless who)
+azlocal identity create --resource-group rg-secproj --name id-app 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;identite / identity: id-app | principalId:&#39;, json.load(sys.stdin)[&#39;properties&#39;][&#39;principalId&#39;])&quot;
+
+# Secret applicatif au coffre (jamais dans le code) / app secret in the vault (never in code)
+azlocal keyvault secret set --vault kv-secproj --name db-conn --value &quot;conn-secret-du-lab&quot; 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;secret au coffre / in vault:&#39;, json.load(sys.stdin)[&#39;id&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>identite / identity: id-app | principalId: &lt;uuid&gt;</code> puis <code>secret au coffre : https://kv-secproj.vault.azure.net/secrets/db-conn</code>. Le <strong>pilier identité</strong> est posé : l&#39;app a une <strong>identité managée</strong> (qu&#39;on autoriserait au coffre via RBAC <em>Secrets User</em>, moindre privilège), et son <strong>secret</strong> vit <strong>hors du code</strong>, dans le <strong>coffre</strong>. Aucun mot de passe ne circule, aucun secret n&#39;est en dur. On protège maintenant les <strong>données</strong> elles-mêmes.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>identite / identity: id-app | principalId: &lt;uuid&gt;</code> then <code>secret au coffre : https://kv-secproj.vault.azure.net/secrets/db-conn</code>. The <strong>identity pillar</strong> is set: the app has a <strong>managed identity</strong> (which you&#39;d authorize to the vault via RBAC <em>Secrets User</em>, least privilege), and its <strong>secret</strong> lives <strong>outside the code</strong>, in the <strong>vault</strong>. No password travels, no secret is hardcoded. We now protect the <strong>data</strong> itself.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Durcir les données</strong> — chiffrement, TLS 1.2, hors d&#39;Internet (checkov au vert).</p>
+<p><strong>🤔 La donnée, protégée elle-même.</strong> On décrit la ressource de données avec <strong>tous</strong> les contrôles : chiffrement au repos, <strong>TLS 1.2</strong>, <strong>HTTPS obligatoire</strong>, <strong>accès public fermé</strong>, géo-redondance. On <strong>scanne</strong> : tout doit passer.</p>
+<p>Décris et scanne la ressource de données durcie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Harden the data</strong> — encryption, TLS 1.2, off the Internet (checkov green).</p>
+<p><strong>🤔 Data, protected itself.</strong> We describe the data resource with <strong>all</strong> controls: encryption at rest, <strong>TLS 1.2</strong>, <strong>HTTPS required</strong>, <strong>public access closed</strong>, geo-redundancy. We <strong>scan</strong>: everything must pass.</p>
+<p>Describe and scan the hardened data resource:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p data
+cat &gt; data/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;donnees&quot; {
+  name                              = &quot;stsecproj01&quot;
+  resource_group_name               = &quot;rg-secproj&quot;
+  location                          = &quot;westeurope&quot;
+  account_tier                      = &quot;Standard&quot;
+  account_replication_type          = &quot;GRS&quot;
+  enable_https_traffic_only         = true
+  min_tls_version                   = &quot;TLS1_2&quot;
+  public_network_access_enabled     = false
+  infrastructure_encryption_enabled = true
+}
+TF
+
+checkov -d data --check CKV_AZURE_3,CKV_AZURE_44,CKV_AZURE_59 --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov affiche <code>Passed checks: 3, Failed checks: 0</code> — <strong>HTTPS obligatoire</strong> (<code>CKV_AZURE_3</code>), <strong>TLS 1.2</strong> (<code>CKV_AZURE_44</code>) et <strong>pas d&#39;accès public</strong> (<code>CKV_AZURE_59</code>) sont <strong>tous respectés</strong>. Le <strong>pilier données</strong> est en place : chiffrée (double couche), TLS récent, HTTPS only, <strong>hors d&#39;Internet</strong>, géo-redondante. La donnée — la cible ultime — est protégée <strong>elle-même</strong>. Reste à <strong>empêcher</strong> qu&#39;une ressource non conforme n&#39;existe : la <strong>gouvernance</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov shows <code>Passed checks: 3, Failed checks: 0</code> — <strong>HTTPS required</strong> (<code>CKV_AZURE_3</code>), <strong>TLS 1.2</strong> (<code>CKV_AZURE_44</code>) and <strong>no public access</strong> (<code>CKV_AZURE_59</code>) are <strong>all respected</strong>. The <strong>data pillar</strong> is in place: encrypted (double layer), recent TLS, HTTPS only, <strong>off the Internet</strong>, geo-redundant. The data — the ultimate target — is protected <strong>itself</strong>. Now to <strong>prevent</strong> a non-compliant resource from existing: <strong>governance</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser la <strong>porte de gouvernance</strong> — Azure Policy (deny) + checkov (shift-left).</p>
+<p><strong>🤔 Empêcher, à deux niveaux.</strong> On combine <strong>checkov</strong> (bloque en CI, sur le code) et <strong>Azure Policy</strong> (refuse à la création, sur la plateforme). On écrit un évaluateur de policy et on lui soumet une ressource conforme et une non conforme.</p>
+<p>Écris la porte de gouvernance et teste-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set the <strong>governance gate</strong> — Azure Policy (deny) + checkov (shift-left).</p>
+<p><strong>🤔 Prevent, at two levels.</strong> We combine <strong>checkov</strong> (blocks in CI, on code) and <strong>Azure Policy</strong> (denies at creation, on the platform). We write a policy evaluator and feed it a compliant and a non-compliant resource.</p>
+<p>Write the governance gate and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; policy.py &lt;&lt;&#39;PY&#39;
+# Azure Policy : REFUSER (deny) la creation de ressources non conformes
+POLITIQUES = [
+    (&quot;HTTPS obligatoire&quot;,     lambda r: r.get(&quot;https_only&quot;) is True),
+    (&quot;TLS 1.2 minimum&quot;,       lambda r: r.get(&quot;tls&quot;) == &quot;1.2&quot;),
+    (&quot;Pas d&#39;acces public&quot;,    lambda r: r.get(&quot;public&quot;) is False),
+]
+def evaluer(r):
+    for nom, regle in POLITIQUES:
+        if not regle(r):
+            return &quot;DENY&quot;, nom
+    return &quot;ALLOW&quot;, None
+
+for r in [
+    {&quot;nom&quot;: &quot;st-conforme&quot;,   &quot;https_only&quot;: True,  &quot;tls&quot;: &quot;1.2&quot;, &quot;public&quot;: False},
+    {&quot;nom&quot;: &quot;st-non-conforme&quot;,&quot;https_only&quot;: True, &quot;tls&quot;: &quot;1.0&quot;, &quot;public&quot;: True},
+]:
+    dec, motif = evaluer(r)
+    print(f&quot;{r[&#39;nom&#39;]:16} -&gt; {dec}&quot; + (f&quot; (viole: {motif})&quot; if motif else &quot;&quot;))
+PY
+python3 policy.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>st-conforme -&gt; ALLOW</code> et <code>st-non-conforme -&gt; DENY (viole: TLS 1.2 minimum)</code>. La <strong>porte de gouvernance</strong> empêche le non-conforme : <strong>checkov</strong> l&#39;arrête <strong>en CI</strong> (avant le déploiement), <strong>Azure Policy</strong> le <strong>refuse à la création</strong> (sur la plateforme). Les deux se <strong>complètent</strong> — shift-left <strong>et</strong> garde-fou permanent. Ton workload ne peut <strong>pas</strong> dériver vers une config non sûre. On passe à la <strong>défense vivante</strong> : détecter et répondre.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>st-conforme -&gt; ALLOW</code> and <code>st-non-conforme -&gt; DENY (viole: TLS 1.2 minimum)</code>. The <strong>governance gate</strong> prevents the non-compliant: <strong>checkov</strong> stops it <strong>in CI</strong> (before deployment), <strong>Azure Policy</strong> <strong>denies it at creation</strong> (on the platform). Both <strong>complement</strong> each other — shift-left <strong>and</strong> permanent guardrail. Your workload <strong>can&#39;t</strong> drift to an unsafe config. On to <strong>living defense</strong>: detect and respond.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Détecter</strong> un incident et déclencher une <strong>réponse automatique</strong>.</p>
+<p><strong>🤔 Durcir ne suffit pas — opérer.</strong> On simule une attaque (force brute sur un compte), une <strong>règle de détection</strong> la repère, et un <strong>playbook</strong> répond <strong>automatiquement</strong>. C&#39;est le pilier <strong>opérations</strong> — la défense <strong>vivante</strong>.</p>
+<p>Détecte l&#39;incident et réponds automatiquement :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Detect</strong> an incident and trigger an <strong>automated response</strong>.</p>
+<p><strong>🤔 Hardening isn&#39;t enough — operate.</strong> We simulate an attack (brute force on an account), a <strong>detection rule</strong> spots it, and a <strong>playbook</strong> responds <strong>automatically</strong>. That&#39;s the <strong>operations</strong> pillar — <strong>living</strong> defense.</p>
+<p>Detect the incident and respond automatically:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; secops.py &lt;&lt;&#39;PY&#39;
+from collections import defaultdict
+# Journaux d&#39;authentification (simules) / (simulated) auth logs
+logs = [{&quot;user&quot;: &quot;admin&quot;, &quot;result&quot;: &quot;echec&quot;} for _ in range(6)] + [{&quot;user&quot;: &quot;admin&quot;, &quot;result&quot;: &quot;succes&quot;}]
+
+# Detection : force brute (&gt;= 5 echecs puis succes) / brute force
+echecs = defaultdict(int); incident = None
+for e in logs:
+    if e[&quot;result&quot;] == &quot;echec&quot;: echecs[e[&quot;user&quot;]] += 1
+    elif e[&quot;result&quot;] == &quot;succes&quot; and echecs[e[&quot;user&quot;]] &gt;= 5:
+        incident = {&quot;type&quot;: &quot;Force brute&quot;, &quot;user&quot;: e[&quot;user&quot;], &quot;echecs&quot;: echecs[e[&quot;user&quot;]]}
+print(&quot;Detection :&quot;, f&quot;🚨 {incident[&#39;type&#39;]} sur {incident[&#39;user&#39;]} ({incident[&#39;echecs&#39;]} echecs puis succes)&quot; if incident else &quot;aucun incident&quot;)
+
+# Reponse automatique (playbook SOAR) / automated response
+if incident:
+    print(&quot;Reponse automatique (playbook) :&quot;)
+    for a in [f&quot;desactiver le compte {incident[&#39;user&#39;]}&quot;, &quot;exiger reinitialisation MDP + MFA&quot;, &quot;bloquer l&#39;IP source&quot;, &quot;notifier le SOC&quot;]:
+        print(f&quot;  -&gt; {a}&quot;)
+PY
+python3 secops.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>Detection : 🚨 Force brute sur admin (6 echecs puis succes)</code>, puis la <strong>réponse automatique</strong> : désactiver le compte, exiger MDP + MFA, bloquer l&#39;IP, notifier le SOC. Le <strong>pilier opérations</strong> est en place : le workload n&#39;est pas seulement <strong>durci</strong>, il est <strong>surveillé</strong> — un incident est <strong>détecté</strong> et une <strong>réponse</strong> part <strong>sans attendre</strong> un humain. Durcir <strong>et</strong> opérer : la défense est <strong>vivante</strong>. Reste à <strong>mesurer</strong> la posture globale.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>Detection : 🚨 Force brute sur admin (6 echecs puis succes)</code>, then the <strong>automated response</strong>: disable the account, require password + MFA, block the IP, notify the SOC. The <strong>operations pillar</strong> is in place: the workload isn&#39;t only <strong>hardened</strong>, it&#39;s <strong>monitored</strong> — an incident is <strong>detected</strong> and a <strong>response</strong> goes out <strong>without waiting</strong> for a human. Harden <strong>and</strong> operate: the defense is <strong>living</strong>. Now to <strong>measure</strong> the overall posture.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Mesurer</strong> la posture du workload — le <strong>secure score</strong>.</p>
+<p><strong>🤔 Une note chiffrée.</strong> On évalue les <strong>cinq piliers</strong> posés (réseau, identité, données, gouvernance, opérations) et on calcule un <strong>secure score</strong>. Un pilier manquant devient une <strong>recommandation</strong>.</p>
+<p>Calcule le secure score du workload :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Measure</strong> the workload&#39;s posture — the <strong>secure score</strong>.</p>
+<p><strong>🤔 A quantified rating.</strong> We evaluate the <strong>five pillars</strong> set (network, identity, data, governance, operations) and compute a <strong>secure score</strong>. A missing pillar becomes a <strong>recommendation</strong>.</p>
+<p>Compute the workload&#39;s secure score:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 &lt;&lt;&#39;PY&#39;
+piliers = {
+  &quot;Reseau : NSG refus par defaut&quot;:            True,
+  &quot;Identite : managee (sans mot de passe)&quot;:   True,
+  &quot;Donnees : chiffrees + TLS 1.2 + hors Internet&quot;: True,
+  &quot;Gouvernance : Policy deny + checkov&quot;:      True,
+  &quot;Operations : detection + reponse&quot;:         True,
+  &quot;Sauvegarde/continuite testee&quot;:             False,   # a ajouter -&gt; recommandation
+}
+ok = sum(piliers.values())
+print(f&quot;Secure score du workload : {ok}/{len(piliers)} = {100*ok//len(piliers)}%&quot;)
+for nom, v in piliers.items():
+    print(f&quot;  {&#39;✅&#39; if v else &#39;❌&#39;} {nom}&quot;)
+print(&quot;-&gt; Le ❌ est ta prochaine recommandation (comme dans Defender for Cloud).&quot;)
+PY</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>Secure score du workload : 5/6 = 83%</code>, avec les <strong>cinq piliers</strong> cochés et un <strong>❌</strong> (continuité non testée) comme <strong>prochaine recommandation</strong>. Ton workload est <strong>durci sur les cinq axes AZ-500</strong> et sa posture est <strong>mesurée</strong> — exactement la logique de <strong>Defender for Cloud</strong> : un score, des recommandations, une amélioration continue. Tu as un <strong>livrable</strong> complet : sécurisé <strong>et</strong> opéré <strong>et</strong> mesuré. On l&#39;emballe pour le CV.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>Secure score du workload : 5/6 = 83%</code>, with the <strong>five pillars</strong> checked and a <strong>❌</strong> (continuity untested) as the <strong>next recommendation</strong>. Your workload is <strong>hardened on all five AZ-500 axes</strong> and its posture is <strong>measured</strong> — exactly <strong>Defender for Cloud</strong>&#39;s logic: a score, recommendations, continuous improvement. You have a complete <strong>deliverable</strong>: secured <strong>and</strong> operated <strong>and</strong> measured. Let&#39;s package it for the CV.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Emballer</strong> le projet pour le CV, puis nettoyer.</p>
+<p><strong>🤔 Preuves et pitch.</strong> On rédige la <strong>fiche CV</strong> qui résume le workload durci et opéré, puis on <strong>détruit</strong> proprement le lab.</p>
+<p>Rédige la fiche CV et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Package</strong> the project for the CV, then clean up.</p>
+<p><strong>🤔 Evidence and pitch.</strong> We write the <strong>CV sheet</strong> summarizing the hardened and operated workload, then <strong>destroy</strong> the lab cleanly.</p>
+<p>Write the CV sheet and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; CV.md &lt;&lt;&#39;MD&#39;
+# Projet : workload Azure durci et opere (securite / AZ-500)
+Un workload securise sur les cinq piliers, durci ET opere - 100% local (emulateur).
+
+- **Reseau** : segmentation, NSG en refus par defaut (surface minimale).
+- **Identite** : identite managee sans mot de passe, secret au coffre (Key Vault),
+  RBAC moindre privilege (Key Vault Secrets User).
+- **Donnees** : chiffrement au repos (double couche) + TLS 1.2 + HTTPS only +
+  hors d&#39;Internet (acces public ferme), geo-redondance. Scan checkov au vert.
+- **Gouvernance** : Azure Policy (deny) + checkov (shift-left) - le non-conforme
+  ne peut pas exister.
+- **Operations** : detection d&#39;incident (force brute) + reponse automatique
+  (playbook SOAR), posture mesuree (secure score).
+
+Stack : Terraform, Bicep, Key Vault, identite managee, NSG, Azure Policy,
+Defender for Cloud, Sentinel (KQL), checkov. Aligne AZ-500.
+MD
+echo &quot;--- fiche CV creee / CV sheet created ---&quot;; head -3 CV.md
+
+# Nettoyer le lab / clean up the lab
+cd infra &amp;&amp; terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete&quot; ; cd ..
+azlocal group delete --name rg-secproj &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-secproj supprime / deleted&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la <strong>fiche CV</strong> est créée (résumant les cinq piliers), puis <code>Destroy complete!</code> et <code>rg-secproj supprime</code> nettoient le lab. <strong>Félicitations — tu as terminé le track AZ-500 !</strong> Tu tiens un <strong>projet complet</strong> : un workload <strong>durci</strong> (réseau, identité, données, gouvernance) <strong>et opéré</strong> (détection, réponse, mesure), <strong>déployé pour de vrai</strong> sur l&#39;émulateur, avec un <strong>secure score</strong> et une <strong>fiche CV</strong>. Mets <code>CV.md</code> en avant et parle de <strong>chaque pilier</strong> en entretien. Tu as désormais bouclé <strong>trois tracks de certification</strong> Azure — AZ-104, AZ-305, AZ-400 et AZ-500 — 100% en local, 100% pratiques. Prochaine étape possible : l&#39;<strong>AZ-700</strong> (réseau avancé).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <strong>CV sheet</strong> is created (summarizing the five pillars), then <code>Destroy complete!</code> and <code>rg-secproj supprime</code> clean the lab. <strong>Congratulations — you finished the AZ-500 track!</strong> You hold a <strong>complete project</strong>: a <strong>hardened</strong> workload (network, identity, data, governance) <strong>and operated</strong> (detection, response, measurement), <strong>deployed for real</strong> on the emulator, with a <strong>secure score</strong> and a <strong>CV sheet</strong>. Feature <code>CV.md</code> and speak to <strong>each pillar</strong> in an interview. You&#39;ve now completed <strong>several Azure certification tracks</strong> — AZ-104, AZ-305, AZ-400 and AZ-500 — 100% locally, 100% hands-on. Possible next step: <strong>AZ-700</strong> (advanced networking).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Durcir sans opérer.</strong> Un workload figé mais <strong>non surveillé</strong> rate les attaques. Ajoute <strong>détection + réponse</strong> (pilier opérations).</p>
+<p><strong>2. Un seul pilier.</strong> Un réseau parfait avec des secrets en dur ne vaut rien. Les <strong>cinq piliers</strong> ensemble, pas un seul.</p>
+<p><strong>3. Secret dans le code.</strong> Même « pour tester ». Le secret vit au <strong>coffre</strong> ; l&#39;app s&#39;authentifie par <strong>identité managée</strong>.</p>
+<p><strong>4. NSG en autorisation par défaut.</strong> Ouvre uniquement l&#39;app sur HTTPS ; <strong>refuse</strong> le reste. Vérifie l&#39;ordre des règles.</p>
+<p><strong>5. Données exposées sur Internet.</strong> <code>public_network_access = false</code> + point privé. Une donnée accessible publiquement est une cible.</p>
+<p><strong>6. Gouvernance à un seul niveau.</strong> checkov (CI) <strong>et</strong> Azure Policy (plateforme). L&#39;un sans l&#39;autre laisse un trou.</p>
+<p><strong>7. Score jamais mesuré.</strong> Sans <strong>secure score</strong>, tu ignores ta posture. Mesure, corrige le premier ❌, recommence.</p>
+</div>
+<div data-lang="en"><p><strong>1. Hardening without operating.</strong> A frozen but <strong>unmonitored</strong> workload misses attacks. Add <strong>detection + response</strong> (operations pillar).</p>
+<p><strong>2. A single pillar.</strong> A perfect network with hardcoded secrets is worthless. The <strong>five pillars</strong> together, not one.</p>
+<p><strong>3. Secret in code.</strong> Even &quot;for testing&quot;. The secret lives in the <strong>vault</strong>; the app authenticates via <strong>managed identity</strong>.</p>
+<p><strong>4. Allow-by-default NSG.</strong> Only open the app on HTTPS; <strong>deny</strong> the rest. Check rule order.</p>
+<p><strong>5. Data exposed on the Internet.</strong> <code>public_network_access = false</code> + private endpoint. Publicly accessible data is a target.</p>
+<p><strong>6. Single-level governance.</strong> checkov (CI) <strong>and</strong> Azure Policy (platform). Either without the other leaves a hole.</p>
+<p><strong>7. Score never measured.</strong> Without a <strong>secure score</strong>, you don&#39;t know your posture. Measure, fix the first ❌, repeat.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si ton workload a :</p>
+<ul><li>Une <strong>base réseau segmentée</strong> avec <strong>NSG en refus par défaut</strong> (déployée live).</li><li>Une <strong>identité managée</strong> sans mot de passe + <strong>secret au coffre</strong>.</li><li>Des <strong>données durcies</strong> (chiffrement, TLS 1.2, hors d&#39;Internet) — <strong>checkov au vert</strong>.</li><li>Une <strong>porte de gouvernance</strong> (<strong>Azure Policy deny</strong> + checkov).</li><li>Une <strong>détection d&#39;incident</strong> + <strong>réponse automatique</strong> (playbook).</li><li>Un <strong>secure score</strong> mesuré et une <strong>fiche CV</strong> qui résume les cinq piliers.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if your workload has:</p>
+<ul><li>A <strong>segmented network base</strong> with a <strong>deny-by-default NSG</strong> (deployed live).</li><li>A passwordless <strong>managed identity</strong> + <strong>secret in the vault</strong>.</li><li><strong>Hardened data</strong> (encryption, TLS 1.2, off the Internet) — <strong>checkov green</strong>.</li><li>A <strong>governance gate</strong> (<strong>Azure Policy deny</strong> + checkov).</li><li>An <strong>incident detection</strong> + <strong>automated response</strong> (playbook).</li><li>A measured <strong>secure score</strong> and a <strong>CV sheet</strong> summarizing the five pillars.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> l&#39;<strong>AZ-700</strong> (réseau Azure avancé) pour compléter, ou consolide tes acquis avec un vrai compte gratuit.</li><li><strong>Réviser :</strong> n&#39;importe quel guide AZ-500 dont un pilier t&#39;a semblé fragile.</li><li><strong>Aller plus loin :</strong> ajoute le pilier manquant (continuité/sauvegarde testée), branche la détection sur de <strong>vrais</strong> journaux, et automatise le secure score en CI.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <strong>AZ-700</strong> (advanced Azure networking) to complete, or consolidate with a real free account.</li><li><strong>Review:</strong> any AZ-500 guide whose pillar felt shaky.</li><li><strong>Go further:</strong> add the missing pillar (tested continuity/backup), wire detection to <strong>real</strong> logs, and automate the secure score in CI.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Les cinq piliers du workload</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. RESEAU       NSG refus par defaut (n&#39;autoriser que l&#39;app sur HTTPS)      [live]
+2. IDENTITE     identite managee (sans mdp) + secret au Key Vault           [live]
+3. DONNEES      chiffrement + TLS 1.2 + HTTPS only + hors Internet (GRS)     [checkov]
+4. GOUVERNANCE  Azure Policy (deny) + checkov (shift-left)                   [policy]
+5. OPERATIONS   detection (SIEM) -&gt; reponse (playbook) + secure score       [python]</code></pre>
+<p><strong>Commandes clés (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply                              # base reseau (NSG refus par defaut)
+azlocal identity create --resource-group RG --name ID   # identite sans mdp
+azlocal keyvault secret set --vault V --name N --value &quot;...&quot;  # secret au coffre
+checkov -d data --check CKV_AZURE_3,CKV_AZURE_44,CKV_AZURE_59  # donnees au vert</code></pre>
+<p><strong>Le mantra AZ-500</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Durcir (reseau + identite + donnees + gouvernance)
+  ET
+Operer (detecter + repondre + mesurer)
+= defense en profondeur, vivante.</code></pre>
+</div>
+<div data-lang="en"><p><strong>The workload&#39;s five pillars</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. NETWORK      deny-by-default NSG (allow only the app on HTTPS)           [live]
+2. IDENTITY     managed identity (passwordless) + secret in Key Vault       [live]
+3. DATA         encryption + TLS 1.2 + HTTPS only + off Internet (GRS)      [checkov]
+4. GOVERNANCE   Azure Policy (deny) + checkov (shift-left)                  [policy]
+5. OPERATIONS   detection (SIEM) -&gt; response (playbook) + secure score      [python]</code></pre>
+<p><strong>Key commands (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply                              # network base (deny-by-default NSG)
+azlocal identity create --resource-group RG --name ID   # passwordless identity
+azlocal keyvault secret set --vault V --name N --value &quot;...&quot;  # secret in vault
+checkov -d data --check CKV_AZURE_3,CKV_AZURE_44,CKV_AZURE_59  # data green</code></pre>
+<p><strong>The AZ-500 mantra</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Harden (network + identity + data + governance)
+  AND
+Operate (detect + respond + measure)
+= defense in depth, living.</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>AZ-500</strong> : Microsoft Certified Azure Security Engineer Associate — objectifs officiels, Microsoft Learn.</li><li><strong>Microsoft Cloud Security Benchmark</strong> : la ligne de base des contrôles — Microsoft Learn.</li><li><strong>Zero Trust</strong> : principes et architecture de référence — learn.microsoft.com/security/zero-trust.</li><li><strong>Defender for Cloud &amp; Sentinel</strong> : posture, détection, réponse — Microsoft Learn.</li><li><strong>Azure Policy &amp; checkov</strong> : gouvernance plateforme + shift-left — docs officielles.</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>AZ-500</strong>: Microsoft Certified Azure Security Engineer Associate — official objectives, Microsoft Learn.</li><li><strong>Microsoft Cloud Security Benchmark</strong>: the baseline of controls — Microsoft Learn.</li><li><strong>Zero Trust</strong>: principles and reference architecture — learn.microsoft.com/security/zero-trust.</li><li><strong>Defender for Cloud &amp; Sentinel</strong>: posture, detection, response — Microsoft Learn.</li><li><strong>Azure Policy &amp; checkov</strong>: platform governance + shift-left — official docs.</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform</code> : erreur TLS / certificat (step-01).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> et vérifie que miniblue tourne (port 4567).</p>
+<p><strong><code>azlocal : commande introuvable</code>.</strong> Ajoute son dossier au <code>PATH</code> (<code>/usr/local/bin</code> ou <code>~/bin</code>) ou appelle-le par chemin complet. Le pipe vers <code>python3</code> masque sinon l&#39;erreur en <code>JSONDecodeError</code>.</p>
+<p><strong>checkov signale <code>Failed checks</code> (step-03).</strong> Vérifie les cinq réglages du stockage (<code>enable_https_traffic_only</code>, <code>min_tls_version = &quot;TLS1_2&quot;</code>, <code>public_network_access_enabled = false</code>, <code>infrastructure_encryption_enabled</code>, réplication). Un oubli fait échouer la règle.</p>
+<p><strong>Le <code>apply</code> déploie moins de 2 ressources.</strong> Vérifie que <code>main.tf</code> contient bien le RG <strong>et</strong> le NSG. Garde le format HCL multi-ligne (un bloc sur une seule ligne casse tout).</p>
+<p><strong>La détection ne lève pas d&#39;incident (step-05).</strong> Le seuil est <strong>≥ 5 échecs</strong> avant le succès. Vérifie l&#39;ordre des événements (les échecs d&#39;abord).</p>
+<p><strong><code>terraform destroy</code> laisse des ressources.</strong> Relance depuis <code>infra/</code> avec le bon <code>SSL_CERT_FILE</code>. En dernier recours, <code>azlocal reset</code> remet l&#39;émulateur à zéro.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform</code>: TLS / certificate error (step-01).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> and check miniblue is running (port 4567).</p>
+<p><strong><code>azlocal: command not found</code>.</strong> Add its folder to <code>PATH</code> (<code>/usr/local/bin</code> or <code>~/bin</code>) or call it by full path. Otherwise the pipe to <code>python3</code> hides the error as a <code>JSONDecodeError</code>.</p>
+<p><strong>checkov reports <code>Failed checks</code> (step-03).</strong> Check the storage&#39;s five settings (<code>enable_https_traffic_only</code>, <code>min_tls_version = &quot;TLS1_2&quot;</code>, <code>public_network_access_enabled = false</code>, <code>infrastructure_encryption_enabled</code>, replication). A missing one fails the rule.</p>
+<p><strong>The <code>apply</code> deploys fewer than 2 resources.</strong> Check <code>main.tf</code> holds the RG <strong>and</strong> the NSG. Keep multi-line HCL (a single-line block breaks everything).</p>
+<p><strong>Detection raises no incident (step-05).</strong> The threshold is <strong>≥ 5 failures</strong> before the success. Check the order of events (failures first).</p>
+<p><strong><code>terraform destroy</code> leaves resources.</strong> Re-run from <code>infra/</code> with the right <code>SSL_CERT_FILE</code>. As a last resort, <code>azlocal reset</code> resets the emulator.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

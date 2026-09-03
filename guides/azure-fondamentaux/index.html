@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — fondamentaux : le labo local (miniblue) et le modèle Azure — jiha.tech</title>
+  <title data-lang="en">Azure — fundamentals: the local lab (miniblue) and the Azure model — jiha.tech</title>
+  <meta name="description" content="Démarre Microsoft Azure sans compte ni facture grâce à miniblue, l&#39;émulateur Azure local (façon LocalStack, ~30 services) : installe l&#39;outillage (miniblue/azlocal, az CLI, Azurite, Bicep), monte un labo local, comprends le modèle Azure (groupes d&#39;administration → abonnements → groupes de ressources → ressources, régions et zones), crée un vrai GROUPE DE RESSOURCES et un compte de stockage EN LOCAL (plan de contrôle live sur miniblue), dépose un blob sur Azurite (plan de données), et compile ton premier template Bicep. La base du parcours de certifications Azure (AZ-900 → AZ-104 → AZ-305 → AZ-400 → AZ-500 → AZ-700)." data-lang="fr">
+  <meta name="description" content="Start Microsoft Azure with no account or bill thanks to miniblue, the local Azure emulator (LocalStack-style, ~30 services): install the tooling (miniblue/azlocal, az CLI, Azurite, Bicep), set up a local lab, understand the Azure model (management groups → subscriptions → resource groups → resources, regions and zones), create a real RESOURCE GROUP and storage account LOCALLY (live control plane on miniblue), drop a blob on Azurite (data plane), and compile your first Bicep template. The base of the Azure certification path (AZ-900 → AZ-104 → AZ-305 → AZ-400 → AZ-500 → AZ-700)." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — fondamentaux : le labo local (miniblue) et le modèle Azure">
+  <meta property="og:description" content="Démarre Microsoft Azure sans compte ni facture grâce à miniblue, l&#39;émulateur Azure local (façon LocalStack, ~30 services) : installe l&#39;outillage (miniblue/azlocal, az CLI, Azurite, Bicep), monte un labo local, comprends le modèle Azure (groupes d&#39;administration → abonnements → groupes de ressources → ressources, régions et zones), crée un vrai GROUPE DE RESSOURCES et un compte de stockage EN LOCAL (plan de contrôle live sur miniblue), dépose un blob sur Azurite (plan de données), et compile ton premier template Bicep. La base du parcours de certifications Azure (AZ-900 → AZ-104 → AZ-305 → AZ-400 → AZ-500 → AZ-700).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/azure-fondamentaux</div>
+    <h1 data-lang="fr">Azure — fondamentaux : le labo local (miniblue) et le modèle Azure</h1>
+    <h1 data-lang="en">Azure — fundamentals: the local lab (miniblue) and the Azure model</h1>
+    <p class="tagline" data-lang="fr">miniblue, az CLI, Azurite, Bicep, hiérarchie des ressources, régions.</p>
+    <p class="tagline" data-lang="en">miniblue, az CLI, Azurite, Bicep, resource hierarchy, regions.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Après AWS et GCP, voici <strong>Microsoft Azure</strong> — le cloud de l&#39;entreprise par excellence, omniprésent là où Windows, Active Directory et Office 365 règnent. Comme pour les autres, on veut apprendre <strong>sans compte, sans carte, sans facture</strong>. Et là, bonne nouvelle : il existe <strong>miniblue</strong>, un <strong>émulateur Azure local</strong> dans l&#39;esprit de LocalStack (un seul binaire, <strong>~30 services émulés</strong> : groupes de ressources, réseaux, Key Vault, stockage, Cosmos DB, Service Bus, Functions…). Couplé à <strong>Azurite</strong> (l&#39;émulateur de <strong>stockage officiel</strong> de Microsoft) et à <strong>Bicep</strong>/<strong>Terraform</strong>, on obtient un <strong>vrai labo local</strong> où l&#39;on <strong>crée et pilote de vraies ressources Azure</strong>.</p>
+<p>Ce guide pose les fondations de <strong>tout le parcours Azure</strong>. Tu installes l&#39;<strong>outillage</strong> (<strong>miniblue</strong> + son wrapper <code>azlocal</code>, la CLI <code>az</code>, <strong>Azurite</strong>, <strong>Bicep</strong>), tu montes le <strong>labo local</strong>, tu comprends le <strong>modèle Azure</strong> (la hiérarchie <strong>groupes d&#39;administration → abonnements → groupes de ressources → ressources</strong>, les <strong>régions</strong> et <strong>zones</strong>), et tu crées tes premiers objets <strong>pour de vrai, en local</strong> : un <strong>groupe de ressources</strong> et un <strong>compte de stockage</strong> (le <strong>plan de contrôle</strong>, live sur miniblue), un <strong>blob</strong> (le <strong>plan de données</strong>, sur Azurite), et un <strong>template Bicep</strong> (l&#39;infrastructure-as-code).</p>
+<p>Ce guide ouvre une <strong>série de certifications</strong> : <strong>AZ-900</strong> (fondamentaux, ici), puis <strong>AZ-104</strong> (administrateur), <strong>AZ-305</strong> (architecte), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (sécurité), <strong>AZ-700</strong> (réseau). Le labo que tu montes maintenant te resservira dans <strong>tous</strong> ces tracks — et grâce à miniblue, tu <strong>exécuteras</strong> vraiment les commandes, tu ne feras pas que les lire.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu débutes sur Azure (même en venant d&#39;AWS/GCP) et tu veux une base <strong>pratique</strong>, montée à coût zéro.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu cherches déjà l&#39;administration avancée (VM, réseau, identité) → ce sera <strong>AZ-104</strong> et la suite ; commence ici pour le socle.</li><li>Tu ne peux pas installer un binaire / Node.js → il en faut un minimum pour miniblue et Azurite.</li></ul>
+</div>
+<div data-lang="en"><p>After AWS and GCP, here&#39;s <strong>Microsoft Azure</strong> — the enterprise cloud par excellence, everywhere Windows, Active Directory and Office 365 reign. As with the others, we want to learn <strong>with no account, no card, no bill</strong>. And here&#39;s the good news: there&#39;s <strong>miniblue</strong>, a <strong>local Azure emulator</strong> in the spirit of LocalStack (a single binary, <strong>~30 emulated services</strong>: resource groups, networks, Key Vault, storage, Cosmos DB, Service Bus, Functions…). Paired with <strong>Azurite</strong> (Microsoft&#39;s <strong>official storage</strong> emulator) and <strong>Bicep</strong>/<strong>Terraform</strong>, you get a <strong>real local lab</strong> where you <strong>create and drive real Azure resources</strong>.</p>
+<p>This guide lays the foundations for <strong>the whole Azure path</strong>. You install the <strong>tooling</strong> (<strong>miniblue</strong> + its <code>azlocal</code> wrapper, the <code>az</code> CLI, <strong>Azurite</strong>, <strong>Bicep</strong>), set up the <strong>local lab</strong>, understand the <strong>Azure model</strong> (the <strong>management groups → subscriptions → resource groups → resources</strong> hierarchy, <strong>regions</strong> and <strong>zones</strong>), and create your first objects <strong>for real, locally</strong>: a <strong>resource group</strong> and a <strong>storage account</strong> (the <strong>control plane</strong>, live on miniblue), a <strong>blob</strong> (the <strong>data plane</strong>, on Azurite), and a <strong>Bicep template</strong> (infrastructure-as-code).</p>
+<p>This guide opens a <strong>series of certifications</strong>: <strong>AZ-900</strong> (fundamentals, here), then <strong>AZ-104</strong> (administrator), <strong>AZ-305</strong> (architect), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (security), <strong>AZ-700</strong> (networking). The lab you set up now will serve you in <strong>all</strong> these tracks — and thanks to miniblue, you truly <strong>run</strong> the commands, you don&#39;t just read them.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;re starting on Azure (even coming from AWS/GCP) and want a <strong>practical</strong> base, built at zero cost.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You already want advanced administration (VMs, networking, identity) → that&#39;s <strong>AZ-104</strong> and beyond; start here for the base.</li><li>You can&#39;t install a binary / Node.js → you need a minimum for miniblue and Azurite.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Distinguer les <strong>modèles cloud</strong> (IaaS/PaaS/SaaS) et de déploiement (public/privé/hybride).</li><li>Installer l&#39;<strong>outillage</strong> Azure : miniblue/<code>azlocal</code>, <code>az</code>, Azurite, Bicep.</li><li>Monter un <strong>labo local</strong> (miniblue pour le plan de contrôle, Azurite pour le stockage).</li><li>Expliquer la <strong>hiérarchie</strong> Azure : groupes d&#39;administration → abonnements → groupes de ressources → ressources.</li><li>Créer un <strong>groupe de ressources</strong> et un <strong>compte de stockage</strong> en local (miniblue, live).</li><li>Déposer et lister un <strong>blob</strong> (Azurite, plan de données).</li><li>Distinguer <strong>plan de contrôle</strong> (gérer les ressources) et <strong>plan de données</strong> (les utiliser).</li><li><strong>Compiler</strong> un premier template <strong>Bicep</strong> (validation hors-ligne).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Distinguish the <strong>cloud models</strong> (IaaS/PaaS/SaaS) and deployment ones (public/private/hybrid).</li><li>Install the Azure <strong>tooling</strong>: miniblue/<code>azlocal</code>, <code>az</code>, Azurite, Bicep.</li><li>Set up a <strong>local lab</strong> (miniblue for the control plane, Azurite for storage).</li><li>Explain the Azure <strong>hierarchy</strong>: management groups → subscriptions → resource groups → resources.</li><li>Create a <strong>resource group</strong> and a <strong>storage account</strong> locally (miniblue, live).</li><li>Upload and list a <strong>blob</strong> (Azurite, data plane).</li><li>Distinguish <strong>control plane</strong> (manage resources) and <strong>data plane</strong> (use them).</li><li><strong>Compile</strong> a first <strong>Bicep</strong> template (offline validation).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Un <strong>terminal</strong>, et de quoi lancer <strong>miniblue</strong> (binaire unique via Homebrew, <strong>Docker</strong>, ou compilé depuis les sources Go).</li><li><strong>Node.js</strong> (pour <strong>Azurite</strong>, installé via <code>npm</code>) — Node 18+ conseillé.</li><li>La <strong>CLI <code>az</code></strong> (script officiel, <code>apt</code>, ou <code>brew</code>) et le <strong>CLI Bicep</strong>.</li><li><strong>Aucun compte Azure requis</strong> : tout se fait en local (miniblue + Azurite + Bicep).</li><li>Optionnel : <strong>Terraform</strong> (déploiement live contre miniblue, vu en AZ-104).</li><li>⚠️ <strong>miniblue est un projet communautaire open-source (MIT), non affilié à Microsoft.</strong> Il émule fidèlement le <strong>plan de contrôle</strong> (création/gestion de ressources) pour apprendre, mais reste un émulateur : certains comportements avancés sont simplifiés. On le signale quand ça compte.</li></ul>
+</div>
+<div data-lang="en"><ul><li>A <strong>terminal</strong>, and a way to run <strong>miniblue</strong> (single binary via Homebrew, <strong>Docker</strong>, or compiled from the Go sources).</li><li><strong>Node.js</strong> (for <strong>Azurite</strong>, installed via <code>npm</code>) — Node 18+ recommended.</li><li>The <strong><code>az</code> CLI</strong> (official script, <code>apt</code>, or <code>brew</code>) and the <strong>Bicep CLI</strong>.</li><li><strong>No Azure account required</strong>: everything runs locally (miniblue + Azurite + Bicep).</li><li>Optional: <strong>Terraform</strong> (live deployment against miniblue, seen in AZ-104).</li><li>⚠️ <strong>miniblue is a community open-source project (MIT), not affiliated with Microsoft.</strong> It faithfully emulates the <strong>control plane</strong> (resource create/manage) for learning, but it&#39;s an emulator: some advanced behaviors are simplified. We flag it where it matters.</li></ul>
+</div>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Modèles cloud.</strong> Trois niveaux de service : <strong>IaaS</strong> (Infrastructure — tu gères l&#39;OS et au-dessus : machines virtuelles, réseau), <strong>PaaS</strong> (Platform — tu déposes ton code, la plateforme gère l&#39;OS : App Service, Functions), <strong>SaaS</strong> (Software — tu consommes une appli finie : Microsoft 365). Et trois modèles de <strong>déploiement</strong> : <strong>public</strong> (Azure), <strong>privé</strong> (ton datacenter), <strong>hybride</strong> (les deux reliés — la spécialité d&#39;Azure avec Azure Arc / Stack).</p>
+<p><strong>Infrastructure mondiale.</strong> Azure est découpé en <strong>régions</strong> (une zone géographique regroupant des datacenters, ex. <code>westeurope</code>, <code>francecentral</code>). La plupart des régions sont couplées en <strong>paires de régions</strong> (reprise après sinistre, réplication croisée). À l&#39;intérieur d&#39;une région, les <strong>zones de disponibilité</strong> sont des datacenters <strong>physiquement séparés</strong> — déployer sur plusieurs zones protège d&#39;une panne locale. Choisir la bonne région (latence, souveraineté des données, coût, services disponibles) est un réflexe d&#39;architecte.</p>
+<p><strong>Hiérarchie des ressources.</strong> Azure organise tout en <strong>4 niveaux</strong> : les <strong>groupes d&#39;administration</strong> (regroupent des abonnements pour la gouvernance à grande échelle) → les <strong>abonnements</strong> (l&#39;unité de facturation et de quota) → les <strong>groupes de ressources</strong> (un conteneur logique où vivent les ressources d&#39;une même appli/cycle de vie) → les <strong>ressources</strong> (une VM, un compte de stockage, un réseau). On supprime un groupe de ressources et <strong>tout</strong> ce qu&#39;il contient part avec — pratique pour nettoyer.</p>
+<p><strong>Plan de contrôle vs plan de données.</strong> Deux mondes à ne pas confondre. Le <strong>plan de contrôle</strong> (control plane) <strong>gère les ressources</strong> : créer un compte de stockage, un réseau, un Key Vault — ce sont des appels à <strong>Azure Resource Manager (ARM)</strong>. Le <strong>plan de données</strong> (data plane) <strong>utilise</strong> la ressource : téléverser un blob, lire un secret, envoyer un message. <strong>miniblue</strong> émule surtout le <strong>plan de contrôle</strong> (ARM) ; <strong>Azurite</strong> émule le <strong>plan de données</strong> du stockage. Ensemble, ils couvrent les deux.</p>
+<p><strong>miniblue — l&#39;émulateur Azure local.</strong> miniblue est un <strong>émulateur open-source</strong> (façon LocalStack pour Azure) : un binaire, <strong>~30 services</strong> (groupes de ressources, réseaux virtuels, NSG, comptes de stockage, Key Vault, Cosmos DB, Service Bus, DNS, Functions, identités managées…), <strong>sans compte ni authentification</strong>. On le pilote avec <strong><code>azlocal</code></strong> (son wrapper, comme <code>awslocal</code> pour LocalStack) — et, très puissant, <strong>Terraform</strong> (provider <code>azurerm</code>) peut <strong>déployer en réel contre lui</strong> (vu en AZ-104). C&#39;est ce qui rend Azure <strong>exécutable en local</strong>.</p>
+<p><strong>Azurite — le stockage officiel.</strong> Azurite est l&#39;émulateur <strong>officiel Microsoft</strong> du <strong>stockage</strong> (Blob, Queue, Table). Il fournit le <strong>plan de données</strong> propre : on y téléverse/lit de vrais blobs avec <code>az storage</code> et une <strong>chaîne de connexion</strong> de développement bien connue (compte <code>devstoreaccount1</code>).</p>
+<p><strong>Bicep &amp; IaC.</strong> <strong>Bicep</strong> est le langage <strong>déclaratif</strong> de Microsoft pour décrire l&#39;infrastructure Azure (il se compile en <strong>ARM</strong> JSON). On <strong>écrit</strong> l&#39;infra, on la <strong>compile/valide</strong> hors-ligne (<code>bicep build</code>), et on la <strong>déploie</strong> (avec un compte, ou <strong>en local contre miniblue</strong> via Terraform). Avec <strong>Terraform</strong>, c&#39;est le pilier reproductible et versionné de l&#39;administration Azure.</p>
+<p><strong>Façons d&#39;interagir.</strong> Quatre : le <strong>portail</strong> web (explorer), la <strong>CLI <code>az</code></strong> (scripter ; <code>azlocal</code> la double en local), <strong>PowerShell</strong> (module <code>Az</code>, roi côté Windows/AD), et l&#39;<strong>IaC</strong> (Bicep/ARM natif, ou Terraform). En pro, on vit surtout en <strong><code>az</code>/PowerShell</strong> et <strong>Bicep/Terraform</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Cloud models.</strong> Three service levels: <strong>IaaS</strong> (Infrastructure — you manage the OS and up: virtual machines, networking), <strong>PaaS</strong> (Platform — you drop your code, the platform manages the OS: App Service, Functions), <strong>SaaS</strong> (Software — you consume a finished app: Microsoft 365). And three <strong>deployment</strong> models: <strong>public</strong> (Azure), <strong>private</strong> (your datacenter), <strong>hybrid</strong> (both linked — Azure&#39;s specialty with Azure Arc / Stack).</p>
+<p><strong>Global infrastructure.</strong> Azure is split into <strong>regions</strong> (a geographic area grouping datacenters, e.g. <code>westeurope</code>, <code>francecentral</code>). Most regions are coupled into <strong>region pairs</strong> (disaster recovery, cross-replication). Within a region, <strong>availability zones</strong> are <strong>physically separate</strong> datacenters — deploying across zones protects from a local outage. Choosing the right region (latency, data sovereignty, cost, available services) is an architect&#39;s reflex.</p>
+<p><strong>Resource hierarchy.</strong> Azure organizes everything in <strong>4 levels</strong>: <strong>management groups</strong> (group subscriptions for governance at scale) → <strong>subscriptions</strong> (the unit of billing and quota) → <strong>resource groups</strong> (a logical container where the resources of one app/lifecycle live) → <strong>resources</strong> (a VM, a storage account, a network). Delete a resource group and <strong>everything</strong> inside goes with it — handy for cleanup.</p>
+<p><strong>Control plane vs data plane.</strong> Two worlds not to confuse. The <strong>control plane</strong> <strong>manages resources</strong>: create a storage account, a network, a Key Vault — these are calls to <strong>Azure Resource Manager (ARM)</strong>. The <strong>data plane</strong> <strong>uses</strong> the resource: upload a blob, read a secret, send a message. <strong>miniblue</strong> emulates mostly the <strong>control plane</strong> (ARM); <strong>Azurite</strong> emulates the storage <strong>data plane</strong>. Together they cover both.</p>
+<p><strong>miniblue — the local Azure emulator.</strong> miniblue is an <strong>open-source emulator</strong> (LocalStack-style for Azure): one binary, <strong>~30 services</strong> (resource groups, virtual networks, NSGs, storage accounts, Key Vault, Cosmos DB, Service Bus, DNS, Functions, managed identities…), <strong>no account or authentication</strong>. You drive it with <strong><code>azlocal</code></strong> (its wrapper, like <code>awslocal</code> for LocalStack) — and, very powerfully, <strong>Terraform</strong> (<code>azurerm</code> provider) can <strong>deploy for real against it</strong> (seen in AZ-104). That&#39;s what makes Azure <strong>runnable locally</strong>.</p>
+<p><strong>Azurite — the official storage.</strong> Azurite is Microsoft&#39;s <strong>official</strong> emulator of <strong>storage</strong> (Blob, Queue, Table). It provides the clean <strong>data plane</strong>: you upload/read real blobs with <code>az storage</code> and a well-known development <strong>connection string</strong> (<code>devstoreaccount1</code> account).</p>
+<p><strong>Bicep &amp; IaC.</strong> <strong>Bicep</strong> is Microsoft&#39;s <strong>declarative</strong> language to describe Azure infrastructure (it compiles to <strong>ARM</strong> JSON). You <strong>write</strong> the infra, <strong>compile/validate</strong> it offline (<code>bicep build</code>), and <strong>deploy</strong> it (with an account, or <strong>locally against miniblue</strong> via Terraform). With <strong>Terraform</strong>, it&#39;s the reproducible, versioned pillar of Azure administration.</p>
+<p><strong>Ways to interact.</strong> Four: the web <strong>portal</strong> (explore), the <strong><code>az</code> CLI</strong> (script; <code>azlocal</code> doubles it locally), <strong>PowerShell</strong> (<code>Az</code> module, king on Windows/AD), and <strong>IaC</strong> (native Bicep/ARM, or Terraform). In the field, you mostly live in <strong><code>az</code>/PowerShell</strong> and <strong>Bicep/Terraform</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-lab-local">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-lab-local">
+  <title id="s-azure-lab-local">Labo Azure local</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Labo Azure local</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Ta machine</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="70.5" text-anchor="middle">azlocal · az · Bicep ·</text><text class="lbl" x="286" y="83.5" text-anchor="middle">Terraform</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-accent" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="474" y="64" text-anchor="middle">miniblue</text><text class="sub sub-fill" x="474" y="77" text-anchor="middle">plan de contrôle ~30</text><text class="sub sub-fill" x="474" y="89" text-anchor="middle">services</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="64" text-anchor="middle">Azurite</text><text class="sub sub-blue" x="662" y="77" text-anchor="middle">plan de données</text><text class="sub sub-blue" x="662" y="89" text-anchor="middle">Blob/Queue/Table</text><text class="sub" x="380" y="144" text-anchor="middle">Terraform déploie en live contre miniblue — mêmes commandes qu’en réel, sans compte</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le labo Azure local : ta machine → outillage (azlocal, az CLI, Bicep, Terraform) → miniblue (plan de CONTRÔLE : groupes de ressources, réseaux, comptes de stockage, Key Vault… ~30 services) + Azurite (plan de DONNÉES du stockage : Blob/Queue/Table). Terraform déploie en live contre miniblue. Les mêmes commandes et le même IaC qu&#39;en réel, sans compte ni facture.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The local Azure lab: your machine → tooling (azlocal, az CLI, Bicep, Terraform) → miniblue (CONTROL plane: resource groups, networks, storage accounts, Key Vault… ~30 services) + Azurite (storage DATA plane: Blob/Queue/Table). Terraform deploys live against miniblue. The same commands and the same IaC as the real thing, no account or bill.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer l&#39;<strong>outillage</strong> Azure : miniblue/<code>azlocal</code>, <code>az</code>, Azurite, Bicep.</p>
+<p><strong>🤔 Quatre outils, quatre rôles.</strong> <strong>miniblue</strong> émule Azure en local (plan de contrôle) ; <strong><code>az</code></strong> est la CLI Azure ; <strong>Azurite</strong> émule le stockage (plan de données) ; <strong>Bicep</strong> décrit l&#39;infrastructure. On les installe une fois.</p>
+<p>Installe (Linux/macOS ; adapte à ton OS) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install the Azure <strong>tooling</strong>: miniblue/<code>azlocal</code>, <code>az</code>, Azurite, Bicep.</p>
+<p><strong>🤔 Four tools, four roles.</strong> <strong>miniblue</strong> emulates Azure locally (control plane); <strong><code>az</code></strong> is the Azure CLI; <strong>Azurite</strong> emulates storage (data plane); <strong>Bicep</strong> describes infrastructure. We install them once.</p>
+<p>Install (Linux/macOS; adapt to your OS):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) miniblue + azlocal (émulateur Azure) — Homebrew ou Docker
+brew tap moabukar/tap &amp;&amp; brew install miniblue
+#   ou Docker : docker run -d -p 4566:4566 -p 4567:4567 moabukar/miniblue:latest
+#   ou compilé depuis les sources : git clone https://github.com/moabukar/miniblue &amp;&amp; cd miniblue
+#      go build -o /usr/local/bin/miniblue ./cmd/miniblue &amp;&amp; go build -o /usr/local/bin/azlocal ./cmd/azlocal
+
+# 2) La CLI Azure / the Azure CLI
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash   # (macOS : brew install azure-cli)
+
+# 3) Azurite, l&#39;émulateur de stockage / the storage emulator
+npm install -g azurite
+
+# 4) Bicep / Bicep
+az bicep install
+
+# Vérifier / verify
+azlocal health         # miniblue : liste des services émulés / list of emulated services
+az version ; azurite --version ; az bicep version</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>azlocal health</code> renvoie un JSON avec <code>&quot;service_count&quot;</code> (une trentaine) et la liste des services (<code>subscriptions</code>, <code>resourceGroups</code>, <code>storage</code>, <code>keyVault</code>, <code>network</code>…). <code>az version</code> affiche <code>azure-cli</code> (2.x). <code>azurite --version</code> et <code>az bicep version</code> répondent. Tu as les quatre outils — <strong>et toujours aucun compte Azure</strong>. ⚠️ <code>azlocal health</code> <strong>échoue</strong> si miniblue ne tourne pas encore : on le démarre à l&#39;étape suivante. Si <code>az bicep install</code> est indisponible, installe le <strong>CLI Bicep autonome</strong> (binaire des releases GitHub <code>Azure/bicep</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>azlocal health</code> returns JSON with <code>&quot;service_count&quot;</code> (about thirty) and the list of services (<code>subscriptions</code>, <code>resourceGroups</code>, <code>storage</code>, <code>keyVault</code>, <code>network</code>…). <code>az version</code> shows <code>azure-cli</code> (2.x). <code>azurite --version</code> and <code>az bicep version</code> answer. You have all four tools — <strong>and still no Azure account</strong>. ⚠️ <code>azlocal health</code> <strong>fails</strong> if miniblue isn&#39;t running yet: we start it next. If <code>az bicep install</code> is unavailable, install the <strong>standalone Bicep CLI</strong> (binary from the <code>Azure/bicep</code> GitHub releases).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Monter le <strong>labo local</strong> : lancer miniblue (plan de contrôle) et Azurite (stockage).</p>
+<p><strong>🤔 Deux émulateurs complémentaires.</strong> <strong>miniblue</strong> écoute sur <strong>4566</strong> (HTTP) / <strong>4567</strong> (HTTPS) et sert l&#39;API <strong>ARM</strong> (créer/gérer des ressources). <strong>Azurite</strong> écoute sur <strong>10000/10001/10002</strong> (Blob/Queue/Table) et sert le <strong>plan de données</strong> du stockage, via une <strong>chaîne de connexion</strong> de développement bien connue.</p>
+<p>Lance les deux (chacun dans son terminal, ou en arrière-plan) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set up the <strong>local lab</strong>: start miniblue (control plane) and Azurite (storage).</p>
+<p><strong>🤔 Two complementary emulators.</strong> <strong>miniblue</strong> listens on <strong>4566</strong> (HTTP) / <strong>4567</strong> (HTTPS) and serves the <strong>ARM</strong> API (create/manage resources). <strong>Azurite</strong> listens on <strong>10000/10001/10002</strong> (Blob/Queue/Table) and serves the storage <strong>data plane</strong>, via a well-known development <strong>connection string</strong>.</p>
+<p>Start both (each in its terminal, or in the background):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) miniblue (plan de contrôle Azure) / the Azure control plane
+miniblue                       # écoute sur :4566 (HTTP) et :4567 (HTTPS)
+#   (Docker : déjà lancé par &#39;docker run&#39; à l&#39;étape 1)
+
+# 2) Azurite (plan de données stockage) / storage data plane
+mkdir -p ~/azurite-data
+azurite --silent --location ~/azurite-data \
+  --blobHost 127.0.0.1 --queueHost 127.0.0.1 --tableHost 127.0.0.1
+
+# 3) Dans ton terminal de travail, la chaîne de connexion Azurite (bien connue, publique) :
+export AZURE_STORAGE_CONNECTION_STRING=&quot;DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> miniblue affiche <code>miniblue HTTP on http://localhost:4566</code> (et HTTPS sur 4567), et <code>azlocal health</code> renvoie désormais la liste des ~30 services. Azurite affiche <code>Azurite Blob service successfully listens on http://127.0.0.1:10000</code>. Une vérif directe : <code>curl -s http://localhost:4566/</code> répond (souvent 404 sur la racine — l&#39;important est qu&#39;il <strong>réponde</strong>). ⚠️ <strong>Garde ces terminaux ouverts</strong> (les émulateurs y tournent). La <strong>chaîne de connexion</strong> Azurite est publique et identique pour tous : c&#39;est le compte de développement de l&#39;émulateur, <strong>jamais</strong> un vrai secret. Astuce : mets l&#39;<code>export</code> dans un <code>lab.env</code> et fais <code>source lab.env</code> à chaque session.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> miniblue prints <code>miniblue HTTP on http://localhost:4566</code> (and HTTPS on 4567), and <code>azlocal health</code> now returns the list of ~30 services. Azurite prints <code>Azurite Blob service successfully listens on http://127.0.0.1:10000</code>. A direct check: <code>curl -s http://localhost:4566/</code> responds (often 404 on the root — the point is that it <strong>answers</strong>). ⚠️ <strong>Keep these terminals open</strong> (the emulators run in them). The Azurite <strong>connection string</strong> is public and identical for everyone: it&#39;s the emulator&#39;s development account, <strong>never</strong> a real secret. Tip: put the <code>export</code> in a <code>lab.env</code> and <code>source lab.env</code> each session.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un vrai <strong>groupe de ressources</strong> — le plan de contrôle, live sur miniblue.</p>
+<p><strong>🤔 Le conteneur de tout.</strong> Tout objet Azure vit dans un <strong>groupe de ressources</strong> (lui-même dans un abonnement, dans un groupe d&#39;administration). Le groupe de ressources est le plus quotidien : on le <strong>crée, remplit, puis supprime en bloc</strong>. Avec miniblue, on le crée <strong>pour de vrai</strong> — le plan de contrôle (ARM) est émulé.</p>
+<p>Crée et inspecte un groupe de ressources :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a real <strong>resource group</strong> — the control plane, live on miniblue.</p>
+<p><strong>🤔 The container of everything.</strong> Every Azure object lives in a <strong>resource group</strong> (itself in a subscription, in a management group). The resource group is the most everyday one: you <strong>create, fill, then delete it wholesale</strong>. With miniblue, you create it <strong>for real</strong> — the control plane (ARM) is emulated.</p>
+<p>Create and inspect a resource group:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un groupe de ressources / create a resource group
+azlocal group create --name rg-labo --location westeurope
+
+# Le lister et l&#39;inspecter / list and inspect it
+azlocal group list
+azlocal group show --name rg-labo</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>group create</code> renvoie un objet ARM avec <code>&quot;provisioningState&quot;: &quot;Succeeded&quot;</code> et un <code>id</code> de la forme <code>/subscriptions/00000000-.../resourceGroups/rg-labo</code>. <code>group list</code> le montre sous <code>&quot;value&quot;</code>, et <code>group show</code> renvoie ses détails (<code>Succeeded</code>). Tu viens de créer une <strong>vraie ressource Azure en local</strong> — le plan de contrôle <strong>fonctionne</strong>, pas seulement en concept. Retiens la hiérarchie : <strong>groupe d&#39;administration → abonnement → groupe de ressources → ressource</strong>. ⚠️ En réel (avec un compte), c&#39;est <strong>exactement</strong> <code>az group create --name ... --location ...</code> ; ici, <code>azlocal</code> cible miniblue au lieu du vrai Azure — la logique est identique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>group create</code> returns an ARM object with <code>&quot;provisioningState&quot;: &quot;Succeeded&quot;</code> and an <code>id</code> of the form <code>/subscriptions/00000000-.../resourceGroups/rg-labo</code>. <code>group list</code> shows it under <code>&quot;value&quot;</code>, and <code>group show</code> returns its details (<code>Succeeded</code>). You just created a <strong>real Azure resource locally</strong> — the control plane <strong>works</strong>, not just in concept. Remember the hierarchy: <strong>management group → subscription → resource group → resource</strong>. ⚠️ For real (with an account), it&#39;s <strong>exactly</strong> <code>az group create --name ... --location ...</code>; here, <code>azlocal</code> targets miniblue instead of real Azure — the logic is identical.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>compte de stockage</strong> (plan de contrôle, miniblue) et y déposer un <strong>blob</strong> (plan de données, Azurite).</p>
+<p><strong>🤔 Les deux plans, côte à côte.</strong> Créer le <strong>compte de stockage</strong> est une opération de <strong>plan de contrôle</strong> (ARM) → miniblue. Téléverser un <strong>blob</strong> dedans est une opération de <strong>plan de données</strong> → on utilise <strong>Azurite</strong> (l&#39;émulateur de stockage officiel, plan de données propre) avec <code>az storage</code>. Tu vois ainsi <strong>les deux mondes</strong> en action.</p>
+<p>Crée le compte (miniblue), puis manipule des blobs (Azurite) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>storage account</strong> (control plane, miniblue) and drop a <strong>blob</strong> in it (data plane, Azurite).</p>
+<p><strong>🤔 The two planes, side by side.</strong> Creating the <strong>storage account</strong> is a <strong>control-plane</strong> operation (ARM) → miniblue. Uploading a <strong>blob</strong> into it is a <strong>data-plane</strong> operation → we use <strong>Azurite</strong> (the official storage emulator, clean data plane) with <code>az storage</code>. You thus see <strong>both worlds</strong> in action.</p>
+<p>Create the account (miniblue), then handle blobs (Azurite):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># PLAN DE CONTRÔLE — créer un compte de stockage dans le groupe (miniblue)
+# CONTROL PLANE — create a storage account in the group (miniblue)
+azlocal storage account create --name stlabo2026 --resource-group rg-labo
+
+# PLAN DE DONNÉES — créer un conteneur et un blob (Azurite, via la chaîne de connexion)
+# DATA PLANE — create a container and a blob (Azurite, via the connection string)
+az storage container create --name documents --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+echo &quot;rapport trimestriel&quot; &gt; rapport.txt
+az storage blob upload --container-name documents --name rapports/2026/q1.txt \
+  --file rapport.txt --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+az storage blob list --container-name documents \
+  --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot; --output table</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>storage account create</code> (miniblue) renvoie un objet ARM (<code>&quot;kind&quot;: &quot;StorageV2&quot;</code>, un <code>id</code> sous <code>rg-labo</code>). Côté Azurite : <code>container create</code> renvoie <code>&quot;created&quot;: true</code>, l&#39;<code>upload</code> réussit, et <code>blob list</code> affiche <code>rapports/2026/q1.txt</code>. Tu as manipulé <strong>les deux plans</strong> : le <strong>compte</strong> (contrôle, miniblue) et le <strong>blob</strong> (données, Azurite). Note le modèle <strong>plat</strong> : <code>rapports/2026/q1.txt</code> est <strong>une seule clé</strong> (le <code>/</code> est une convention), pas une arborescence. ⚠️ Erreur de <strong>version d&#39;API</strong> Azurite (<code>The API version ... is not supported</code>) ? Lance Azurite avec <code>--skipApiVersionCheck</code> ou mets-le à jour (<code>npm install -g azurite@latest</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>storage account create</code> (miniblue) returns an ARM object (<code>&quot;kind&quot;: &quot;StorageV2&quot;</code>, an <code>id</code> under <code>rg-labo</code>). On the Azurite side: <code>container create</code> returns <code>&quot;created&quot;: true</code>, the <code>upload</code> succeeds, and <code>blob list</code> shows <code>rapports/2026/q1.txt</code>. You handled <strong>both planes</strong>: the <strong>account</strong> (control, miniblue) and the <strong>blob</strong> (data, Azurite). Note the <strong>flat</strong> model: <code>rapports/2026/q1.txt</code> is <strong>a single key</strong> (the <code>/</code> is a convention), not a tree. ⚠️ Azurite <strong>API version</strong> error (<code>The API version ... is not supported</code>)? Start Azurite with <code>--skipApiVersionCheck</code> or update it (<code>npm install -g azurite@latest</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire et <strong>compiler</strong> ton premier template <strong>Bicep</strong> — l&#39;infrastructure-as-code.</p>
+<p><strong>🤔 Décrire plutôt que cliquer.</strong> Au lieu de créer une ressource à la main, on la <strong>décrit</strong> en Bicep. <code>bicep build</code> <strong>compile</strong> le template en ARM JSON et <strong>valide sa forme</strong> — hors-ligne. C&#39;est ta première brique d&#39;IaC Azure ; en AZ-104, tu la <strong>déploieras en live</strong> contre miniblue avec Terraform.</p>
+<p>Crée <code>stockage.bicep</code> puis compile-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write and <strong>compile</strong> your first <strong>Bicep</strong> template — infrastructure-as-code.</p>
+<p><strong>🤔 Describe rather than click.</strong> Instead of creating a resource by hand, you <strong>describe</strong> it in Bicep. <code>bicep build</code> <strong>compiles</strong> the template to ARM JSON and <strong>validates its shape</strong> — offline. It&#39;s your first Azure IaC block; in AZ-104, you&#39;ll <strong>deploy it live</strong> against miniblue with Terraform.</p>
+<p>Create <code>stockage.bicep</code> then compile it:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// stockage.bicep — un compte de stockage décrit en Bicep
+@description(&#39;Région des ressources / resources region&#39;)
+param location string = resourceGroup().location
+
+@description(&#39;Nom du compte de stockage (mondialement unique) / storage account name (globally unique)&#39;)
+param storageName string = &#39;st${uniqueString(resourceGroup().id)}&#39;
+
+resource compteStockage &#39;Microsoft.Storage/storageAccounts@2023-01-01&#39; = {
+  name: storageName
+  location: location
+  sku: {
+    name: &#39;Standard_LRS&#39;
+  }
+  kind: &#39;StorageV2&#39;
+  properties: {
+    minimumTlsVersion: &#39;TLS1_2&#39;
+    allowBlobPublicAccess: false
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+output compteId string = compteStockage.id
+output compteNom string = compteStockage.name</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Compiler/valider le template (hors-ligne, sans compte) / compile-validate (offline)
+bicep build stockage.bicep --stdout | head -n 20
+# (ou : az bicep build --file stockage.bicep --stdout)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> affiche l&#39;<strong>ARM JSON</strong> compilé (<code>&quot;$schema&quot;</code>, <code>&quot;resources&quot;</code>, tes <code>parameters</code> et <code>outputs</code>) et <strong>aucune erreur</strong> — signe que ton template est <strong>valide</strong> contre le schéma <code>Microsoft.Storage/storageAccounts</code>. Tu viens d&#39;écrire de la <strong>vraie infrastructure Azure</strong>, versionnable, <strong>sans compte</strong>. Note la sécurité par défaut : <code>minimumTlsVersion: &#39;TLS1_2&#39;</code>, <code>allowBlobPublicAccess: false</code>. ⚠️ <code>bicep build</code> <strong>valide la forme</strong> ; le <strong>déploiement</strong> (<code>az deployment</code>, ou Terraform contre miniblue) viendra en AZ-104 — et grâce à miniblue, <strong>en local</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> prints the compiled <strong>ARM JSON</strong> (<code>&quot;$schema&quot;</code>, <code>&quot;resources&quot;</code>, your <code>parameters</code> and <code>outputs</code>) and <strong>no error</strong> — proof your template is <strong>valid</strong> against the <code>Microsoft.Storage/storageAccounts</code> schema. You just wrote <strong>real Azure infrastructure</strong>, versionable, <strong>with no account</strong>. Note secure-by-default: <code>minimumTlsVersion: &#39;TLS1_2&#39;</code>, <code>allowBlobPublicAccess: false</code>. ⚠️ <code>bicep build</code> <strong>validates the shape</strong>; <strong>deployment</strong> (<code>az deployment</code>, or Terraform against miniblue) comes in AZ-104 — and thanks to miniblue, <strong>locally</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer les <strong>façons d&#39;interagir</strong> avec Azure et les <strong>essentiels <code>az</code>/<code>azlocal</code></strong>.</p>
+<p><strong>🤔 Choisir le bon outil.</strong> Azure se pilote de quatre façons : le <strong>portail</strong> web (explorer), la <strong>CLI <code>az</code></strong> (scripter, reproduire ; <code>azlocal</code> la double en local), <strong>PowerShell</strong> (module <code>Az</code>, roi côté Windows/AD), et l&#39;<strong>IaC</strong> (Bicep/ARM natif, ou Terraform — qui déploie <strong>en live</strong> contre miniblue). En pro, on vit surtout en <strong><code>az</code>/PowerShell</strong> et <strong>Bicep/Terraform</strong>.</p>
+<p>Explore les essentiels (formats de sortie &amp; aide) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>ways to interact</strong> with Azure and the <strong><code>az</code>/<code>azlocal</code> essentials</strong>.</p>
+<p><strong>🤔 Pick the right tool.</strong> Azure is driven four ways: the web <strong>portal</strong> (explore), the <strong><code>az</code> CLI</strong> (script, reproduce; <code>azlocal</code> doubles it locally), <strong>PowerShell</strong> (<code>Az</code> module, king on Windows/AD), and <strong>IaC</strong> (native Bicep/ARM, or Terraform — which deploys <strong>live</strong> against miniblue). In the field, you mostly live in <strong><code>az</code>/PowerShell</strong> and <strong>Bicep/Terraform</strong>.</p>
+<p>Explore the essentials (output formats &amp; help):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Aide &amp; découverte / help &amp; discovery
+azlocal --help                      # les services couverts par miniblue / services miniblue covers
+az storage --help | head -n 15      # les sous-commandes de storage / storage subcommands
+
+# Formats de sortie (utiles partout) / output formats (useful everywhere)
+az storage container list --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot; --output table
+az storage container list --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot; --query &quot;[].name&quot; --output tsv</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>azlocal --help</code> liste les commandes par service (<code>group</code>, <code>storage</code>, <code>network</code>, <code>keyvault</code>, <code>cosmosdb</code>, <code>servicebus</code>, <code>vm</code>, <code>identity</code>…) — un aperçu de tout ce que tu <strong>exécuteras en local</strong> dans les prochains tracks. <code>az storage --help</code> liste les sous-commandes ; <code>--output table</code> et <code>--query &quot;[].name&quot;</code> (Azure utilise <strong>JMESPath</strong>, comme AWS) filtrent la sortie. Retiens les <strong>4 façons</strong> : portail, <code>az</code> (CLI), PowerShell, IaC. Ce parcours te fait vivre surtout <strong><code>az</code>/<code>azlocal</code></strong> et <strong>Bicep/Terraform</strong> — les compétences qui traversent <strong>toutes</strong> les certifications Azure.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>azlocal --help</code> lists commands by service (<code>group</code>, <code>storage</code>, <code>network</code>, <code>keyvault</code>, <code>cosmosdb</code>, <code>servicebus</code>, <code>vm</code>, <code>identity</code>…) — a preview of everything you&#39;ll <strong>run locally</strong> in the next tracks. <code>az storage --help</code> lists the subcommands; <code>--output table</code> and <code>--query &quot;[].name&quot;</code> (Azure uses <strong>JMESPath</strong>, like AWS) filter the output. Remember the <strong>4 ways</strong>: portal, <code>az</code> (CLI), PowerShell, IaC. This path has you live mostly in <strong><code>az</code>/<code>azlocal</code></strong> and <strong>Bicep/Terraform</strong> — the skills that run through <strong>all</strong> the Azure certifications.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ranger ton labo.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime le groupe de ressources (et tout ce qu&#39;il contient sur miniblue), le conteneur Azurite, puis on remet miniblue à zéro. Réflexe <strong>créer → utiliser → nettoyer</strong>, même en local.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tidy up your lab.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the resource group (and everything it holds on miniblue), the Azurite container, then reset miniblue. <strong>Create → use → clean up</strong> reflex, even locally.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Plan de contrôle : supprimer le groupe (et ses ressources) sur miniblue
+# Control plane: delete the group (and its resources) on miniblue
+azlocal group delete --name rg-labo
+
+# Plan de données : supprimer le conteneur Azurite / delete the Azurite container
+az storage container delete --name documents --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+
+# Remettre miniblue à zéro (optionnel) / reset miniblue (optional)
+azlocal reset
+# Arrêter les émulateurs : Ctrl-C dans leurs terminaux / stop the emulators: Ctrl-C in their terminals</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>group delete</code> renvoie <code>Deleted</code> et <code>azlocal group list</code> ne montre plus <code>rg-labo</code>. <code>container delete</code> renvoie <code>&quot;deleted&quot;: true</code>. <code>azlocal reset</code> renvoie <code>&quot;status&quot;: &quot;reset&quot;</code> (tout l&#39;état miniblue effacé). Ton labo est rangé. Tu tiens maintenant le <strong>socle Azure</strong> : outillage installé, plan de contrôle live sur miniblue, stockage live sur Azurite, premier Bicep compilé, et le <strong>modèle</strong> (hiérarchie, régions, plans de contrôle/données) en tête. La suite : <strong>AZ-104 (administrateur)</strong> — identités, réseau, VM, gouvernance — où tu <strong>déploieras en live</strong> avec Terraform contre miniblue.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>group delete</code> returns <code>Deleted</code> and <code>azlocal group list</code> no longer shows <code>rg-labo</code>. <code>container delete</code> returns <code>&quot;deleted&quot;: true</code>. <code>azlocal reset</code> returns <code>&quot;status&quot;: &quot;reset&quot;</code> (all miniblue state cleared). Your lab is tidy. You now hold the <strong>Azure base</strong>: tooling installed, live control plane on miniblue, live storage on Azurite, first Bicep compiled, and the <strong>model</strong> (hierarchy, regions, control/data planes) in mind. Next: <strong>AZ-104 (administrator)</strong> — identities, networking, VMs, governance — where you&#39;ll <strong>deploy live</strong> with Terraform against miniblue.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Confondre plan de contrôle et plan de données.</strong> Créer un compte de stockage = <strong>contrôle</strong> (ARM → miniblue). Téléverser un blob = <strong>données</strong> (→ Azurite). Deux endpoints, deux rôles.</p>
+<p><strong>2. Croire que miniblue est officiel.</strong> C&#39;est un projet <strong>communautaire</strong> (MIT), non affilié à Microsoft. Excellent pour apprendre le plan de contrôle et l&#39;IaC, mais reste un <strong>émulateur</strong> : certains comportements avancés sont simplifiés.</p>
+<p><strong>3. Prendre la chaîne de connexion de dev pour un secret.</strong> Elle est <strong>publique</strong> (compte <code>devstoreaccount1</code>). Ne l&#39;utilise <strong>jamais</strong> pour un vrai compte de stockage.</p>
+<p><strong>4. Oublier de lancer un émulateur.</strong> <code>azlocal ...</code> échoue si miniblue ne tourne pas (4566) ; <code>az storage ...</code> échoue si Azurite ne tourne pas (10000). Vérifie les deux.</p>
+<p><strong>5. Erreur de version d&#39;API Azurite.</strong> Si ta CLI est plus récente qu&#39;Azurite : <code>API version not supported</code>. Mets Azurite à jour ou lance-le avec <code>--skipApiVersionCheck</code>.</p>
+<p><strong>6. Croire que le nom d&#39;un compte de stockage est libre.</strong> Il est <strong>mondialement unique</strong> (comme S3/GCS). En Bicep, <code>uniqueString(resourceGroup().id)</code> génère un suffixe stable.</p>
+<p><strong>7. Confondre région et zone.</strong> Une <strong>région</strong> = une aire géographique de datacenters ; une <strong>zone de disponibilité</strong> = un datacenter isolé dans une région. La haute dispo se joue <strong>entre zones</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Confusing control plane and data plane.</strong> Creating a storage account = <strong>control</strong> (ARM → miniblue). Uploading a blob = <strong>data</strong> (→ Azurite). Two endpoints, two roles.</p>
+<p><strong>2. Thinking miniblue is official.</strong> It&#39;s a <strong>community</strong> project (MIT), not affiliated with Microsoft. Excellent for learning the control plane and IaC, but still an <strong>emulator</strong>: some advanced behaviors are simplified.</p>
+<p><strong>3. Taking the dev connection string for a secret.</strong> It&#39;s <strong>public</strong> (<code>devstoreaccount1</code> account). <strong>Never</strong> use it for a real storage account.</p>
+<p><strong>4. Forgetting to start an emulator.</strong> <code>azlocal ...</code> fails if miniblue isn&#39;t running (4566); <code>az storage ...</code> fails if Azurite isn&#39;t running (10000). Check both.</p>
+<p><strong>5. Azurite API version error.</strong> If your CLI is newer than Azurite: <code>API version not supported</code>. Update Azurite or start it with <code>--skipApiVersionCheck</code>.</p>
+<p><strong>6. Thinking a storage account name is free.</strong> It&#39;s <strong>globally unique</strong> (like S3/GCS). In Bicep, <code>uniqueString(resourceGroup().id)</code> generates a stable suffix.</p>
+<p><strong>7. Confusing region and zone.</strong> A <strong>region</strong> = a geographic area of datacenters; an <strong>availability zone</strong> = an isolated datacenter within a region. High availability plays out <strong>across zones</strong>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li><code>azlocal health</code>, <code>az version</code>, <code>azurite --version</code>, <code>az bicep version</code> répondent.</li><li>miniblue tourne (4566) et Azurite tourne (10000).</li><li>Tu crées un <strong>groupe de ressources</strong> live (<code>azlocal group create</code>) et le vois dans <code>group list</code>.</li><li>Tu crées un <strong>compte de stockage</strong> (miniblue) et téléverses un <strong>blob</strong> (Azurite).</li><li>Tu distingues <strong>plan de contrôle</strong> et <strong>plan de données</strong>.</li><li>Tu <strong>compiles</strong> un template Bicep sans erreur (<code>bicep build</code>).</li><li>Tu récites la hiérarchie et distingues <strong>région</strong> / <strong>zone</strong>.</li></ul>
+<p>Sept cases = ton socle Azure est monté. La suite : <strong>AZ-104 (administrateur)</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li><code>azlocal health</code>, <code>az version</code>, <code>azurite --version</code>, <code>az bicep version</code> all answer.</li><li>miniblue runs (4566) and Azurite runs (10000).</li><li>You create a <strong>resource group</strong> live (<code>azlocal group create</code>) and see it in <code>group list</code>.</li><li>You create a <strong>storage account</strong> (miniblue) and upload a <strong>blob</strong> (Azurite).</li><li>You distinguish <strong>control plane</strong> and <strong>data plane</strong>.</li><li>You <strong>compile</strong> a Bicep template with no error (<code>bicep build</code>).</li><li>You recite the hierarchy and distinguish <strong>region</strong> / <strong>zone</strong>.</li></ul>
+<p>Seven boxes = your Azure base is set. Next up: <strong>AZ-104 (administrator)</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le parcours Azure continue :</p>
+<ol><li><strong>AZ-104 — administrateur Azure</strong> : identités (Entra ID), gouvernance (RBAC, policies, tags), stockage, réseau (VNet, NSG), machines virtuelles — <strong>déployés en live</strong> contre miniblue avec Terraform, + Bicep validé.</li><li>Plus loin : <strong>AZ-305</strong> (architecte), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (sécurité), <strong>AZ-700</strong> (réseau). Le labo (miniblue + Azurite) monté ici te resservira partout.</li></ol>
+</div>
+<div data-lang="en"><p>The Azure path continues:</p>
+<ol><li><strong>AZ-104 — Azure administrator</strong>: identities (Entra ID), governance (RBAC, policies, tags), storage, networking (VNet, NSG), virtual machines — <strong>deployed live</strong> against miniblue with Terraform, + validated Bicep.</li><li>Further along: <strong>AZ-305</strong> (architect), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (security), <strong>AZ-700</strong> (networking). The lab (miniblue + Azurite) set up here will serve you everywhere.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du labo Azure local.</p>
+</div>
+<div data-lang="en"><p>Local Azure lab cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Outillage / tooling
+azlocal health ; az version ; azurite --version ; az bicep version
+
+# Labo : démarrer les émulateurs / lab: start the emulators
+miniblue &amp;                                        # plan de contrôle (4566/4567)
+azurite --silent --location ~/azurite-data --blobHost 127.0.0.1 --queueHost 127.0.0.1 --tableHost 127.0.0.1 &amp;
+export AZURE_STORAGE_CONNECTION_STRING=&quot;DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;&quot;
+
+# Plan de contrôle (miniblue) / control plane
+azlocal group create --name rg-labo --location westeurope
+azlocal group list ; azlocal group show --name rg-labo
+azlocal storage account create --name stlabo2026 --resource-group rg-labo
+azlocal group delete --name rg-labo ; azlocal reset
+
+# Plan de données stockage (Azurite) / storage data plane
+az storage container create --name documents --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+az storage blob upload --container-name documents --name cle --file f.txt --connection-string &quot;$AZURE_STORAGE_CONNECTION_STRING&quot;
+
+# IaC (hors-ligne) / IaC (offline)
+bicep build stockage.bicep --stdout        # compile -&gt; ARM JSON, valide la forme
+
+# Hiérarchie : groupe d&#39;administration -&gt; abonnement -&gt; groupe de ressources -&gt; ressource</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://github.com/moabukar/miniblue">miniblue — émulateur Azure local</a> — ~30 services, <code>azlocal</code>, Terraform.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-use-azurite">Azurite — l&#39;émulateur de stockage</a> — Blob/Queue/Table en local.</li><li><a href="https://learn.microsoft.com/azure/azure-resource-manager/bicep/">Bicep — documentation</a> — le langage IaC d&#39;Azure.</li><li><a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Installer la CLI Azure</a> — <code>az</code> sur tous les OS.</li><li><a href="https://learn.microsoft.com/azure/azure-resource-manager/management/overview">Groupes de ressources &amp; abonnements</a> — la hiérarchie.</li><li><a href="https://learn.microsoft.com/azure/reliability/availability-zones-overview">Régions et zones de disponibilité</a> — l&#39;infrastructure mondiale.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://github.com/moabukar/miniblue">miniblue — local Azure emulator</a> — ~30 services, <code>azlocal</code>, Terraform.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-use-azurite">Azurite — the storage emulator</a> — Blob/Queue/Table locally.</li><li><a href="https://learn.microsoft.com/azure/azure-resource-manager/bicep/">Bicep — documentation</a> — Azure&#39;s IaC language.</li><li><a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Install the Azure CLI</a> — <code>az</code> on all OSes.</li><li><a href="https://learn.microsoft.com/azure/azure-resource-manager/management/overview">Resource groups &amp; subscriptions</a> — the hierarchy.</li><li><a href="https://learn.microsoft.com/azure/reliability/availability-zones-overview">Regions and availability zones</a> — the global infrastructure.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal</code> : connexion refusée.</strong> miniblue ne tourne pas (<code>localhost:4566</code>). Lance <code>miniblue</code> (ou le conteneur Docker), puis réessaie <code>azlocal health</code>.</p>
+<p><strong><code>az</code> : commande introuvable.</strong> L&#39;installation n&#39;a pas abouti / le PATH n&#39;est pas rafraîchi. Réinstalle (script officiel Linux, <code>brew</code> macOS), rouvre le terminal.</p>
+<p><strong><code>az storage</code> : erreur de connexion.</strong> Azurite ne tourne pas, ou la chaîne de connexion n&#39;est pas exportée dans <strong>ce</strong> shell. Relance Azurite, ré-exporte <code>AZURE_STORAGE_CONNECTION_STRING</code>.</p>
+<p><strong><code>The API version ... is not supported by Azurite</code>.</strong> Ta CLI/ton SDK est plus récent qu&#39;Azurite. Mets Azurite à jour (<code>npm install -g azurite@latest</code>) ou lance-le avec <code>--skipApiVersionCheck</code>.</p>
+<p><strong><code>azlocal storage blob</code> renvoie <code>AuthenticationFailed</code>.</strong> Le <strong>plan de données</strong> de miniblue est plus strict ; pour les blobs, on utilise <strong>Azurite</strong> (comme dans ce guide). Réserve miniblue au <strong>plan de contrôle</strong> (comptes, groupes, réseaux…).</p>
+<p><strong><code>bicep build</code> : erreur de schéma.</strong> Une propriété/valeur ne correspond pas au type de ressource. Le message pointe la ligne ; corrige selon la doc (<code>Microsoft.Storage/storageAccounts</code>).</p>
+<p><strong>Port déjà utilisé (4566 ou 10000).</strong> Un autre service occupe le port. Arrête-le, ou change le port (miniblue : variable <code>PORT</code> ; Azurite : <code>--blobPort</code>) et adapte.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal</code>: connection refused.</strong> miniblue isn&#39;t running (<code>localhost:4566</code>). Start <code>miniblue</code> (or the Docker container), then retry <code>azlocal health</code>.</p>
+<p><strong><code>az</code>: command not found.</strong> The install didn&#39;t complete / PATH isn&#39;t refreshed. Reinstall (official Linux script, <code>brew</code> macOS), reopen the terminal.</p>
+<p><strong><code>az storage</code>: connection error.</strong> Azurite isn&#39;t running, or the connection string isn&#39;t exported in <strong>this</strong> shell. Restart Azurite, re-export <code>AZURE_STORAGE_CONNECTION_STRING</code>.</p>
+<p><strong><code>The API version ... is not supported by Azurite</code>.</strong> Your CLI/SDK is newer than Azurite. Update Azurite (<code>npm install -g azurite@latest</code>) or start it with <code>--skipApiVersionCheck</code>.</p>
+<p><strong><code>azlocal storage blob</code> returns <code>AuthenticationFailed</code>.</strong> miniblue&#39;s <strong>data plane</strong> is stricter; for blobs, we use <strong>Azurite</strong> (as in this guide). Keep miniblue for the <strong>control plane</strong> (accounts, groups, networks…).</p>
+<p><strong><code>bicep build</code>: schema error.</strong> A property/value doesn&#39;t match the resource type. The message points to the line; fix per the docs (<code>Microsoft.Storage/storageAccounts</code>).</p>
+<p><strong>Port already in use (4566 or 10000).</strong> Another service holds the port. Stop it, or change the port (miniblue: <code>PORT</code> env var; Azurite: <code>--blobPort</code>) and adjust.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Git fondamentaux — jiha.tech</title>
+  <title data-lang="en">Git fundamentals — jiha.tech</title>
+  <meta name="description" content="Comprends vraiment Git — graphe de commits, branches, conflits — et adopte un workflow GitHub Flow de pro." data-lang="fr">
+  <meta name="description" content="Truly understand Git — commit graph, branches, conflicts — and adopt a professional GitHub Flow workflow." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Git fondamentaux">
+  <meta property="og:description" content="Comprends vraiment Git — graphe de commits, branches, conflits — et adopte un workflow GitHub Flow de pro.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/git-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/git-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="git-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/git-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/git-fondamentaux</div>
+    <h1 data-lang="fr">Git fondamentaux</h1>
+    <h1 data-lang="en">Git fundamentals</h1>
+    <p class="tagline" data-lang="fr">Du clone au workflow de pro.</p>
+    <p class="tagline" data-lang="en">From clone to a professional workflow.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 75 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-19</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 75 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-06-19</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Git, c&#39;est l&#39;outil que tu vas utiliser <strong>tous les jours</strong> pour le reste de ta carrière tech. Et c&#39;est aussi celui que <strong>95 % des gens utilisent en mode magique</strong> : copier-coller des commandes Stack Overflow, paniquer quand ça crashe.</p>
+<p>Ce guide te donne le modèle mental correct <strong>avant</strong> les commandes. Une fois que tu vois Git comme un graphe de commits avec des pointeurs, tout devient simple. Avant ça, c&#39;est de la sorcellerie.</p>
+<p>On s&#39;appuie sur <code>learnGitBranching</code>, un jeu interactif génial qui <strong>dessine le graphe en temps réel</strong>. On l&#39;utilise ici comme terrain d&#39;entraînement structuré, avant de passer à un vrai repo poussé sur GitHub.</p>
+<p><strong>Pour qui c&#39;est :</strong> quelqu&#39;un qui sait à peu près <code>git add</code>, <code>git commit</code>, <code>git push</code>, mais panique dès qu&#39;il y a un conflit ou un mauvais commit à corriger.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu as déjà 2+ ans de Git, tu fais du rebase interactif et tu résous des conflits sans transpirer — ce guide va t&#39;ennuyer.</li><li>Tu cherches un guide GitHub Actions / CI — c&#39;est un autre sujet, il viendra plus tard dans le parcours.</li></ul>
+</div>
+<div data-lang="en"><p>Git is the tool you&#39;ll use <strong>every single day</strong> for the rest of your tech career. It&#39;s also the one <strong>95% of people use in magic mode</strong>: copy-pasting Stack Overflow commands and panicking when things crash.</p>
+<p>This guide gives you the correct mental model <strong>before</strong> the commands. Once you see Git as a commit graph with pointers, everything becomes simple. Until then, it&#39;s sorcery.</p>
+<p>We lean on <code>learnGitBranching</code>, a brilliant interactive game that <strong>draws the graph in real time</strong>. We use it here as a structured training ground, before moving on to a real repo pushed to GitHub.</p>
+<p><strong>Who it&#39;s for:</strong> someone who roughly knows <code>git add</code>, <code>git commit</code>, <code>git push</code>, but panics as soon as there&#39;s a conflict or a bad commit to fix.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You already have 2+ years of Git, do interactive rebases, and resolve conflicts without breaking a sweat — this guide will bore you.</li><li>You&#39;re looking for a GitHub Actions / CI guide — that&#39;s another topic, coming later in the track.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Le <strong>modèle mental</strong> de Git : commits, branches, HEAD, remotes — et les quatre zones où vit ton code.</li><li>Les opérations quotidiennes : clone, add, commit, push, pull, status, log.</li><li>Les branches : créer, basculer, fusionner, supprimer.</li><li>Les conflits : pourquoi ils arrivent, comment les résoudre, ne plus en avoir peur.</li><li><code>rebase</code> vs <code>merge</code> : quand utiliser quoi.</li><li>Réparer tes bêtises : <code>reset</code>, <code>revert</code>, <code>reflog</code>.</li><li>Un workflow propre type <strong>GitHub Flow</strong> pour collaborer.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know:</p>
+<ul><li>Git&#39;s <strong>mental model</strong>: commits, branches, HEAD, remotes — and the four areas where your code lives.</li><li>The daily operations: clone, add, commit, push, pull, status, log.</li><li>Branches: create, switch, merge, delete.</li><li>Conflicts: why they happen, how to resolve them, and how to stop fearing them.</li><li><code>rebase</code> vs <code>merge</code>: when to use which.</li><li>Fixing your mistakes: <code>reset</code>, <code>revert</code>, <code>reflog</code>.</li><li>A clean <strong>GitHub Flow</strong> workflow for collaborating.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Une aisance en <strong>ligne de commande Linux</strong> — si <code>cd</code>, <code>ls</code> et l&#39;édition d&#39;un fichier au terminal ne sont pas naturels, passe d&#39;abord par le guide <em>L&#39;art de la ligne de commande</em>.</li><li><strong>Git installé</strong> : <code>git --version</code> doit répondre. Sinon : <code>sudo apt install git</code> (ou l&#39;équivalent de ta distribution).</li><li>Un <strong>compte GitHub</strong> — gratuit, 2 minutes : https://github.com/signup</li><li>Un <strong>navigateur</strong> pour learnGitBranching.</li></ul>
+<p>C&#39;est tout. Pas besoin de connaître la moindre commande Git avancée : c&#39;est justement l&#39;objet du guide.</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>Comfort with the <strong>Linux command line</strong> — if <code>cd</code>, <code>ls</code>, and editing a file in the terminal don&#39;t feel natural, go through <em>The Art of Command Line</em> guide first.</li><li><strong>Git installed</strong>: <code>git --version</code> must answer. If not: <code>sudo apt install git</code> (or your distribution&#39;s equivalent).</li><li>A <strong>GitHub account</strong> — free, 2 minutes: https://github.com/signup</li><li>A <strong>browser</strong> for learnGitBranching.</li></ul>
+<p>That&#39;s it. You don&#39;t need to know a single advanced Git command: that&#39;s exactly what this guide is for.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../art-of-command-line/">
+    <span class="num">01</span>
+    <span class="title-line" data-lang="fr">L&#39;Art de la ligne de commande</span>
+    <span class="title-line" data-lang="en">The Art of the Command Line</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Avant toute commande, intériorise ces quatre idées. <strong>Toutes</strong> les commandes Git manipulent ces quatre objets — si tu les comprends, tu déduis quasi toutes les commandes ; sinon, tu mémorises 40 incantations magiques.</p>
+<p><strong>1. Un commit est un snapshot, pas un diff.</strong> Chaque commit capture <strong>l&#39;état complet</strong> du projet à un instant T, identifié par un hash (<code>a3f2c8</code>). Git optimise le stockage derrière (il ne garde que les changements), mais conceptuellement : snapshot.</p>
+<p><strong>2. Une branche est juste un pointeur vers un commit.</strong> Pas une copie du code. Juste un nom (<code>main</code>, <code>feature-x</code>) qui pointe vers un commit. Quand tu commits, le pointeur avance. C&#39;est tout.</p>
+<p><strong>3. HEAD est un pointeur vers « où tu es ».</strong> Normalement, HEAD pointe vers une branche, qui pointe vers un commit. C&#39;est la position de ta « tête de lecture ».</p>
+<p><strong>4. Un dépôt distant (remote) est juste une autre copie du graphe.</strong> <code>origin</code> est le nom usuel du remote sur GitHub. <code>git push</code> et <code>git pull</code> synchronisent ton graphe local avec le sien.</p>
+<p>Ces objets vivent dans <strong>quatre zones</strong> que ton code traverse, toujours dans le même sens :</p>
+</div>
+<div data-lang="en"><p>Before any command, internalize these four ideas. <strong>Every</strong> Git command manipulates these four objects — understand them and you can derive nearly every command; skip them and you&#39;re memorizing 40 magic incantations.</p>
+<p><strong>1. A commit is a snapshot, not a diff.</strong> Each commit captures the project&#39;s <strong>complete state</strong> at a point in time, identified by a hash (<code>a3f2c8</code>). Git optimizes storage behind the scenes (it only keeps the changes), but conceptually: snapshot.</p>
+<p><strong>2. A branch is just a pointer to a commit.</strong> Not a copy of the code. Just a name (<code>main</code>, <code>feature-x</code>) pointing at a commit. When you commit, the pointer moves forward. That&#39;s all.</p>
+<p><strong>3. HEAD is a pointer to &quot;where you are&quot;.</strong> Normally, HEAD points to a branch, which points to a commit. It&#39;s the position of your &quot;playhead&quot;.</p>
+<p><strong>4. A remote repository is just another copy of the graph.</strong> <code>origin</code> is the usual name for the GitHub remote. <code>git push</code> and <code>git pull</code> synchronize your local graph with it.</p>
+<p>These objects live in <strong>four areas</strong> your code moves through, always in the same direction:</p>
+</div>
+
+<figure class="schema" id="figure-git-areas">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-git-areas">
+  <title id="s-git-areas">Les zones de Git</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Les zones de Git</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Répertoire de travail</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="70.5" text-anchor="middle">Staging</text><text class="sub" x="286" y="83.5" text-anchor="middle">git add</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">Dépôt local</text><text class="sub" x="474" y="83.5" text-anchor="middle">git commit</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">Dépôt distant</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">git push</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Les zones de Git : répertoire de travail → staging → dépôt local → dépôt distant.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Git&#39;s areas: working directory → staging → local repository → remote.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li>Le <strong>répertoire de travail</strong>, ce sont tes fichiers tels que tu les édites. Rien n&#39;est encore enregistré par Git.</li><li>Le <strong>staging</strong> (l&#39;index) est ta zone de préparation : <code>git add</code> y sélectionne exactement ce qui entrera dans le prochain commit.</li><li>Le <strong>dépôt local</strong> (<code>.git/</code>) contient tout l&#39;historique — commits, branches, HEAD. Il est complet et fonctionne <strong>sans réseau</strong>.</li><li>Le <strong>dépôt distant</strong> (<code>origin</code>) n&#39;est qu&#39;une copie du graphe, hébergée ailleurs. <code>git push</code> envoie tes commits, <code>git pull</code> récupère et fusionne ceux des autres.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li>The <strong>working directory</strong> is your files as you edit them. Nothing is recorded by Git yet.</li><li>The <strong>staging area</strong> (the index) is your preparation zone: <code>git add</code> selects exactly what goes into the next commit.</li><li>The <strong>local repository</strong> (<code>.git/</code>) holds the entire history — commits, branches, HEAD. It&#39;s complete and works <strong>without a network</strong>.</li><li>The <strong>remote repository</strong> (<code>origin</code>) is just a copy of the graph, hosted elsewhere. <code>git push</code> sends your commits, <code>git pull</code> fetches and merges everyone else&#39;s.</li></ul>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer le modèle mental (30 min de lecture active) avant de taper la moindre commande.</p>
+<p><strong>🤔 Pourquoi ?</strong> Le parcours est en 3 temps — modèle mental (lecture), pratique (learnGitBranching), workflow réel (mains sur clavier) — et <strong>l&#39;ordre est non-négociable</strong>. Sauter le modèle mental = continuer à galérer. Sauter la pratique = oublier dans 2 jours. Sauter le workflow réel = ne jamais l&#39;utiliser pour de vrai.</p>
+<p>Relis la section concepts ci-dessus, puis reformule chaque idée <strong>avec tes propres mots</strong> : un commit est un ___, une branche est un ___, HEAD pointe vers ___, un remote est ___.</p>
+<p><strong>✅ Vérification :</strong> tu peux réciter les 4 idées sans regarder, et tu sais dire dans quelle zone (répertoire de travail, staging, dépôt local, distant) se trouve un fichier après un <code>git add</code> (staging) et après un <code>git commit</code> (dépôt local).</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the mental model (30 min of active reading) before typing a single command.</p>
+<p><strong>🤔 Why?</strong> The track has 3 phases — mental model (reading), practice (learnGitBranching), real workflow (hands on keyboard) — and <strong>the order is non-negotiable</strong>. Skip the mental model = keep struggling. Skip the practice = forget it in 2 days. Skip the real workflow = never use it for real.</p>
+<p>Re-read the concepts section above, then restate each idea <strong>in your own words</strong>: a commit is a ___, a branch is a ___, HEAD points to ___, a remote is ___.</p>
+<p><strong>✅ Check:</strong> you can recite the 4 ideas without looking, and you can say which area (working directory, staging, local repository, remote) a file is in after <code>git add</code> (staging) and after <code>git commit</code> (local repository).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Pratiquer sur learnGitBranching (2–3 h) pour <em>voir</em> le graphe bouger.</p>
+<p><strong>🤔 Pourquoi ce jeu plutôt que de taper directement dans un terminal ?</strong> Parce qu&#39;il <strong>dessine le graphe en temps réel</strong>. Tu vois physiquement ce qui se passe quand tu rebase. Sur ton vrai terminal, le graphe est invisible et tu fais tout en aveugle. Les pros voient le graphe dans leur tête — ce jeu te l&#39;apprend.</p>
+<p><strong>Action :</strong> va sur https://learngitbranching.js.org et fais les niveaux dans l&#39;ordre :</p>
+<ol><li><strong>Introduction Sequence</strong> (Main) — bases : commit, branche, merge, rebase.</li><li><strong>Ramping Up</strong> — détacher HEAD, refs relatives, reset/revert.</li><li><strong>Moving Work Around</strong> — cherry-pick, rebase interactif.</li><li><strong>Mixed Bag</strong> + partie <strong>Remote</strong> — pushing &amp; pulling.</li></ol>
+<p><strong>✅ Vérification :</strong></p>
+<ul class="checklist"><li>Tu peux expliquer <code>git rebase</code> à un canard en plastique sans paniquer.</li><li>Tu sais ce que fait <code>HEAD~3</code>.</li><li>Tu comprends pourquoi <code>git reset --hard</code> est dangereux (⚠️ il <strong>détruit</strong> les modifications non commitées, sans corbeille).</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Practice on learnGitBranching (2–3 h) to <em>see</em> the graph move.</p>
+<p><strong>🤔 Why this game rather than typing straight into a terminal?</strong> Because it <strong>draws the graph in real time</strong>. You physically see what happens when you rebase. In your real terminal, the graph is invisible and you fly blind. Pros see the graph in their head — this game teaches you that.</p>
+<p><strong>Action:</strong> go to https://learngitbranching.js.org and play the levels in order:</p>
+<ol><li><strong>Introduction Sequence</strong> (Main) — basics: commit, branch, merge, rebase.</li><li><strong>Ramping Up</strong> — detached HEAD, relative refs, reset/revert.</li><li><strong>Moving Work Around</strong> — cherry-pick, interactive rebase.</li><li><strong>Mixed Bag</strong> + the <strong>Remote</strong> section — pushing &amp; pulling.</li></ol>
+<p><strong>✅ Check:</strong></p>
+<ul class="checklist"><li>You can explain <code>git rebase</code> to a rubber duck without panicking.</li><li>You know what <code>HEAD~3</code> does.</li><li>You understand why <code>git reset --hard</code> is dangerous (⚠️ it <strong>destroys</strong> uncommitted changes, with no trash bin).</li></ul>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Configurer Git la première fois — ton identité et ta branche par défaut.</p>
+<p><strong>🤔 Pourquoi <code>--global</code> ?</strong> Pour ne pas avoir à le refaire pour chaque repo : la config s&#39;applique à tout ton utilisateur. Si tu veux une identité différente sur un projet pro vs perso, fais un <code>git config user.email ...</code> (sans <code>--global</code>) à la racine de ce projet — la config locale gagne sur la globale. Le nom et l&#39;email sont <strong>inscrits dans chaque commit</strong> que tu crées ; sans eux, Git refuse de committer.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Configure Git for the first time — your identity and default branch.</p>
+<p><strong>🤔 Why <code>--global</code>?</strong> So you don&#39;t redo it for every repo: the config applies to your whole user. If you want a different identity on a work vs personal project, run <code>git config user.email ...</code> (without <code>--global</code>) at that project&#39;s root — local config wins over global. Your name and email are <strong>written into every commit</strong> you create; without them, Git refuses to commit.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git config --global user.name &quot;Ton Nom&quot;
+git config --global user.email &quot;ton@email.com&quot;
+git config --global init.defaultBranch main</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git config --global --list
+# user.name, user.email et init.defaultbranch doivent apparaître</code></pre>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton premier repo local et le pousser sur GitHub.</p>
+<p><strong>🤔 Pourquoi ?</strong> C&#39;est le trajet complet du schéma 1 en vrai : fichier → staging (<code>git add</code>) → dépôt local (<code>git commit</code>) → dépôt distant (<code>git push</code>). Une fois ce circuit fait une fois de bout en bout, il n&#39;a plus rien de magique.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your first local repo and push it to GitHub.</p>
+<p><strong>🤔 Why?</strong> It&#39;s Figure 1&#39;s complete journey for real: file → staging (<code>git add</code>) → local repository (<code>git commit</code>) → remote (<code>git push</code>). Once you&#39;ve done this circuit end-to-end a single time, it stops being magic.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir mon-premier-repo &amp;&amp; cd mon-premier-repo
+git init
+echo &quot;# Mon Premier Repo&quot; &gt; README.md
+git add README.md
+git commit -m &quot;feat: premier commit&quot;</code></pre>
+<div data-lang="fr"><p>Maintenant, sur GitHub : crée un nouveau repo <strong>vide</strong> (pas de README auto — sinon les historiques divergent dès le départ). Copie l&#39;URL, puis :</p>
+</div>
+<div data-lang="en"><p>Now, on GitHub: create a new <strong>empty</strong> repo (no auto README — otherwise the histories diverge from the start). Copy the URL, then:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git remote add origin https://github.com/&lt;toi&gt;/mon-premier-repo.git
+git branch -M main
+git push -u origin main</code></pre>
+<div data-lang="fr"><p><strong>🤔 Pourquoi <code>-u origin main</code> ?</strong> Le <code>-u</code> (upstream) dit à Git : « à partir de maintenant, <code>main</code> local suit <code>main</code> sur <code>origin</code> ». Après ça, un simple <code>git push</code> ou <code>git pull</code> suffit, sans préciser quoi ni où.</p>
+<p><strong>✅ Vérification :</strong> rafraîchis la page de ton repo GitHub : ton <code>README.md</code> doit s&#39;afficher. En local :</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git status
+# &quot;Your branch is up to date with &#39;origin/main&#39;&quot;</code></pre>
+</div>
+<div data-lang="en"><p><strong>🤔 Why <code>-u origin main</code>?</strong> The <code>-u</code> (upstream) tells Git: &quot;from now on, local <code>main</code> tracks <code>main</code> on <code>origin</code>&quot;. After that, a plain <code>git push</code> or <code>git pull</code> is enough, no need to spell out what or where.</p>
+<p><strong>✅ Check:</strong> refresh your GitHub repo page: your <code>README.md</code> must show up. Locally:</p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git status
+# &quot;Your branch is up to date with &#39;origin/main&#39;&quot;</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Dérouler le workflow d&#39;une vraie feature — le <strong>GitHub Flow</strong>.</p>
+<p><strong>🤔 Pourquoi ce workflow ?</strong> Une feature = une branche = une PR. Ça force la <strong>revue de code</strong> et garde <code>main</code> toujours propre et déployable. C&#39;est <strong>exactement</strong> le workflow utilisé en entreprise dans 90 % des équipes modernes — l&#39;apprendre maintenant, c&#39;est arriver préparé.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run through a real feature&#39;s workflow — the <strong>GitHub Flow</strong>.</p>
+<p><strong>🤔 Why this workflow?</strong> One feature = one branch = one PR. It enforces <strong>code review</strong> and keeps <code>main</code> clean and deployable at all times. It&#39;s <strong>exactly</strong> the workflow used in 90% of modern teams — learn it now and you&#39;ll arrive prepared.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1. Synchroniser / Sync up
+git checkout main
+git pull
+
+# 2. Créer une branche dédiée / Create a dedicated branch
+git checkout -b feature/ajout-licence
+
+# 3. Faire ton travail / Do your work
+echo &quot;MIT License...&quot; &gt; LICENSE
+git add LICENSE
+git commit -m &quot;feat: ajoute licence MIT&quot;
+
+# 4. Pousser la branche / Push the branch
+git push -u origin feature/ajout-licence</code></pre>
+<div data-lang="fr"><p>Va sur GitHub : un bouton <strong>&quot;Compare &amp; pull request&quot;</strong> apparaît. Clique, ouvre la PR, merge-la.</p>
+</div>
+<div data-lang="en"><p>Go to GitHub: a <strong>&quot;Compare &amp; pull request&quot;</strong> button appears. Click it, open the PR, merge it.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 5. Récupérer le merge en local et supprimer la branche
+#    Bring the merge back locally and delete the branch
+git checkout main
+git pull
+git branch -d feature/ajout-licence</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>git log --oneline --graph</code> montre le commit de merge sur <code>main</code>, et <code>git branch</code> ne liste plus <code>feature/ajout-licence</code>. Sur GitHub, la PR est marquée « Merged ».</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>git log --oneline --graph</code> shows the merge commit on <code>main</code>, and <code>git branch</code> no longer lists <code>feature/ajout-licence</code>. On GitHub, the PR is marked &quot;Merged&quot;.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Tu commits sur <code>main</code> directement.</strong> Sur ton repo perso, ça passe. En équipe : interdit. Habitude pro = toujours une branche, même pour un fix d&#39;une ligne.</p>
+<p><strong>2. Tu <code>git push --force</code> sans réfléchir.</strong> ⚠️ <strong>Commande destructive</strong> : <code>--force</code> écrase l&#39;historique distant. Si quelqu&#39;un d&#39;autre a tiré entre-temps, tu <strong>détruis son travail</strong> sans avertissement. Préfère <code>--force-with-lease</code>, qui vérifie avant d&#39;écraser — et ne force jamais sur une branche partagée.</p>
+<p><strong>3. Tu <code>git pull</code> au milieu d&#39;un travail non commité et tu paniques.</strong> Solution : <code>git stash</code> (range temporairement tes modifications), <code>git pull</code>, <code>git stash pop</code> (les récupère).</p>
+<p><strong>4. Tu commits des secrets (clé API, mot de passe) sur GitHub.</strong> Une fois pushé, c&#39;est <strong>public et indexé par des bots en quelques minutes</strong>. Solution : <code>.gitignore</code> dès le départ + un fichier <code>.env</code> jamais commité. Si c&#39;est déjà fait : <strong>révoque la clé</strong> — la supprimer du repo ne suffit pas, l&#39;historique garde tout.</p>
+<p><strong>5. Tu confonds <code>git reset</code> et <code>git revert</code>.</strong> <code>reset</code> réécrit l&#39;historique (⚠️ dangereux si déjà poussé, et <code>--hard</code> détruit aussi tes modifications locales sans retour) ; <code>revert</code> crée un nouveau commit qui annule l&#39;ancien (safe pour les branches partagées).</p>
+<p><strong>6. Messages de commit type « fix » ou « wip ».</strong> Inutiles dans 6 mois quand tu fouilleras l&#39;historique. Convention recommandée : <strong>Conventional Commits</strong> (<code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>…).</p>
+</div>
+<div data-lang="en"><p><strong>1. You commit directly to <code>main</code>.</strong> On your personal repo, fine. On a team: forbidden. The professional habit = always a branch, even for a one-line fix.</p>
+<p><strong>2. You <code>git push --force</code> without thinking.</strong> ⚠️ <strong>Destructive command</strong>: <code>--force</code> overwrites remote history. If someone else pulled in the meantime, you <strong>destroy their work</strong> without warning. Prefer <code>--force-with-lease</code>, which checks before overwriting — and never force-push a shared branch.</p>
+<p><strong>3. You <code>git pull</code> in the middle of uncommitted work and panic.</strong> Solution: <code>git stash</code> (tucks your changes away), <code>git pull</code>, <code>git stash pop</code> (brings them back).</p>
+<p><strong>4. You commit secrets (API key, password) to GitHub.</strong> Once pushed, it&#39;s <strong>public and indexed by bots within minutes</strong>. Solution: <code>.gitignore</code> from day one + a <code>.env</code> file that&#39;s never committed. If it already happened: <strong>revoke the key</strong> — deleting it from the repo isn&#39;t enough, history keeps everything.</p>
+<p><strong>5. You confuse <code>git reset</code> and <code>git revert</code>.</strong> <code>reset</code> rewrites history (⚠️ dangerous if already pushed, and <code>--hard</code> also destroys your local changes with no way back); <code>revert</code> creates a new commit that undoes the old one (safe for shared branches).</p>
+<p><strong>6. Commit messages like &quot;fix&quot; or &quot;wip&quot;.</strong> Useless in 6 months when you dig through history. Recommended convention: <strong>Conventional Commits</strong> (<code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>…).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu sais ce que fait chaque commande de cette liste sans Google : <code>git status</code>, <code>git log --oneline --graph</code>, <code>git diff</code>, <code>git stash</code>, <code>git checkout -b</code>.</li><li>Tu peux résoudre un conflit de merge sans paniquer.</li><li>Tu peux annuler ton dernier commit sans rien casser (<code>git reset --soft HEAD~1</code>).</li><li>Tu sais ce qu&#39;est <code>git reflog</code> — et donc tu sais récupérer un commit « perdu ».</li><li>Tu utilises une branche pour chaque feature, jamais <code>main</code> direct.</li><li>Ta première PR est mergée sur GitHub, et <code>main</code> local est à jour.</li></ul>
+<p>Si les 6 sont cochés, Git n&#39;est plus de la sorcellerie pour toi. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You know what each command on this list does without Google: <code>git status</code>, <code>git log --oneline --graph</code>, <code>git diff</code>, <code>git stash</code>, <code>git checkout -b</code>.</li><li>You can resolve a merge conflict without panicking.</li><li>You can undo your last commit without breaking anything (<code>git reset --soft HEAD~1</code>).</li><li>You know what <code>git reflog</code> is — and therefore how to recover a &quot;lost&quot; commit.</li><li>You use a branch for every feature, never <code>main</code> directly.</li><li>Your first PR is merged on GitHub, and local <code>main</code> is up to date.</li></ul>
+<p>If all 6 are ticked, Git is no longer sorcery to you. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Quatre prolongements naturels, du plus utile au plus avancé :</p>
+<ol><li><strong>Docker fondamentaux</strong> — la suite logique de ton parcours DevOps : tu versionneras tes <code>Dockerfile</code> et <code>compose.yaml</code> avec le workflow que tu viens d&#39;apprendre.</li><li><strong>GitHub Actions</strong> — ton premier pipeline CI, quand tu auras quelques projets à tester automatiquement.</li><li><strong>Pro Git</strong> (livre gratuit) — https://git-scm.com/book — la référence absolue pour approfondir.</li><li><strong>Conventional Commits + Semantic Release</strong> — professionnaliser tes messages de commit et tes releases.</li></ol>
+</div>
+<div data-lang="en"><p>Four natural extensions, from most useful to most advanced:</p>
+<ol><li><strong>Docker fundamentals</strong> — the logical next step of your DevOps track: you&#39;ll version your <code>Dockerfile</code> and <code>compose.yaml</code> with the workflow you just learned.</li><li><strong>GitHub Actions</strong> — your first CI pipeline, once you have a few projects to test automatically.</li><li><strong>Pro Git</strong> (free book) — https://git-scm.com/book — the absolute reference for going deeper.</li><li><strong>Conventional Commits + Semantic Release</strong> — professionalize your commit messages and releases.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés pour ton quotidien Git.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet for your daily Git work.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Configuration initiale / First-time setup
+git config --global user.name &quot;Ton Nom&quot;
+git config --global user.email &quot;ton@email.com&quot;
+
+# Quotidien / Daily
+git status                          # où j&#39;en suis / where am I
+git log --oneline --graph --all     # voir le graphe / see the graph
+git diff                            # modifs non stagées / unstaged changes
+git add &lt;fichier&gt; &amp;&amp; git commit -m &quot;feat: message clair&quot;
+git push
+git pull
+
+# Branches (GitHub Flow)
+git checkout -b feature/ma-feature  # créer + basculer / create + switch
+git checkout main &amp;&amp; git pull       # se resynchroniser / resync
+git merge feature/ma-feature
+git branch -d feature/ma-feature    # supprimer après merge / delete after merge
+
+# Se sortir du pétrin / Getting unstuck
+git stash &amp;&amp; git pull &amp;&amp; git stash pop   # ranger, tirer, récupérer / park, pull, restore
+git reset --soft HEAD~1             # annule le dernier commit, GARDE les changements / undo last commit, KEEP changes
+git revert &lt;hash&gt;                   # annule proprement un commit poussé / cleanly undo a pushed commit
+git reflog                          # retrouver un commit &quot;perdu&quot; / find a &quot;lost&quot; commit
+git merge --abort                   # abandonner un merge en conflit / abort a conflicted merge
+
+# ⚠️ DESTRUCTIF — réfléchis avant / DESTRUCTIVE — think first
+git reset --hard HEAD~1             # ⚠️ PERD tes modifs non commitées / LOSES uncommitted changes
+git push --force-with-lease         # ⚠️ réécrit l&#39;historique distant (jamais sur branche partagée)
+                                    # ⚠️ rewrites remote history (never on a shared branch)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://git-scm.com/book/fr/v2">Pro Git (livre officiel, gratuit)</a> — la référence absolue, disponible en français.</li><li><a href="https://git-scm.com/docs">Référence des commandes Git</a> — la documentation officielle de chaque commande.</li><li><a href="https://learngitbranching.js.org">learnGitBranching</a> — le jeu interactif utilisé dans ce guide.</li><li><a href="https://docs.github.com/en/get-started/using-github/github-flow">GitHub Flow (doc officielle GitHub)</a> — le workflow enseigné à l&#39;étape 5.</li><li><a href="https://www.conventionalcommits.org/fr/">Conventional Commits</a> — la spécification des messages de commit propres.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://git-scm.com/book/en/v2">Pro Git (official book, free)</a> — the absolute reference.</li><li><a href="https://git-scm.com/docs">Git command reference</a> — the official documentation for every command.</li><li><a href="https://learngitbranching.js.org">learnGitBranching</a> — the interactive game used in this guide.</li><li><a href="https://docs.github.com/en/get-started/using-github/github-flow">GitHub Flow (official GitHub docs)</a> — the workflow taught in step 5.</li><li><a href="https://www.conventionalcommits.org/en/">Conventional Commits</a> — the clean commit message specification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« fatal: not a git repository ».</strong> Tu n&#39;es pas dans un dossier qui contient un <code>.git/</code>. Soit tu n&#39;es pas au bon endroit (<code>pwd</code>), soit tu as oublié <code>git init</code>.</p>
+<p><strong>« Please tell me who you are ».</strong> Tu n&#39;as pas configuré ton <code>user.name</code> et <code>user.email</code>. Refais l&#39;étape 3 (<code>git config --global …</code>).</p>
+<p><strong>Conflit de merge — je panique.</strong> Respire. <code>git status</code> te montre les fichiers en conflit. Ouvre-les, cherche les marqueurs <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>. Choisis quoi garder, supprime les marqueurs, puis <code>git add &lt;fichier&gt;</code> et <code>git commit</code>. C&#39;est tout. Et tu peux toujours tout annuler avec <code>git merge --abort</code>.</p>
+<p><strong>J&#39;ai commité un fichier que je ne voulais pas.</strong> Si pas encore pushé : <code>git reset HEAD~1</code> (garde tes changements dans le répertoire de travail). Si pushé : <code>git revert &lt;hash&gt;</code> (crée un commit qui annule). Si c&#39;est un <strong>secret</strong> : révoque-le, change-le, puis purge l&#39;historique avec <code>git filter-repo</code> ou BFG — ⚠️ ces outils <strong>réécrivent l&#39;historique</strong> : préviens tes collaborateurs et sauvegarde le repo avant.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;fatal: not a git repository&quot;.</strong> You&#39;re not in a folder containing a <code>.git/</code>. Either you&#39;re in the wrong place (<code>pwd</code>), or you forgot <code>git init</code>.</p>
+<p><strong>&quot;Please tell me who you are&quot;.</strong> You haven&#39;t configured your <code>user.name</code> and <code>user.email</code>. Redo step 3 (<code>git config --global …</code>).</p>
+<p><strong>Merge conflict — I&#39;m panicking.</strong> Breathe. <code>git status</code> shows the conflicted files. Open them, look for the <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> markers. Choose what to keep, delete the markers, then <code>git add &lt;file&gt;</code> and <code>git commit</code>. That&#39;s it. And you can always back out with <code>git merge --abort</code>.</p>
+<p><strong>I committed a file I didn&#39;t mean to.</strong> If not pushed yet: <code>git reset HEAD~1</code> (keeps your changes in the working directory). If pushed: <code>git revert &lt;hash&gt;</code> (creates an undo commit). If it&#39;s a <strong>secret</strong>: revoke it, rotate it, then purge history with <code>git filter-repo</code> or BFG — ⚠️ these tools <strong>rewrite history</strong>: warn your collaborators and back up the repo first.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

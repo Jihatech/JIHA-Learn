@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — routage réseau (AZ-700) : routes système, UDR, tunneling forcé — jiha.tech</title>
+  <title data-lang="en">Azure — network routing (AZ-700): system routes, UDR, forced tunneling — jiha.tech</title>
+  <meta name="description" content="&quot;Maîtriser le routage Azure pour l&#39;AZ-700, en local et pour de vrai : les routes système par défaut, la logique de sélection (préfixe le plus long puis priorité de source UDR &gt; BGP &gt; système) reproduite dans un moteur de routage exécutable, les routes définies par l&#39;utilisateur (UDR) écrites et validées en Bicep, le tunneling forcé (0.0.0.0/0 → pare-feu), les routes effectives combinées, et le chaînage de service via une appliance réseau virtuelle (NVA + IP forwarding). Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Mastering Azure routing for AZ-700, locally and for real: the default system routes, the selection logic (longest prefix then source priority UDR &gt; BGP &gt; system) reproduced in a runnable routing engine, user-defined routes (UDR) written and validated in Bicep, forced tunneling (0.0.0.0/0 → firewall), the combined effective routes, and service chaining through a network virtual appliance (NVA + IP forwarding). No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — routage réseau (AZ-700) : routes système, UDR, tunneling forcé">
+  <meta property="og:description" content="&quot;Maîtriser le routage Azure pour l&#39;AZ-700, en local et pour de vrai : les routes système par défaut, la logique de sélection (préfixe le plus long puis priorité de source UDR &gt; BGP &gt; système) reproduite dans un moteur de routage exécutable, les routes définies par l&#39;utilisateur (UDR) écrites et validées en Bicep, le tunneling forcé (0.0.0.0/0 → pare-feu), les routes effectives combinées, et le chaînage de service via une appliance réseau virtuelle (NVA + IP forwarding). Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-reseau-routage/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-reseau-routage/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-reseau-routage">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-reseau-routage</div>
+    <div class="prompt" data-lang="en">~/guides/azure-reseau-routage</div>
+    <h1 data-lang="fr">Azure — routage réseau (AZ-700) : routes système, UDR, tunneling forcé</h1>
+    <h1 data-lang="en">Azure — network routing (AZ-700): system routes, UDR, forced tunneling</h1>
+    <p class="tagline" data-lang="fr">préfixe le plus long, routes définies, faire passer par le pare-feu.</p>
+    <p class="tagline" data-lang="en">longest prefix, user-defined routes, force through the firewall.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un paquet quitte une machine — <strong>où va-t-il</strong> ? La réponse est le <strong>routage</strong> : la table qui décide, pour chaque destination, le <strong>prochain saut</strong>. L&#39;<strong>AZ-700</strong> en fait un savoir-faire précis : comprendre les <strong>routes système</strong>, écrire des <strong>routes définies par l&#39;utilisateur</strong> (UDR), forcer le trafic par un <strong>pare-feu</strong> (tunneling forcé), et lire les <strong>routes effectives</strong>. C&#39;est ce qui distingue un réseau <strong>qui marche</strong> d&#39;un réseau <strong>maîtrisé</strong>.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on décrit les <strong>routes système</strong> par défaut, on <strong>reproduit la logique de sélection d&#39;Azure</strong> (préfixe <strong>le plus long</strong>, puis priorité <strong>UDR &gt; BGP &gt; système</strong>) dans un <strong>moteur de routage exécutable</strong>, on écrit et <strong>valide</strong> des <strong>UDR</strong> en <strong>Bicep</strong>, on met en place le <strong>tunneling forcé</strong> (<code>0.0.0.0/0</code> → pare-feu), on combine les <strong>routes effectives</strong>, et on <strong>chaîne un service</strong> via une <strong>appliance réseau virtuelle</strong> (NVA + <em>IP forwarding</em>).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les fondations réseau (guide précédent) et tu veux <strong>contrôler les chemins</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne connais pas VNet/sous-réseaux → fais <em>Azure — réseau fondamentaux (AZ-700)</em>.</li><li>Tu cherches le filtrage (NSG) → c&#39;est la <strong>sécurité</strong> ; ici c&#39;est le <strong>chemin</strong> (routage).</li></ul>
+</div>
+<div data-lang="en"><p>A packet leaves a machine — <strong>where does it go</strong>? The answer is <strong>routing</strong>: the table that decides, for each destination, the <strong>next hop</strong>. <strong>AZ-700</strong> makes it a precise skill: understanding <strong>system routes</strong>, writing <strong>user-defined routes</strong> (UDR), forcing traffic through a <strong>firewall</strong> (forced tunneling), and reading the <strong>effective routes</strong>. It&#39;s what separates a network that <strong>works</strong> from one you <strong>control</strong>.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we describe the default <strong>system routes</strong>, we <strong>reproduce Azure&#39;s selection logic</strong> (<strong>longest</strong> prefix, then <strong>UDR &gt; BGP &gt; system</strong> priority) in a <strong>runnable routing engine</strong>, we write and <strong>validate</strong> <strong>UDRs</strong> in <strong>Bicep</strong>, we set up <strong>forced tunneling</strong> (<code>0.0.0.0/0</code> → firewall), we combine the <strong>effective routes</strong>, and we <strong>chain a service</strong> through a <strong>network virtual appliance</strong> (NVA + <em>IP forwarding</em>).</p>
+<p><strong>Who it&#39;s for:</strong> you have the network foundations (previous guide) and want to <strong>control the paths</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know VNet/subnets → do <em>Azure — network fundamentals (AZ-700)</em>.</li><li>You want filtering (NSG) → that&#39;s <strong>security</strong>; here it&#39;s the <strong>path</strong> (routing).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Expliquer les <strong>routes système</strong> par défaut d&#39;Azure.</li><li>Appliquer la <strong>correspondance de préfixe le plus long</strong> (longest prefix match).</li><li>Résoudre les priorités <strong>UDR &gt; BGP &gt; système</strong> (routes effectives).</li><li>Écrire une <strong>route définie par l&#39;utilisateur</strong> (UDR) et la <strong>valider</strong> en Bicep.</li><li>Mettre en place le <strong>tunneling forcé</strong> (<code>0.0.0.0/0</code> → pare-feu).</li><li><strong>Chaîner un service</strong> via une <strong>NVA</strong> (+ <em>IP forwarding</em>).</li><li>Diagnostiquer un chemin avec les <strong>routes effectives</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Explain Azure&#39;s default <strong>system routes</strong>.</li><li>Apply <strong>longest prefix match</strong>.</li><li>Resolve <strong>UDR &gt; BGP &gt; system</strong> priorities (effective routes).</li><li>Write a <strong>user-defined route</strong> (UDR) and <strong>validate</strong> it in Bicep.</li><li>Set up <strong>forced tunneling</strong> (<code>0.0.0.0/0</code> → firewall).</li><li><strong>Chain a service</strong> through an <strong>NVA</strong> (+ <em>IP forwarding</em>).</li><li>Diagnose a path with <strong>effective routes</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — réseau fondamentaux (AZ-700)</strong> (VNet, sous-réseaux, adressage).</li><li>Le <strong>lab local</strong> : <strong>Bicep CLI</strong> (<code>az bicep install</code> ou binaire), <strong>Python 3</strong> (module <code>ipaddress</code>), <strong>miniblue</strong> optionnel.</li><li><strong>Aucun compte cloud</strong> : moteur de routage exécutable en local, UDR validées en Bicep.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — network fundamentals (AZ-700)</strong> guide (VNet, subnets, addressing).</li><li>The <strong>local lab</strong>: <strong>Bicep CLI</strong> (<code>az bicep install</code> or binary), <strong>Python 3</strong> (<code>ipaddress</code> module), <strong>miniblue</strong> optional.</li><li><strong>No cloud account</strong>: runnable routing engine locally, UDRs validated in Bicep.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-reseau-fondamentaux/">
+    <span class="num">82</span>
+    <span class="title-line" data-lang="fr">Azure — réseau fondamentaux (AZ-700) : VNet, adressage, DNS</span>
+    <span class="title-line" data-lang="en">Azure — network fundamentals (AZ-700): VNet, addressing, DNS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Les routes système.</strong> Azure crée <strong>automatiquement</strong> des routes pour chaque sous-réseau : vers le <strong>VNet local</strong> (trafic interne), vers les <strong>VNets peerés</strong>, et une route par défaut <code>0.0.0.0/0</code> vers <strong>Internet</strong>. Elles suffisent souvent — mais tu ne les <strong>contrôles pas</strong>. Pour dévier le trafic, il faut des <strong>routes à toi</strong>.</p>
+<p><strong>La correspondance de préfixe le plus long.</strong> Quand plusieurs routes matchent une destination, Azure choisit celle au <strong>préfixe le plus long</strong> (le plus <strong>spécifique</strong>). Exemple : pour <code>10.1.2.3</code>, une route <code>10.1.0.0/16</code> (préfixe /16) <strong>l&#39;emporte</strong> sur <code>0.0.0.0/0</code> (préfixe /0). C&#39;est <strong>la</strong> règle de sélection — la plus spécifique gagne.</p>
+<p><strong>La priorité de source (routes effectives).</strong> À <strong>préfixe égal</strong>, Azure départage par <strong>source</strong> : <strong>UDR</strong> (route définie par l&#39;utilisateur) &gt; <strong>BGP</strong> (route apprise, ex. via ExpressRoute/VPN) &gt; <strong>Système</strong> (route par défaut). Une <strong>UDR</strong> peut donc <strong>écraser</strong> une route système de même préfixe. La combinaison de toutes ces routes forme les <strong>routes effectives</strong> d&#39;une carte réseau — ce que le paquet suit <strong>réellement</strong>.</p>
+<p><strong>Les routes définies par l&#39;utilisateur (UDR).</strong> Une <strong>table de routes</strong> (route table) contient des <strong>UDR</strong> que tu <strong>attaches à un sous-réseau</strong>. Chaque UDR : un <strong>préfixe</strong> de destination + un <strong>type de prochain saut</strong> (<code>Internet</code>, <code>VirtualNetworkGateway</code>, <code>VirtualAppliance</code> avec une IP, <code>None</code> pour bloquer). C&#39;est ainsi qu&#39;on <strong>dévie</strong> le trafic — vers un pare-feu, une passerelle, un trou noir.</p>
+<p><strong>Le tunneling forcé.</strong> Par défaut, le trafic sortant part <strong>directement</strong> vers Internet (route système <code>0.0.0.0/0</code>). Le <strong>tunneling forcé</strong> ajoute une <strong>UDR</strong> <code>0.0.0.0/0</code> → <strong>appliance/pare-feu</strong> (ou passerelle) : <strong>tout</strong> le trafic sortant passe désormais par le <strong>pare-feu</strong> (inspection, journalisation, egress contrôlé) avant de sortir — ou reste <strong>on-premises</strong>. C&#39;est un contrôle <strong>de sécurité</strong> majeur exprimé par le <strong>routage</strong>.</p>
+<p><strong>Le chaînage de service (NVA).</strong> Une <strong>appliance réseau virtuelle</strong> (NVA — pare-feu tiers, proxy) s&#39;insère dans le chemin : les UDR envoient le trafic <strong>vers</strong> la NVA, qui l&#39;inspecte puis le <strong>réémet</strong>. Pour cela, la NVA doit avoir l&#39;<strong>IP forwarding</strong> activé (elle route du trafic <strong>qui ne lui est pas destiné</strong>). C&#39;est le <strong>service chaining</strong> : forcer le trafic à traverser des fonctions réseau.</p>
+<p><strong>Ce qui est live ici.</strong> La <strong>logique de routage</strong> (préfixe le plus long + priorité de source) est un <strong>moteur exécutable</strong> en Python — de <strong>vraies</strong> décisions reproduisant Azure. Les <strong>UDR</strong> et les <strong>tables de routes</strong> s&#39;écrivent et se <strong>compilent en ARM</strong> avec <strong>Bicep</strong> (validation offline ; miniblue n&#39;émule pas les tables de routes). Le <strong>tunneling forcé</strong> et le <strong>chaînage NVA</strong> se <strong>démontrent</strong> par le moteur. Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>System routes.</strong> Azure <strong>automatically</strong> creates routes for each subnet: to the <strong>local VNet</strong> (internal traffic), to <strong>peered VNets</strong>, and a default <code>0.0.0.0/0</code> route to <strong>the Internet</strong>. They often suffice — but you don&#39;t <strong>control</strong> them. To divert traffic, you need routes of <strong>your own</strong>.</p>
+<p><strong>Longest prefix match.</strong> When several routes match a destination, Azure picks the one with the <strong>longest prefix</strong> (the most <strong>specific</strong>). Example: for <code>10.1.2.3</code>, a <code>10.1.0.0/16</code> route (prefix /16) <strong>beats</strong> <code>0.0.0.0/0</code> (prefix /0). That&#39;s <strong>the</strong> selection rule — the most specific wins.</p>
+<p><strong>Source priority (effective routes).</strong> At <strong>equal prefix</strong>, Azure breaks the tie by <strong>source</strong>: <strong>UDR</strong> (user-defined route) &gt; <strong>BGP</strong> (learned route, e.g. via ExpressRoute/VPN) &gt; <strong>System</strong> (default route). So a <strong>UDR</strong> can <strong>override</strong> a system route of the same prefix. Combining all these routes forms a NIC&#39;s <strong>effective routes</strong> — what the packet <strong>actually</strong> follows.</p>
+<p><strong>User-defined routes (UDR).</strong> A <strong>route table</strong> holds <strong>UDRs</strong> you <strong>attach to a subnet</strong>. Each UDR: a destination <strong>prefix</strong> + a <strong>next-hop type</strong> (<code>Internet</code>, <code>VirtualNetworkGateway</code>, <code>VirtualAppliance</code> with an IP, <code>None</code> to block). That&#39;s how you <strong>divert</strong> traffic — to a firewall, a gateway, a black hole.</p>
+<p><strong>Forced tunneling.</strong> By default, outbound traffic goes <strong>directly</strong> to the Internet (system route <code>0.0.0.0/0</code>). <strong>Forced tunneling</strong> adds a UDR <code>0.0.0.0/0</code> → <strong>appliance/firewall</strong> (or gateway): <strong>all</strong> outbound traffic now goes through the <strong>firewall</strong> (inspection, logging, controlled egress) before leaving — or stays <strong>on-premises</strong>. It&#39;s a major <strong>security</strong> control expressed through <strong>routing</strong>.</p>
+<p><strong>Service chaining (NVA).</strong> A <strong>network virtual appliance</strong> (NVA — third-party firewall, proxy) inserts into the path: UDRs send traffic <strong>to</strong> the NVA, which inspects then <strong>re-emits</strong> it. For that, the NVA needs <strong>IP forwarding</strong> enabled (it routes traffic <strong>not addressed to it</strong>). That&#39;s <strong>service chaining</strong>: forcing traffic through network functions.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>routing logic</strong> (longest prefix + source priority) is a <strong>runnable engine</strong> in Python — <strong>real</strong> decisions reproducing Azure. <strong>UDRs</strong> and <strong>route tables</strong> are written and <strong>compiled to ARM</strong> with <strong>Bicep</strong> (offline validation; miniblue doesn&#39;t emulate route tables). <strong>Forced tunneling</strong> and <strong>NVA chaining</strong> are <strong>demonstrated</strong> by the engine. All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-reseau-routage-selection">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-reseau-routage-selection">
+  <title id="s-azure-reseau-routage-selection">Sélection de route Azure</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Sélection de route Azure</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Routes qui matchent</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">Préfixe le plus long</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">le plus spécifique</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">Priorité de source</text><text class="sub" x="474" y="83.5" text-anchor="middle">UDR &gt; BGP &gt; Système</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">UDR 0.0.0.0/0</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">tunneling forcé → pare-feu</text><text class="sub" x="380" y="144" text-anchor="middle">routes effectives = système + BGP + UDR combinées</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La sélection de route Azure : pour une destination, on retient les routes qui MATCHENT, puis on choisit le PRÉFIXE LE PLUS LONG (le plus spécifique) ; à préfixe égal, la PRIORITÉ DE SOURCE tranche (UDR &gt; BGP &gt; Système). Une UDR 0.0.0.0/0 → PARE-FEU (tunneling forcé) dévie TOUT l&#39;egress par l&#39;appliance. Les routes effectives = système + BGP + UDR combinées.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Azure route selection: for a destination, keep the routes that MATCH, then pick the LONGEST PREFIX (most specific); at equal prefix, SOURCE PRIORITY decides (UDR &gt; BGP &gt; System). A UDR 0.0.0.0/0 → FIREWALL (forced tunneling) diverts ALL egress through the appliance. Effective routes = system + BGP + UDR combined.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>routes système</strong> — ce qu&#39;Azure fournit par défaut.</p>
+<p><strong>🤔 Le routage existe déjà.</strong> Sans rien faire, Azure crée des routes : vers le <strong>VNet local</strong>, vers les <strong>VNets peerés</strong>, et vers <strong>Internet</strong> (<code>0.0.0.0/0</code>). On les pose comme base de notre moteur.</p>
+<p>Écris les routes système de base :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>system routes</strong> — what Azure provides by default.</p>
+<p><strong>🤔 Routing already exists.</strong> Without doing anything, Azure creates routes: to the <strong>local VNet</strong>, to <strong>peered VNets</strong>, and to the <strong>Internet</strong> (<code>0.0.0.0/0</code>). We lay them as our engine&#39;s base.</p>
+<p>Write the base system routes:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p routage &amp;&amp; cd routage
+cat &gt; routes.py &lt;&lt;&#39;PY&#39;
+# Routes SYSTEME par defaut (Azure les cree automatiquement)
+ROUTES_SYSTEME = [
+    {&quot;prefixe&quot;: &quot;10.0.0.0/16&quot;, &quot;next_hop&quot;: &quot;VNet local&quot;, &quot;source&quot;: &quot;Systeme&quot;},
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;,   &quot;next_hop&quot;: &quot;Internet&quot;,   &quot;source&quot;: &quot;Systeme&quot;},
+]
+print(&quot;Routes systeme par defaut :&quot;)
+for r in ROUTES_SYSTEME:
+    print(f&quot;  {r[&#39;prefixe&#39;]:14} -&gt; {r[&#39;next_hop&#39;]:12} [{r[&#39;source&#39;]}]&quot;)
+PY
+python3 routes.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie liste les deux routes système : <code>10.0.0.0/16 -&gt; VNet local</code> (le trafic interne reste dans le VNet) et <code>0.0.0.0/0 -&gt; Internet</code> (le reste part vers Internet). Ce sont les routes qu&#39;Azure <strong>crée seul</strong> pour chaque sous-réseau — tu n&#39;as <strong>rien</strong> écrit. Elles fonctionnent, mais tu ne les <strong>contrôles pas</strong> : impossible de forcer une inspection ou un egress par pare-feu <strong>avec les seules routes système</strong>. Pour cela, il faut comprendre <strong>comment Azure choisit</strong> une route.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output lists the two system routes: <code>10.0.0.0/16 -&gt; VNet local</code> (internal traffic stays in the VNet) and <code>0.0.0.0/0 -&gt; Internet</code> (the rest goes to the Internet). These are the routes Azure <strong>creates by itself</strong> for each subnet — you wrote <strong>nothing</strong>. They work, but you don&#39;t <strong>control</strong> them: you can&#39;t force inspection or firewall egress <strong>with system routes alone</strong>. For that, you must understand <strong>how Azure picks</strong> a route.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Appliquer la <strong>correspondance de préfixe le plus long</strong>.</p>
+<p><strong>🤔 La plus spécifique gagne.</strong> Quand plusieurs routes matchent, Azure choisit le <strong>préfixe le plus long</strong>. On écrit le <strong>moteur</strong> qui applique cette règle et on l&#39;éprouve sur trois destinations.</p>
+<p>Écris le moteur de routage et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Apply <strong>longest prefix match</strong>.</p>
+<p><strong>🤔 The most specific wins.</strong> When several routes match, Azure picks the <strong>longest prefix</strong>. We write the <strong>engine</strong> that applies this rule and test it on three destinations.</p>
+<p>Write the routing engine and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; routage.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+# Priorite de source pour departager a prefixe EGAL / source priority at EQUAL prefix
+PRIORITE = {&quot;UDR&quot;: 0, &quot;BGP&quot;: 1, &quot;Systeme&quot;: 2}
+
+def router(routes, dest_ip):
+    ip = ipaddress.ip_address(dest_ip)
+    candidats = [r for r in routes if ip in ipaddress.ip_network(r[&quot;prefixe&quot;])]
+    if not candidats:
+        return {&quot;next_hop&quot;: &quot;AUCUNE (paquet perdu)&quot;, &quot;prefixe&quot;: &quot;-&quot;, &quot;source&quot;: &quot;-&quot;}
+    # prefixe le plus long d&#39;abord, puis priorite de source
+    candidats.sort(key=lambda r: (-ipaddress.ip_network(r[&quot;prefixe&quot;]).prefixlen, PRIORITE[r[&quot;source&quot;]]))
+    return candidats[0]
+
+routes = [
+    {&quot;prefixe&quot;: &quot;10.0.0.0/16&quot;, &quot;next_hop&quot;: &quot;VNet local&quot;, &quot;source&quot;: &quot;Systeme&quot;},
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;,   &quot;next_hop&quot;: &quot;Internet&quot;,   &quot;source&quot;: &quot;Systeme&quot;},
+]
+for dest in [&quot;10.0.5.10&quot;, &quot;8.8.8.8&quot;]:
+    r = router(routes, dest)
+    print(f&quot;{dest:12} -&gt; {r[&#39;next_hop&#39;]:12} (prefixe {r[&#39;prefixe&#39;]}, source {r[&#39;source&#39;]})&quot;)
+PY
+python3 routage.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre <code>10.0.5.10 -&gt; VNet local (prefixe 10.0.0.0/16)</code> et <code>8.8.8.8 -&gt; Internet (prefixe 0.0.0.0/0)</code>. Pour <code>10.0.5.10</code>, <strong>deux</strong> routes matchaient (<code>10.0.0.0/16</code> <strong>et</strong> <code>0.0.0.0/0</code>) — le moteur a choisi la <strong>plus spécifique</strong> (<code>/16</code> &gt; <code>/0</code>). Pour <code>8.8.8.8</code>, seule <code>0.0.0.0/0</code> matchait. C&#39;est <strong>exactement</strong> la règle d&#39;Azure : <strong>préfixe le plus long</strong>. Maintenant qu&#39;on sait choisir, on va <strong>ajouter nos propres routes</strong> pour dévier le trafic.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>10.0.5.10 -&gt; VNet local (prefixe 10.0.0.0/16)</code> and <code>8.8.8.8 -&gt; Internet (prefixe 0.0.0.0/0)</code>. For <code>10.0.5.10</code>, <strong>two</strong> routes matched (<code>10.0.0.0/16</code> <strong>and</strong> <code>0.0.0.0/0</code>) — the engine picked the <strong>most specific</strong> (<code>/16</code> &gt; <code>/0</code>). For <code>8.8.8.8</code>, only <code>0.0.0.0/0</code> matched. That&#39;s <strong>exactly</strong> Azure&#39;s rule: <strong>longest prefix</strong>. Now that we can pick, we&#39;ll <strong>add our own routes</strong> to divert traffic.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong>route définie par l&#39;utilisateur</strong> (UDR) et la <strong>valider</strong> en Bicep.</p>
+<p><strong>🤔 Tes propres routes.</strong> Une <strong>table de routes</strong> contient des <strong>UDR</strong> attachées à un sous-réseau. On en écrit une (<code>0.0.0.0/0</code> → appliance à <code>10.0.0.4</code>) en Bicep et on la <strong>compile</strong> (validation).</p>
+<p>Écris la table de routes en Bicep et valide-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>user-defined route</strong> (UDR) and <strong>validate</strong> it in Bicep.</p>
+<p><strong>🤔 Your own routes.</strong> A <strong>route table</strong> holds <strong>UDRs</strong> attached to a subnet. We write one (<code>0.0.0.0/0</code> → appliance at <code>10.0.0.4</code>) in Bicep and <strong>compile</strong> it (validation).</p>
+<p>Write the route table in Bicep and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; rt.bicep &lt;&lt;&#39;BICEP&#39;
+resource rt &#39;Microsoft.Network/routeTables@2023-05-01&#39; = {
+  name: &#39;rt-spoke&#39;
+  location: resourceGroup().location
+  properties: {
+    routes: [
+      {
+        name: &#39;vers-firewall&#39;
+        properties: {
+          addressPrefix: &#39;0.0.0.0/0&#39;          // toute destination
+          nextHopType: &#39;VirtualAppliance&#39;     // via une appliance (NVA/pare-feu)
+          nextHopIpAddress: &#39;10.0.0.4&#39;        // l&#39;IP de l&#39;appliance
+        }
+      }
+    ]
+  }
+}
+BICEP
+
+bicep build rt.bicep --stdout 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;table de routes -&gt; ARM OK, ressource:&#39;, d[&#39;resources&#39;][0][&#39;type&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>table de routes -&gt; ARM OK, ressource: Microsoft.Network/routeTables</code>. La table est <strong>valide</strong> : elle contient une <strong>UDR</strong> <code>0.0.0.0/0</code> → <code>VirtualAppliance</code> à <code>10.0.0.4</code>. Attachée à un sous-réseau (en vrai Azure), elle <strong>redirige</strong> tout le trafic sortant vers l&#39;appliance <strong>au lieu</strong> d&#39;Internet. Note les pièces d&#39;une UDR : le <strong>préfixe</strong> (destination) et le <strong>type de prochain saut</strong> (<code>Internet</code>, <code>VirtualNetworkGateway</code>, <code>VirtualAppliance</code>, ou <code>None</code> pour bloquer). ⚠️ miniblue n&#39;exécute pas les tables de routes : on les <strong>valide</strong> en Bicep. On voit maintenant l&#39;effet : le <strong>tunneling forcé</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>table de routes -&gt; ARM OK, ressource: Microsoft.Network/routeTables</code>. The table is <strong>valid</strong>: it holds a <strong>UDR</strong> <code>0.0.0.0/0</code> → <code>VirtualAppliance</code> at <code>10.0.0.4</code>. Attached to a subnet (in real Azure), it <strong>redirects</strong> all outbound traffic to the appliance <strong>instead of</strong> the Internet. Note a UDR&#39;s parts: the <strong>prefix</strong> (destination) and the <strong>next-hop type</strong> (<code>Internet</code>, <code>VirtualNetworkGateway</code>, <code>VirtualAppliance</code>, or <code>None</code> to block). ⚠️ miniblue doesn&#39;t execute route tables: we <strong>validate</strong> them in Bicep. Now let&#39;s see the effect: <strong>forced tunneling</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mettre en place le <strong>tunneling forcé</strong> — tout l&#39;egress par le pare-feu.</p>
+<p><strong>🤔 Reprendre le contrôle de la sortie.</strong> On ajoute l&#39;UDR <code>0.0.0.0/0</code> → pare-feu à nos routes, avec la <strong>priorité de source</strong> (UDR &gt; système). Résultat : le trafic Internet ne part <strong>plus</strong> directement, il passe par le <strong>pare-feu</strong>.</p>
+<p>Ajoute l&#39;UDR et observe le déroutage :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set up <strong>forced tunneling</strong> — all egress through the firewall.</p>
+<p><strong>🤔 Regain control of egress.</strong> We add the UDR <code>0.0.0.0/0</code> → firewall to our routes, with <strong>source priority</strong> (UDR &gt; system). Result: Internet traffic no longer leaves <strong>directly</strong>, it goes through the <strong>firewall</strong>.</p>
+<p>Add the UDR and observe the diversion:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt;&gt; routage.py &lt;&lt;&#39;PY&#39;
+
+# Tunneling force : une UDR 0.0.0.0/0 -&gt; pare-feu ecrase la route systeme Internet
+routes_avec_udr = routes + [
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;, &quot;next_hop&quot;: &quot;Pare-feu (10.0.0.4)&quot;, &quot;source&quot;: &quot;UDR&quot;},
+]
+print(&quot;--- avec tunneling force / with forced tunneling ---&quot;)
+for dest in [&quot;8.8.8.8&quot;, &quot;10.0.5.10&quot;]:
+    r = router(routes_avec_udr, dest)
+    print(f&quot;{dest:12} -&gt; {r[&#39;next_hop&#39;]:22} (prefixe {r[&#39;prefixe&#39;]}, source {r[&#39;source&#39;]})&quot;)
+PY
+python3 routage.py | tail -3</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avec l&#39;UDR, <code>8.8.8.8 -&gt; Pare-feu (10.0.0.4) (prefixe 0.0.0.0/0, source UDR)</code> : le trafic Internet passe désormais par le <strong>pare-feu</strong> (la route système Internet est <strong>écrasée</strong> par l&#39;UDR de même préfixe, priorité <strong>UDR &gt; Système</strong>). Mais <code>10.0.5.10 -&gt; VNet local</code> reste inchangé : sa route <code>/16</code> est <strong>plus spécifique</strong> que le <code>/0</code> de l&#39;UDR — le trafic <strong>interne</strong> n&#39;est <strong>pas</strong> dérouté. C&#39;est le <strong>tunneling forcé</strong> : tout l&#39;<strong>egress</strong> est inspecté par le pare-feu, sans casser le trafic <strong>local</strong>. Un contrôle de sécurité <strong>exprimé par le routage</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> with the UDR, <code>8.8.8.8 -&gt; Pare-feu (10.0.0.4) (prefixe 0.0.0.0/0, source UDR)</code>: Internet traffic now goes through the <strong>firewall</strong> (the system Internet route is <strong>overridden</strong> by the same-prefix UDR, priority <strong>UDR &gt; System</strong>). But <code>10.0.5.10 -&gt; VNet local</code> stays unchanged: its <code>/16</code> route is <strong>more specific</strong> than the UDR&#39;s <code>/0</code> — <strong>internal</strong> traffic is <strong>not</strong> diverted. That&#39;s <strong>forced tunneling</strong>: all <strong>egress</strong> is inspected by the firewall, without breaking <strong>local</strong> traffic. A security control <strong>expressed through routing</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire les <strong>routes effectives</strong> — combiner système, BGP et UDR.</p>
+<p><strong>🤔 Ce que le paquet suit vraiment.</strong> Les routes viennent de <strong>trois sources</strong> (système, BGP appris, UDR). Les <strong>routes effectives</strong> les combinent, avec la priorité <strong>UDR &gt; BGP &gt; Système</strong> à préfixe égal. On ajoute une route <strong>BGP</strong> (VNet peeré) et on lit le résultat.</p>
+<p>Combine les trois sources et lis les routes effectives :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read the <strong>effective routes</strong> — combine system, BGP and UDR.</p>
+<p><strong>🤔 What the packet actually follows.</strong> Routes come from <strong>three sources</strong> (system, learned BGP, UDR). The <strong>effective routes</strong> combine them, with priority <strong>UDR &gt; BGP &gt; System</strong> at equal prefix. We add a <strong>BGP</strong> route (peered VNet) and read the result.</p>
+<p>Combine the three sources and read the effective routes:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; effectives.py &lt;&lt;&#39;PY&#39;
+import ipaddress
+PRIORITE = {&quot;UDR&quot;: 0, &quot;BGP&quot;: 1, &quot;Systeme&quot;: 2}
+def router(routes, dest_ip):
+    ip = ipaddress.ip_address(dest_ip)
+    c = [r for r in routes if ip in ipaddress.ip_network(r[&quot;prefixe&quot;])]
+    c.sort(key=lambda r: (-ipaddress.ip_network(r[&quot;prefixe&quot;]).prefixlen, PRIORITE[r[&quot;source&quot;]]))
+    return c[0]
+
+# Routes effectives = systeme + BGP (appris) + UDR
+effectives = [
+    {&quot;prefixe&quot;: &quot;10.0.0.0/16&quot;, &quot;next_hop&quot;: &quot;VNet local&quot;,       &quot;source&quot;: &quot;Systeme&quot;},
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;,   &quot;next_hop&quot;: &quot;Internet&quot;,         &quot;source&quot;: &quot;Systeme&quot;},
+    {&quot;prefixe&quot;: &quot;10.1.0.0/16&quot;, &quot;next_hop&quot;: &quot;Peering (spoke)&quot;,  &quot;source&quot;: &quot;BGP&quot;},      # appris
+    {&quot;prefixe&quot;: &quot;0.0.0.0/0&quot;,   &quot;next_hop&quot;: &quot;Pare-feu (10.0.0.4)&quot;, &quot;source&quot;: &quot;UDR&quot;},   # tunneling force
+]
+for dest in [&quot;10.0.5.10&quot;, &quot;10.1.2.3&quot;, &quot;8.8.8.8&quot;]:
+    r = router(effectives, dest)
+    print(f&quot;{dest:12} -&gt; {r[&#39;next_hop&#39;]:22} (prefixe {r[&#39;prefixe&#39;]}, source {r[&#39;source&#39;]})&quot;)
+PY
+python3 effectives.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les routes effectives donnent : <code>10.0.5.10 -&gt; VNet local (Systeme)</code>, <code>10.1.2.3 -&gt; Peering (spoke) (BGP)</code>, <code>8.8.8.8 -&gt; Pare-feu (UDR)</code>. Trois sources, une décision par destination : le trafic <strong>interne</strong> reste local (route système la plus spécifique), le trafic vers le <strong>spoke</strong> suit la route <strong>BGP</strong> apprise (<code>/16</code>), et l&#39;<strong>egress Internet</strong> est <strong>forcé</strong> par le pare-feu (UDR). Ce sont les <strong>routes effectives</strong> — ce que le paquet suit <strong>réellement</strong>, toutes sources confondues. C&#39;est <strong>la</strong> vue à consulter pour diagnostiquer un chemin.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the effective routes give: <code>10.0.5.10 -&gt; VNet local (Systeme)</code>, <code>10.1.2.3 -&gt; Peering (spoke) (BGP)</code>, <code>8.8.8.8 -&gt; Pare-feu (UDR)</code>. Three sources, one decision per destination: <strong>internal</strong> traffic stays local (most specific system route), traffic to the <strong>spoke</strong> follows the learned <strong>BGP</strong> route (<code>/16</code>), and <strong>Internet egress</strong> is <strong>forced</strong> through the firewall (UDR). These are the <strong>effective routes</strong> — what the packet <strong>actually</strong> follows, all sources combined. It&#39;s <strong>the</strong> view to check when diagnosing a path.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Chaîner un service</strong> via une <strong>NVA</strong> — et l&#39;<em>IP forwarding</em>.</p>
+<p><strong>🤔 Faire traverser une fonction réseau.</strong> Une <strong>appliance réseau virtuelle</strong> (pare-feu tiers) inspecte le trafic <strong>au milieu</strong> du chemin. Pour router du trafic <strong>qui ne lui est pas destiné</strong>, elle a besoin de l&#39;<strong>IP forwarding</strong>. On modélise le chaînage et la condition.</p>
+<p>Modélise le chaînage de service :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Chain a service</strong> through an <strong>NVA</strong> — and <em>IP forwarding</em>.</p>
+<p><strong>🤔 Route through a network function.</strong> A <strong>network virtual appliance</strong> (third-party firewall) inspects traffic <strong>in the middle</strong> of the path. To route traffic <strong>not addressed to it</strong>, it needs <strong>IP forwarding</strong>. We model the chaining and the condition.</p>
+<p>Model the service chaining:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; nva.py &lt;&lt;&#39;PY&#39;
+# Chainage de service : le trafic passe PAR la NVA, qui le reemet.
+# Condition : la NVA doit avoir l&#39;IP forwarding active (router ce qui ne lui est pas destine).
+def traverser_nva(ip_forwarding, dest):
+    if not ip_forwarding:
+        return f&quot;{dest}: ❌ paquet ABANDONNE (IP forwarding desactive sur la NVA)&quot;
+    return f&quot;{dest}: ✅ inspecte par la NVA puis reemis vers {dest}&quot;
+
+print(&quot;NVA sans IP forwarding :&quot;)
+print(&quot; &quot;, traverser_nva(False, &quot;8.8.8.8&quot;))
+print(&quot;NVA avec IP forwarding :&quot;)
+print(&quot; &quot;, traverser_nva(True, &quot;8.8.8.8&quot;))
+PY
+python3 nva.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sans IP forwarding, <code>8.8.8.8: ❌ paquet ABANDONNE</code> — la NVA <strong>jette</strong> le trafic qui ne lui est pas destiné (comportement par défaut d&#39;une carte réseau). Avec IP forwarding <strong>activé</strong>, <code>8.8.8.8: ✅ inspecte par la NVA puis reemis</code>. Le <strong>chaînage de service</strong> combine donc <strong>deux</strong> choses : (1) des <strong>UDR</strong> qui envoient le trafic <strong>vers</strong> la NVA (step-04), et (2) l&#39;<strong>IP forwarding</strong> activé sur la NVA pour qu&#39;elle <strong>route</strong> ce trafic. Oublier l&#39;IP forwarding est <strong>l&#39;erreur classique</strong> : le pare-feu reçoit le trafic mais le <strong>jette</strong>. Les deux ensemble = inspection en ligne.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> without IP forwarding, <code>8.8.8.8: ❌ paquet ABANDONNE</code> — the NVA <strong>drops</strong> traffic not addressed to it (a NIC&#39;s default behavior). With IP forwarding <strong>enabled</strong>, <code>8.8.8.8: ✅ inspecte par la NVA puis reemis</code>. So <strong>service chaining</strong> combines <strong>two</strong> things: (1) <strong>UDRs</strong> that send traffic <strong>to</strong> the NVA (step-04), and (2) <strong>IP forwarding</strong> enabled on the NVA so it <strong>routes</strong> that traffic. Forgetting IP forwarding is <strong>the classic mistake</strong>: the firewall receives traffic but <strong>drops</strong> it. Both together = inline inspection.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler le <strong>routage</strong> et récapituler.</p>
+<p><strong>🤔 Le routage, de bout en bout.</strong> On récapitule la mécanique — routes système, sélection, UDR, tunneling forcé, routes effectives, chaînage — qui permet de <strong>contrôler tous les chemins</strong>.</p>
+<p>Récapitule le routage :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble <strong>routing</strong> and recap.</p>
+<p><strong>🤔 Routing, end to end.</strong> We recap the mechanics — system routes, selection, UDR, forced tunneling, effective routes, chaining — that let you <strong>control all paths</strong>.</p>
+<p>Recap routing:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Routage Azure (AZ-700) / Azure routing ===&quot;
+printf &quot;%-22s %s\n&quot; &quot;Routes systeme&quot;       &quot;creees seules : VNet local, peering, Internet&quot;
+printf &quot;%-22s %s\n&quot; &quot;Selection&quot;            &quot;prefixe LE PLUS LONG (le plus specifique gagne)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Priorite de source&quot;   &quot;UDR &gt; BGP &gt; Systeme (a prefixe egal)&quot;
+printf &quot;%-22s %s\n&quot; &quot;UDR&quot;                   &quot;tes routes : prefixe + next hop (dans une route table)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Tunneling force&quot;       &quot;UDR 0.0.0.0/0 -&gt; pare-feu (tout l&#39;egress inspecte)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Chainage (NVA)&quot;        &quot;UDR vers la NVA + IP forwarding active&quot;
+echo &quot;-&gt; routes effectives = systeme + BGP + UDR : ce que le paquet suit vraiment.&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule la <strong>mécanique complète</strong> du routage. Tu tiens le pilier <strong>routage</strong> de l&#39;AZ-700 : comprendre les <strong>routes système</strong>, appliquer le <strong>préfixe le plus long</strong> et la <strong>priorité de source</strong>, écrire des <strong>UDR</strong>, forcer l&#39;egress par un <strong>pare-feu</strong> (tunneling forcé), lire les <strong>routes effectives</strong> et <strong>chaîner</strong> une NVA. Tu <strong>contrôles</strong> désormais où va chaque paquet — pas seulement s&#39;il passe (NSG, AZ-500), mais <strong>par où</strong>. La suite du track AZ-700 : la <strong>connectivité hybride</strong> (VPN, ExpressRoute, peering) puis la <strong>distribution</strong> applicative (équilibrage de charge).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps routing&#39;s <strong>full mechanics</strong>. You hold the <strong>routing</strong> pillar of AZ-700: understanding <strong>system routes</strong>, applying <strong>longest prefix</strong> and <strong>source priority</strong>, writing <strong>UDRs</strong>, forcing egress through a <strong>firewall</strong> (forced tunneling), reading <strong>effective routes</strong> and <strong>chaining</strong> an NVA. You now <strong>control</strong> where each packet goes — not just whether it passes (NSG, AZ-500), but <strong>which way</strong>. Next in the AZ-700 track: <strong>hybrid connectivity</strong> (VPN, ExpressRoute, peering) then application <strong>delivery</strong> (load balancing).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire que les routes système suffisent.</strong> Elles marchent mais tu ne les <strong>contrôles pas</strong>. Pour dévier (pare-feu, passerelle), il faut des <strong>UDR</strong>.</p>
+<p><strong>2. Ignorer le préfixe le plus long.</strong> Une route <code>/16</code> <strong>l&#39;emporte</strong> sur <code>/0</code>. Une UDL <code>0.0.0.0/0</code> ne dévie <strong>pas</strong> le trafic interne (<code>/16</code> plus spécifique). C&#39;est <strong>voulu</strong>.</p>
+<p><strong>3. UDR sans IP forwarding sur la NVA.</strong> Le trafic arrive à la NVA… qui le <strong>jette</strong> (pas de forwarding). Active l&#39;<strong>IP forwarding</strong>.</p>
+<p><strong>4. Tunneling forcé qui casse tout.</strong> Rediriger <code>0.0.0.0/0</code> vers une appliance <strong>injoignable</strong> ou mal configurée coupe <strong>tout</strong> l&#39;egress. Teste le chemin.</p>
+<p><strong>5. Confondre routage et filtrage.</strong> Le <strong>routage</strong> décide <strong>où</strong> va le paquet ; le <strong>NSG</strong> décide <strong>s&#39;il</strong> passe. Deux mécanismes distincts, complémentaires.</p>
+<p><strong>6. Oublier les routes effectives.</strong> Pour diagnostiquer, regarde les <strong>routes effectives</strong> de la carte réseau (système + BGP + UDR combinés), pas juste la table de routes.</p>
+<p><strong>7. Prochain saut <code>None</code> par erreur.</strong> <code>nextHopType: None</code> <strong>bloque</strong> (trou noir) le préfixe. Utile pour bloquer, dangereux par accident.</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking system routes suffice.</strong> They work but you don&#39;t <strong>control</strong> them. To divert (firewall, gateway), you need <strong>UDRs</strong>.</p>
+<p><strong>2. Ignoring longest prefix.</strong> A <code>/16</code> route <strong>beats</strong> <code>/0</code>. A <code>0.0.0.0/0</code> UDR does <strong>not</strong> divert internal traffic (<code>/16</code> more specific). That&#39;s <strong>intended</strong>.</p>
+<p><strong>3. UDR without IP forwarding on the NVA.</strong> Traffic reaches the NVA… which <strong>drops</strong> it (no forwarding). Enable <strong>IP forwarding</strong>.</p>
+<p><strong>4. Forced tunneling that breaks everything.</strong> Redirecting <code>0.0.0.0/0</code> to an <strong>unreachable</strong> or misconfigured appliance cuts <strong>all</strong> egress. Test the path.</p>
+<p><strong>5. Confusing routing and filtering.</strong> <strong>Routing</strong> decides <strong>where</strong> the packet goes; the <strong>NSG</strong> decides <strong>whether</strong> it passes. Two distinct, complementary mechanisms.</p>
+<p><strong>6. Forgetting effective routes.</strong> To diagnose, look at the NIC&#39;s <strong>effective routes</strong> (system + BGP + UDR combined), not just the route table.</p>
+<p><strong>7. Next hop <code>None</code> by mistake.</strong> <code>nextHopType: None</code> <strong>blocks</strong> (black hole) the prefix. Useful to block, dangerous by accident.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu expliques les <strong>routes système</strong> par défaut.</li><li>Tu appliques le <strong>préfixe le plus long</strong> et la <strong>priorité de source</strong> (UDR &gt; BGP &gt; système).</li><li>Tu écris une <strong>UDR</strong> (table de routes) et la <strong>valides</strong> en Bicep.</li><li>Tu mets en place le <strong>tunneling forcé</strong> (<code>0.0.0.0/0</code> → pare-feu) <strong>sans</strong> casser le trafic interne.</li><li>Tu lis les <strong>routes effectives</strong> (trois sources combinées).</li><li>Tu <strong>chaînes</strong> une NVA en activant l&#39;<strong>IP forwarding</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You explain the default <strong>system routes</strong>.</li><li>You apply <strong>longest prefix</strong> and <strong>source priority</strong> (UDR &gt; BGP &gt; system).</li><li>You write a <strong>UDR</strong> (route table) and <strong>validate</strong> it in Bicep.</li><li>You set up <strong>forced tunneling</strong> (<code>0.0.0.0/0</code> → firewall) <strong>without</strong> breaking internal traffic.</li><li>You read the <strong>effective routes</strong> (three sources combined).</li><li>You <strong>chain</strong> an NVA by enabling <strong>IP forwarding</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — connectivité hybride (AZ-700)</em> — VPN, ExpressRoute, peering de VNets.</li><li><strong>Réviser :</strong> <em>Azure — réseau fondamentaux (AZ-700)</em> pour l&#39;adressage.</li><li><strong>S&#39;entraîner :</strong> ajoute une UDR <code>None</code> (trou noir) sur un préfixe et observe l&#39;effet dans le moteur ; ajoute une route BGP plus spécifique qu&#39;une UDR.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — hybrid connectivity (AZ-700)</em> — VPN, ExpressRoute, VNet peering.</li><li><strong>Review:</strong> <em>Azure — network fundamentals (AZ-700)</em> for addressing.</li><li><strong>Practice:</strong> add a <code>None</code> UDR (black hole) on a prefix and observe the engine&#39;s effect; add a BGP route more specific than a UDR.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>La sélection de route (dans l&#39;ordre)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. Garder les routes qui MATCHENT la destination
+2. Choisir le PREFIXE LE PLUS LONG (le plus specifique)
+3. A prefixe egal : UDR &gt; BGP &gt; Systeme (priorite de source)
+-&gt; routes effectives = systeme + BGP + UDR combinees</code></pre>
+<p><strong>Types de prochain saut (UDR)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Internet               sortie directe
+VirtualNetworkGateway  vers une passerelle VPN/ExpressRoute
+VirtualAppliance       vers une NVA (avec next_hop_in_ip_address)
+VnetLocal              dans le VNet
+None                   bloquer (trou noir)</code></pre>
+<p><strong>UDR en Bicep</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Microsoft.Network/routeTables : routes[] { addressPrefix, nextHopType, nextHopIpAddress }
+bicep build rt.bicep --stdout        # valider la table</code></pre>
+<p><strong>Tunneling force &amp; NVA</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>UDR 0.0.0.0/0 -&gt; VirtualAppliance (pare-feu)  = tout l&#39;egress inspecte
+NVA : IP forwarding OBLIGATOIRE (router ce qui ne lui est pas destine)</code></pre>
+</div>
+<div data-lang="en"><p><strong>Route selection (in order)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. Keep the routes that MATCH the destination
+2. Pick the LONGEST PREFIX (most specific)
+3. At equal prefix: UDR &gt; BGP &gt; System (source priority)
+-&gt; effective routes = system + BGP + UDR combined</code></pre>
+<p><strong>Next-hop types (UDR)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Internet               direct egress
+VirtualNetworkGateway  to a VPN/ExpressRoute gateway
+VirtualAppliance       to an NVA (with next_hop_in_ip_address)
+VnetLocal              inside the VNet
+None                   block (black hole)</code></pre>
+<p><strong>UDR in Bicep</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Microsoft.Network/routeTables: routes[] { addressPrefix, nextHopType, nextHopIpAddress }
+bicep build rt.bicep --stdout        # validate the table</code></pre>
+<p><strong>Forced tunneling &amp; NVA</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>UDR 0.0.0.0/0 -&gt; VirtualAppliance (firewall)  = all egress inspected
+NVA: IP forwarding MANDATORY (route traffic not addressed to it)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Routage Azure</strong> : routes système, UDR, sélection, routes effectives — Microsoft Learn.</li><li><strong>Tables de routes (UDR)</strong> : préfixes, types de prochain saut — Microsoft Learn.</li><li><strong>Tunneling forcé</strong> : forcer l&#39;egress par une appliance/passerelle — Microsoft Learn (AZ-700).</li><li><strong>Appliances réseau virtuelles (NVA)</strong> : IP forwarding, service chaining — Microsoft Learn.</li><li><strong>BGP dans Azure</strong> : routes apprises via VPN/ExpressRoute — Microsoft Learn.</li><li><strong>Bicep</strong> : <code>Microsoft.Network/routeTables</code> — Microsoft Learn.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Azure routing</strong>: system routes, UDR, selection, effective routes — Microsoft Learn.</li><li><strong>Route tables (UDR)</strong>: prefixes, next-hop types — Microsoft Learn.</li><li><strong>Forced tunneling</strong>: forcing egress through an appliance/gateway — Microsoft Learn (AZ-700).</li><li><strong>Network virtual appliances (NVA)</strong>: IP forwarding, service chaining — Microsoft Learn.</li><li><strong>BGP in Azure</strong>: routes learned via VPN/ExpressRoute — Microsoft Learn.</li><li><strong>Bicep</strong>: <code>Microsoft.Network/routeTables</code> — Microsoft Learn.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>bicep : command not found</code> (step-03).</strong> <code>az bicep install</code>, ou installe le binaire autonome (releases GitHub <code>Azure/bicep</code>).</p>
+<p><strong>Le moteur choisit une route inattendue.</strong> Rappelle la règle : <strong>préfixe le plus long d&#39;abord</strong>, puis <strong>priorité de source</strong>. Une route <code>/16</code> bat une <code>/0</code> même si cette dernière est une UDR — c&#39;est <strong>normal</strong> (la spécificité prime sur la source).</p>
+<p><strong>Ma UDR <code>0.0.0.0/0</code> ne dévie pas le trafic interne.</strong> C&#39;est <strong>voulu</strong> : la route système <code>10.0.0.0/16</code> (VNet local) est <strong>plus spécifique</strong> que le <code>/0</code>. Le tunneling forcé ne concerne que l&#39;<strong>egress</strong> (Internet), pas le trafic <strong>intra-VNet</strong>.</p>
+<p><strong>Le trafic arrive à la NVA mais « disparaît ».</strong> L&#39;<strong>IP forwarding</strong> n&#39;est pas activé sur la NVA : elle jette ce qui ne lui est pas destiné. Active-le (step-06).</p>
+<p><strong>Les tables de routes ne se déploient pas en local.</strong> miniblue ne les émule pas. On <strong>valide</strong> en <strong>Bicep</strong> (<code>bicep build</code>) et on <strong>raisonne</strong> la logique avec le moteur ; l&#39;exécution vise du vrai Azure.</p>
+<p><strong><code>ipaddress</code> : <code>has host bits set</code>.</strong> Utilise l&#39;<strong>adresse réseau</strong> d&#39;un préfixe (<code>10.0.0.0/16</code>, pas <code>10.0.5.0/16</code>) ou <code>strict=False</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>bicep: command not found</code> (step-03).</strong> <code>az bicep install</code>, or install the standalone binary (GitHub <code>Azure/bicep</code> releases).</p>
+<p><strong>The engine picks an unexpected route.</strong> Recall the rule: <strong>longest prefix first</strong>, then <strong>source priority</strong>. A <code>/16</code> route beats a <code>/0</code> even if the latter is a UDR — that&#39;s <strong>normal</strong> (specificity trumps source).</p>
+<p><strong>My <code>0.0.0.0/0</code> UDR doesn&#39;t divert internal traffic.</strong> That&#39;s <strong>intended</strong>: the system route <code>10.0.0.0/16</code> (local VNet) is <strong>more specific</strong> than the <code>/0</code>. Forced tunneling only concerns <strong>egress</strong> (Internet), not <strong>intra-VNet</strong> traffic.</p>
+<p><strong>Traffic reaches the NVA but &quot;disappears&quot;.</strong> <strong>IP forwarding</strong> isn&#39;t enabled on the NVA: it drops what&#39;s not addressed to it. Enable it (step-06).</p>
+<p><strong>Route tables won&#39;t deploy locally.</strong> miniblue doesn&#39;t emulate them. We <strong>validate</strong> in <strong>Bicep</strong> (<code>bicep build</code>) and <strong>reason</strong> about the logic with the engine; execution targets real Azure.</p>
+<p><strong><code>ipaddress</code>: <code>has host bits set</code>.</strong> Use a prefix&#39;s <strong>network address</strong> (<code>10.0.0.0/16</code>, not <code>10.0.5.0/16</code>) or <code>strict=False</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

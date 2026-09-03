@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — l&#39;IaC dans les pipelines (AZ-400) : validate, plan, apply — jiha.tech</title>
+  <title data-lang="en">Azure — IaC in pipelines (AZ-400): validate, plan, apply — jiha.tech</title>
+  <meta name="description" content="&quot;Déployer l&#39;infrastructure comme du code depuis une pipeline, pour l&#39;AZ-400, en local et pour de vrai (miniblue) : l&#39;hygiène IaC en CI (fmt -check + validate qui échouent tôt), le terraform plan comme dry-run, le plan sauvegardé en ARTEFACT (plan -out) revu par un humain puis appliqué à l&#39;identique (apply tfplan), l&#39;apply LIVE de ressources sur l&#39;émulateur, la pipeline multi-stages Valider → Plan → Apply avec porte d&#39;environnement et approbation, la variante Bicep (build + what-if) et le multi-environnement (dev/prod) avec état distant et verrou. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Deploying infrastructure as code from a pipeline, for AZ-400, locally and for real (miniblue): IaC hygiene in CI (fmt -check + validate failing early), the terraform plan as a dry-run, the saved plan as an ARTIFACT (plan -out) reviewed by a human then applied identically (apply tfplan), the LIVE apply of resources on the emulator, the multi-stage Validate → Plan → Apply pipeline with an environment gate and approval, the Bicep variant (build + what-if) and multi-environment (dev/prod) with remote state and locking. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — l&#39;IaC dans les pipelines (AZ-400) : validate, plan, apply">
+  <meta property="og:description" content="&quot;Déployer l&#39;infrastructure comme du code depuis une pipeline, pour l&#39;AZ-400, en local et pour de vrai (miniblue) : l&#39;hygiène IaC en CI (fmt -check + validate qui échouent tôt), le terraform plan comme dry-run, le plan sauvegardé en ARTEFACT (plan -out) revu par un humain puis appliqué à l&#39;identique (apply tfplan), l&#39;apply LIVE de ressources sur l&#39;émulateur, la pipeline multi-stages Valider → Plan → Apply avec porte d&#39;environnement et approbation, la variante Bicep (build + what-if) et le multi-environnement (dev/prod) avec état distant et verrou. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-iac-pipelines/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-iac-pipelines/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-iac-pipelines">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-iac-pipelines</div>
+    <div class="prompt" data-lang="en">~/guides/azure-iac-pipelines</div>
+    <h1 data-lang="fr">Azure — l&#39;IaC dans les pipelines (AZ-400) : validate, plan, apply</h1>
+    <h1 data-lang="en">Azure — IaC in pipelines (AZ-400): validate, plan, apply</h1>
+    <p class="tagline" data-lang="fr">déployer Terraform/Bicep depuis une pipeline, plan revu, porte d&#39;apply.</p>
+    <p class="tagline" data-lang="en">deploy Terraform/Bicep from a pipeline, reviewed plan, apply gate.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 280 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 280 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tes pipelines savent <strong>construire et tester</strong> du code (guide précédent). Maintenant, elles vont <strong>déployer de l&#39;infrastructure</strong>. C&#39;est le cœur du <strong>GitOps</strong> et un gros morceau de l&#39;<strong>AZ-400</strong> : décrire l&#39;infra en <strong>code</strong> (Terraform, Bicep), la <strong>valider</strong>, la <strong>prévisualiser</strong> (<code>plan</code>), puis l&#39;<strong>appliquer</strong> — le tout automatisé, tracé, et <strong>gardé</strong> par une approbation avant la prod.</p>
+<p>Fidèle à la méthode, on le fait <strong>en vrai et en local</strong> : notre émulateur <strong>miniblue</strong> accepte un <code>terraform apply</code> — on <strong>crée réellement</strong> un groupe de ressources, un réseau, un sous-réseau, puis on <strong>détruit</strong>. On découvre le pattern décisif : le <strong>plan comme artefact</strong> (<code>terraform plan -out</code>) — un humain <strong>revoit</strong> exactement ce qui sera fait, puis <code>apply</code> applique <strong>ce plan précis</strong>, sans dérive entre revue et exécution. On écrit la pipeline <strong>multi-stages</strong> (Valider → Plan → Apply, la dernière derrière une <strong>porte</strong> d&#39;environnement), on la <strong>valide</strong>, et on voit la <strong>variante Bicep</strong> (<code>build</code> + <code>what-if</code>) et le <strong>multi-environnement</strong> (dev/prod) avec <strong>état distant</strong> et <strong>verrou</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises les pipelines CI/CD et l&#39;IaC (Terraform/Bicep des tracks AZ-104/305) et tu veux les <strong>relier</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as jamais écrit de Terraform/Bicep → fais d&#39;abord les guides IaC (AZ-104 réseau/stockage, AZ-305).</li><li>Tu ne sais pas ce qu&#39;est un <code>plan</code> → ce guide te le montre, mais les bases IaC aident.</li></ul>
+</div>
+<div data-lang="en"><p>Your pipelines can <strong>build and test</strong> code (previous guide). Now they&#39;ll <strong>deploy infrastructure</strong>. This is the heart of <strong>GitOps</strong> and a big chunk of <strong>AZ-400</strong>: describe infra as <strong>code</strong> (Terraform, Bicep), <strong>validate</strong> it, <strong>preview</strong> it (<code>plan</code>), then <strong>apply</strong> it — all automated, traced, and <strong>gated</strong> by an approval before prod.</p>
+<p>True to the method, we do it <strong>for real and locally</strong>: our <strong>miniblue</strong> emulator accepts a <code>terraform apply</code> — we <strong>actually create</strong> a resource group, a network, a subnet, then <strong>destroy</strong> them. We discover the decisive pattern: the <strong>plan as an artifact</strong> (<code>terraform plan -out</code>) — a human <strong>reviews</strong> exactly what will be done, then <code>apply</code> applies <strong>that precise plan</strong>, with no drift between review and execution. We write the <strong>multi-stage</strong> pipeline (Validate → Plan → Apply, the last behind an environment <strong>gate</strong>), <strong>validate</strong> it, and see the <strong>Bicep variant</strong> (<code>build</code> + <code>what-if</code>) and <strong>multi-environment</strong> (dev/prod) with <strong>remote state</strong> and <strong>locking</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you know CI/CD pipelines and IaC (Terraform/Bicep from the AZ-104/305 tracks) and want to <strong>connect</strong> them.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;ve never written Terraform/Bicep → do the IaC guides first (AZ-104 network/storage, AZ-305).</li><li>You don&#39;t know what a <code>plan</code> is → this guide shows you, but IaC basics help.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Faire de l&#39;<strong>hygiène IaC</strong> un gate de CI (<code>fmt -check</code>, <code>validate</code>) qui échoue tôt.</li><li>Lire un <strong><code>terraform plan</code></strong> comme un <strong>dry-run</strong> (le diff avant d&#39;agir).</li><li>Sauvegarder un <strong>plan en artefact</strong> (<code>plan -out</code>) et l&#39;<strong>appliquer à l&#39;identique</strong> (<code>apply tfplan</code>).</li><li><strong>Appliquer</strong> de l&#39;infra pour de vrai (sur miniblue) et la <strong>détruire</strong>.</li><li>Écrire une pipeline <strong>Valider → Plan → Apply</strong> avec <strong>porte</strong> (environnement + approbation).</li><li>Comparer <strong>Terraform</strong> et <strong>Bicep</strong> dans une pipeline (<code>build</code>, <code>what-if</code>).</li><li>Gérer le <strong>multi-environnement</strong> (dev/prod) avec <strong>état distant</strong> et <strong>verrou</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Make <strong>IaC hygiene</strong> a CI gate (<code>fmt -check</code>, <code>validate</code>) that fails early.</li><li>Read a <strong><code>terraform plan</code></strong> as a <strong>dry-run</strong> (the diff before acting).</li><li>Save a <strong>plan as an artifact</strong> (<code>plan -out</code>) and <strong>apply it identically</strong> (<code>apply tfplan</code>).</li><li><strong>Apply</strong> infra for real (on miniblue) and <strong>destroy</strong> it.</li><li>Write a <strong>Validate → Plan → Apply</strong> pipeline with a <strong>gate</strong> (environment + approval).</li><li>Compare <strong>Terraform</strong> and <strong>Bicep</strong> in a pipeline (<code>build</code>, <code>what-if</code>).</li><li>Handle <strong>multi-environment</strong> (dev/prod) with <strong>remote state</strong> and <strong>locking</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — pipelines CI/CD en profondeur (AZ-400)</strong> (jobs, stages, artefacts, portes).</li><li>Le <strong>lab local</strong> des tracks Azure : <strong>miniblue</strong> démarré (port 4567) et <strong>Terraform</strong> installé. Voir <em>Azure — fondamentaux (AZ-900)</em> pour l&#39;installer.</li><li>La variable <code>SSL_CERT_FILE</code> pointant sur le certificat de miniblue (<code>~/.miniblue/cert.pem</code>).</li><li><strong>Bicep CLI</strong> (optionnel, pour la variante Bicep) : <code>az bicep install</code>.</li><li><strong>Aucun compte cloud</strong> : <code>apply</code> cible l&#39;émulateur local ; les pipelines se valident en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — CI/CD pipelines in depth (AZ-400)</strong> guide (jobs, stages, artifacts, gates).</li><li>The Azure tracks&#39; <strong>local lab</strong>: <strong>miniblue</strong> started (port 4567) and <strong>Terraform</strong> installed. See <em>Azure — fundamentals (AZ-900)</em> to set it up.</li><li>The <code>SSL_CERT_FILE</code> variable pointing at miniblue&#39;s certificate (<code>~/.miniblue/cert.pem</code>).</li><li><strong>Bicep CLI</strong> (optional, for the Bicep variant): <code>az bicep install</code>.</li><li><strong>No cloud account</strong>: <code>apply</code> targets the local emulator; pipelines validate locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-pipelines-cicd/">
+    <span class="num">71</span>
+    <span class="title-line" data-lang="fr">Azure — pipelines CI/CD en profondeur (AZ-400) : jobs, matrice, artefacts</span>
+    <span class="title-line" data-lang="en">Azure — CI/CD pipelines in depth (AZ-400): jobs, matrix, artifacts</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L&#39;IaC dans une pipeline : le flux Valider → Plan → Apply.</strong> On ne fait pas <code>apply</code> à l&#39;aveugle. Le flux standard : (1) <strong>Valider</strong> — le code est bien formaté (<code>fmt -check</code>) et syntaxiquement correct (<code>validate</code>) ; c&#39;est un <strong>gate de CI</strong> qui échoue <strong>tôt</strong> et gratuitement. (2) <strong>Plan</strong> — <code>terraform plan</code> calcule le <strong>diff</strong> entre l&#39;état voulu et le réel : ce qui sera <strong>créé / modifié / détruit</strong>. C&#39;est un <strong>dry-run</strong> : il ne change rien. (3) <strong>Apply</strong> — on exécute le plan. Entre Plan et Apply, on met une <strong>porte</strong> (approbation) : un humain <strong>revoit</strong> le diff avant que ça touche la prod.</p>
+<p><strong>Le plan comme artefact — le pattern décisif.</strong> <code>terraform plan -out=tfplan</code> <strong>sauvegarde</strong> le plan dans un fichier. Ce fichier est un <strong>artefact</strong> : la pipeline le <strong>publie</strong>, un humain (ou un check) l&#39;<strong>examine</strong>, puis le stage d&#39;apply fait <code>terraform apply tfplan</code> — il applique <strong>exactement</strong> ce plan, pas un nouveau calcul. Bénéfice : <strong>aucune dérive</strong> entre ce qui a été revu et ce qui est exécuté (si le réel a changé entre-temps, appliquer le vieux plan <strong>échoue</strong> au lieu de faire une surprise).</p>
+<p><strong>L&#39;état (state).</strong> Terraform garde un <strong>état</strong> : la carte entre ton code et les ressources réelles. En pipeline, cet état doit être <strong>partagé</strong> et <strong>verrouillé</strong> : on le stocke à distance (<strong>remote state</strong> — ex. un conteneur Blob Azure) avec un <strong>verrou</strong> (lock) pour éviter que deux exécutions s&#39;écrasent. En local (ce guide), l&#39;état est un simple fichier <code>terraform.tfstate</code>.</p>
+<p><strong>Terraform vs Bicep en pipeline.</strong> <strong>Terraform</strong> : <code>fmt</code> / <code>validate</code> / <code>plan</code> / <code>apply</code>, multi-cloud, état explicite. <strong>Bicep</strong> (natif Azure) : <code>az bicep build</code> (compile en ARM, validation <strong>offline</strong>), <code>az deployment group what-if</code> (l&#39;équivalent du <code>plan</code>, mode aperçu), pas d&#39;état à gérer (l&#39;état est côté Azure Resource Manager). Les deux se déploient depuis une pipeline ; le choix suit l&#39;équipe et le périmètre (Azure pur → Bicep ; multi-cloud/état → Terraform).</p>
+<p><strong>Environnements &amp; approbations.</strong> Comme pour le déploiement applicatif : le stage d&#39;<code>apply</code> cible un <strong>environnement</strong> (<code>dev</code>, <code>prod</code>). Sur <code>prod</code>, on attache une <strong>approbation</strong> — la pipeline <strong>s&#39;arrête</strong> et attend un humain. <code>dev</code> peut être <strong>automatique</strong>. Même code, portes différentes.</p>
+<p><strong>Ce qui est live ici.</strong> <code>terraform fmt/validate/plan/apply/destroy</code> s&#39;exécutent <strong>pour de vrai</strong> contre <strong>miniblue</strong> : on <strong>crée</strong> un groupe de ressources, un VNet et des sous-réseaux, on <strong>sauvegarde et applique un plan</strong>, puis on <strong>détruit</strong>. <code>az bicep build</code> <strong>compile</strong> un template en ARM (offline). Les <strong>pipelines</strong> (GitHub Actions, Azure Pipelines) se <strong>valident</strong> en local ; leur <strong>exécution</strong> sur runner cible du <strong>vrai</strong> Azure (ou un self-hosted runner pointant sur miniblue). Pas de compte requis pour <strong>apprendre le flux</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>IaC in a pipeline: the Validate → Plan → Apply flow.</strong> You don&#39;t <code>apply</code> blindly. The standard flow: (1) <strong>Validate</strong> — the code is well-formatted (<code>fmt -check</code>) and syntactically correct (<code>validate</code>); it&#39;s a <strong>CI gate</strong> that fails <strong>early</strong> and for free. (2) <strong>Plan</strong> — <code>terraform plan</code> computes the <strong>diff</strong> between desired and real state: what will be <strong>created / changed / destroyed</strong>. It&#39;s a <strong>dry-run</strong>: it changes nothing. (3) <strong>Apply</strong> — you execute the plan. Between Plan and Apply, we put a <strong>gate</strong> (approval): a human <strong>reviews</strong> the diff before it touches prod.</p>
+<p><strong>The plan as an artifact — the decisive pattern.</strong> <code>terraform plan -out=tfplan</code> <strong>saves</strong> the plan to a file. That file is an <strong>artifact</strong>: the pipeline <strong>publishes</strong> it, a human (or a check) <strong>examines</strong> it, then the apply stage runs <code>terraform apply tfplan</code> — applying <strong>exactly</strong> that plan, not a fresh computation. Benefit: <strong>no drift</strong> between what was reviewed and what runs (if reality changed meanwhile, applying the old plan <strong>fails</strong> instead of surprising you).</p>
+<p><strong>State.</strong> Terraform keeps a <strong>state</strong>: the map between your code and the real resources. In a pipeline, this state must be <strong>shared</strong> and <strong>locked</strong>: store it remotely (<strong>remote state</strong> — e.g. an Azure Blob container) with a <strong>lock</strong> to prevent two runs from clobbering each other. Locally (this guide), state is a plain <code>terraform.tfstate</code> file.</p>
+<p><strong>Terraform vs Bicep in a pipeline.</strong> <strong>Terraform</strong>: <code>fmt</code> / <code>validate</code> / <code>plan</code> / <code>apply</code>, multi-cloud, explicit state. <strong>Bicep</strong> (Azure-native): <code>az bicep build</code> (compiles to ARM, <strong>offline</strong> validation), <code>az deployment group what-if</code> (the <code>plan</code> equivalent, preview mode), no state to manage (state lives in Azure Resource Manager). Both deploy from a pipeline; the choice follows the team and scope (pure Azure → Bicep; multi-cloud/state → Terraform).</p>
+<p><strong>Environments &amp; approvals.</strong> Same as app deployment: the <code>apply</code> stage targets an <strong>environment</strong> (<code>dev</code>, <code>prod</code>). On <code>prod</code>, you attach an <strong>approval</strong> — the pipeline <strong>pauses</strong> and waits for a human. <code>dev</code> can be <strong>automatic</strong>. Same code, different gates.</p>
+<p><strong>What&#39;s live here.</strong> <code>terraform fmt/validate/plan/apply/destroy</code> run <strong>for real</strong> against <strong>miniblue</strong>: we <strong>create</strong> a resource group, a VNet and subnets, we <strong>save and apply a plan</strong>, then <strong>destroy</strong>. <code>az bicep build</code> <strong>compiles</strong> a template to ARM (offline). The <strong>pipelines</strong> (GitHub Actions, Azure Pipelines) are <strong>validated</strong> locally; <strong>running</strong> them on a runner targets <strong>real</strong> Azure (or a self-hosted runner pointing at miniblue). No account required to <strong>learn the flow</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-iac-pipelines-flow">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-iac-pipelines-flow">
+  <title id="s-azure-iac-pipelines-flow">IaC dans une pipeline</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">IaC dans une pipeline</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="70.5" text-anchor="middle">VALIDER</text><text class="sub" x="98" y="83.5" text-anchor="middle">fmt + validate</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">PLAN</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">plan -out=tfplan · artefact</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">PORTE</text><text class="sub" x="474" y="83.5" text-anchor="middle">revue + approbation</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">APPLY</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">apply tfplan exact</text><text class="sub" x="380" y="144" text-anchor="middle">état partagé et verrouillé · aucune dérive entre revue et exécution</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;IaC dans une pipeline : le commit du code Terraform déclenche VALIDER (fmt -check + validate, gate qui échoue tôt) → PLAN (terraform plan -out=tfplan, sauvé en ARTEFACT) → PORTE (un humain revoit le diff, approbation sur l&#39;environnement) → APPLY (terraform apply tfplan applique EXACTEMENT le plan revu). L&#39;état est partagé et verrouillé (remote state). Aucune dérive entre revue et exécution.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> IaC in a pipeline: the Terraform code commit triggers VALIDATE (fmt -check + validate, a gate that fails early) → PLAN (terraform plan -out=tfplan, saved as an ARTIFACT) → GATE (a human reviews the diff, approval on the environment) → APPLY (terraform apply tfplan applies EXACTLY the reviewed plan). State is shared and locked (remote state). No drift between review and execution.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire de l&#39;<strong>hygiène IaC</strong> un gate de CI : <code>fmt -check</code> et <code>validate</code>.</p>
+<p><strong>🤔 Échouer tôt, gratuitement.</strong> Avant tout déploiement, on vérifie que le code est <strong>formaté</strong> et <strong>valide</strong>. Ces deux commandes ne touchent à <strong>rien</strong> ; elles échouent <strong>avant</strong> de dépenser du temps de runner ou de risquer la prod. On pose le code Terraform (réseau) et on le passe au crible.</p>
+<p>Crée l&#39;infra Terraform et lance les gates :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Make <strong>IaC hygiene</strong> a CI gate: <code>fmt -check</code> and <code>validate</code>.</p>
+<p><strong>🤔 Fail early, for free.</strong> Before any deployment, check the code is <strong>formatted</strong> and <strong>valid</strong>. These two commands touch <strong>nothing</strong>; they fail <strong>before</strong> spending runner time or risking prod. We lay down the Terraform (network) code and run it through the sieve.</p>
+<p>Create the Terraform infra and run the gates:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p iac-pipeline/infra &amp;&amp; cd iac-pipeline/infra
+export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+cat &gt; providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers {
+    azurerm = {
+      source  = &quot;hashicorp/azurerm&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}
+TF
+
+cat &gt; main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;app&quot; {
+  name     = &quot;rg-iac-pipeline&quot;
+  location = &quot;westeurope&quot;
+  tags     = { projet = &quot;iac-pipeline&quot;, gere = &quot;terraform&quot; }
+}
+
+resource &quot;azurerm_virtual_network&quot; &quot;app&quot; {
+  name                = &quot;vnet-app&quot;
+  location            = azurerm_resource_group.app.location
+  resource_group_name = azurerm_resource_group.app.name
+  address_space       = [&quot;10.20.0.0/16&quot;]
+  tags                = azurerm_resource_group.app.tags
+}
+
+resource &quot;azurerm_subnet&quot; &quot;web&quot; {
+  name                 = &quot;snet-web&quot;
+  resource_group_name  = azurerm_resource_group.app.name
+  virtual_network_name = azurerm_virtual_network.app.name
+  address_prefixes     = [&quot;10.20.1.0/24&quot;]
+}
+TF
+
+# Gate 1 : format / formatting
+terraform fmt -check -recursive . &amp;&amp; echo &quot;FMT OK (formaté / formatted)&quot;
+# Gate 2 : validité / validity (init d&#39;abord)
+terraform init -no-color &gt; /dev/null &amp;&amp; terraform validate -no-color</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>fmt -check</code> affiche <code>FMT OK</code> (aucun fichier mal formaté — sinon il liste les fichiers et <strong>sort en erreur</strong>), et <code>validate</code> affiche <code>Success! The configuration is valid.</code> Ces deux gates sont les <strong>premiers jobs</strong> de ta pipeline IaC : rapides, sans risque, ils bloquent un code sale avant qu&#39;il n&#39;aille plus loin. ⚠️ <code>validate</code> a besoin d&#39;un <code>init</code> préalable (il charge le provider).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>fmt -check</code> shows <code>FMT OK</code> (no misformatted file — otherwise it lists the files and <strong>exits with an error</strong>), and <code>validate</code> shows <code>Success! The configuration is valid.</code> These two gates are the <strong>first jobs</strong> of your IaC pipeline: fast, risk-free, they block dirty code before it goes further. ⚠️ <code>validate</code> needs a prior <code>init</code> (it loads the provider).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire un <strong><code>terraform plan</code></strong> — le <strong>dry-run</strong> qui montre le diff.</p>
+<p><strong>🤔 Voir avant d&#39;agir.</strong> <code>plan</code> compare l&#39;état voulu (ton code) au réel et annonce ce qu&#39;il <strong>créerait / modifierait / détruirait</strong>. Il ne change <strong>rien</strong>. C&#39;est ce qu&#39;un humain <strong>revoit</strong> avant d&#39;approuver.</p>
+<p>Lance le plan et lis le résumé :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read a <strong><code>terraform plan</code></strong> — the <strong>dry-run</strong> that shows the diff.</p>
+<p><strong>🤔 See before acting.</strong> <code>plan</code> compares desired state (your code) to reality and announces what it <strong>would create / change / destroy</strong>. It changes <strong>nothing</strong>. It&#39;s what a human <strong>reviews</strong> before approving.</p>
+<p>Run the plan and read the summary:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform plan -no-color 2&gt;&amp;1 | grep -E &quot;will be created|Plan:&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois trois lignes <code># ... will be created</code> (le groupe de ressources, le VNet, le sous-réseau) puis <code>Plan: 3 to add, 0 to change, 0 to destroy.</code> C&#39;est le <strong>diff</strong> : trois ressources seront créées, rien ne sera modifié ni détruit. Rien n&#39;a encore été appliqué. Dans une pipeline, cette sortie est <strong>publiée</strong> pour revue.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see three <code># ... will be created</code> lines (the resource group, the VNet, the subnet) then <code>Plan: 3 to add, 0 to change, 0 to destroy.</code> That&#39;s the <strong>diff</strong>: three resources will be created, nothing changed or destroyed. Nothing has been applied yet. In a pipeline, this output is <strong>published</strong> for review.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Sauvegarder le <strong>plan en artefact</strong> (<code>plan -out</code>) et l&#39;<strong>appliquer à l&#39;identique</strong>.</p>
+<p><strong>🤔 Revoir exactement ce qui sera fait.</strong> Si on refait un <code>plan</code> au moment de l&#39;<code>apply</code>, il pourrait <strong>différer</strong> de celui qu&#39;on a revu. Le pattern : <code>plan -out=tfplan</code> <strong>fige</strong> le plan dans un fichier ; on l&#39;<strong>examine</strong> ; puis <code>apply tfplan</code> applique <strong>ce plan précis</strong>. C&#39;est le fichier <code>tfplan</code> qui voyage comme <strong>artefact</strong> entre le stage Plan et le stage Apply.</p>
+<p>Fige le plan, inspecte-le, applique-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Save the <strong>plan as an artifact</strong> (<code>plan -out</code>) and <strong>apply it identically</strong>.</p>
+<p><strong>🤔 Review exactly what will be done.</strong> If we re-run a <code>plan</code> at <code>apply</code> time, it could <strong>differ</strong> from the one we reviewed. The pattern: <code>plan -out=tfplan</code> <strong>freezes</strong> the plan into a file; we <strong>examine</strong> it; then <code>apply tfplan</code> applies <strong>that precise plan</strong>. The <code>tfplan</code> file is what travels as an <strong>artifact</strong> between the Plan stage and the Apply stage.</p>
+<p>Freeze the plan, inspect it, apply it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Figer le plan dans un fichier (l&#39;artefact) / freeze the plan into a file (the artifact)
+terraform plan -out=tfplan -no-color 2&gt;&amp;1 | grep -E &quot;Plan:|Saved&quot;
+ls -la tfplan | awk &#39;{print &quot;artefact plan / plan artifact:&quot;, $5, &quot;octets/bytes&quot;}&#39;
+
+# Relire le plan sauvegardé (lecture seule) / re-read the saved plan (read-only)
+terraform show tfplan -no-color 2&gt;&amp;1 | grep -E &quot;will be created|Plan:&quot; | head -4
+
+# Appliquer EXACTEMENT ce plan / apply EXACTLY this plan
+terraform apply -no-color tfplan 2&gt;&amp;1 | grep -E &quot;Apply complete|Creation complete&quot; | head -4</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>plan -out=tfplan</code> affiche <code>Saved the plan to: tfplan</code> et le fichier fait quelques kilo-octets. <code>terraform show tfplan</code> <strong>relit</strong> le plan figé (mêmes trois créations). <code>apply tfplan</code> <strong>crée</strong> les ressources et finit par <code>Apply complete! Resources: 3 added, 0 changed, 0 destroyed.</code> — sans <strong>redemander</strong> de confirmation, car le plan était déjà approuvé. C&#39;est <strong>exactement</strong> le pattern d&#39;une pipeline : Plan (artefact) → revue → Apply de l&#39;artefact.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>plan -out=tfplan</code> shows <code>Saved the plan to: tfplan</code> and the file is a few kilobytes. <code>terraform show tfplan</code> <strong>re-reads</strong> the frozen plan (same three creations). <code>apply tfplan</code> <strong>creates</strong> the resources and ends with <code>Apply complete! Resources: 3 added, 0 changed, 0 destroyed.</code> — without <strong>re-asking</strong> for confirmation, because the plan was already approved. That&#39;s <strong>exactly</strong> the pipeline pattern: Plan (artifact) → review → Apply the artifact.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Vérifier que l&#39;infra est <strong>live</strong>, puis observer une <strong>modification</strong> (le diff en action).</p>
+<p><strong>🤔 C&#39;est du réel.</strong> L&#39;<code>apply</code> a créé de vraies ressources sur l&#39;émulateur. On les <strong>liste</strong>, on <strong>ajoute</strong> un sous-réseau, et on refait <code>plan</code> : le diff ne montre plus que <strong>1 à ajouter</strong> — Terraform ne recrée pas l&#39;existant, il <strong>converge</strong>.</p>
+<p>Vérifie le live, ajoute une ressource, replanifie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Verify the infra is <strong>live</strong>, then observe a <strong>change</strong> (the diff in action).</p>
+<p><strong>🤔 It&#39;s real.</strong> The <code>apply</code> created real resources on the emulator. We <strong>list</strong> them, <strong>add</strong> a subnet, and re-run <code>plan</code>: the diff now shows only <strong>1 to add</strong> — Terraform doesn&#39;t recreate what exists, it <strong>converges</strong>.</p>
+<p>Check the live state, add a resource, re-plan:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># La ressource existe vraiment / the resource really exists
+azlocal group show --name rg-iac-pipeline 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;groupe / group:&#39;, d[&#39;name&#39;], &#39;| état / state:&#39;, d[&#39;properties&#39;][&#39;provisioningState&#39;], &#39;| tags:&#39;, d[&#39;tags&#39;])&quot;
+
+# Ajouter un sous-réseau / add a subnet
+cat &gt;&gt; main.tf &lt;&lt;&#39;TF&#39;
+
+resource &quot;azurerm_subnet&quot; &quot;app&quot; {
+  name                 = &quot;snet-app&quot;
+  resource_group_name  = azurerm_resource_group.app.name
+  virtual_network_name = azurerm_virtual_network.app.name
+  address_prefixes     = [&quot;10.20.2.0/24&quot;]
+}
+TF
+
+terraform plan -no-color 2&gt;&amp;1 | grep -E &quot;Plan:&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>group show</code> confirme <code>groupe / group: rg-iac-pipeline | état / state: Succeeded</code> avec les tags. Après ajout du sous-réseau, le nouveau <code>plan</code> affiche <code>Plan: 1 to add, 0 to change, 0 to destroy.</code> — Terraform <strong>détecte</strong> que seul <code>snet-app</code> manque. C&#39;est l&#39;<strong>idempotence</strong> de l&#39;IaC : le code décrit l&#39;<strong>état voulu</strong>, l&#39;outil calcule le <strong>delta</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>group show</code> confirms <code>groupe / group: rg-iac-pipeline | état / state: Succeeded</code> with the tags. After adding the subnet, the new <code>plan</code> shows <code>Plan: 1 to add, 0 to change, 0 to destroy.</code> — Terraform <strong>detects</strong> that only <code>snet-app</code> is missing. That&#39;s IaC&#39;s <strong>idempotence</strong>: the code describes the <strong>desired state</strong>, the tool computes the <strong>delta</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire la pipeline <strong>Valider → Plan → Apply</strong> avec <strong>porte</strong> d&#39;environnement.</p>
+<p><strong>🤔 Le flux en YAML.</strong> On traduit le flux en trois stages : <code>Valider</code> (fmt + validate), <code>Plan</code> (produit l&#39;artefact <code>tfplan</code>), <code>Apply</code> (consomme l&#39;artefact, derrière l&#39;<strong>environnement</strong> <code>production</code> = porte d&#39;approbation). On écrit la pipeline Azure Pipelines et on la <strong>valide</strong>.</p>
+<p>Écris la pipeline et valide sa structure :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>Validate → Plan → Apply</strong> pipeline with an environment <strong>gate</strong>.</p>
+<p><strong>🤔 The flow in YAML.</strong> We translate the flow into three stages: <code>Valider</code> (fmt + validate), <code>Plan</code> (produces the <code>tfplan</code> artifact), <code>Apply</code> (consumes the artifact, behind the <code>production</code> <strong>environment</strong> = approval gate). We write the Azure Pipelines pipeline and <strong>validate</strong> it.</p>
+<p>Write the pipeline and validate its structure:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; ../azure-pipelines.yml &lt;&lt;&#39;YAML&#39;
+trigger:
+  branches:
+    include: [ main ]
+pool:
+  vmImage: ubuntu-latest
+variables:
+  TF_DIR: infra
+stages:
+  - stage: Valider
+    jobs:
+      - job: fmt_validate
+        steps:
+          - script: terraform fmt -check -recursive $(TF_DIR)
+            displayName: Format
+          - script: |
+              cd $(TF_DIR)
+              terraform init -backend=false
+              terraform validate
+            displayName: Validate
+  - stage: Plan
+    dependsOn: Valider
+    jobs:
+      - job: plan
+        steps:
+          - script: |
+              cd $(TF_DIR)
+              terraform init
+              terraform plan -out=tfplan
+            displayName: Plan
+          - publish: $(TF_DIR)/tfplan
+            artifact: tfplan
+  - stage: Apply
+    dependsOn: Plan
+    jobs:
+      - deployment: apply
+        environment: production   # porte : approbation avant apply
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: tfplan
+                - script: |
+                    cd $(TF_DIR)
+                    terraform init
+                    terraform apply &quot;$(Pipeline.Workspace)/tfplan/tfplan&quot;
+                  displayName: Apply
+YAML
+
+python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;../azure-pipelines.yml&#39;)); \
+st=d[&#39;stages&#39;]; \
+print(&#39;stages:&#39;, [s[&#39;stage&#39;] for s in st]); \
+print(&#39;deps:&#39;, {s[&#39;stage&#39;]: s.get(&#39;dependsOn&#39;) for s in st}); \
+print(&#39;porte / gate env:&#39;, st[2][&#39;jobs&#39;][0][&#39;environment&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>stages: [&#39;Valider&#39;, &#39;Plan&#39;, &#39;Apply&#39;]</code>, les dépendances chaînées, et <code>porte / gate env: production</code>. Le stage <code>Plan</code> <strong>publie</strong> l&#39;artefact <code>tfplan</code> ; le stage <code>Apply</code> le <strong>télécharge</strong> et applique <strong>ce</strong> plan — derrière la porte <code>production</code>. C&#39;est le flux IaC complet, écrit en pipeline-as-code. ⚠️ Ici on <strong>valide</strong> la structure ; sur un runner, <code>terraform</code> cible du vrai Azure (ou un self-hosted runner vers miniblue), avec les identifiants en <strong>secrets</strong> (jamais en clair).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>stages: [&#39;Valider&#39;, &#39;Plan&#39;, &#39;Apply&#39;]</code>, the chained dependencies, and <code>porte / gate env: production</code>. The <code>Plan</code> stage <strong>publishes</strong> the <code>tfplan</code> artifact; the <code>Apply</code> stage <strong>downloads</strong> it and applies <strong>that</strong> plan — behind the <code>production</code> gate. That&#39;s the complete IaC flow, written as pipeline-as-code. ⚠️ Here we <strong>validate</strong> the structure; on a runner, <code>terraform</code> targets real Azure (or a self-hosted runner to miniblue), with credentials as <strong>secrets</strong> (never in clear text).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> La <strong>variante Bicep</strong> : <code>build</code> (validation offline) et <code>what-if</code> (l&#39;équivalent du <code>plan</code>).</p>
+<p><strong>🤔 Azure-natif, sans état.</strong> Bicep compile en ARM et se <strong>valide hors ligne</strong> (<code>az bicep build</code>) — parfait comme gate de CI. Son <strong>aperçu</strong> avant déploiement est <code>az deployment group what-if</code>. Pas d&#39;état à gérer : Azure Resource Manager le tient. On compile un template et on note l&#39;équivalence.</p>
+<p>Compile un template Bicep (gate de CI) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> The <strong>Bicep variant</strong>: <code>build</code> (offline validation) and <code>what-if</code> (the <code>plan</code> equivalent).</p>
+<p><strong>🤔 Azure-native, stateless.</strong> Bicep compiles to ARM and <strong>validates offline</strong> (<code>az bicep build</code>) — perfect as a CI gate. Its <strong>preview</strong> before deployment is <code>az deployment group what-if</code>. No state to manage: Azure Resource Manager holds it. We compile a template and note the equivalence.</p>
+<p>Compile a Bicep template (CI gate):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; ../storage.bicep &lt;&lt;&#39;BICEP&#39;
+param location string = resourceGroup().location
+param nom string = &#39;stiac${uniqueString(resourceGroup().id)}&#39;
+
+resource compte &#39;Microsoft.Storage/storageAccounts@2023-01-01&#39; = {
+  name: nom
+  location: location
+  sku: { name: &#39;Standard_LRS&#39; }
+  kind: &#39;StorageV2&#39;
+  properties: {
+    minimumTlsVersion: &#39;TLS1_2&#39;
+    supportsHttpsTrafficOnly: true
+  }
+}
+output compteId string = compte.id
+BICEP
+
+# Gate de CI : compiler/valider en ARM (offline) / CI gate: compile/validate to ARM (offline)
+az bicep build --file ../storage.bicep --stdout 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;Bicep compilé -&gt; ARM OK, ressources:&#39;, [r[&#39;type&#39;] for r in d[&#39;resources&#39;]])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>Bicep compilé -&gt; ARM OK, ressources: [&#39;Microsoft.Storage/storageAccounts&#39;]</code>. Le <code>build</code> <strong>valide</strong> le template <strong>sans compte</strong> — c&#39;est ton gate de CI côté Bicep (comme <code>fmt</code>/<code>validate</code> côté Terraform). En pipeline, l&#39;étape suivante serait <code>az deployment group what-if</code> (aperçu, = <code>plan</code>) puis <code>az deployment group create</code> (= <code>apply</code>), derrière la même porte d&#39;environnement. <strong>Bicep</strong> pour du Azure pur, <strong>Terraform</strong> pour du multi-cloud ou un état explicite.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>Bicep compilé -&gt; ARM OK, ressources: [&#39;Microsoft.Storage/storageAccounts&#39;]</code>. <code>build</code> <strong>validates</strong> the template <strong>without an account</strong> — that&#39;s your CI gate on the Bicep side (like <code>fmt</code>/<code>validate</code> on the Terraform side). In a pipeline, the next step would be <code>az deployment group what-if</code> (preview, = <code>plan</code>) then <code>az deployment group create</code> (= <code>apply</code>), behind the same environment gate. <strong>Bicep</strong> for pure Azure, <strong>Terraform</strong> for multi-cloud or explicit state.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre le <strong>multi-environnement</strong> et l&#39;<strong>état distant</strong>, puis <strong>détruire</strong>.</p>
+<p><strong>🤔 Même code, plusieurs environnements.</strong> On ne duplique pas le code pour <code>dev</code> et <code>prod</code> : on passe des <strong>variables</strong> (<code>-var</code>) et on isole l&#39;<strong>état</strong> par environnement. En pipeline, l&#39;état vit dans un <strong>backend distant</strong> (conteneur Blob) avec un <strong>verrou</strong> — deux exécutions ne s&#39;écrasent pas. On note la configuration du backend, puis on <strong>détruit</strong> proprement le lab.</p>
+<p>Note le backend distant, puis détruis :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>multi-environment</strong> and <strong>remote state</strong>, then <strong>destroy</strong>.</p>
+<p><strong>🤔 Same code, several environments.</strong> We don&#39;t duplicate code for <code>dev</code> and <code>prod</code>: we pass <strong>variables</strong> (<code>-var</code>) and isolate <strong>state</strong> per environment. In a pipeline, state lives in a <strong>remote backend</strong> (Blob container) with a <strong>lock</strong> — two runs don&#39;t clobber each other. We note the backend configuration, then <strong>destroy</strong> the lab cleanly.</p>
+<p>Note the remote backend, then destroy:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Exemple de backend distant (concept — à mettre dans providers.tf en vrai Azure)
+cat &lt;&lt;&#39;TF&#39;
+# terraform {
+#   backend &quot;azurerm&quot; {
+#     resource_group_name  = &quot;rg-tfstate&quot;
+#     storage_account_name = &quot;sttfstateprod&quot;
+#     container_name       = &quot;tfstate&quot;
+#     key                  = &quot;prod.terraform.tfstate&quot;   # clé par environnement -&gt; état isolé + verrou
+#   }
+# }
+TF
+
+# Multi-environnement : même code, variables différentes / same code, different variables
+echo &quot;dev  : terraform apply -var=&#39;env=dev&#39;  (porte automatique / auto gate)&quot;
+echo &quot;prod : terraform apply -var=&#39;env=prod&#39; (porte = approbation / approval gate)&quot;
+
+# Détruire le lab / destroy the lab
+terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete|Resources:&quot; | tail -1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform destroy</code> finit par <code>Destroy complete! Resources: 3 destroyed.</code> — le lab est nettoyé (groupe + VNet + le sous-réseau <code>snet-web</code> appliqué au step-03 ; <code>snet-app</code> du step-04 n&#39;a été que <strong>planifié</strong>, jamais appliqué). Tu as vu le pattern complet : <strong>backend distant</strong> (état partagé + verrou, une <strong>clé par environnement</strong>), <strong>même code</strong> piloté par variables pour <code>dev</code>/<code>prod</code>, et <strong>portes</strong> différentes selon l&#39;environnement. Tu sais maintenant <strong>déployer de l&#39;infra depuis une pipeline</strong>, en toute sûreté. La suite du track AZ-400 : la <strong>sécurité</strong> (DevSecOps — secrets, scan) puis la <strong>supervision</strong> de la livraison.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform destroy</code> ends with <code>Destroy complete! Resources: 3 destroyed.</code> — the lab is cleaned (group + VNet + the <code>snet-web</code> subnet applied in step-03; <code>snet-app</code> from step-04 was only <strong>planned</strong>, never applied). You saw the full pattern: <strong>remote backend</strong> (shared state + lock, <strong>one key per environment</strong>), <strong>same code</strong> driven by variables for <code>dev</code>/<code>prod</code>, and different <strong>gates</strong> per environment. You can now <strong>deploy infra from a pipeline</strong>, safely. Next in the AZ-400 track: <strong>security</strong> (DevSecOps — secrets, scanning) then delivery <strong>monitoring</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. <code>apply</code> sans <code>plan</code> revu.</strong> Appliquer sans avoir vu le diff = surprises en prod. Toujours <strong>Plan → revue → Apply</strong>.</p>
+<p><strong>2. Replanifier au moment de l&#39;apply.</strong> Si l&#39;<code>apply</code> recalcule un plan, il peut <strong>diverger</strong> de celui approuvé. Sauvegarde le plan (<code>-out</code>) et applique <strong>ce fichier</strong> (<code>apply tfplan</code>).</p>
+<p><strong>3. État local en équipe.</strong> Un <code>terraform.tfstate</code> sur une machine = collisions et pertes. En pipeline, <strong>backend distant + verrou</strong> obligatoires.</p>
+<p><strong>4. Identifiants en clair dans le YAML.</strong> Les creds Azure vont dans les <strong>secrets</strong> de la plateforme (variables protégées / service connection), <strong>jamais</strong> dans le fichier versionné.</p>
+<p><strong>5. <code>validate</code> sans <code>init</code>.</strong> <code>validate</code> charge le provider : il faut un <code>init</code> avant (en CI, <code>init -backend=false</code> suffit pour valider sans toucher l&#39;état).</p>
+<p><strong>6. Pas de porte sur la prod.</strong> Un <code>apply</code> prod automatique = risque maximal. Attache une <strong>approbation</strong> à l&#39;environnement <code>production</code>.</p>
+<p><strong>7. Détruire sans le vouloir.</strong> Un <code>plan</code> montrant <code>X to destroy</code> inattendu doit <strong>bloquer</strong>. Lis toujours le résumé <code>Plan:</code> avant d&#39;approuver.</p>
+</div>
+<div data-lang="en"><p><strong>1. <code>apply</code> without a reviewed <code>plan</code>.</strong> Applying without seeing the diff = prod surprises. Always <strong>Plan → review → Apply</strong>.</p>
+<p><strong>2. Re-planning at apply time.</strong> If <code>apply</code> recomputes a plan, it can <strong>diverge</strong> from the approved one. Save the plan (<code>-out</code>) and apply <strong>that file</strong> (<code>apply tfplan</code>).</p>
+<p><strong>3. Local state in a team.</strong> A <code>terraform.tfstate</code> on one machine = collisions and losses. In a pipeline, <strong>remote backend + lock</strong> are mandatory.</p>
+<p><strong>4. Credentials in clear text in the YAML.</strong> Azure creds go in the platform&#39;s <strong>secrets</strong> (protected variables / service connection), <strong>never</strong> in the versioned file.</p>
+<p><strong>5. <code>validate</code> without <code>init</code>.</strong> <code>validate</code> loads the provider: you need an <code>init</code> first (in CI, <code>init -backend=false</code> is enough to validate without touching state).</p>
+<p><strong>6. No gate on prod.</strong> An automatic prod <code>apply</code> = maximum risk. Attach an <strong>approval</strong> to the <code>production</code> environment.</p>
+<p><strong>7. Destroying unintentionally.</strong> A <code>plan</code> showing an unexpected <code>X to destroy</code> must <strong>block</strong> you. Always read the <code>Plan:</code> summary before approving.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu passes <code>fmt -check</code> et <code>validate</code> comme <strong>gates de CI</strong> (échec tôt).</li><li>Tu lis un <strong><code>plan</code></strong> comme un <strong>dry-run</strong> (résumé <code>Plan: X to add/change/destroy</code>).</li><li>Tu <strong>sauvegardes</strong> un plan (<code>-out=tfplan</code>) et l&#39;<strong>appliques à l&#39;identique</strong> (<code>apply tfplan</code>).</li><li>Tu as <strong>appliqué</strong> et <strong>détruit</strong> de l&#39;infra pour de vrai (sur miniblue).</li><li>Tu as une pipeline <strong>Valider → Plan → Apply</strong> avec <strong>artefact</strong> de plan et <strong>porte</strong> d&#39;environnement.</li><li>Tu sais faire l&#39;équivalent en <strong>Bicep</strong> (<code>build</code>, <code>what-if</code>) et gérer <strong>état distant</strong> + <strong>multi-environnement</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You run <code>fmt -check</code> and <code>validate</code> as <strong>CI gates</strong> (fail early).</li><li>You read a <strong><code>plan</code></strong> as a <strong>dry-run</strong> (summary <code>Plan: X to add/change/destroy</code>).</li><li>You <strong>save</strong> a plan (<code>-out=tfplan</code>) and <strong>apply it identically</strong> (<code>apply tfplan</code>).</li><li>You <strong>applied</strong> and <strong>destroyed</strong> infra for real (on miniblue).</li><li>You have a <strong>Validate → Plan → Apply</strong> pipeline with a plan <strong>artifact</strong> and an environment <strong>gate</strong>.</li><li>You can do the <strong>Bicep</strong> equivalent (<code>build</code>, <code>what-if</code>) and handle <strong>remote state</strong> + <strong>multi-environment</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — DevSecOps (AZ-400)</em> — sécuriser la pipeline : secrets, scan de dépendances et d&#39;IaC, supply chain.</li><li><strong>Réviser :</strong> <em>Azure — pipelines CI/CD en profondeur (AZ-400)</em> pour les stages/artefacts/portes.</li><li><strong>S&#39;entraîner :</strong> ajoute un stage <code>dev</code> <strong>automatique</strong> (sans porte) avant le stage <code>prod</code> <strong>approuvé</strong>, avec un état distant par environnement.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — DevSecOps (AZ-400)</em> — secure the pipeline: secrets, dependency and IaC scanning, supply chain.</li><li><strong>Review:</strong> <em>Azure — CI/CD pipelines in depth (AZ-400)</em> for stages/artifacts/gates.</li><li><strong>Practice:</strong> add an <strong>automatic</strong> <code>dev</code> stage (no gate) before the <strong>approved</strong> <code>prod</code> stage, with remote state per environment.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Le flux IaC (Terraform)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform fmt -check -recursive .     # gate : formatage (échoue si mal formaté)
+terraform init                        # charge le provider + backend
+terraform validate                    # gate : syntaxe/cohérence
+terraform plan -out=tfplan            # dry-run + fige le plan (artefact)
+terraform show tfplan                 # relire le plan sauvegardé
+terraform apply tfplan                # applique EXACTEMENT ce plan
+terraform destroy -auto-approve       # tout détruire</code></pre>
+<p><strong>Contre miniblue (lab local)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+# providers.tf : metadata_host=&quot;localhost:4567&quot;, skip_provider_registration=true, version ~&gt; 3.0</code></pre>
+<p><strong>Équivalents Bicep</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>az bicep build --file X.bicep          # = fmt+validate (compile en ARM, offline)
+az deployment group what-if ...        # = terraform plan (aperçu)
+az deployment group create ...         # = terraform apply
+# pas d&#39;état à gérer : Azure Resource Manager le tient</code></pre>
+<p><strong>État distant (backend azurerm)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>backend &quot;azurerm&quot; { storage_account_name, container_name, key=&quot;ENV.tfstate&quot; }
+# une clé par environnement -&gt; état isolé + verrou automatique</code></pre>
+</div>
+<div data-lang="en"><p><strong>The IaC flow (Terraform)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform fmt -check -recursive .     # gate: formatting (fails if misformatted)
+terraform init                        # loads provider + backend
+terraform validate                    # gate: syntax/consistency
+terraform plan -out=tfplan            # dry-run + freeze the plan (artifact)
+terraform show tfplan                 # re-read the saved plan
+terraform apply tfplan                # applies EXACTLY this plan
+terraform destroy -auto-approve       # destroy everything</code></pre>
+<p><strong>Against miniblue (local lab)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+# providers.tf: metadata_host=&quot;localhost:4567&quot;, skip_provider_registration=true, version ~&gt; 3.0</code></pre>
+<p><strong>Bicep equivalents</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>az bicep build --file X.bicep          # = fmt+validate (compile to ARM, offline)
+az deployment group what-if ...        # = terraform plan (preview)
+az deployment group create ...         # = terraform apply
+# no state to manage: Azure Resource Manager holds it</code></pre>
+<p><strong>Remote state (azurerm backend)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>backend &quot;azurerm&quot; { storage_account_name, container_name, key=&quot;ENV.tfstate&quot; }
+# one key per environment -&gt; isolated state + automatic lock</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Terraform</strong> : <code>plan -out</code>, <code>apply &lt;plan&gt;</code>, <code>validate</code>, backends distants et verrou — documentation HashiCorp.</li><li><strong>Bicep</strong> : <code>build</code>, <code>what-if</code>, <code>az deployment group create</code> — Microsoft Learn (AZ-400).</li><li><strong>Azure Pipelines</strong> : deployment jobs, environnements, approbations, artefacts de pipeline — docs Microsoft.</li><li><strong>GitHub Actions</strong> : <code>hashicorp/setup-terraform</code>, environments &amp; required reviewers — docs GitHub.</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Terraform</strong>: <code>plan -out</code>, <code>apply &lt;plan&gt;</code>, <code>validate</code>, remote backends and locking — HashiCorp docs.</li><li><strong>Bicep</strong>: <code>build</code>, <code>what-if</code>, <code>az deployment group create</code> — Microsoft Learn (AZ-400).</li><li><strong>Azure Pipelines</strong>: deployment jobs, environments, approvals, pipeline artifacts — Microsoft docs.</li><li><strong>GitHub Actions</strong>: <code>hashicorp/setup-terraform</code>, environments &amp; required reviewers — GitHub docs.</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal : commande introuvable</code> (step-04).</strong> Le binaire n&#39;est pas sur ton <code>PATH</code>. Il a été construit dans un dossier de PATH lors du lab (<code>/usr/local/bin/azlocal</code>, cf. <em>Azure — fondamentaux</em>) ; sinon, appelle-le par son chemin complet (ex. <code>~/bin/azlocal</code>) ou ajoute son dossier au <code>PATH</code>. ⚠️ Comme la commande est suivie d&#39;un <code>2&gt;/dev/null | python3 …</code>, un <code>azlocal</code> manquant se traduit par une <strong><code>JSONDecodeError</code> sur une entrée vide</strong> (le message d&#39;erreur est masqué) — si tu vois ça, c&#39;est le PATH.</p>
+<p><strong><code>terraform plan/apply</code> : erreur TLS / certificat.</strong> Il faut pointer sur le certificat de miniblue : <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>. Vérifie aussi que miniblue tourne (port 4567).</p>
+<p><strong><code>validate</code> échoue : « provider not found ».</strong> Lance <code>terraform init</code> d&#39;abord. En CI pur validation, <code>terraform init -backend=false</code> évite de configurer le backend.</p>
+<p><strong><code>apply tfplan</code> : « saved plan is stale ».</strong> Le réel a changé depuis le <code>plan</code>. C&#39;est <strong>voulu</strong> : le plan figé refuse de s&#39;appliquer sur un état différent (anti-dérive). Refais un <code>plan -out</code>, fais revoir, réapplique.</p>
+<p><strong><code>fmt -check</code> sort en erreur sans rien créer.</strong> C&#39;est le but : un fichier est mal formaté. Lance <code>terraform fmt</code> (sans <code>-check</code>) pour le corriger, puis recommence.</p>
+<p><strong>Le backend azurerm ne marche pas en local.</strong> Le backend distant vise du <strong>vrai</strong> Azure (compte de stockage). En local (ce guide), garde l&#39;état <strong>local</strong> (<code>terraform.tfstate</code>) ; le backend distant est un <strong>concept de pipeline</strong>.</p>
+<p><strong>L&#39;apply ne demande pas d&#39;approbation.</strong> L&#39;approbation s&#39;attache à l&#39;<strong>environnement</strong> côté plateforme (Azure DevOps → Environments → <em>production</em> → Approvals ; GitHub → Environments → required reviewers), pas au YAML. Le YAML <strong>cible</strong> l&#39;environnement.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal: command not found</code> (step-04).</strong> The binary isn&#39;t on your <code>PATH</code>. It was built into a PATH directory during the lab (<code>/usr/local/bin/azlocal</code>, see <em>Azure — fundamentals</em>); otherwise call it by full path (e.g. <code>~/bin/azlocal</code>) or add its folder to <code>PATH</code>. ⚠️ Since the command is followed by <code>2&gt;/dev/null | python3 …</code>, a missing <code>azlocal</code> shows up as a <strong><code>JSONDecodeError</code> on empty input</strong> (the error message is hidden) — if you see that, it&#39;s the PATH.</p>
+<p><strong><code>terraform plan/apply</code>: TLS / certificate error.</strong> You must point at miniblue&#39;s certificate: <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>. Also check miniblue is running (port 4567).</p>
+<p><strong><code>validate</code> fails: &quot;provider not found&quot;.</strong> Run <code>terraform init</code> first. In CI validation-only, <code>terraform init -backend=false</code> avoids configuring the backend.</p>
+<p><strong><code>apply tfplan</code>: &quot;saved plan is stale&quot;.</strong> Reality changed since the <code>plan</code>. That&#39;s <strong>intended</strong>: the frozen plan refuses to apply on a different state (anti-drift). Re-run <code>plan -out</code>, get it reviewed, re-apply.</p>
+<p><strong><code>fmt -check</code> exits with an error creating nothing.</strong> That&#39;s the point: a file is misformatted. Run <code>terraform fmt</code> (without <code>-check</code>) to fix it, then retry.</p>
+<p><strong>The azurerm backend doesn&#39;t work locally.</strong> The remote backend targets <strong>real</strong> Azure (a storage account). Locally (this guide), keep state <strong>local</strong> (<code>terraform.tfstate</code>); the remote backend is a <strong>pipeline concept</strong>.</p>
+<p><strong>The apply doesn&#39;t ask for approval.</strong> The approval attaches to the <strong>environment</strong> on the platform side (Azure DevOps → Environments → <em>production</em> → Approvals; GitHub → Environments → required reviewers), not the YAML. The YAML <strong>targets</strong> the environment.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

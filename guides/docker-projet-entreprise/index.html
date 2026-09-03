@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker — projet d&#39;entreprise : stack Swarm sécurisée — jiha.tech</title>
+  <title data-lang="en">Docker — enterprise project: secured Swarm stack — jiha.tech</title>
+  <meta name="description" content="Le projet fil-rouge Docker → DCA : construis une image multi-stage durcie, pousse-la dans un registre local, et déploie une stack Swarm complète (service répliqué + secret + réseau overlay + tier de données + rolling update + healthcheck) dans un dépôt documenté. Le livrable Docker pour ton CV." data-lang="fr">
+  <meta name="description" content="The Docker → DCA capstone: build a hardened multi-stage image, push it to a local registry, and deploy a complete Swarm stack (replicated service + secret + overlay network + data tier + rolling update + healthcheck) in a documented repo. The Docker deliverable for your CV." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker — projet d&#39;entreprise : stack Swarm sécurisée">
+  <meta property="og:description" content="Le projet fil-rouge Docker → DCA : construis une image multi-stage durcie, pousse-la dans un registre local, et déploie une stack Swarm complète (service répliqué + secret + réseau overlay + tier de données + rolling update + healthcheck) dans un dépôt documenté. Le livrable Docker pour ton CV.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/docker-projet-entreprise</div>
+    <h1 data-lang="fr">Docker — projet d&#39;entreprise : stack Swarm sécurisée</h1>
+    <h1 data-lang="en">Docker — enterprise project: secured Swarm stack</h1>
+    <p class="tagline" data-lang="fr">Image multi-stage → registre → stack Swarm — livrable CV.</p>
+    <p class="tagline" data-lang="en">Multi-stage image → registry → Swarm stack — CV deliverable.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as appris les briques Docker : images, réseau, volumes, sécurité, Swarm. <strong>Un recruteur veut voir l&#39;assemblage.</strong> Ce projet est cet assemblage : une <strong>application conteneurisée, sécurisée et orchestrée</strong>, que tu construis de A à Z, du code à la stack en production, et que tu mets sur ton CV et ton GitHub.</p>
+<p><strong>Le scénario.</strong> Tu es l&#39;ingénieur DevOps chargé de livrer l&#39;API d&#39;une PME, <em>Atelier Média</em>, sur un cluster Docker Swarm. Ta mission couvre toute la chaîne :</p>
+<ul><li><strong>construire</strong> l&#39;image de l&#39;API en <strong>multi-stage</strong>, <strong>durcie</strong> (non-root, healthcheck) ;</li><li>la <strong>distribuer</strong> via un <strong>registre</strong> ;</li><li><strong>déployer</strong> une <strong>stack Swarm</strong> : l&#39;API <strong>répliquée</strong>, un <strong>tier de données</strong> (Redis + volume), un <strong>secret</strong> monté en fichier, un réseau <strong>overlay</strong>, et une politique de <strong>mise à jour progressive</strong> ;</li><li><strong>mettre à jour sans coupure</strong> (et savoir revenir en arrière) ;</li><li><strong>documenter</strong> le tout en runbook.</li></ul>
+<p><strong>Tout tourne en local</strong>, sur un <strong>cluster Swarm mono-nœud</strong> — mais c&#39;est <strong>exactement</strong> la démarche d&#39;un vrai déploiement multi-nœuds. Ce projet réunit <strong>les cinq guides</strong> de la track DCA.</p>
+<p><strong>Ce que ça prouve à un recruteur :</strong> que tu sais mener une appli <strong>du code à la production conteneurisée</strong> — build optimisé, distribution, orchestration, sécurité, déploiement sans coupure — le tout <strong>documenté</strong> et <strong>reproductible</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé les cinq guides Docker de la track.</p>
+</div>
+<div data-lang="en"><p>You&#39;ve learned the Docker bricks: images, networking, volumes, security, Swarm. <strong>A recruiter wants to see the assembly.</strong> This project is that assembly: a <strong>containerized, secured, orchestrated application</strong> that you build end to end, from code to production stack, and put on your CV and GitHub.</p>
+<p><strong>The scenario.</strong> You&#39;re the DevOps engineer tasked with shipping an SME&#39;s API, <em>Atelier Média</em>, on a Docker Swarm cluster. Your mission covers the whole chain:</p>
+<ul><li><strong>build</strong> the API image as <strong>multi-stage</strong>, <strong>hardened</strong> (non-root, healthcheck);</li><li><strong>distribute</strong> it via a <strong>registry</strong>;</li><li><strong>deploy</strong> a <strong>Swarm stack</strong>: the <strong>replicated</strong> API, a <strong>data tier</strong> (Redis + volume), a <strong>secret</strong> mounted as a file, an <strong>overlay</strong> network, and a <strong>rolling-update</strong> policy;</li><li><strong>update without downtime</strong> (and know how to roll back);</li><li><strong>document</strong> it all as a runbook.</li></ul>
+<p><strong>Everything runs locally</strong>, on a <strong>single-node Swarm cluster</strong> — but it&#39;s <strong>exactly</strong> the approach of a real multi-node deployment. This project brings together <strong>all five guides</strong> of the DCA track.</p>
+<p><strong>What it proves to a recruiter:</strong> that you can take an app <strong>from code to containerized production</strong> — optimized build, distribution, orchestration, security, zero-downtime deployment — all <strong>documented</strong> and <strong>reproducible</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the five Docker track guides.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu auras produit et su expliquer :</p>
+<ul><li>Une <strong>image multi-stage</strong> durcie (non-root, <code>HEALTHCHECK</code>) construite depuis ton code.</li><li>Un <strong>registre local</strong> et l&#39;image <strong>poussée</strong> dedans.</li><li>Une <strong>stack Swarm</strong> : API répliquée + Redis (volume) + <strong>secret</strong> + <strong>overlay</strong>.</li><li>Une <strong>mise à jour progressive</strong> et un <strong>rollback</strong>.</li><li>Un <strong>runbook</strong> (README) de niveau professionnel.</li><li>Un déploiement <strong>reproductible</strong> (<code>docker stack deploy</code> rejouable).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ll have produced and be able to explain:</p>
+<ul><li>A hardened <strong>multi-stage image</strong> (non-root, <code>HEALTHCHECK</code>) built from your code.</li><li>A <strong>local registry</strong> with the image <strong>pushed</strong> to it.</li><li>A <strong>Swarm stack</strong>: replicated API + Redis (volume) + <strong>secret</strong> + <strong>overlay</strong>.</li><li>A <strong>rolling update</strong> and a <strong>rollback</strong>.</li><li>A professional-grade <strong>runbook</strong> (README).</li><li>A <strong>reproducible</strong> deployment (replayable <code>docker stack deploy</code>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li><strong>Toute la track Docker</strong> terminée.</li><li><strong>Docker</strong> installé et lancé, <strong>Git</strong> installé.</li><li>~2-3 h.</li></ul>
+<p>Crée le dépôt du projet :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li><strong>The whole Docker track</strong> finished.</li><li><strong>Docker</strong> installed and running, <strong>Git</strong> installed.</li><li>~2-3 h.</li></ul>
+<p>Create the project repo:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir atelier-stack &amp;&amp; cd atelier-stack &amp;&amp; git init</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-swarm/">
+    <span class="num">17</span>
+    <span class="title-line" data-lang="fr">Docker — orchestration Swarm</span>
+    <span class="title-line" data-lang="en">Docker — Swarm orchestration</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L&#39;architecture cible.</strong> On assemble, du code à la prod, ce que la track a enseigné :</p>
+<ol><li><strong>L&#39;image</strong> (guide images) — le code de l&#39;API, compilé en <strong>multi-stage</strong> (binaire dans une image Alpine minuscule), <strong>durci</strong> : utilisateur <strong>non-root</strong>, <strong><code>HEALTHCHECK</code></strong> intégré.</li><li><strong>La distribution</strong> (guide images) — l&#39;image <strong>taguée</strong> et <strong>poussée</strong> dans un <strong>registre local</strong> (<code>registry:2</code>) : la source dont Swarm tirera l&#39;image.</li><li><strong>L&#39;orchestration</strong> (guide Swarm) — une <strong>stack</strong> décrit tout : le service <strong>API répliqué</strong> (3 tâches), un <strong>tier de données Redis</strong> avec un <strong>volume</strong> persistant, sur un réseau <strong>overlay</strong>.</li><li><strong>La sécurité</strong> (guide sécurité) — un <strong>secret Swarm</strong> (chiffré, monté en <code>/run/secrets</code>), des <strong>limites de ressources</strong>, l&#39;utilisateur non-root de l&#39;image.</li><li><strong>L&#39;exploitation</strong> (guide Swarm) — une politique de <strong>mise à jour progressive</strong> (<code>update_config</code>) et le <strong>rollback</strong> en un geste.</li></ol>
+<p><strong>Le fil rouge : du code au cluster, reproductible.</strong> Un <code>git clone</code> + <code>docker build</code> + <code>docker stack deploy</code> doit suffire à reconstruire l&#39;appli <strong>à l&#39;identique</strong>. C&#39;est ce que prouve un vrai livrable DevOps : pas un tas de commandes tapées à la main, mais un <strong>dépôt</strong> qui <strong>décrit</strong> et <strong>reconstruit</strong> le système.</p>
+</div>
+<div data-lang="en"><p><strong>The target architecture.</strong> We assemble, from code to prod, what the track taught:</p>
+<ol><li><strong>The image</strong> (images guide) — the API&#39;s code, compiled in <strong>multi-stage</strong> (binary in a tiny Alpine image), <strong>hardened</strong>: <strong>non-root</strong> user, built-in <strong><code>HEALTHCHECK</code></strong>.</li><li><strong>Distribution</strong> (images guide) — the image <strong>tagged</strong> and <strong>pushed</strong> to a <strong>local registry</strong> (<code>registry:2</code>): the source Swarm will pull the image from.</li><li><strong>Orchestration</strong> (Swarm guide) — a <strong>stack</strong> describes it all: the <strong>replicated API</strong> service (3 tasks), a <strong>Redis data tier</strong> with a persistent <strong>volume</strong>, on an <strong>overlay</strong> network.</li><li><strong>Security</strong> (security guide) — a <strong>Swarm secret</strong> (encrypted, mounted at <code>/run/secrets</code>), <strong>resource limits</strong>, the image&#39;s non-root user.</li><li><strong>Operations</strong> (Swarm guide) — a <strong>rolling-update</strong> policy (<code>update_config</code>) and one-gesture <strong>rollback</strong>.</li></ol>
+<p><strong>The through-line: code to cluster, reproducible.</strong> A <code>git clone</code> + <code>docker build</code> + <code>docker stack deploy</code> should suffice to rebuild the app <strong>identically</strong>. That&#39;s what a real DevOps deliverable proves: not a pile of hand-typed commands, but a <strong>repo</strong> that <strong>describes</strong> and <strong>rebuilds</strong> the system.</p>
+</div>
+
+<figure class="schema" id="figure-docker-projet-stack">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-docker-projet-stack">
+  <title id="s-docker-projet-stack">Projet : du code à la stack Swarm</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Projet : du code à la stack Swarm</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Code</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-soft" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="286" y="70.5" text-anchor="middle">image multi-stage</text><text class="sub sub-blue" x="286" y="83.5" text-anchor="middle">durcie</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="77" text-anchor="middle">registre local</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-accent" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="662" y="70.5" text-anchor="middle">stack Swarm</text><text class="sub sub-fill" x="662" y="83.5" text-anchor="middle">API ×3 + Redis+volume</text><text class="sub" x="380" y="144" text-anchor="middle">overlay · secret · rolling update</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Code → image multi-stage durcie → registre local → stack Swarm (API x3 + Redis+volume) sur overlay, avec secret et rolling update.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Code → hardened multi-stage image → local registry → Swarm stack (API x3 + Redis+volume) on overlay, with secret and rolling update.</figcaption>
+</figure>
+<div data-lang="fr"><p>Le plan : code &amp; image → registre → Swarm &amp; secret → stack → déploiement &amp; vérif → rolling update → doc → reproductibilité &amp; nettoyage.</p>
+</div>
+<div data-lang="en"><p>The plan: code &amp; image → registry → Swarm &amp; secret → stack → deploy &amp; verify → rolling update → docs → reproducibility &amp; teardown.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire l&#39;<strong>API</strong> et son <strong>image multi-stage durcie</strong>.</p>
+<p>L&#39;API (Go, bibliothèque standard) sert son nom d&#39;hôte et <strong>confirme la présence du secret</strong> sans jamais l&#39;afficher. Crée <code>main.go</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>API</strong> and its <strong>hardened multi-stage image</strong>.</p>
+<p>The API (Go, standard library) serves its hostname and <strong>confirms the secret is present</strong> without ever printing it. Create <code>main.go</code>:</p>
+</div>
+<pre class="term lang-go"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">go</span><button class="copy-btn" type="button">Copy</button></div><code>// main.go
+package main
+
+import (
+	&quot;fmt&quot;
+	&quot;net/http&quot;
+	&quot;os&quot;
+)
+
+func main() {
+	http.HandleFunc(&quot;/health&quot;, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, &quot;ok&quot;)
+	})
+	http.HandleFunc(&quot;/&quot;, func(w http.ResponseWriter, r *http.Request) {
+		host, _ := os.Hostname()
+		secret := &quot;(absent)&quot;
+		if b, err := os.ReadFile(&quot;/run/secrets/api_token&quot;); err == nil {
+			secret = fmt.Sprintf(&quot;présent (%d octets)&quot;, len(b)) // on ne l&#39;affiche PAS / we DON&#39;T print it
+		}
+		fmt.Fprintf(w, &quot;Atelier API v1 — hôte %s — secret: %s\n&quot;, host, secret)
+	})
+	http.ListenAndServe(&quot;:8080&quot;, nil)
+}</code></pre>
+<div data-lang="fr"><p>Puis le <code>Dockerfile</code> <strong>multi-stage</strong> et <strong>durci</strong> :</p>
+</div>
+<div data-lang="en"><p>Then the <strong>multi-stage</strong>, <strong>hardened</strong> <code>Dockerfile</code>:</p>
+</div>
+<pre class="term lang-dockerfile"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">Dockerfile</span><button class="copy-btn" type="button">Copy</button></div><code># Dockerfile
+# --- build (lourde) / build (heavy) ---
+FROM golang:1.22-alpine AS build
+WORKDIR /src
+COPY main.go .
+RUN go mod init api &amp;&amp; CGO_ENABLED=0 go build -o /api .
+
+# --- runtime (minimale, durcie) / runtime (minimal, hardened) ---
+FROM alpine:3.20
+RUN adduser -D -u 1000 app        # utilisateur NON-root / NON-root user
+USER app
+COPY --from=build /api /api
+EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=3s CMD wget -qO- http://localhost:8080/health || exit 1
+ENTRYPOINT [&quot;/api&quot;]</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker build -t atelier-api:1.0 .
+docker run -d --name test -p 8080:8080 atelier-api:1.0
+sleep 2 ; curl -s localhost:8080 ; docker rm -f test</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker build</code> produit <code>atelier-api:1.0</code>, et le <code>curl</code> de test renvoie <code>Atelier API v1 — hôte … — secret: (absent)</code> (pas de secret hors Swarm — normal). L&#39;image est <strong>multi-stage</strong> (le binaire seul dans Alpine, pas de Go ni de sources → quelques Mo), <strong>durcie</strong> (<code>USER app</code> non-root, <code>HEALTHCHECK</code> intégré). Tu as transformé du <strong>code</strong> en une <strong>image de production</strong> légère et sûre — la première étape de toute chaîne de livraison conteneurisée.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker build</code> produces <code>atelier-api:1.0</code>, and the test <code>curl</code> returns <code>Atelier API v1 — hôte … — secret: (absent)</code> (no secret outside Swarm — expected). The image is <strong>multi-stage</strong> (the binary alone in Alpine, no Go or sources → a few MB), <strong>hardened</strong> (<code>USER app</code> non-root, built-in <code>HEALTHCHECK</code>). You&#39;ve turned <strong>code</strong> into a lightweight, safe <strong>production image</strong> — the first step of any containerized delivery chain.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Distribuer l&#39;image via un <strong>registre local</strong>.</p>
+<p><strong>🤔 La source de Swarm.</strong> Swarm tirera l&#39;image d&#39;un registre. Lance-en un et pousse-y ton image :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Distribute the image via a <strong>local registry</strong>.</p>
+<p><strong>🤔 Swarm&#39;s source.</strong> Swarm will pull the image from a registry. Run one and push your image to it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d -p 5001:5000 --name registry registry:2      # registre local (5001 : macOS AirPlay tient :5000)
+docker tag atelier-api:1.0 localhost:5001/atelier-api:1.0
+docker push localhost:5001/atelier-api:1.0</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker push</code> téléverse l&#39;image dans ton registre <code>registry:2</code> sur <code>localhost:5001</code>. C&#39;est <strong>la source</strong> dont la stack tirera l&#39;API : dans le YAML, on référencera <code>localhost:5001/atelier-api:1.0</code>. Sur un cluster mono-nœud, le daemon (qui héberge le registre et exécute Swarm) y accède directement. <em>(Sur un vrai cluster multi-nœuds, chaque nœud devrait joindre le registre — via une adresse routable, pas <code>localhost</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker push</code> uploads the image to your <code>registry:2</code> registry on <code>localhost:5001</code>. That&#39;s <strong>the source</strong> the stack will pull the API from: in the YAML, we&#39;ll reference <code>localhost:5001/atelier-api:1.0</code>. On a single-node cluster, the daemon (hosting the registry and running Swarm) accesses it directly. <em>(On a real multi-node cluster, each node would need to reach the registry — via a routable address, not <code>localhost</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Activer <strong>Swarm</strong> et créer le <strong>secret</strong>.</p>
+<p><strong>🤔 Le socle d&#39;orchestration.</strong> Passe en Swarm et crée le secret que la stack montera :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enable <strong>Swarm</strong> and create the <strong>secret</strong>.</p>
+<p><strong>🤔 The orchestration base.</strong> Enter Swarm and create the secret the stack will mount:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker swarm init 2&gt;/dev/null || echo &quot;Swarm déjà actif / already active&quot;
+# (machine multi-IP : docker swarm init --advertise-addr &lt;IP&gt; / multi-IP host: use --advertise-addr)
+printf &#39;jeton-api-de-prod-a-ne-pas-committer&#39; | docker secret create api_token -
+docker secret ls</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker secret ls</code> liste <strong><code>api_token</code></strong> — le secret est stocké <strong>chiffré</strong> dans le cluster (raft). Il <strong>n&#39;apparaît nulle part</strong> en clair : ni dans le dépôt, ni dans l&#39;image, ni dans une <code>ENV</code>. La stack le déclarera <code>external: true</code> (créé hors du fichier) et le montera en <code>/run/secrets/api_token</code>. Tu as posé le <strong>socle Swarm</strong> et la <strong>gestion du secret</strong> — la façon correcte de livrer un secret à une appli conteneurisée.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker secret ls</code> lists <strong><code>api_token</code></strong> — the secret is stored <strong>encrypted</strong> in the cluster (raft). It appears <strong>nowhere</strong> in cleartext: not in the repo, not in the image, not in an <code>ENV</code>. The stack will declare it <code>external: true</code> (created outside the file) and mount it at <code>/run/secrets/api_token</code>. You&#39;ve laid the <strong>Swarm base</strong> and the <strong>secret handling</strong> — the correct way to deliver a secret to a containerized app.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire toute l&#39;appli dans une <strong>stack</strong> : API + Redis + secret + overlay + sécurité.</p>
+<p>Crée <code>stack.yml</code> — le cœur du livrable :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe the whole app in a <strong>stack</strong>: API + Redis + secret + overlay + security.</p>
+<p>Create <code>stack.yml</code> — the heart of the deliverable:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># stack.yml
+services:
+  api:
+    image: localhost:5001/atelier-api:1.0
+    ports:
+      - &quot;8080:8080&quot;
+    secrets:
+      - api_token                       # monté en /run/secrets/api_token / mounted at /run/secrets/api_token
+    networks:
+      - backend
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1                  # rolling update : 1 tâche à la fois / 1 task at a time
+        delay: 5s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: &quot;0.50&quot;                  # limites de ressources / resource limits
+          memory: 64M
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - backend
+    volumes:
+      - redis-data:/data                # tier de données PERSISTANT / PERSISTENT data tier
+    deploy:
+      replicas: 1
+
+secrets:
+  api_token:
+    external: true                      # créé au step-03 (docker secret create) / created in step-03
+
+networks:
+  backend:
+    driver: overlay                     # réseau multi-nœuds / multi-node network
+
+volumes:
+  redis-data:</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ton <code>stack.yml</code> <strong>décrit</strong> toute l&#39;architecture en un fichier : le service <code>api</code> (image du registre, 3 répliques, <strong>secret</strong> monté, <strong>overlay</strong> <code>backend</code>, <strong>rolling update</strong> 1-par-1, <strong>limites</strong> de ressources) et le service <code>redis</code> (tier de données sur un <strong>volume</strong> persistant). La section <strong><code>deploy:</code></strong> (spécifique à Swarm) porte la config d&#39;orchestration. C&#39;est le <strong>plan déclaratif</strong> complet — l&#39;équivalent Docker d&#39;un manifeste d&#39;infrastructure. <em>(Rien n&#39;est encore déployé : c&#39;est l&#39;étape suivante.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> your <code>stack.yml</code> <strong>describes</strong> the whole architecture in one file: the <code>api</code> service (registry image, 3 replicas, mounted <strong>secret</strong>, <code>backend</code> <strong>overlay</strong>, 1-at-a-time <strong>rolling update</strong>, resource <strong>limits</strong>) and the <code>redis</code> service (data tier on a persistent <strong>volume</strong>). The <strong><code>deploy:</code></strong> section (Swarm-specific) carries the orchestration config. It&#39;s the complete <strong>declarative plan</strong> — the Docker equivalent of an infrastructure manifest. <em>(Nothing is deployed yet: that&#39;s the next step.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Déployer</strong> la stack et tout vérifier.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Deploy</strong> the stack and verify everything.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker stack deploy -c stack.yml atelier
+docker stack services atelier                 # atelier_api 3/3, atelier_redis 1/1
+# attends que l&#39;API soit prête / wait for the API to be ready
+for i in $(seq 15); do curl -sf localhost:8080 &gt;/dev/null &amp;&amp; break; sleep 2; done
+curl -s localhost:8080                         # hôte + &quot;secret: présent (...)&quot; / host + secret present</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker stack services atelier</code> affiche <code>atelier_api  replicated  3/3</code> et <code>atelier_redis  1/1</code>. <code>curl localhost:8080</code> renvoie <code>Atelier API v1 — hôte &lt;id-court&gt; — secret: présent (36 octets)</code> (le nom d&#39;hôte est l&#39;<strong>ID court du conteneur</strong>, un hexa qui <strong>change d&#39;un appel à l&#39;autre</strong> selon la réplique qui répond) : l&#39;API répond via le <strong>routing mesh</strong>, servie par l&#39;une des 3 répliques, et elle <strong>lit le secret</strong> monté en <code>/run/secrets/api_token</code> (dont elle rapporte la taille, <strong>sans</strong> l&#39;exposer). Toute la chaîne fonctionne : <strong>code → image → registre → stack orchestrée</strong>, avec secret, réplication et tier de données. Tu as un <strong>déploiement de production</strong> miniature, en une commande.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker stack services atelier</code> shows <code>atelier_api  replicated  3/3</code> and <code>atelier_redis  1/1</code>. <code>curl localhost:8080</code> returns <code>Atelier API v1 — hôte &lt;short-id&gt; — secret: présent (36 octets)</code> (the hostname is the container&#39;s <strong>short ID</strong>, a hex string that <strong>changes between calls</strong> depending on which replica answers): the API answers via the <strong>routing mesh</strong>, served by one of the 3 replicas, and it <strong>reads the secret</strong> mounted at <code>/run/secrets/api_token</code> (reporting its size, <strong>without</strong> exposing it). The whole chain works: <strong>code → image → registry → orchestrated stack</strong>, with secret, replication and a data tier. You have a miniature <strong>production deployment</strong>, in one command.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Mettre à jour sans coupure</strong> (rolling update) et savoir <strong>revenir en arrière</strong>.</p>
+<p><strong>🤔 Livrer une v2.</strong> Modifie le message de l&#39;API, reconstruis en <code>1.1</code>, pousse, et mets à jour la stack — Swarm bascule les tâches <strong>une à une</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Update without downtime</strong> (rolling update) and know how to <strong>roll back</strong>.</p>
+<p><strong>🤔 Ship a v2.</strong> Change the API&#39;s message, rebuild as <code>1.1</code>, push, and update the stack — Swarm flips the tasks <strong>one by one</strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sed -i &#39;s/Atelier API v1/Atelier API v2/&#39; main.go        # une &quot;nouvelle version&quot; / a &quot;new version&quot;
+docker build -t localhost:5001/atelier-api:1.1 .
+docker push localhost:5001/atelier-api:1.1
+
+# mise à jour progressive du service / rolling update of the service
+docker service update --image localhost:5001/atelier-api:1.1 atelier_api
+curl -s localhost:8080                                    # -&gt; &quot;Atelier API v2 ...&quot;
+
+# rollback : revenir à la 1.0 en un geste / one-gesture rollback to 1.0
+docker service rollback atelier_api
+curl -s localhost:8080                                    # -&gt; &quot;Atelier API v1 ...&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après le <code>service update</code>, <code>curl localhost:8080</code> renvoie <strong><code>Atelier API v2</code></strong> — Swarm a remplacé les 3 tâches <strong>progressivement</strong> (1 à la fois, 5 s d&#39;écart, comme défini dans <code>update_config</code>), <strong>sans</strong> interruption de service. Puis <strong><code>docker service rollback</code></strong> ramène l&#39;API à <strong>v1</strong> en une commande. C&#39;est le <strong>déploiement sans coupure</strong> et son filet : livrer une nouvelle version par lots, et <strong>annuler</strong> instantanément si quelque chose cloche. Tu tiens le cycle de vie complet d&#39;un service en prod : build → push → update → (rollback).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after the <code>service update</code>, <code>curl localhost:8080</code> returns <strong><code>Atelier API v2</code></strong> — Swarm replaced the 3 tasks <strong>progressively</strong> (1 at a time, 5s apart, as defined in <code>update_config</code>), <strong>without</strong> service interruption. Then <strong><code>docker service rollback</code></strong> brings the API back to <strong>v1</strong> in one command. That&#39;s <strong>zero-downtime deployment</strong> and its safety net: ship a new version in batches, and <strong>undo</strong> instantly if something&#39;s wrong. You hold the full lifecycle of a production service: build → push → update → (rollback).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Documenter — le <strong>runbook</strong> qui fait le livrable de CV.</p>
+<p><strong>🤔 Le README fait la moitié de la valeur.</strong> Crée un <code>README.md</code> en suivant ce plan (chaque titre devient une section <code>##</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Document — the <strong>runbook</strong> that makes the CV deliverable.</p>
+<p><strong>🤔 The README is half the value.</strong> Create a <code>README.md</code> following this outline (each heading becomes a <code>##</code> section):</p>
+</div>
+<h1>Atelier Média — API conteneurisée sur Swarm</h1>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ton dépôt a <code>main.go</code>, <code>Dockerfile</code>, <code>stack.yml</code> et un <code>README.md</code> (architecture, déploiement, exploitation, décisions). Ouvre-le comme un recruteur : en deux minutes, comprend-on <strong>ce que fait l&#39;appli, comment la déployer et l&#39;exploiter, et pourquoi tes choix (multi-stage, non-root, secret, rolling update) sont bons</strong> ? Si oui, c&#39;est un livrable <strong>vendable</strong> — pas un tuto suivi, mais un <strong>système décrit et reconstructible</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> your repo has <code>main.go</code>, <code>Dockerfile</code>, <code>stack.yml</code> and a <code>README.md</code> (architecture, deployment, operations, decisions). Open it like a recruiter: in two minutes, is it clear <strong>what the app does, how to deploy and operate it, and why your choices (multi-stage, non-root, secret, rolling update) are sound</strong>? If so, it&#39;s a <strong>sellable</strong> deliverable — not a followed tutorial, but a <strong>described, rebuildable system</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Prouver la <strong>reproductibilité</strong>, committer, puis nettoyer.</p>
+<p><strong>🤔 Reconstructible d&#39;un dépôt.</strong> Ta stack se <strong>rejoue</strong> avec <code>docker stack deploy</code> (idempotent : Swarm applique le diff). Committe le livrable :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prove <strong>reproducibility</strong>, commit, then clean up.</p>
+<p><strong>🤔 Rebuildable from a repo.</strong> Your stack <strong>replays</strong> with <code>docker stack deploy</code> (idempotent: Swarm applies the diff). Commit the deliverable:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker stack deploy -c stack.yml atelier         # re-déploiement idempotent : Swarm applique le diff (aucune tâche recréée) / idempotent: Swarm applies the diff (no tasks recreated)
+docker stack services atelier                     # toujours 3/3 + 1/1 / still 3/3 + 1/1
+
+cat &gt; .gitignore &lt;&lt;&#39;EOF&#39;
+*.tar
+EOF
+git config user.email &quot;toi@exemple.fr&quot; &amp;&amp; git config user.name &quot;Ton Nom&quot;   # requis sur une machine fraîche / required on a fresh machine
+git add . &amp;&amp; git commit -m &quot;Atelier API : image multi-stage durcie + stack Swarm sécurisée (secret, overlay, rolling update)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> un second <code>docker stack deploy</code> ne change rien (l&#39;état voulu est déjà atteint) — <strong>reproductible et idempotent</strong>. Le <code>git commit</code> fige ton livrable (<code>main.go</code>, <code>Dockerfile</code>, <code>stack.yml</code>, <code>README.md</code>). <strong>Pousse le dépôt sur GitHub et mets le lien sur ton CV.</strong></p>
+<p><strong>🧹 Ménage :</strong> <code>docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2&gt;/dev/null ; docker volume rm redis-data 2&gt;/dev/null ; docker rm -f registry 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> a second <code>docker stack deploy</code> changes nothing (the desired state is already reached) — <strong>reproducible and idempotent</strong>. The <code>git commit</code> freezes your deliverable (<code>main.go</code>, <code>Dockerfile</code>, <code>stack.yml</code>, <code>README.md</code>). <strong>Push the repo to GitHub and put the link on your CV.</strong></p>
+<p><strong>🧹 Cleanup:</strong> <code>docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2&gt;/dev/null ; docker volume rm redis-data 2&gt;/dev/null ; docker rm -f registry 2&gt;/dev/null ; docker swarm leave --force</code>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Livrer l&#39;image de build.</strong> Sans multi-stage, tu embarques Go + les sources = image énorme et exposée. Sépare <strong>build</strong> et <strong>runtime</strong>.</p>
+<p><strong>2. Faire tourner l&#39;API en root.</strong> L&#39;image doit poser un <strong><code>USER</code></strong> non-root. Un service exposé en root = risque d&#39;évasion.</p>
+<p><strong>3. Mettre le secret dans le YAML ou une <code>ENV</code>.</strong> Utilise un <strong>secret Swarm</strong> (<code>external: true</code> + <code>docker secret create</code>), monté en fichier. Ne committe <strong>jamais</strong> le secret.</p>
+<p><strong>4. <code>deploy:</code> sous <code>docker compose up</code>.</strong> La section <code>deploy:</code> n&#39;est honorée que par <strong><code>docker stack deploy</code></strong> (Swarm), pas par <code>docker compose up</code>. Ce projet est une <strong>stack</strong>, pas un <code>compose up</code>.</p>
+<p><strong>5. Référencer <code>localhost:5001</code> sur un cluster multi-nœuds.</strong> Les workers ne joignent pas ton <code>localhost</code>. En mono-nœud c&#39;est OK ; en multi-nœuds, un registre à adresse routable.</p>
+<p><strong>6. Oublier <code>git config</code> sur une machine fraîche.</strong> <code>git commit</code> échoue sans identité. Configure <code>user.name</code>/<code>user.email</code> (fait au step-08).</p>
+<p><strong>7. Supprimer la stack en pensant tout nettoyer.</strong> Le <strong>secret</strong>, le <strong>volume</strong> et le <strong>registre</strong> survivent. Nettoie-les explicitement (<code>docker secret rm</code>, <code>docker volume rm</code>, <code>docker rm -f registry</code>).</p>
+</div>
+<div data-lang="en"><p><strong>1. Shipping the build image.</strong> Without multi-stage, you bundle Go + sources = a huge, exposed image. Separate <strong>build</strong> and <strong>runtime</strong>.</p>
+<p><strong>2. Running the API as root.</strong> The image must set a non-root <strong><code>USER</code></strong>. An exposed service as root = escape risk.</p>
+<p><strong>3. Putting the secret in the YAML or an <code>ENV</code>.</strong> Use a <strong>Swarm secret</strong> (<code>external: true</code> + <code>docker secret create</code>), mounted as a file. <strong>Never</strong> commit the secret.</p>
+<p><strong>4. <code>deploy:</code> under <code>docker compose up</code>.</strong> The <code>deploy:</code> section is honored only by <strong><code>docker stack deploy</code></strong> (Swarm), not by <code>docker compose up</code>. This project is a <strong>stack</strong>, not a <code>compose up</code>.</p>
+<p><strong>5. Referencing <code>localhost:5001</code> on a multi-node cluster.</strong> Workers can&#39;t reach your <code>localhost</code>. Single-node is fine; multi-node needs a routable-address registry.</p>
+<p><strong>6. Forgetting <code>git config</code> on a fresh machine.</strong> <code>git commit</code> fails without an identity. Configure <code>user.name</code>/<code>user.email</code> (done in step-08).</p>
+<p><strong>7. Removing the stack thinking it cleans everything.</strong> The <strong>secret</strong>, the <strong>volume</strong> and the <strong>registry</strong> survive. Clean them explicitly (<code>docker secret rm</code>, <code>docker volume rm</code>, <code>docker rm -f registry</code>).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Ton livrable est prêt pour un CV quand…</p>
+<ul class="checklist"><li>L&#39;<strong>image</strong> est <strong>multi-stage</strong>, <strong>non-root</strong>, avec un <strong><code>HEALTHCHECK</code></strong>.</li><li>L&#39;image est <strong>poussée</strong> dans un <strong>registre</strong> et référencée par la stack.</li><li>La <strong>stack</strong> déploie l&#39;API <strong>3/3</strong> + Redis (<strong>volume</strong>), sur un <strong>overlay</strong>.</li><li>Le <strong>secret</strong> est monté en <code>/run/secrets</code> (jamais en <code>ENV</code>/dépôt).</li><li>Tu fais un <strong>rolling update</strong> (v2) <strong>et</strong> un <strong>rollback</strong> (v1).</li><li><code>docker stack deploy</code> est <strong>idempotent</strong> ; le dépôt a un <strong>runbook</strong>.</li><li>Tu sais <strong>justifier</strong> chaque choix (multi-stage, non-root, secret, update).</li></ul>
+<p>Sept cases cochées = tu ne présentes pas un TP, tu présentes une <strong>appli conteneurisée de production</strong>.</p>
+</div>
+<div data-lang="en"><p>Your deliverable is CV-ready when…</p>
+<ul class="checklist"><li>The <strong>image</strong> is <strong>multi-stage</strong>, <strong>non-root</strong>, with a <strong><code>HEALTHCHECK</code></strong>.</li><li>The image is <strong>pushed</strong> to a <strong>registry</strong> and referenced by the stack.</li><li>The <strong>stack</strong> deploys the API <strong>3/3</strong> + Redis (<strong>volume</strong>), on an <strong>overlay</strong>.</li><li>The <strong>secret</strong> is mounted at <code>/run/secrets</code> (never in <code>ENV</code>/repo).</li><li>You do a <strong>rolling update</strong> (v2) <strong>and</strong> a <strong>rollback</strong> (v1).</li><li><code>docker stack deploy</code> is <strong>idempotent</strong>; the repo has a <strong>runbook</strong>.</li><li>You can <strong>justify</strong> every choice (multi-stage, non-root, secret, update).</li></ul>
+<p>Seven boxes ticked = you&#39;re not presenting a lab, you&#39;re presenting a <strong>production containerized app</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>track Docker → DCA</strong>, projet compris. Pour aller plus loin :</p>
+<ol><li><strong>Passe l&#39;examen</strong> — avec toute la track, tu couvres les six domaines du <strong>DCA</strong>. Entraîne-toi au format QCM chronométré.</li><li><strong>Automatise la chaîne</strong> — branche un <strong>pipeline CI/CD</strong> (guide CI/CD) qui build l&#39;image, la scanne, la pousse et déploie la stack à chaque commit.</li><li><strong>Passe à Kubernetes</strong> — le même schéma (image → registre → manifeste → cluster) avec l&#39;orchestrateur dominant (track <strong>Kubernetes → CKA</strong>). Tes réflexes conteneurs y sont directement transférables.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>Docker → DCA track</strong>, project included. To go further:</p>
+<ol><li><strong>Sit the exam</strong> — with the whole track, you cover the six <strong>DCA</strong> domains. Practice in the timed multiple-choice format.</li><li><strong>Automate the chain</strong> — wire a <strong>CI/CD pipeline</strong> (CI/CD guide) that builds the image, scans it, pushes it and deploys the stack on every commit.</li><li><strong>Move to Kubernetes</strong> — the same scheme (image → registry → manifest → cluster) with the dominant orchestrator (<strong>Kubernetes → CKA</strong> track). Your container reflexes transfer directly.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../cicd-github-actions/">
+    <span class="num">19</span>
+    <span class="title-line" data-lang="fr">CI/CD avec GitHub Actions</span>
+    <span class="title-line" data-lang="en">CI/CD with GitHub Actions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire projet stack.</p>
+</div>
+<div data-lang="en"><p>Stack project cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Image &amp; registre / image &amp; registry
+docker build -t localhost:5001/atelier-api:1.0 .
+docker run -d -p 5001:5000 --name registry registry:2
+docker push localhost:5001/atelier-api:1.0
+
+# Swarm &amp; secret
+docker swarm init
+printf &#39;val&#39; | docker secret create api_token -
+
+# Stack
+docker stack deploy -c stack.yml atelier
+docker stack services atelier ; docker service ps atelier_api
+
+# Exploitation / operations
+docker service update --image localhost:5001/atelier-api:1.1 atelier_api   # rolling update
+docker service rollback atelier_api                                         # rollback
+
+# Nettoyage / cleanup
+docker stack rm atelier ; sleep 3 ; docker secret rm api_token ; docker volume rm redis-data ; docker rm -f registry ; docker swarm leave --force</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li>Les <strong>cinq guides</strong> de la track Docker (chaque étape en approfondit un).</li><li><a href="https://docs.docker.com/engine/swarm/stack-deploy/">Déployer un stack sur Swarm</a> et la <a href="https://docs.docker.com/reference/compose-file/deploy/">référence Compose <code>deploy</code></a>.</li><li><a href="https://docs.docker.com/engine/swarm/secrets/">Secrets Swarm</a> et <a href="https://hub.docker.com/_/registry">le registre <code>registry:2</code></a>.</li><li>Objectifs <strong>DCA</strong> (les six domaines de l&#39;examen).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>five guides</strong> of the Docker track (each step deepens one).</li><li><a href="https://docs.docker.com/engine/swarm/stack-deploy/">Deploy a stack on Swarm</a> and the <a href="https://docs.docker.com/reference/compose-file/deploy/">Compose <code>deploy</code> reference</a>.</li><li><a href="https://docs.docker.com/engine/swarm/secrets/">Swarm secrets</a> and <a href="https://hub.docker.com/_/registry">the <code>registry:2</code> registry</a>.</li><li><strong>DCA</strong> objectives (the exam&#39;s six domains).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le service <code>atelier_api</code> reste en <code>0/3</code>.</strong> <code>docker service ps --no-trunc atelier_api</code> montre l&#39;erreur. Souvent l&#39;image est introuvable : vérifie le <code>push</code> vers <code>localhost:5001</code> et le tag exact dans <code>stack.yml</code>.</p>
+<p><strong><code>no such image</code> au déploiement.</strong> Le tag du <code>stack.yml</code> ne correspond pas à l&#39;image poussée. Aligne <code>localhost:5001/atelier-api:1.0</code> (registre + nom + tag).</p>
+<p><strong><code>curl localhost:8080</code> : secret <code>(absent)</code>.</strong> Hors Swarm (test du step-01), c&#39;est normal. Dans la stack, si le secret est absent, vérifie <code>docker secret ls</code> et la section <code>secrets:</code> du service dans <code>stack.yml</code>.</p>
+<p><strong>Le <code>HEALTHCHECK</code> échoue (<code>unhealthy</code>).</strong> L&#39;API n&#39;écoute pas encore, ou <code>wget</code> manque. Alpine a busybox <code>wget</code> ; laisse un <code>--interval</code>/<code>--timeout</code> raisonnable et un endpoint <code>/health</code> qui répond vite.</p>
+<p><strong><code>docker service update</code> ne bascule pas.</strong> Le nouveau tag n&#39;est pas poussé, ou identique à l&#39;ancien. Reconstruis et <strong>pousse</strong> la nouvelle version, puis update avec le <strong>bon</strong> tag.</p>
+<p><strong><code>docker stack rm</code> puis <code>docker network</code>/<code>secret rm</code> : « in use ».</strong> La suppression de la stack est <strong>asynchrone</strong>. Attends quelques secondes (<code>sleep</code>) avant de retirer secret/réseau/volume.</p>
+</div>
+<div data-lang="en"><p><strong>The <code>atelier_api</code> service stays at <code>0/3</code>.</strong> <code>docker service ps --no-trunc atelier_api</code> shows the error. Often the image isn&#39;t found: check the <code>push</code> to <code>localhost:5001</code> and the exact tag in <code>stack.yml</code>.</p>
+<p><strong><code>no such image</code> on deploy.</strong> The <code>stack.yml</code> tag doesn&#39;t match the pushed image. Align <code>localhost:5001/atelier-api:1.0</code> (registry + name + tag).</p>
+<p><strong><code>curl localhost:8080</code>: secret <code>(absent)</code>.</strong> Outside Swarm (step-01 test), that&#39;s normal. In the stack, if the secret is missing, check <code>docker secret ls</code> and the service&#39;s <code>secrets:</code> section in <code>stack.yml</code>.</p>
+<p><strong>The <code>HEALTHCHECK</code> fails (<code>unhealthy</code>).</strong> The API isn&#39;t listening yet, or <code>wget</code> is missing. Alpine has busybox <code>wget</code>; keep a reasonable <code>--interval</code>/<code>--timeout</code> and a <code>/health</code> endpoint that answers fast.</p>
+<p><strong><code>docker service update</code> doesn&#39;t flip.</strong> The new tag isn&#39;t pushed, or is identical to the old. Rebuild and <strong>push</strong> the new version, then update with the <strong>right</strong> tag.</p>
+<p><strong><code>docker stack rm</code> then <code>docker network</code>/<code>secret rm</code>: &quot;in use&quot;.</strong> Stack removal is <strong>asynchronous</strong>. Wait a few seconds (<code>sleep</code>) before removing secret/network/volume.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

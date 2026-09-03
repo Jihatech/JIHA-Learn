@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — distribution applicative (AZ-700) : équilibrage, App Gateway, Front Door — jiha.tech</title>
+  <title data-lang="en">Azure — application delivery (AZ-700): load balancing, App Gateway, Front Door — jiha.tech</title>
+  <meta name="description" content="&quot;Distribuer les applications pour l&#39;AZ-700, en local et pour de vrai : choisir le bon service (Load Balancer L4, Application Gateway L7, Front Door global, Traffic Manager DNS) avec un moteur de décision exécutable, les algorithmes d&#39;équilibrage (round-robin, moindre connexions) et les sondes de santé qui excluent un backend défaillant, le routage L7 par chemin d&#39;URL, la distribution mondiale (CDN+WAF) et l&#39;affinité de session (hash 5-tuple). Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Delivering applications for AZ-700, locally and for real: choosing the right service (L4 Load Balancer, L7 Application Gateway, global Front Door, DNS Traffic Manager) with a runnable decision engine, load-balancing algorithms (round-robin, least connections) and health probes that exclude a failing backend, L7 path-based routing, global delivery (CDN+WAF) and session affinity (5-tuple hash). No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — distribution applicative (AZ-700) : équilibrage, App Gateway, Front Door">
+  <meta property="og:description" content="&quot;Distribuer les applications pour l&#39;AZ-700, en local et pour de vrai : choisir le bon service (Load Balancer L4, Application Gateway L7, Front Door global, Traffic Manager DNS) avec un moteur de décision exécutable, les algorithmes d&#39;équilibrage (round-robin, moindre connexions) et les sondes de santé qui excluent un backend défaillant, le routage L7 par chemin d&#39;URL, la distribution mondiale (CDN+WAF) et l&#39;affinité de session (hash 5-tuple). Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-reseau-distribution/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-reseau-distribution/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-reseau-distribution">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-reseau-distribution</div>
+    <div class="prompt" data-lang="en">~/guides/azure-reseau-distribution</div>
+    <h1 data-lang="fr">Azure — distribution applicative (AZ-700) : équilibrage, App Gateway, Front Door</h1>
+    <h1 data-lang="en">Azure — application delivery (AZ-700): load balancing, App Gateway, Front Door</h1>
+    <p class="tagline" data-lang="fr">répartir la charge, router par chemin, distribuer mondialement.</p>
+    <p class="tagline" data-lang="en">spread the load, route by path, deliver globally.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Une seule instance ne tient pas la charge — et tombe un jour. La <strong>distribution applicative</strong> répartit le trafic sur <strong>plusieurs</strong> backends, <strong>exclut</strong> ceux qui sont défaillants, <strong>route</strong> selon l&#39;URL, et <strong>distribue mondialement</strong>. L&#39;<strong>AZ-700</strong> attend que tu saches choisir entre <strong>Load Balancer</strong>, <strong>Application Gateway</strong>, <strong>Front Door</strong> et <strong>Traffic Manager</strong> — et comprendre <strong>comment</strong> ils répartissent.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on <strong>choisit</strong> le bon service (L4/L7, régional/global) avec un <strong>moteur de décision</strong>, on <strong>exécute</strong> les <strong>algorithmes d&#39;équilibrage</strong> (round-robin, moindre connexions), on branche des <strong>sondes de santé</strong> qui <strong>excluent</strong> un backend défaillant, on fait du <strong>routage L7 par chemin</strong> d&#39;URL, on voit la <strong>distribution mondiale</strong> (CDN + WAF) et l&#39;<strong>affinité de session</strong> (hash).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises l&#39;adressage, le routage et la connectivité (guides précédents) et tu veux <strong>distribuer</strong> tes applis.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas les fondations réseau → fais les guides AZ-700 précédents.</li><li>Tu cherches la sécurité applicative (WAF en détail) → on l&#39;aborde ici, l&#39;approfondissement est côté <strong>AZ-500</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>A single instance can&#39;t hold the load — and fails one day. <strong>Application delivery</strong> spreads traffic across <strong>several</strong> backends, <strong>excludes</strong> the failing ones, <strong>routes</strong> by URL, and <strong>delivers globally</strong>. <strong>AZ-700</strong> expects you to choose between <strong>Load Balancer</strong>, <strong>Application Gateway</strong>, <strong>Front Door</strong> and <strong>Traffic Manager</strong> — and understand <strong>how</strong> they distribute.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we <strong>choose</strong> the right service (L4/L7, regional/global) with a <strong>decision engine</strong>, we <strong>run</strong> the <strong>load-balancing algorithms</strong> (round-robin, least connections), we wire <strong>health probes</strong> that <strong>exclude</strong> a failing backend, we do <strong>L7 path-based routing</strong>, we see <strong>global delivery</strong> (CDN + WAF) and <strong>session affinity</strong> (hash).</p>
+<p><strong>Who it&#39;s for:</strong> you master addressing, routing and connectivity (previous guides) and want to <strong>deliver</strong> your apps.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You lack the network foundations → do the previous AZ-700 guides.</li><li>You want application security (WAF in detail) → we touch it here, the deep dive is on the <strong>AZ-500</strong> side.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Choisir</strong> le bon service : Load Balancer (L4), App Gateway (L7), Front Door (global), Traffic Manager (DNS).</li><li>Distinguer <strong>L4</strong> (transport) et <strong>L7</strong> (application).</li><li>Exécuter les <strong>algorithmes d&#39;équilibrage</strong> (round-robin, moindre connexions).</li><li>Brancher des <strong>sondes de santé</strong> qui <strong>excluent</strong> un backend défaillant.</li><li>Faire du <strong>routage L7 par chemin</strong> d&#39;URL (Application Gateway).</li><li>Comprendre la <strong>distribution mondiale</strong> (Front Door CDN+WAF, Traffic Manager DNS).</li><li>Gérer l&#39;<strong>affinité de session</strong> (hash) quand c&#39;est nécessaire.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Choose</strong> the right service: Load Balancer (L4), App Gateway (L7), Front Door (global), Traffic Manager (DNS).</li><li>Distinguish <strong>L4</strong> (transport) and <strong>L7</strong> (application).</li><li>Run the <strong>load-balancing algorithms</strong> (round-robin, least connections).</li><li>Wire <strong>health probes</strong> that <strong>exclude</strong> a failing backend.</li><li>Do <strong>L7 path-based routing</strong> (Application Gateway).</li><li>Understand <strong>global delivery</strong> (Front Door CDN+WAF, Traffic Manager DNS).</li><li>Handle <strong>session affinity</strong> (hash) when needed.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Azure — réseau fondamentaux / routage / hybride (AZ-700)</strong>.</li><li>Le <strong>lab local</strong> : <strong>Python 3</strong>, <strong>Bicep CLI</strong> (optionnel), <strong>miniblue</strong> optionnel.</li><li><strong>Aucun compte cloud</strong> : algorithmes, sondes, routage et décision s&#39;exécutent en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — network fundamentals / routing / hybrid (AZ-700)</strong> guides.</li><li>The <strong>local lab</strong>: <strong>Python 3</strong>, <strong>Bicep CLI</strong> (optional), <strong>miniblue</strong> optional.</li><li><strong>No cloud account</strong>: algorithms, probes, routing and decision run locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-reseau-hybride/">
+    <span class="num">84</span>
+    <span class="title-line" data-lang="fr">Azure — connectivité hybride (AZ-700) : peering, VPN, ExpressRoute</span>
+    <span class="title-line" data-lang="en">Azure — hybrid connectivity (AZ-700): peering, VPN, ExpressRoute</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L4 vs L7.</strong> Un équilibreur travaille à une <strong>couche</strong> du modèle réseau. <strong>L4</strong> (transport — TCP/UDP) répartit sur des <strong>ports/IP</strong>, sans regarder le <strong>contenu</strong> : rapide, universel. <strong>L7</strong> (application — HTTP) <strong>comprend</strong> la requête (URL, en-têtes, cookies) : il peut <strong>router par chemin</strong>, terminer le <strong>TLS</strong>, appliquer un <strong>WAF</strong>. Le choix L4/L7 est la <strong>première</strong> décision de distribution.</p>
+<p><strong>Les quatre services Azure.</strong></p>
+<ul><li><strong>Azure Load Balancer</strong> — <strong>L4</strong>, <strong>régional</strong>, TCP/UDP, très <strong>faible latence</strong>, très haut débit. Pour équilibrer des VMs, du trafic interne, non-HTTP.</li><li><strong>Application Gateway</strong> — <strong>L7</strong>, <strong>régional</strong>, HTTP(S). <strong>Routage par chemin/hôte</strong>, <strong>terminaison TLS</strong>, <strong>WAF</strong> intégré. Pour un site/API régional.</li><li><strong>Azure Front Door</strong> — <strong>L7</strong>, <strong>global</strong>. <strong>CDN</strong> (points de présence dans le monde) + <strong>WAF</strong> + accélération. Pour une appli <strong>mondiale</strong>.</li><li><strong>Traffic Manager</strong> — <strong>DNS</strong>, <strong>global</strong>. Ne voit <strong>pas</strong> le trafic : il <strong>répond au DNS</strong> en dirigeant vers le bon <strong>endpoint</strong> (par géographie, priorité, poids). Pour orchestrer plusieurs régions.</li></ul>
+<p><strong>Les algorithmes d&#39;équilibrage.</strong> Comment choisir <strong>quel backend</strong> ? <strong>Round-robin</strong> (tourniquet) : à tour de rôle, simple et équitable. <strong>Moindre connexions</strong> (least connections) : vers le backend le <strong>moins chargé</strong>. <strong>Hash</strong> (5-tuple : IP source/dest, ports, protocole) : le <strong>même client</strong> va <strong>toujours</strong> au même backend (utile pour l&#39;<strong>affinité de session</strong>).</p>
+<p><strong>Les sondes de santé.</strong> L&#39;équilibreur <strong>teste</strong> régulièrement chaque backend (une <strong>sonde</strong> HTTP/TCP). Un backend qui <strong>échoue</strong> est <strong>retiré</strong> de la rotation — le trafic n&#39;y va <strong>plus</strong>, jusqu&#39;à ce qu&#39;il redevienne sain. C&#39;est ce qui rend la distribution <strong>résiliente</strong> : une instance qui tombe ne casse pas le service.</p>
+<p><strong>Le routage L7 par chemin.</strong> En L7, on <strong>route selon l&#39;URL</strong> : <code>/api/<em></code> → pool d&#39;API, <code>/images/</em></code> → pool statique, le reste → pool web. Une seule adresse publique, plusieurs backends <strong>spécialisés</strong>. Impossible en L4 (qui ne voit pas l&#39;URL).</p>
+<p><strong>L&#39;affinité de session.</strong> Certaines applis (panier, session serveur) exigent qu&#39;un client <strong>revienne</strong> au <strong>même</strong> backend. L&#39;<strong>affinité</strong> (par cookie en L7, par hash en L4) garantit cette <strong>collance</strong>. À utiliser <strong>avec parcimonie</strong> : elle <strong>déséquilibre</strong> la charge et complique le scaling — préfère des backends <strong>sans état</strong> quand tu peux.</p>
+<p><strong>Ce qui est live ici.</strong> Les <strong>algorithmes</strong> (round-robin, moindre connexions, hash), les <strong>sondes</strong> (exclusion d&#39;un backend KO), le <strong>routage L7</strong> et le <strong>moteur de décision</strong> (L4/L7, régional/global) sont <strong>exécutables</strong> en Python — de <strong>vraies</strong> décisions reproduisant la logique d&#39;Azure. Les <strong>services managés</strong> (Front Door, Traffic Manager) se <strong>raisonnent</strong> ; leur <strong>logique</strong> est ici <strong>jouée pour de vrai</strong>. Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>L4 vs L7.</strong> A load balancer works at a <strong>layer</strong> of the network model. <strong>L4</strong> (transport — TCP/UDP) distributes on <strong>ports/IPs</strong>, without looking at <strong>content</strong>: fast, universal. <strong>L7</strong> (application — HTTP) <strong>understands</strong> the request (URL, headers, cookies): it can <strong>route by path</strong>, terminate <strong>TLS</strong>, apply a <strong>WAF</strong>. The L4/L7 choice is the <strong>first</strong> delivery decision.</p>
+<p><strong>The four Azure services.</strong></p>
+<ul><li><strong>Azure Load Balancer</strong> — <strong>L4</strong>, <strong>regional</strong>, TCP/UDP, very <strong>low latency</strong>, very high throughput. To balance VMs, internal traffic, non-HTTP.</li><li><strong>Application Gateway</strong> — <strong>L7</strong>, <strong>regional</strong>, HTTP(S). <strong>Path/host routing</strong>, <strong>TLS termination</strong>, built-in <strong>WAF</strong>. For a regional site/API.</li><li><strong>Azure Front Door</strong> — <strong>L7</strong>, <strong>global</strong>. <strong>CDN</strong> (points of presence worldwide) + <strong>WAF</strong> + acceleration. For a <strong>global</strong> app.</li><li><strong>Traffic Manager</strong> — <strong>DNS</strong>, <strong>global</strong>. Doesn&#39;t see the <strong>traffic</strong>: it <strong>answers DNS</strong> by directing to the right <strong>endpoint</strong> (by geography, priority, weight). To orchestrate multiple regions.</li></ul>
+<p><strong>Load-balancing algorithms.</strong> How to pick <strong>which backend</strong>? <strong>Round-robin</strong>: in turn, simple and fair. <strong>Least connections</strong>: to the <strong>least loaded</strong> backend. <strong>Hash</strong> (5-tuple: source/dest IP, ports, protocol): the <strong>same client</strong> always goes to the same backend (useful for <strong>session affinity</strong>).</p>
+<p><strong>Health probes.</strong> The balancer <strong>tests</strong> each backend regularly (an HTTP/TCP <strong>probe</strong>). A backend that <strong>fails</strong> is <strong>removed</strong> from rotation — traffic no longer goes there, until it&#39;s healthy again. That&#39;s what makes delivery <strong>resilient</strong>: an instance going down doesn&#39;t break the service.</p>
+<p><strong>L7 path-based routing.</strong> At L7, you <strong>route by URL</strong>: <code>/api/<em></code> → API pool, <code>/images/</em></code> → static pool, the rest → web pool. One public address, several <strong>specialized</strong> backends. Impossible at L4 (which doesn&#39;t see the URL).</p>
+<p><strong>Session affinity.</strong> Some apps (cart, server session) require a client to <strong>return</strong> to the <strong>same</strong> backend. <strong>Affinity</strong> (by cookie at L7, by hash at L4) guarantees that <strong>stickiness</strong>. Use it <strong>sparingly</strong>: it <strong>unbalances</strong> the load and complicates scaling — prefer <strong>stateless</strong> backends when you can.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>algorithms</strong> (round-robin, least connections, hash), the <strong>probes</strong> (excluding a down backend), the <strong>L7 routing</strong> and the <strong>decision engine</strong> (L4/L7, regional/global) are <strong>runnable</strong> in Python — <strong>real</strong> decisions reproducing Azure&#39;s logic. The <strong>managed services</strong> (Front Door, Traffic Manager) are <strong>reasoned</strong>; their <strong>logic</strong> is here <strong>played for real</strong>. All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-reseau-distribution-services">
+  <svg viewBox="0 0 760 222" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-reseau-distribution-services">
+  <title id="s-azure-reseau-distribution-services">Distribution applicative</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Distribution applicative</text><rect class="box-accent" x="16" y="40" width="355" height="62" rx="3"/><text class="lbl lbl-fill" x="193.5" y="68.5" text-anchor="middle">Load Balancer</text><text class="sub sub-fill" x="193.5" y="81.5" text-anchor="middle">L4 · régional · TCP/UDP</text><rect class="box" x="389" y="40" width="355" height="62" rx="3"/><text class="lbl" x="566.5" y="68.5" text-anchor="middle">Application Gateway</text><text class="sub" x="566.5" y="81.5" text-anchor="middle">L7 · routage chemin + WAF + TLS</text><rect class="box" x="16" y="118" width="355" height="62" rx="3"/><text class="lbl" x="193.5" y="146.5" text-anchor="middle">Front Door</text><text class="sub" x="193.5" y="159.5" text-anchor="middle">L7 global · CDN + WAF</text><rect class="box" x="389" y="118" width="355" height="62" rx="3"/><text class="lbl" x="566.5" y="146.5" text-anchor="middle">Traffic Manager</text><text class="sub" x="566.5" y="159.5" text-anchor="middle">DNS · dirige vers la région</text><text class="sub" x="380" y="214" text-anchor="middle">algorithme (round-robin / moindre connexions / hash) + sondes qui excluent les backends KO</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La distribution applicative : au niveau TRANSPORT, Azure LOAD BALANCER (L4, régional, TCP/UDP). Au niveau APPLICATION régional, APPLICATION GATEWAY (L7, routage par chemin + WAF + TLS). Au niveau GLOBAL, FRONT DOOR (L7, CDN + WAF, points de présence) et TRAFFIC MANAGER (DNS, dirige vers la bonne région). Chaque équilibreur : algorithme (round-robin / moindre connexions / hash) + SONDES qui excluent les backends défaillants.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Application delivery: at the TRANSPORT layer, Azure LOAD BALANCER (L4, regional, TCP/UDP). At the regional APPLICATION layer, APPLICATION GATEWAY (L7, path routing + WAF + TLS). At the GLOBAL layer, FRONT DOOR (L7, CDN + WAF, points of presence) and TRAFFIC MANAGER (DNS, directs to the right region). Each balancer: algorithm (round-robin / least connections / hash) + PROBES that exclude failing backends.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> le bon service de distribution.</p>
+<p><strong>🤔 Le bon outil pour le bon trafic.</strong> L4 ou L7 ? Régional ou global ? Chaque combinaison a <strong>son</strong> service. On écrit un <strong>moteur de décision</strong> qui recommande Load Balancer, Application Gateway, Front Door ou Traffic Manager.</p>
+<p>Écris le moteur de décision et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> the right delivery service.</p>
+<p><strong>🤔 The right tool for the right traffic.</strong> L4 or L7? Regional or global? Each combination has <strong>its</strong> service. We write a <strong>decision engine</strong> that recommends Load Balancer, Application Gateway, Front Door or Traffic Manager.</p>
+<p>Write the decision engine and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p distribution &amp;&amp; cd distribution
+cat &gt; choix.py &lt;&lt;&#39;PY&#39;
+def choisir(b):
+    if b[&quot;couche&quot;] == &quot;L4&quot;:
+        return &quot;Azure Load Balancer&quot;, &quot;L4 (TCP/UDP), regional, faible latence&quot;
+    if b[&quot;global&quot;] and b[&quot;http&quot;]:
+        return &quot;Azure Front Door&quot;, &quot;L7 global, CDN + WAF, points de presence&quot;
+    if b[&quot;global&quot;]:
+        return &quot;Traffic Manager&quot;, &quot;DNS global (dirige vers le bon endpoint)&quot;
+    return &quot;Application Gateway&quot;, &quot;L7 regional, routage par chemin + WAF&quot;
+
+cas = [
+    {&quot;nom&quot;:&quot;equilibrer du TCP interne&quot;, &quot;couche&quot;:&quot;L4&quot;, &quot;global&quot;:False, &quot;http&quot;:True},
+    {&quot;nom&quot;:&quot;site web regional + WAF&quot;,   &quot;couche&quot;:&quot;L7&quot;, &quot;global&quot;:False, &quot;http&quot;:True},
+    {&quot;nom&quot;:&quot;appli mondiale (CDN+WAF)&quot;,  &quot;couche&quot;:&quot;L7&quot;, &quot;global&quot;:True,  &quot;http&quot;:True},
+    {&quot;nom&quot;:&quot;bascule DNS multi-region&quot;,  &quot;couche&quot;:&quot;L7&quot;, &quot;global&quot;:True,  &quot;http&quot;:False},
+]
+for c in cas:
+    sol, pourquoi = choisir(c)
+    print(f&quot;{c[&#39;nom&#39;]:26} -&gt; {sol:22} ({pourquoi})&quot;)
+PY
+python3 choix.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le moteur recommande : <code>equilibrer du TCP interne -&gt; Azure Load Balancer</code>, <code>site web regional + WAF -&gt; Application Gateway</code>, <code>appli mondiale -&gt; Azure Front Door</code>, <code>bascule DNS multi-region -&gt; Traffic Manager</code>. Chaque besoin trouve <strong>son</strong> service : <strong>L4</strong> (Load Balancer) pour du transport rapide, <strong>L7 régional</strong> (App Gateway) pour un site avec routage + WAF, <strong>L7 global</strong> (Front Door) pour une appli mondiale, et <strong>DNS global</strong> (Traffic Manager) pour orchestrer des régions. C&#39;est <strong>la</strong> grille de décision de l&#39;AZ-700. On regarde maintenant <strong>comment</strong> un équilibreur répartit.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the engine recommends: <code>equilibrer du TCP interne -&gt; Azure Load Balancer</code>, <code>site web regional + WAF -&gt; Application Gateway</code>, <code>appli mondiale -&gt; Azure Front Door</code>, <code>bascule DNS multi-region -&gt; Traffic Manager</code>. Each need finds <strong>its</strong> service: <strong>L4</strong> (Load Balancer) for fast transport, <strong>L7 regional</strong> (App Gateway) for a site with routing + WAF, <strong>L7 global</strong> (Front Door) for a global app, and <strong>global DNS</strong> (Traffic Manager) to orchestrate regions. That&#39;s <strong>the</strong> AZ-700 decision grid. Now let&#39;s see <strong>how</strong> a balancer distributes.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exécuter les <strong>algorithmes d&#39;équilibrage</strong> — round-robin et moindre connexions.</p>
+<p><strong>🤔 Quel backend pour cette requête ?</strong> Deux algorithmes classiques : <strong>round-robin</strong> (à tour de rôle) et <strong>moindre connexions</strong> (le moins chargé). On les code et on les observe.</p>
+<p>Écris les algorithmes et teste-les :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run the <strong>load-balancing algorithms</strong> — round-robin and least connections.</p>
+<p><strong>🤔 Which backend for this request?</strong> Two classic algorithms: <strong>round-robin</strong> (in turn) and <strong>least connections</strong> (the least loaded). We code them and observe.</p>
+<p>Write the algorithms and test them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; lb.py &lt;&lt;&#39;PY&#39;
+backends = [
+    {&quot;nom&quot;: &quot;vm1&quot;, &quot;sain&quot;: True,  &quot;connexions&quot;: 5},
+    {&quot;nom&quot;: &quot;vm2&quot;, &quot;sain&quot;: True,  &quot;connexions&quot;: 2},
+    {&quot;nom&quot;: &quot;vm3&quot;, &quot;sain&quot;: True,  &quot;connexions&quot;: 8},
+]
+def sains(bs): return [b for b in bs if b[&quot;sain&quot;]]
+
+# Round-robin : a tour de role sur les backends sains
+print(&quot;Round-robin :&quot;)
+dispo = sains(backends)
+for i in range(6):
+    print(f&quot;  requete {i+1} -&gt; {dispo[i % len(dispo)][&#39;nom&#39;]}&quot;)
+
+# Moindre connexions : vers le moins charge
+b = min(sains(backends), key=lambda x: x[&quot;connexions&quot;])
+print(f&quot;Moindre connexions -&gt; {b[&#39;nom&#39;]} ({b[&#39;connexions&#39;]} connexions)&quot;)
+PY
+python3 lb.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> en <strong>round-robin</strong>, les requêtes tournent : <code>vm1, vm2, vm3, vm1, vm2, vm3</code> — chaque backend reçoit <strong>sa part</strong> à tour de rôle. En <strong>moindre connexions</strong>, le trafic va à <code>vm2 (2 connexions)</code> — le <strong>moins chargé</strong> (vs vm1=5, vm3=8). Le round-robin est <strong>simple et équitable</strong> ; le moindre connexions <strong>s&#39;adapte</strong> à la charge réelle (utile si les requêtes ont des durées inégales). Azure Load Balancer utilise par défaut un <strong>hash</strong> (proche du round-robin par flux) ; le principe de répartition reste celui-ci. Mais que se passe-t-il si un backend <strong>tombe</strong> ?</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in <strong>round-robin</strong>, requests rotate: <code>vm1, vm2, vm3, vm1, vm2, vm3</code> — each backend gets <strong>its share</strong> in turn. In <strong>least connections</strong>, traffic goes to <code>vm2 (2 connexions)</code> — the <strong>least loaded</strong> (vs vm1=5, vm3=8). Round-robin is <strong>simple and fair</strong>; least connections <strong>adapts</strong> to real load (useful if requests have uneven durations). Azure Load Balancer uses a <strong>hash</strong> by default (close to per-flow round-robin); the distribution principle stays this. But what happens if a backend <strong>goes down</strong>?</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Brancher des <strong>sondes de santé</strong> — exclure un backend défaillant.</p>
+<p><strong>🤔 Ne pas envoyer de trafic à un mort.</strong> Une <strong>sonde</strong> teste chaque backend. Celui qui <strong>échoue</strong> est <strong>retiré</strong> de la rotation. On simule une panne (<code>vm3</code> KO) et on vérifie qu&#39;aucune requête n&#39;y va.</p>
+<p>Ajoute les sondes et observe l&#39;exclusion :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Wire <strong>health probes</strong> — exclude a failing backend.</p>
+<p><strong>🤔 Don&#39;t send traffic to a dead one.</strong> A <strong>probe</strong> tests each backend. The one that <strong>fails</strong> is <strong>removed</strong> from rotation. We simulate a failure (<code>vm3</code> down) and check no request goes there.</p>
+<p>Add the probes and observe the exclusion:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; sondes.py &lt;&lt;&#39;PY&#39;
+backends = [
+    {&quot;nom&quot;: &quot;vm1&quot;, &quot;sain&quot;: True},
+    {&quot;nom&quot;: &quot;vm2&quot;, &quot;sain&quot;: True},
+    {&quot;nom&quot;: &quot;vm3&quot;, &quot;sain&quot;: False},   # sonde KO -&gt; exclu de la rotation
+]
+def sains(bs): return [b for b in bs if b[&quot;sain&quot;]]
+
+dispo = sains(backends)
+print(&quot;Backends sains (sonde OK) :&quot;, [b[&quot;nom&quot;] for b in dispo])
+print(&quot;Round-robin sur les SAINS uniquement :&quot;)
+for i in range(4):
+    print(f&quot;  requete {i+1} -&gt; {dispo[i % len(dispo)][&#39;nom&#39;]}&quot;)
+print(&quot;-&gt; vm3 (sonde KO) ne recoit AUCUNE requete.&quot;)
+PY
+python3 sondes.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre <code>Backends sains (sonde OK) : [&#39;vm1&#39;, &#39;vm2&#39;]</code> — <code>vm3</code> est <strong>exclu</strong>. Le round-robin ne tourne <strong>que</strong> sur <code>vm1</code> et <code>vm2</code> : <code>vm1, vm2, vm1, vm2</code>. <strong>Aucune</strong> requête ne part vers <code>vm3</code> tant que sa sonde échoue. C&#39;est ce qui rend la distribution <strong>résiliente</strong> : un backend qui tombe est <strong>retiré automatiquement</strong>, le service continue sur les instances <strong>saines</strong>. Quand <code>vm3</code> redeviendra sain (sonde OK), il <strong>réintègre</strong> la rotation. Passons au routage <strong>applicatif</strong> (L7).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>Backends sains (sonde OK) : [&#39;vm1&#39;, &#39;vm2&#39;]</code> — <code>vm3</code> is <strong>excluded</strong>. Round-robin cycles <strong>only</strong> over <code>vm1</code> and <code>vm2</code>: <code>vm1, vm2, vm1, vm2</code>. <strong>No</strong> request goes to <code>vm3</code> while its probe fails. That&#39;s what makes delivery <strong>resilient</strong>: a backend that goes down is <strong>removed automatically</strong>, the service continues on the <strong>healthy</strong> instances. When <code>vm3</code> becomes healthy again (probe OK), it <strong>rejoins</strong> rotation. On to <strong>application</strong> routing (L7).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire du <strong>routage L7 par chemin</strong> — Application Gateway.</p>
+<p><strong>🤔 Router selon l&#39;URL.</strong> En L7, l&#39;équilibreur <strong>lit</strong> l&#39;URL et <strong>dirige</strong> : <code>/api/<em></code> → pool d&#39;API, <code>/images/</em></code> → pool statique, le reste → pool web. Une seule adresse, des backends <strong>spécialisés</strong>. On code cette logique.</p>
+<p>Écris le routage par chemin et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Do <strong>L7 path-based routing</strong> — Application Gateway.</p>
+<p><strong>🤔 Route by URL.</strong> At L7, the balancer <strong>reads</strong> the URL and <strong>directs</strong>: <code>/api/<em></code> → API pool, <code>/images/</em></code> → static pool, the rest → web pool. One address, <strong>specialized</strong> backends. We code this logic.</p>
+<p>Write the path routing and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; l7.py &lt;&lt;&#39;PY&#39;
+# Application Gateway (L7) : routage par CHEMIN d&#39;URL (regles evaluees dans l&#39;ordre)
+REGLES = [(&quot;/api&quot;, &quot;pool-api&quot;), (&quot;/images&quot;, &quot;pool-static&quot;)]
+def router(chemin):
+    for prefixe, pool in REGLES:
+        if chemin.startswith(prefixe):
+            return pool
+    return &quot;pool-web&quot;   # regle par defaut
+
+for chemin in [&quot;/api/users&quot;, &quot;/images/logo.png&quot;, &quot;/accueil&quot;, &quot;/api/v2/commandes&quot;]:
+    print(f&quot;{chemin:20} -&gt; {router(chemin)}&quot;)
+PY
+python3 l7.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le routage L7 dirige : <code>/api/users -&gt; pool-api</code>, <code>/images/logo.png -&gt; pool-static</code>, <code>/accueil -&gt; pool-web</code> (règle par défaut), <code>/api/v2/commandes -&gt; pool-api</code>. L&#39;équilibreur <strong>comprend</strong> l&#39;URL et envoie chaque requête au <strong>backend spécialisé</strong> — impossible en <strong>L4</strong> (qui ne voit que IP/port). C&#39;est la force de l&#39;<strong>Application Gateway</strong> : une seule entrée publique, un routage <strong>applicatif</strong> vers plusieurs pools (API, statique, web), plus la <strong>terminaison TLS</strong> et le <strong>WAF</strong>. Pour aller <strong>au-delà d&#39;une région</strong>, on passe au <strong>global</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> L7 routing directs: <code>/api/users -&gt; pool-api</code>, <code>/images/logo.png -&gt; pool-static</code>, <code>/accueil -&gt; pool-web</code> (default rule), <code>/api/v2/commandes -&gt; pool-api</code>. The balancer <strong>understands</strong> the URL and sends each request to the <strong>specialized backend</strong> — impossible at <strong>L4</strong> (which only sees IP/port). That&#39;s the power of <strong>Application Gateway</strong>: one public entry, <strong>application</strong> routing to several pools (API, static, web), plus <strong>TLS termination</strong> and <strong>WAF</strong>. To go <strong>beyond a region</strong>, we move to <strong>global</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>distribution mondiale</strong> — Front Door et Traffic Manager.</p>
+<p><strong>🤔 Servir le monde entier.</strong> Deux approches globales : <strong>Front Door</strong> (L7, CDN + WAF, met en cache près de l&#39;utilisateur) et <strong>Traffic Manager</strong> (DNS, dirige vers la meilleure <strong>région</strong>). On modélise le choix de région selon la géographie de l&#39;utilisateur.</p>
+<p>Modélise la distribution mondiale :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>global delivery</strong> — Front Door and Traffic Manager.</p>
+<p><strong>🤔 Serving the whole world.</strong> Two global approaches: <strong>Front Door</strong> (L7, CDN + WAF, caches near the user) and <strong>Traffic Manager</strong> (DNS, directs to the best <strong>region</strong>). We model the region choice by user geography.</p>
+<p>Model global delivery:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; global.py &lt;&lt;&#39;PY&#39;
+# Distribution globale : diriger l&#39;utilisateur vers la region la plus proche
+REGIONS = {&quot;europe&quot;: &quot;westeurope&quot;, &quot;amerique&quot;: &quot;eastus&quot;, &quot;asie&quot;: &quot;southeastasia&quot;}
+def diriger(continent):
+    return REGIONS.get(continent, &quot;westeurope&quot;)   # repli par defaut
+
+print(&quot;Traffic Manager / Front Door — routage geographique :&quot;)
+for user, continent in [(&quot;Paris&quot;, &quot;europe&quot;), (&quot;New York&quot;, &quot;amerique&quot;), (&quot;Tokyo&quot;, &quot;asie&quot;), (&quot;Le Caire&quot;, &quot;afrique&quot;)]:
+    print(f&quot;  {user:10} ({continent:9}) -&gt; region {diriger(continent)}&quot;)
+print(&quot;\nFront Door : en plus, MET EN CACHE le statique au point de presence (CDN) + WAF global.&quot;)
+print(&quot;Traffic Manager : repond au DNS (priorite/poids/geo), ne voit pas le trafic.&quot;)
+PY
+python3 global.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie dirige chaque utilisateur vers <strong>sa</strong> région : <code>Paris (europe) -&gt; westeurope</code>, <code>New York (amerique) -&gt; eastus</code>, <code>Tokyo (asie) -&gt; southeastasia</code>, <code>Le Caire (afrique) -&gt; westeurope</code> (repli). C&#39;est la <strong>distribution mondiale</strong> : servir l&#39;utilisateur depuis la région la <strong>plus proche</strong> (latence minimale). <strong>Front Door</strong> ajoute le <strong>CDN</strong> (cache du statique au <strong>point de présence</strong>, au plus près) et un <strong>WAF global</strong> ; <strong>Traffic Manager</strong> agit au niveau <strong>DNS</strong> (il <strong>répond</strong> avec le bon endpoint, sans voir le trafic). Deux outils complémentaires pour le <strong>global</strong>. Reste un cas délicat : l&#39;<strong>affinité de session</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output directs each user to <strong>their</strong> region: <code>Paris (europe) -&gt; westeurope</code>, <code>New York (amerique) -&gt; eastus</code>, <code>Tokyo (asie) -&gt; southeastasia</code>, <code>Le Caire (afrique) -&gt; westeurope</code> (fallback). That&#39;s <strong>global delivery</strong>: serving the user from the <strong>nearest</strong> region (minimal latency). <strong>Front Door</strong> adds the <strong>CDN</strong> (caching static at the <strong>point of presence</strong>, closest) and a <strong>global WAF</strong>; <strong>Traffic Manager</strong> acts at the <strong>DNS</strong> level (it <strong>answers</strong> with the right endpoint, without seeing the traffic). Two complementary tools for <strong>global</strong>. One tricky case remains: <strong>session affinity</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer l&#39;<strong>affinité de session</strong> — le même client au même backend.</p>
+<p><strong>🤔 Parfois, il faut de la collance.</strong> Une appli à <strong>état</strong> (panier en mémoire) exige qu&#39;un client <strong>revienne</strong> au même backend. Un <strong>hash</strong> de l&#39;identité du client (IP, ou cookie en L7) garantit cette <strong>collance</strong>. On code un hash stable.</p>
+<p>Écris l&#39;affinité par hash et teste-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Handle <strong>session affinity</strong> — the same client to the same backend.</p>
+<p><strong>🤔 Sometimes you need stickiness.</strong> A <strong>stateful</strong> app (in-memory cart) requires a client to <strong>return</strong> to the same backend. A <strong>hash</strong> of the client identity (IP, or cookie at L7) guarantees that <strong>stickiness</strong>. We code a stable hash.</p>
+<p>Write hash affinity and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; affinite.py &lt;&lt;&#39;PY&#39;
+import hashlib
+backends = [&quot;vm1&quot;, &quot;vm2&quot;, &quot;vm3&quot;]
+def backend_pour(client_ip):
+    # hash stable : le MEME client -&gt; TOUJOURS le meme backend
+    h = int(hashlib.sha256(client_ip.encode()).hexdigest(), 16)
+    return backends[h % len(backends)]
+
+print(&quot;Affinite de session (hash de l&#39;IP client) :&quot;)
+for ip in [&quot;203.0.113.5&quot;, &quot;198.51.100.9&quot;, &quot;203.0.113.5&quot;, &quot;192.0.2.1&quot;]:
+    print(f&quot;  {ip:14} -&gt; {backend_pour(ip)}&quot;)
+print(&quot;-&gt; Note : 203.0.113.5 tombe DEUX fois sur le meme backend (collant).&quot;)
+PY
+python3 affinite.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre que chaque IP est routée de façon <strong>stable</strong> — et surtout que <code>203.0.113.5</code> (présent <strong>deux fois</strong>) tombe sur le <strong>même</strong> backend les deux fois. C&#39;est l&#39;<strong>affinité de session</strong> : le même client <strong>revient</strong> au même backend, indispensable pour une appli à <strong>état</strong> (panier, session serveur). ⚠️ À utiliser <strong>avec parcimonie</strong> : l&#39;affinité <strong>déséquilibre</strong> la charge (un « gros » client surcharge un backend) et complique le <strong>scaling</strong>. La bonne pratique : rendre les backends <strong>sans état</strong> (session en base/cache partagé) et <strong>éviter</strong> l&#39;affinité quand c&#39;est possible. Tu as la mécanique complète de la distribution.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows each IP is routed <strong>stably</strong> — and crucially that <code>203.0.113.5</code> (present <strong>twice</strong>) lands on the <strong>same</strong> backend both times. That&#39;s <strong>session affinity</strong>: the same client <strong>returns</strong> to the same backend, essential for a <strong>stateful</strong> app (cart, server session). ⚠️ Use it <strong>sparingly</strong>: affinity <strong>unbalances</strong> the load (a &quot;big&quot; client overloads a backend) and complicates <strong>scaling</strong>. Best practice: make backends <strong>stateless</strong> (session in a shared DB/cache) and <strong>avoid</strong> affinity when possible. You have the full delivery mechanics.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>distribution applicative</strong> et récapituler.</p>
+<p><strong>🤔 Distribuer, de bout en bout.</strong> On récapitule les services et les mécanismes — choix L4/L7/global, algorithmes, sondes, routage L7, affinité — qui <strong>répartissent</strong> et <strong>fiabilisent</strong> le trafic.</p>
+<p>Récapitule la distribution :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble <strong>application delivery</strong> and recap.</p>
+<p><strong>🤔 Deliver, end to end.</strong> We recap the services and mechanisms — L4/L7/global choice, algorithms, probes, L7 routing, affinity — that <strong>spread</strong> and <strong>harden</strong> traffic.</p>
+<p>Recap delivery:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Distribution applicative (AZ-700) / application delivery ===&quot;
+printf &quot;%-22s %s\n&quot; &quot;Load Balancer (L4)&quot;   &quot;TCP/UDP, regional, faible latence&quot;
+printf &quot;%-22s %s\n&quot; &quot;App Gateway (L7)&quot;      &quot;HTTP, routage par chemin, WAF, TLS (regional)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Front Door (L7)&quot;       &quot;global : CDN + WAF + acceleration&quot;
+printf &quot;%-22s %s\n&quot; &quot;Traffic Manager&quot;       &quot;DNS global : dirige vers la bonne region&quot;
+printf &quot;%-22s %s\n&quot; &quot;Algorithmes&quot;           &quot;round-robin / moindre connexions / hash&quot;
+printf &quot;%-22s %s\n&quot; &quot;Sondes de sante&quot;       &quot;excluent les backends defaillants (resilience)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Affinite de session&quot;   &quot;collant (hash/cookie) — avec parcimonie&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>services</strong> et <strong>mécanismes</strong> de la distribution. Tu tiens le pilier <strong>distribution</strong> de l&#39;AZ-700 : <strong>choisir</strong> entre Load Balancer (L4), Application Gateway (L7), Front Door (global) et Traffic Manager (DNS), comprendre les <strong>algorithmes</strong> (round-robin, moindre connexions, hash), fiabiliser avec des <strong>sondes</strong> (exclusion des défaillants), <strong>router en L7</strong> par chemin, distribuer <strong>mondialement</strong>, et gérer l&#39;<strong>affinité</strong> avec parcimonie. Ton appli <strong>tient la charge</strong> et <strong>résiste</strong> aux pannes. La suite du track AZ-700 : l&#39;<strong>accès privé</strong> aux services (points de terminaison privés, Private Link), puis le <strong>projet réseau</strong> de synthèse.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps delivery&#39;s <strong>services</strong> and <strong>mechanisms</strong>. You hold the <strong>delivery</strong> pillar of AZ-700: <strong>choosing</strong> between Load Balancer (L4), Application Gateway (L7), Front Door (global) and Traffic Manager (DNS), understanding the <strong>algorithms</strong> (round-robin, least connections, hash), hardening with <strong>probes</strong> (excluding failing ones), <strong>L7 routing</strong> by path, delivering <strong>globally</strong>, and handling <strong>affinity</strong> sparingly. Your app <strong>holds the load</strong> and <strong>survives</strong> failures. Next in the AZ-700 track: <strong>private access</strong> to services (private endpoints, Private Link), then the capstone <strong>network project</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. L4 quand il faut du L7.</strong> Le Load Balancer (L4) ne voit <strong>pas</strong> l&#39;URL : impossible de router par chemin ou d&#39;appliquer un WAF. Pour de l&#39;HTTP, prends <strong>App Gateway/Front Door</strong>.</p>
+<p><strong>2. Pas de sondes de santé.</strong> Sans sonde, le trafic continue vers un backend <strong>mort</strong> → erreurs. Configure toujours une <strong>sonde</strong> adaptée.</p>
+<p><strong>3. Front Door pour du régional.</strong> Front Door est <strong>global</strong> (et facturé comme tel). Pour un seul site régional, <strong>App Gateway</strong> suffit.</p>
+<p><strong>4. Traffic Manager confondu avec un équilibreur.</strong> Il agit au <strong>DNS</strong> — il ne <strong>voit pas</strong> le trafic, ne fait pas d&#39;équilibrage par requête. Il <strong>dirige</strong> vers un endpoint.</p>
+<p><strong>5. Affinité systématique.</strong> L&#39;affinité <strong>déséquilibre</strong> et complique le scaling. Rends tes backends <strong>sans état</strong> et n&#39;utilise l&#39;affinité qu&#39;en <strong>dernier recours</strong>.</p>
+<p><strong>6. Sonde trop laxiste/sensible.</strong> Trop laxiste → trafic vers un mort ; trop sensible → backends sains exclus (flapping). Calibre l&#39;intervalle et le seuil.</p>
+<p><strong>7. Un seul backend.</strong> « Équilibrer » sur une seule instance n&#39;apporte <strong>ni</strong> montée en charge <strong>ni</strong> résilience. Il faut <strong>plusieurs</strong> backends sains.</p>
+</div>
+<div data-lang="en"><p><strong>1. L4 when you need L7.</strong> The Load Balancer (L4) doesn&#39;t see the <strong>URL</strong>: no path routing or WAF. For HTTP, use <strong>App Gateway/Front Door</strong>.</p>
+<p><strong>2. No health probes.</strong> Without a probe, traffic keeps going to a <strong>dead</strong> backend → errors. Always configure a suitable <strong>probe</strong>.</p>
+<p><strong>3. Front Door for regional.</strong> Front Door is <strong>global</strong> (and billed as such). For a single regional site, <strong>App Gateway</strong> suffices.</p>
+<p><strong>4. Traffic Manager confused with a balancer.</strong> It works at <strong>DNS</strong> — it doesn&#39;t <strong>see</strong> traffic, doesn&#39;t balance per request. It <strong>directs</strong> to an endpoint.</p>
+<p><strong>5. Systematic affinity.</strong> Affinity <strong>unbalances</strong> and complicates scaling. Make backends <strong>stateless</strong> and use affinity only as a <strong>last resort</strong>.</p>
+<p><strong>6. Too lax/sensitive a probe.</strong> Too lax → traffic to a dead one; too sensitive → healthy backends excluded (flapping). Tune the interval and threshold.</p>
+<p><strong>7. A single backend.</strong> &quot;Balancing&quot; on one instance provides <strong>neither</strong> scale <strong>nor</strong> resilience. You need <strong>several</strong> healthy backends.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>choisis</strong> entre Load Balancer, App Gateway, Front Door et Traffic Manager.</li><li>Tu distingues <strong>L4</strong> et <strong>L7</strong> et sais ce que chacun peut faire.</li><li>Tu exécutes <strong>round-robin</strong> et <strong>moindre connexions</strong>.</li><li>Tu branches des <strong>sondes</strong> qui <strong>excluent</strong> un backend défaillant.</li><li>Tu fais du <strong>routage L7 par chemin</strong>.</li><li>Tu comprends la <strong>distribution mondiale</strong> (Front Door / Traffic Manager) et l&#39;<strong>affinité de session</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>choose</strong> between Load Balancer, App Gateway, Front Door and Traffic Manager.</li><li>You distinguish <strong>L4</strong> and <strong>L7</strong> and know what each can do.</li><li>You run <strong>round-robin</strong> and <strong>least connections</strong>.</li><li>You wire <strong>probes</strong> that <strong>exclude</strong> a failing backend.</li><li>You do <strong>L7 path-based routing</strong>.</li><li>You understand <strong>global delivery</strong> (Front Door / Traffic Manager) and <strong>session affinity</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — accès privé aux services (AZ-700)</em> — points de terminaison privés, Private Link, points de terminaison de service.</li><li><strong>Réviser :</strong> <em>Azure — connectivité hybride (AZ-700)</em> pour le multi-région.</li><li><strong>S&#39;entraîner :</strong> ajoute un algorithme <strong>pondéré</strong> (weighted) à <code>lb.py</code>, et une règle L7 par <strong>hôte</strong> (host header) à <code>l7.py</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — private access to services (AZ-700)</em> — private endpoints, Private Link, service endpoints.</li><li><strong>Review:</strong> <em>Azure — hybrid connectivity (AZ-700)</em> for multi-region.</li><li><strong>Practice:</strong> add a <strong>weighted</strong> algorithm to <code>lb.py</code>, and an L7 rule by <strong>host</strong> (host header) to <code>l7.py</code>.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Le bon service selon le besoin</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>L4, TCP/UDP, regional            -&gt; Azure Load Balancer
+L7, HTTP, regional (routage+WAF) -&gt; Application Gateway
+L7, HTTP, GLOBAL (CDN+WAF)       -&gt; Azure Front Door
+DNS, GLOBAL (dirige par region)  -&gt; Traffic Manager</code></pre>
+<p><strong>Algorithmes d&#39;equilibrage</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Round-robin        a tour de role (simple, equitable)
+Moindre connexions vers le backend le moins charge
+Hash (5-tuple)     meme client -&gt; meme backend (affinite)</code></pre>
+<p><strong>Sondes &amp; resilience</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>sonde HTTP/TCP -&gt; teste chaque backend
+backend KO -&gt; RETIRE de la rotation (aucun trafic)
+backend redevenu sain -&gt; REINTEGRE automatiquement</code></pre>
+<p><strong>L7 &amp; affinite</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>routage L7 : /api -&gt; pool-api ; /images -&gt; pool-static ; / -&gt; pool-web
+affinite : collant (cookie L7 / hash L4) -&gt; avec PARCIMONIE (backends sans etat de preference)</code></pre>
+</div>
+<div data-lang="en"><p><strong>The right service by need</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>L4, TCP/UDP, regional            -&gt; Azure Load Balancer
+L7, HTTP, regional (routing+WAF) -&gt; Application Gateway
+L7, HTTP, GLOBAL (CDN+WAF)       -&gt; Azure Front Door
+DNS, GLOBAL (directs by region)  -&gt; Traffic Manager</code></pre>
+<p><strong>Load-balancing algorithms</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Round-robin        in turn (simple, fair)
+Least connections  to the least-loaded backend
+Hash (5-tuple)     same client -&gt; same backend (affinity)</code></pre>
+<p><strong>Probes &amp; resilience</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>HTTP/TCP probe -&gt; tests each backend
+down backend -&gt; REMOVED from rotation (no traffic)
+healthy again -&gt; REJOINS automatically</code></pre>
+<p><strong>L7 &amp; affinity</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>L7 routing: /api -&gt; pool-api ; /images -&gt; pool-static ; / -&gt; pool-web
+affinity: sticky (L7 cookie / L4 hash) -&gt; SPARINGLY (prefer stateless backends)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Azure Load Balancer</strong> : L4, règles, sondes, SKU — Microsoft Learn.</li><li><strong>Application Gateway</strong> : L7, routage chemin/hôte, WAF, TLS — Microsoft Learn.</li><li><strong>Azure Front Door</strong> : global, CDN, WAF, accélération — Microsoft Learn (AZ-700).</li><li><strong>Traffic Manager</strong> : routage DNS (priorité, poids, géographie, performance) — Microsoft Learn.</li><li><strong>Sondes de santé</strong> : intervalles, seuils, chemins — Microsoft Learn.</li><li><strong>Load balancing decision</strong> : comparateur de services Azure — Microsoft Learn.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Azure Load Balancer</strong>: L4, rules, probes, SKUs — Microsoft Learn.</li><li><strong>Application Gateway</strong>: L7, path/host routing, WAF, TLS — Microsoft Learn.</li><li><strong>Azure Front Door</strong>: global, CDN, WAF, acceleration — Microsoft Learn (AZ-700).</li><li><strong>Traffic Manager</strong>: DNS routing (priority, weight, geography, performance) — Microsoft Learn.</li><li><strong>Health probes</strong>: intervals, thresholds, paths — Microsoft Learn.</li><li><strong>Load balancing decision</strong>: Azure service comparator — Microsoft Learn.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Les scripts Python n&#39;affichent rien.</strong> Lance <code>python3 fichier.py</code> depuis le dossier <code>distribution</code>. Chaque script est autonome.</p>
+<p><strong>Mon équilibreur ne route pas par chemin.</strong> Le <strong>L4</strong> (Load Balancer) ne voit <strong>pas</strong> l&#39;URL. Pour router par <code>/api</code>, il faut du <strong>L7</strong> (Application Gateway / Front Door).</p>
+<p><strong>Le trafic va vers un backend en panne.</strong> La <strong>sonde</strong> manque ou est mal configurée. Vérifie son <strong>chemin</strong>, son <strong>intervalle</strong> et son <strong>seuil</strong> ; le backend KO doit sortir de la rotation.</p>
+<p><strong>La charge est déséquilibrée.</strong> Souvent l&#39;<strong>affinité de session</strong> (un client colle à un backend). Désactive-la si tu peux, ou rends les backends <strong>sans état</strong>.</p>
+<p><strong>Front Door ou App Gateway ?</strong> <strong>Global</strong> (mondial, CDN) → Front Door. <strong>Régional</strong> (un site/API dans une région) → Application Gateway. Ne paie pas le global pour du régional.</p>
+<p><strong>Traffic Manager n&#39;équilibre pas la charge.</strong> Normal : il agit au <strong>DNS</strong>, il <strong>dirige</strong> vers un endpoint (par géo/priorité/poids). Pour équilibrer <strong>par requête</strong>, il faut un vrai équilibreur (LB/App Gateway/Front Door) <strong>derrière</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>The Python scripts print nothing.</strong> Run <code>python3 file.py</code> from the <code>distribution</code> folder. Each script is standalone.</p>
+<p><strong>My balancer doesn&#39;t route by path.</strong> <strong>L4</strong> (Load Balancer) doesn&#39;t see the <strong>URL</strong>. To route by <code>/api</code>, you need <strong>L7</strong> (Application Gateway / Front Door).</p>
+<p><strong>Traffic goes to a down backend.</strong> The <strong>probe</strong> is missing or misconfigured. Check its <strong>path</strong>, <strong>interval</strong> and <strong>threshold</strong>; the down backend should leave rotation.</p>
+<p><strong>The load is unbalanced.</strong> Often <strong>session affinity</strong> (a client sticks to a backend). Disable it if you can, or make backends <strong>stateless</strong>.</p>
+<p><strong>Front Door or App Gateway?</strong> <strong>Global</strong> (worldwide, CDN) → Front Door. <strong>Regional</strong> (a site/API in one region) → Application Gateway. Don&#39;t pay for global for regional.</p>
+<p><strong>Traffic Manager doesn&#39;t balance load.</strong> Normal: it works at <strong>DNS</strong>, it <strong>directs</strong> to an endpoint (by geo/priority/weight). To balance <strong>per request</strong>, you need a real balancer (LB/App Gateway/Front Door) <strong>behind</strong> it.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

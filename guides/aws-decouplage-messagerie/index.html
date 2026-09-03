@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — découplage &amp; données : SQS, SNS, DynamoDB — jiha.tech</title>
+  <title data-lang="en">AWS — decoupling &amp; data: SQS, SNS, DynamoDB — jiha.tech</title>
+  <meta name="description" content="Le découplage pour le SAA-C03 : les files de messages SQS (découpler producteur/consommateur, visibility timeout, DLQ, FIFO), les sujets SNS (publish/subscribe), le motif fan-out SNS→SQS (un événement, N consommateurs), et la base NoSQL DynamoDB (table clé-valeur, clé de partition/tri, query vs scan). Comment rendre une architecture résiliente et élastique. Tout en LocalStack." data-lang="fr">
+  <meta name="description" content="Decoupling for SAA-C03: SQS message queues (decouple producer/consumer, visibility timeout, DLQ, FIFO), SNS topics (publish/subscribe), the SNS→SQS fan-out pattern (one event, N consumers), and DynamoDB NoSQL (key-value table, partition/sort key, query vs scan). How to make an architecture resilient and elastic. All on LocalStack." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — découplage &amp; données : SQS, SNS, DynamoDB">
+  <meta property="og:description" content="Le découplage pour le SAA-C03 : les files de messages SQS (découpler producteur/consommateur, visibility timeout, DLQ, FIFO), les sujets SNS (publish/subscribe), le motif fan-out SNS→SQS (un événement, N consommateurs), et la base NoSQL DynamoDB (table clé-valeur, clé de partition/tri, query vs scan). Comment rendre une architecture résiliente et élastique. Tout en LocalStack.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-decouplage-messagerie/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-decouplage-messagerie/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-decouplage-messagerie">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-decouplage-messagerie</div>
+    <div class="prompt" data-lang="en">~/guides/aws-decouplage-messagerie</div>
+    <h1 data-lang="fr">AWS — découplage &amp; données : SQS, SNS, DynamoDB</h1>
+    <h1 data-lang="en">AWS — decoupling &amp; data: SQS, SNS, DynamoDB</h1>
+    <p class="tagline" data-lang="fr">files SQS, sujets SNS, fan-out, base NoSQL DynamoDB.</p>
+    <p class="tagline" data-lang="en">SQS queues, SNS topics, fan-out, DynamoDB NoSQL.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 220 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 220 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Une application où chaque composant appelle directement le suivant est <strong>fragile</strong> : si le service de facturation est lent ou tombe, la commande échoue en cascade. Une architecture <strong>découplée</strong> insère un <strong>tampon</strong> entre les composants — une <strong>file de messages</strong> — pour qu&#39;ils travaillent à leur rythme, sans se bloquer. C&#39;est le cœur du domaine <strong>résilience</strong> du SAA, et ce qui distingue une architecture qui « marche en démo » d&#39;une architecture qui « tient en production ».</p>
+<p>AWS fournit trois briques essentielles pour ça, et ce guide te les fait toutes manipuler. <strong>SQS</strong> (Simple Queue Service) : des <strong>files de messages</strong> où un producteur dépose des tâches qu&#39;un consommateur traite plus tard, à son rythme. <strong>SNS</strong> (Simple Notification Service) : des <strong>sujets</strong> de publication où un événement est <strong>diffusé</strong> à plusieurs abonnés d&#39;un coup (<em>fan-out</em>). Et <strong>DynamoDB</strong> : la <strong>base NoSQL</strong> d&#39;AWS, ultra-rapide et élastique, pour stocker l&#39;état de tes applications sans gérer de serveur de base de données.</p>
+<p>Tout se fait en <strong>LocalStack</strong> : tu crées de vraies files, tu envoies et reçois des messages, tu montes un fan-out SNS→SQS, tu crées une table DynamoDB et tu l&#39;interroges — les mêmes commandes qu&#39;en réel, sans compte.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as le compute (EC2/Lambda) en main et tu veux les briques qui relient et découplent les composants — indispensables pour le projet serverless qui suit.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur AWS → refais les guides précédents ; ici on assemble des services.</li><li>Tu cherches une base <strong>relationnelle</strong> (SQL, jointures) → c&#39;est RDS/Aurora, pas DynamoDB ; on couvre le NoSQL, adapté aux accès par clé à grande échelle.</li></ul>
+</div>
+<div data-lang="en"><p>An application where each component directly calls the next is <strong>fragile</strong>: if the billing service is slow or down, the order fails in cascade. A <strong>decoupled</strong> architecture inserts a <strong>buffer</strong> between components — a <strong>message queue</strong> — so they work at their own pace, without blocking each other. It&#39;s the heart of the SAA&#39;s <strong>resilience</strong> domain, and what separates an architecture that &quot;works in a demo&quot; from one that &quot;holds in production&quot;.</p>
+<p>AWS provides three essential building blocks for this, and this guide has you handle them all. <strong>SQS</strong> (Simple Queue Service): <strong>message queues</strong> where a producer drops tasks that a consumer processes later, at its own pace. <strong>SNS</strong> (Simple Notification Service): publish <strong>topics</strong> where an event is <strong>broadcast</strong> to several subscribers at once (<em>fan-out</em>). And <strong>DynamoDB</strong>: AWS&#39;s <strong>NoSQL database</strong>, ultra-fast and elastic, to store your applications&#39; state without managing a database server.</p>
+<p>Everything runs on <strong>LocalStack</strong>: you create real queues, send and receive messages, build an SNS→SQS fan-out, create a DynamoDB table and query it — the same commands as the real thing, no account.</p>
+<p><strong>Who it&#39;s for:</strong> you hold compute (EC2/Lambda) and you want the blocks that connect and decouple components — essential for the serverless project that follows.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to AWS → redo the previous guides; here we assemble services.</li><li>You want a <strong>relational</strong> database (SQL, joins) → that&#39;s RDS/Aurora, not DynamoDB; we cover NoSQL, suited to key-based access at scale.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Découpler avec une <strong>file SQS</strong> (envoyer, recevoir, supprimer) et comprendre le <strong>visibility timeout</strong>.</li><li>Fiabiliser une file avec une <strong>dead-letter queue</strong> (DLQ) et distinguer <strong>standard</strong> vs <strong>FIFO</strong>.</li><li>Publier/s&#39;abonner avec un <strong>sujet SNS</strong>.</li><li>Monter un <strong>fan-out</strong> SNS → plusieurs SQS (un événement, N consommateurs).</li><li>Créer une <strong>table DynamoDB</strong> (clé de partition) et y écrire/lire des éléments.</li><li><strong>Interroger</strong> DynamoDB : <code>query</code> (efficace) vs <code>scan</code> (coûteux), et la clé de tri.</li><li>Assembler une <strong>architecture découplée</strong> et choisir SQS vs SNS vs DynamoDB.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Decouple with an <strong>SQS queue</strong> (send, receive, delete) and understand the <strong>visibility timeout</strong>.</li><li>Harden a queue with a <strong>dead-letter queue</strong> (DLQ) and tell <strong>standard</strong> from <strong>FIFO</strong>.</li><li>Publish/subscribe with an <strong>SNS topic</strong>.</li><li>Build a <strong>fan-out</strong> SNS → several SQS (one event, N consumers).</li><li>Create a <strong>DynamoDB table</strong> (partition key) and write/read items.</li><li><strong>Query</strong> DynamoDB: <code>query</code> (efficient) vs <code>scan</code> (costly), and the sort key.</li><li>Assemble a <strong>decoupled architecture</strong> and choose SQS vs SNS vs DynamoDB.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides AWS précédents du track (jusqu&#39;au <strong>compute EC2 &amp; Lambda</strong>).</li><li><strong>LocalStack qui tourne</strong> et <strong><code>awslocal</code></strong> configuré. (Pas besoin du socket Docker ici : SQS/SNS/DynamoDB n&#39;exécutent pas de conteneur.)</li><li>De quoi lire du JSON sans peur (les éléments DynamoDB sont typés en JSON).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The previous AWS track guides (through <strong>EC2 &amp; Lambda compute</strong>).</li><li><strong>LocalStack running</strong> and <strong><code>awslocal</code></strong> configured. (No Docker socket needed here: SQS/SNS/DynamoDB don&#39;t run a container.)</li><li>Comfort reading JSON (DynamoDB items are typed in JSON).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-compute-ec2-lambda/">
+    <span class="num">48</span>
+    <span class="title-line" data-lang="fr">AWS — compute : EC2 &amp; Lambda</span>
+    <span class="title-line" data-lang="en">AWS — compute: EC2 &amp; Lambda</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>SQS (file de messages).</strong> Une <strong>file</strong> où un <strong>producteur</strong> dépose des messages qu&#39;un <strong>consommateur</strong> lit et traite plus tard. Les deux sont <strong>découplés</strong> : le producteur n&#39;attend pas, le consommateur traite à son rythme, et un pic de charge s&#39;accumule dans la file au lieu de faire tomber le système. Un message reçu devient <strong>invisible</strong> un temps (le <strong>visibility timeout</strong>) pour qu&#39;un autre consommateur ne le traite pas en double ; le consommateur le <strong>supprime</strong> une fois traité (sinon il redevient visible et sera retraité — livraison « au moins une fois »).</p>
+<p><strong>DLQ &amp; FIFO.</strong> Une <strong>dead-letter queue</strong> (DLQ) recueille les messages qui échouent trop de fois (au lieu de boucler à l&#39;infini) — on les inspecte ensuite. Une file <strong>standard</strong> offre un débit quasi illimité mais <strong>ne garantit ni l&#39;ordre ni l&#39;unicité</strong>. Une file <strong>FIFO</strong> garantit l&#39;<strong>ordre</strong> et <strong>exactement une fois</strong>, au prix d&#39;un débit plus limité. Choisir dépend du besoin (ordre critique ? doublons tolérés ?).</p>
+<p><strong>SNS (sujet publish/subscribe).</strong> Un <strong>sujet</strong> (topic) où un <strong>publieur</strong> envoie un message <strong>diffusé</strong> immédiatement à <strong>tous les abonnés</strong> (SQS, Lambda, e-mail, HTTP…). Contrairement à SQS (un message, un consommateur), SNS c&#39;est <strong>un message, N abonnés</strong>. C&#39;est le mécanisme de <strong>notification/diffusion</strong>.</p>
+<p><strong>Fan-out.</strong> Le motif classique : un <strong>sujet SNS</strong> avec <strong>plusieurs files SQS</strong> abonnées. Un seul événement publié se <strong>duplique</strong> dans chaque file, et chaque service consomme sa copie indépendamment. « Nouvelle commande » → une file pour la facturation, une pour l&#39;expédition, une pour les stats — découplées et parallèles.</p>
+<p><strong>DynamoDB (NoSQL).</strong> Une base <strong>clé-valeur / document</strong> entièrement managée : pas de serveur, mise à l&#39;échelle automatique, latence de l&#39;ordre de la milliseconde. Une <strong>table</strong> a une <strong>clé de partition</strong> (obligatoire, qui répartit et identifie) et parfois une <strong>clé de tri</strong> (pour trier/filtrer des éléments partageant la même partition). Pas de schéma fixe : chaque <strong>élément</strong> (item) peut avoir ses propres attributs.</p>
+<p><strong>query vs scan.</strong> <strong><code>query</code></strong> cible une <strong>clé de partition</strong> précise (et éventuellement une plage de clé de tri) : rapide et peu coûteux. <strong><code>scan</code></strong> parcourt <strong>toute la table</strong> : simple mais lent et cher à grande échelle. Règle SAA : <strong>conçois pour <code>query</code></strong>, évite les <code>scan</code> sur de grosses tables.</p>
+</div>
+<div data-lang="en"><p><strong>SQS (message queue).</strong> A <strong>queue</strong> where a <strong>producer</strong> drops messages that a <strong>consumer</strong> reads and processes later. Both are <strong>decoupled</strong>: the producer doesn&#39;t wait, the consumer processes at its own pace, and a load spike accumulates in the queue instead of crashing the system. A received message becomes <strong>invisible</strong> for a while (the <strong>visibility timeout</strong>) so another consumer doesn&#39;t double-process it; the consumer <strong>deletes</strong> it once processed (otherwise it becomes visible again and gets reprocessed — &quot;at least once&quot; delivery).</p>
+<p><strong>DLQ &amp; FIFO.</strong> A <strong>dead-letter queue</strong> (DLQ) collects messages that fail too many times (instead of looping forever) — you inspect them later. A <strong>standard</strong> queue offers near-unlimited throughput but <strong>guarantees neither order nor uniqueness</strong>. A <strong>FIFO</strong> queue guarantees <strong>order</strong> and <strong>exactly once</strong>, at the cost of lower throughput. The choice depends on the need (order critical? duplicates tolerated?).</p>
+<p><strong>SNS (publish/subscribe topic).</strong> A <strong>topic</strong> where a <strong>publisher</strong> sends a message <strong>broadcast</strong> immediately to <strong>all subscribers</strong> (SQS, Lambda, email, HTTP…). Unlike SQS (one message, one consumer), SNS is <strong>one message, N subscribers</strong>. It&#39;s the <strong>notification/broadcast</strong> mechanism.</p>
+<p><strong>Fan-out.</strong> The classic pattern: one <strong>SNS topic</strong> with <strong>several SQS queues</strong> subscribed. A single published event is <strong>duplicated</strong> into each queue, and each service consumes its copy independently. &quot;New order&quot; → one queue for billing, one for shipping, one for analytics — decoupled and parallel.</p>
+<p><strong>DynamoDB (NoSQL).</strong> A fully-managed <strong>key-value / document</strong> database: no server, automatic scaling, millisecond-level latency. A <strong>table</strong> has a <strong>partition key</strong> (mandatory, which distributes and identifies) and sometimes a <strong>sort key</strong> (to sort/filter items sharing the same partition). No fixed schema: each <strong>item</strong> can have its own attributes.</p>
+<p><strong>query vs scan.</strong> <strong><code>query</code></strong> targets a precise <strong>partition key</strong> (and optionally a sort-key range): fast and cheap. <strong><code>scan</code></strong> goes through the <strong>whole table</strong>: simple but slow and expensive at scale. SAA rule: <strong>design for <code>query</code></strong>, avoid <code>scan</code>s on large tables.</p>
+</div>
+
+<figure class="schema" id="figure-aws-decoupling-fanout">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-aws-decoupling-fanout">
+  <title id="s-aws-decoupling-fanout">Découplage &amp; fan-out</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Découplage &amp; fan-out</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Producteur</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">SNS</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">sujet</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="64" text-anchor="middle">SQS ×3</text><text class="sub sub-blue" x="474" y="77" text-anchor="middle">facturation · expédition ·</text><text class="sub sub-blue" x="474" y="89" text-anchor="middle">stats</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">DynamoDB</text><text class="sub" x="662" y="83.5" text-anchor="middle">état</text><text class="sub" x="380" y="144" text-anchor="middle">chaque consommateur traite à son rythme ; un pic s’absorbe dans les files</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Découplage &amp; fan-out : un producteur publie un événement dans un sujet SNS, diffusé vers plusieurs files SQS (facturation, expédition, stats) ; chaque consommateur traite à son rythme et enregistre l&#39;état dans DynamoDB. Un pic de charge s&#39;absorbe dans les files.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Decoupling &amp; fan-out: a producer publishes an event to an SNS topic, broadcast to several SQS queues (billing, shipping, analytics); each consumer processes at its own pace and records state in DynamoDB. A load spike is absorbed by the queues.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Découpler avec une <strong>file SQS</strong> : envoyer, recevoir, supprimer un message.</p>
+<p><strong>🤔 Le cycle d&#39;un message.</strong> Un producteur <strong>envoie</strong> (<code>send-message</code>). Un consommateur <strong>reçoit</strong> (<code>receive-message</code>) : le message devient alors <strong>invisible</strong> un moment (visibility timeout) pour éviter un double traitement. Le consommateur traite, puis <strong>supprime</strong> (<code>delete-message</code>) via un <code>ReceiptHandle</code>. S&#39;il ne supprime pas, le message <strong>redevient visible</strong> et sera relivré — d&#39;où la garantie « au moins une fois ».</p>
+<p>Crée une file et fais circuler un message :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Decouple with an <strong>SQS queue</strong>: send, receive, delete a message.</p>
+<p><strong>🤔 A message&#39;s lifecycle.</strong> A producer <strong>sends</strong> (<code>send-message</code>). A consumer <strong>receives</strong> (<code>receive-message</code>): the message then becomes <strong>invisible</strong> for a while (visibility timeout) to avoid double-processing. The consumer processes, then <strong>deletes</strong> (<code>delete-message</code>) via a <code>ReceiptHandle</code>. If it doesn&#39;t delete, the message <strong>becomes visible again</strong> and gets redelivered — hence the &quot;at least once&quot; guarantee.</p>
+<p>Create a queue and move a message through it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer une file / create a queue
+QURL=$(awslocal sqs create-queue --queue-name commandes --query &#39;QueueUrl&#39; --output text)
+echo &quot;file = $QURL&quot;
+
+# Producteur : envoyer un message / producer: send a message
+awslocal sqs send-message --queue-url &quot;$QURL&quot; --message-body &quot;commande #42&quot; \
+  --query &#39;MessageId&#39; --output text
+
+# Aperçu SANS consommer : --visibility-timeout 0 le laisse visible / peek without consuming
+awslocal sqs receive-message --queue-url &quot;$QURL&quot; --visibility-timeout 0 \
+  --query &#39;Messages[0].Body&#39; --output text
+
+# Le recevoir pour de bon et capturer son ReceiptHandle / receive it and capture its ReceiptHandle
+RH=$(awslocal sqs receive-message --queue-url &quot;$QURL&quot; \
+  --query &#39;Messages[0].ReceiptHandle&#39; --output text)
+
+# Supprimer une fois traité / delete once processed
+awslocal sqs delete-message --queue-url &quot;$QURL&quot; --receipt-handle &quot;$RH&quot; &amp;&amp; echo &quot;message supprimé&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>send-message</code> renvoie un <code>MessageId</code>. L&#39;aperçu (<code>--visibility-timeout 0</code>) affiche <code>commande #42</code> <strong>sans</strong> consommer le message ; la réception suivante capture un long <code>ReceiptHandle</code> ; <code>delete-message</code> affiche <code>message supprimé</code> et la file est vide. ⚠️ Subtilité <strong>clé</strong> (et piège classique) : un <code>receive-message</code> <strong>normal</strong> rend le message <strong>invisible</strong> un moment (visibility timeout, 30 s par défaut). Si tu enchaînes deux <code>receive</code> d&#39;affilée, le second ne voit <strong>plus rien</strong> (le message est « en cours de traitement »). C&#39;est pour ça qu&#39;on utilise <code>--visibility-timeout 0</code> pour le simple aperçu, puis une vraie réception pour capturer le <code>ReceiptHandle</code> du <strong>même</strong> message avant de le supprimer. Le producteur et le consommateur ne se connaissent pas : c&#39;est ça, le découplage.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>send-message</code> returns a <code>MessageId</code>. The peek (<code>--visibility-timeout 0</code>) shows <code>commande #42</code> <strong>without</strong> consuming the message; the next receive captures a long <code>ReceiptHandle</code>; <code>delete-message</code> prints <code>message supprimé</code> and the queue is empty. ⚠️ <strong>Key</strong> subtlety (and classic trap): a <strong>normal</strong> <code>receive-message</code> makes the message <strong>invisible</strong> for a while (visibility timeout, 30 s by default). If you chain two <code>receive</code>s in a row, the second sees <strong>nothing</strong> (the message is &quot;being processed&quot;). That&#39;s why we use <code>--visibility-timeout 0</code> for the mere peek, then a real receive to capture the <strong>same</strong> message&#39;s <code>ReceiptHandle</code> before deleting it. The producer and consumer don&#39;t know each other: that&#39;s decoupling.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Fiabiliser avec une <strong>dead-letter queue</strong> (DLQ) et découvrir la file <strong>FIFO</strong>.</p>
+<p><strong>🤔 Pourquoi une DLQ.</strong> Un message « empoisonné » (que le consommateur n&#39;arrive jamais à traiter) tournerait à l&#39;infini. La <strong>DLQ</strong> recueille les messages après <strong>N échecs</strong> (le <code>maxReceiveCount</code>) : la file principale reste saine, et tu inspectes les échecs à part. La file <strong>FIFO</strong> (<code>.fifo</code>), elle, garantit l&#39;<strong>ordre</strong> et l&#39;<strong>unicité</strong> — pour quand l&#39;ordre compte (transactions).</p>
+<p>Crée une DLQ, relie-la, et une file FIFO :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Harden with a <strong>dead-letter queue</strong> (DLQ) and discover the <strong>FIFO</strong> queue.</p>
+<p><strong>🤔 Why a DLQ.</strong> A &quot;poison&quot; message (that the consumer can never process) would loop forever. The <strong>DLQ</strong> collects messages after <strong>N failures</strong> (the <code>maxReceiveCount</code>): the main queue stays healthy, and you inspect failures separately. The <strong>FIFO</strong> queue (<code>.fifo</code>) guarantees <strong>order</strong> and <strong>uniqueness</strong> — for when order matters (transactions).</p>
+<p>Create a DLQ, wire it, and a FIFO queue:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Une file &quot;dead-letter&quot; pour les échecs / a dead-letter queue for failures
+DLQ_URL=$(awslocal sqs create-queue --queue-name commandes-dlq --query &#39;QueueUrl&#39; --output text)
+DLQ_ARN=$(awslocal sqs get-queue-attributes --queue-url &quot;$DLQ_URL&quot; \
+  --attribute-names QueueArn --query &#39;Attributes.QueueArn&#39; --output text)
+
+# Relier la file principale à la DLQ après 3 échecs / wire the main queue to the DLQ after 3 failures
+awslocal sqs set-queue-attributes --queue-url &quot;$QURL&quot; --attributes \
+  &quot;{\&quot;RedrivePolicy\&quot;:\&quot;{\\\&quot;deadLetterTargetArn\\\&quot;:\\\&quot;$DLQ_ARN\\\&quot;,\\\&quot;maxReceiveCount\\\&quot;:\\\&quot;3\\\&quot;}\&quot;}&quot;
+
+# Une file FIFO (ordre garanti) — le nom DOIT finir par .fifo / a FIFO queue — name MUST end in .fifo
+awslocal sqs create-queue --queue-name transactions.fifo \
+  --attributes FifoQueue=true --query &#39;QueueUrl&#39; --output text
+
+# Vérifier la RedrivePolicy posée / verify the RedrivePolicy
+awslocal sqs get-queue-attributes --queue-url &quot;$QURL&quot; \
+  --attribute-names RedrivePolicy --query &#39;Attributes.RedrivePolicy&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>get-queue-attributes ... RedrivePolicy</code> te réaffiche la politique JSON avec <code>deadLetterTargetArn</code> (l&#39;ARN de la DLQ) et <code>maxReceiveCount</code> à <code>&quot;3&quot;</code> (affiché entre guillemets : la RedrivePolicy est du JSON encodé <strong>dans</strong> du JSON). La file <code>transactions.fifo</code> est créée (son nom <strong>finit par <code>.fifo</code></strong>, obligatoire pour une file FIFO). Retiens : <strong>standard</strong> = débit énorme, pas d&#39;ordre garanti, doublons possibles ; <strong>FIFO</strong> = ordre + exactement une fois, débit plus limité. La DLQ, elle, transforme « boucle infinie sur un message cassé » en « échec isolé et inspectable ».</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>get-queue-attributes ... RedrivePolicy</code> shows you back the JSON policy with <code>deadLetterTargetArn</code> (the DLQ&#39;s ARN) and <code>maxReceiveCount</code> at <code>&quot;3&quot;</code> (shown quoted: the RedrivePolicy is JSON encoded <strong>inside</strong> JSON). The <code>transactions.fifo</code> queue is created (its name <strong>ends in <code>.fifo</code></strong>, mandatory for a FIFO queue). Remember: <strong>standard</strong> = huge throughput, no guaranteed order, possible duplicates; <strong>FIFO</strong> = order + exactly once, lower throughput. The DLQ turns &quot;infinite loop on a broken message&quot; into &quot;isolated, inspectable failure&quot;.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Publier et s&#39;abonner avec un <strong>sujet SNS</strong>.</p>
+<p><strong>🤔 SQS vs SNS.</strong> SQS, c&#39;est <strong>un message → un consommateur</strong> (une file, on dépile). SNS, c&#39;est <strong>un message → tous les abonnés</strong> (on <strong>diffuse</strong>). Un sujet SNS ne stocke rien : il <strong>pousse</strong> immédiatement chaque message publié vers ses abonnés (files, fonctions, e-mails…). C&#39;est la brique de <strong>notification</strong>.</p>
+<p>Crée un sujet et publie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Publish and subscribe with an <strong>SNS topic</strong>.</p>
+<p><strong>🤔 SQS vs SNS.</strong> SQS is <strong>one message → one consumer</strong> (a queue, you pop). SNS is <strong>one message → all subscribers</strong> (you <strong>broadcast</strong>). An SNS topic stores nothing: it <strong>pushes</strong> each published message immediately to its subscribers (queues, functions, emails…). It&#39;s the <strong>notification</strong> block.</p>
+<p>Create a topic and publish:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un sujet SNS / create an SNS topic
+TARN=$(awslocal sns create-topic --name evenements-commande --query &#39;TopicArn&#39; --output text)
+echo &quot;sujet = $TARN&quot;
+
+# Publier un message / publish a message
+awslocal sns publish --topic-arn &quot;$TARN&quot; --message &quot;commande #42 créée&quot; \
+  --subject &quot;nouvelle-commande&quot; --query &#39;MessageId&#39; --output text
+
+# Lister les abonnements (aucun pour l&#39;instant) / list subscriptions (none yet)
+awslocal sns list-subscriptions-by-topic --topic-arn &quot;$TARN&quot; \
+  --query &#39;Subscriptions[].Protocol&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>create-topic</code> renvoie un ARN <code>arn:aws:sns:us-east-1:000000000000:evenements-commande</code>. <code>publish</code> renvoie un <code>MessageId</code> — le message est parti, mais <strong>sans abonné</strong>, personne ne le reçoit (SNS ne stocke pas : un message publié sans abonné est perdu). <code>list-subscriptions-by-topic</code> est vide. C&#39;est la différence clé avec SQS : SQS <strong>garde</strong> les messages jusqu&#39;à consommation ; SNS <strong>pousse</strong> immédiatement et n&#39;attend personne. À l&#39;étape suivante, on lui donne des abonnés.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>create-topic</code> returns an ARN <code>arn:aws:sns:us-east-1:000000000000:evenements-commande</code>. <code>publish</code> returns a <code>MessageId</code> — the message left, but <strong>with no subscriber</strong>, nobody receives it (SNS stores nothing: a message published with no subscriber is lost). <code>list-subscriptions-by-topic</code> is empty. That&#39;s the key difference from SQS: SQS <strong>keeps</strong> messages until consumed; SNS <strong>pushes</strong> immediately and waits for no one. In the next step, we give it subscribers.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Monter un <strong>fan-out</strong> : un sujet SNS diffusant vers <strong>deux files SQS</strong>.</p>
+<p><strong>🤔 Le motif roi de la résilience.</strong> « Nouvelle commande » doit déclencher <strong>plusieurs</strong> traitements indépendants : facturation, expédition, statistiques. Au lieu que le producteur appelle les trois (couplage, fragilité), il <strong>publie une fois</strong> dans SNS, qui <strong>duplique</strong> l&#39;événement dans chaque file SQS abonnée. Chaque service consomme sa copie à son rythme, en panne l&#39;un sans bloquer les autres. C&#39;est <strong>le</strong> schéma que le SAA teste pour « découpler et diffuser ».</p>
+<p>Abonne deux files au sujet, publie, et vérifie la réception :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Build a <strong>fan-out</strong>: one SNS topic broadcasting to <strong>two SQS queues</strong>.</p>
+<p><strong>🤔 The king pattern of resilience.</strong> &quot;New order&quot; must trigger <strong>several</strong> independent processings: billing, shipping, analytics. Instead of the producer calling all three (coupling, fragility), it <strong>publishes once</strong> to SNS, which <strong>duplicates</strong> the event into each subscribed SQS queue. Each service consumes its copy at its own pace, one failing without blocking the others. It&#39;s <strong>the</strong> pattern the SAA tests for &quot;decouple and broadcast&quot;.</p>
+<p>Subscribe two queues to the topic, publish, and check delivery:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Deux files consommatrices / two consumer queues
+FACT_URL=$(awslocal sqs create-queue --queue-name facturation --query &#39;QueueUrl&#39; --output text)
+EXPE_URL=$(awslocal sqs create-queue --queue-name expedition  --query &#39;QueueUrl&#39; --output text)
+FACT_ARN=$(awslocal sqs get-queue-attributes --queue-url &quot;$FACT_URL&quot; --attribute-names QueueArn --query &#39;Attributes.QueueArn&#39; --output text)
+EXPE_ARN=$(awslocal sqs get-queue-attributes --queue-url &quot;$EXPE_URL&quot; --attribute-names QueueArn --query &#39;Attributes.QueueArn&#39; --output text)
+
+# Abonner chaque file au sujet (fan-out) / subscribe each queue to the topic
+awslocal sns subscribe --topic-arn &quot;$TARN&quot; --protocol sqs --notification-endpoint &quot;$FACT_ARN&quot; --query &#39;SubscriptionArn&#39; --output text
+awslocal sns subscribe --topic-arn &quot;$TARN&quot; --protocol sqs --notification-endpoint &quot;$EXPE_ARN&quot; --query &#39;SubscriptionArn&#39; --output text
+
+# Publier UN message -&gt; il arrive dans LES DEUX files / publish ONE message -&gt; lands in BOTH queues
+awslocal sns publish --topic-arn &quot;$TARN&quot; --message &quot;commande #99 payee&quot; &gt;/dev/null
+sleep 2
+
+# Chaque file a reçu sa copie / each queue got its copy
+echo &quot;facturation :&quot; ; awslocal sqs receive-message --queue-url &quot;$FACT_URL&quot; --query &#39;Messages[0].Body&#39; --output text | grep -o &#39;&quot;Message&quot;: *&quot;[^&quot;]*&quot;&#39;
+echo &quot;expedition  :&quot; ; awslocal sqs receive-message --queue-url &quot;$EXPE_URL&quot; --query &#39;Messages[0].Body&#39; --output text | grep -o &#39;&quot;Message&quot;: *&quot;[^&quot;]*&quot;&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les deux <code>subscribe</code> renvoient chacun un ARN d&#39;abonnement. Après <strong>un seul</strong> <code>publish</code>, <strong>chaque</strong> file (<code>facturation</code> <strong>et</strong> <code>expedition</code>) a reçu une copie du message — tu le vois avec les deux <code>receive-message</code>. Le corps est un JSON d&#39;enveloppe SNS contenant ton message (<code>&quot;Message&quot;:&quot;commande #99 payee&quot;</code>). Un événement, deux consommateurs indépendants : si <code>expedition</code> tombe, <code>facturation</code> continue. C&#39;est l&#39;assemblage exact que tu réutiliseras dans le projet.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the two <code>subscribe</code> calls each return a subscription ARN. After a <strong>single</strong> <code>publish</code>, <strong>each</strong> queue (<code>facturation</code> <strong>and</strong> <code>expedition</code>) received a copy of the message — you see it with the two <code>receive-message</code>. The body is an SNS envelope JSON containing your message (<code>&quot;Message&quot;:&quot;commande #99 payee&quot;</code>). One event, two independent consumers: if <code>expedition</code> goes down, <code>facturation</code> keeps going. It&#39;s the exact assembly you&#39;ll reuse in the project.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>table DynamoDB</strong> et y écrire/lire des éléments.</p>
+<p><strong>🤔 Le modèle clé-valeur.</strong> DynamoDB stocke des <strong>éléments</strong> (items) identifiés par une <strong>clé de partition</strong>. Pas de schéma fixe : chaque élément a ses attributs, <strong>typés</strong> en JSON (<code>S</code> = string, <code>N</code> = number, <code>BOOL</code>…). On crée la table en <strong>PAY_PER_REQUEST</strong> (facturation à la demande, pas de capacité à provisionner) — le mode le plus simple.</p>
+<p>Crée la table et manipule des éléments :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>DynamoDB table</strong> and write/read items.</p>
+<p><strong>🤔 The key-value model.</strong> DynamoDB stores <strong>items</strong> identified by a <strong>partition key</strong>. No fixed schema: each item has its attributes, <strong>typed</strong> in JSON (<code>S</code> = string, <code>N</code> = number, <code>BOOL</code>…). We create the table in <strong>PAY_PER_REQUEST</strong> (on-demand billing, no capacity to provision) — the simplest mode.</p>
+<p>Create the table and handle items:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer une table avec une clé de partition &quot;id&quot; / create a table with partition key &quot;id&quot;
+awslocal dynamodb create-table --table-name Commandes \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST --query &#39;TableDescription.TableStatus&#39; --output text
+
+# Écrire deux éléments (attributs typés) / write two items (typed attributes)
+awslocal dynamodb put-item --table-name Commandes \
+  --item &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;cmd-42&quot;},&quot;client&quot;:{&quot;S&quot;:&quot;alice&quot;},&quot;montant&quot;:{&quot;N&quot;:&quot;120&quot;},&quot;payee&quot;:{&quot;BOOL&quot;:true}}&#39;
+awslocal dynamodb put-item --table-name Commandes \
+  --item &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;cmd-43&quot;},&quot;client&quot;:{&quot;S&quot;:&quot;bob&quot;},&quot;montant&quot;:{&quot;N&quot;:&quot;75&quot;},&quot;payee&quot;:{&quot;BOOL&quot;:false}}&#39;
+
+# Lire un élément par sa clé / read an item by its key
+awslocal dynamodb get-item --table-name Commandes --key &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;cmd-42&quot;}}&#39; \
+  --query &#39;Item.[client.S,montant.N]&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>create-table</code> renvoie <code>ACTIVE</code> (la table est prête). <code>get-item</code> sur <code>cmd-42</code> renvoie <code>alice   120</code>. Tu viens de stocker et relire des données sans serveur de base ni schéma déclaré à l&#39;avance. Note le <strong>typage</strong> : <code>{&quot;S&quot;:&quot;alice&quot;}</code> (chaîne), <code>{&quot;N&quot;:&quot;120&quot;}</code> (nombre, toujours entre guillemets en JSON DynamoDB), <code>{&quot;BOOL&quot;:true}</code>. C&#39;est verbeux mais explicite. ⚠️ La clé de partition (<code>id</code>) est <strong>obligatoire</strong> dans chaque <code>put-item</code> et <strong>unique</strong> : un second <code>put-item</code> avec le même <code>id</code> <strong>remplace</strong> l&#39;élément.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>create-table</code> returns <code>ACTIVE</code> (the table is ready). <code>get-item</code> on <code>cmd-42</code> returns <code>alice   120</code>. You just stored and read back data with no database server or pre-declared schema. Note the <strong>typing</strong>: <code>{&quot;S&quot;:&quot;alice&quot;}</code> (string), <code>{&quot;N&quot;:&quot;120&quot;}</code> (number, always quoted in DynamoDB JSON), <code>{&quot;BOOL&quot;:true}</code>. It&#39;s verbose but explicit. ⚠️ The partition key (<code>id</code>) is <strong>mandatory</strong> in each <code>put-item</code> and <strong>unique</strong>: a second <code>put-item</code> with the same <code>id</code> <strong>replaces</strong> the item.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Interroger</strong> DynamoDB — comprendre <code>query</code> (efficace) vs <code>scan</code> (coûteux).</p>
+<p><strong>🤔 Le réflexe de coût/performance.</strong> <code>get-item</code> lit <strong>un</strong> élément par sa clé. Pour lire <strong>plusieurs</strong> éléments : <code>query</code> cible une <strong>clé de partition</strong> précise (rapide, ne lit que la partition concernée) ; <code>scan</code> lit <strong>toute la table</strong> puis filtre (simple mais lent et cher dès que la table grossit). Le SAA insiste : on <strong>conçoit</strong> son modèle pour interroger par <code>query</code>, pas par <code>scan</code>.</p>
+<p>Compare scan et une lecture ciblée :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Query</strong> DynamoDB — understand <code>query</code> (efficient) vs <code>scan</code> (costly).</p>
+<p><strong>🤔 The cost/performance reflex.</strong> <code>get-item</code> reads <strong>one</strong> item by its key. To read <strong>several</strong> items: <code>query</code> targets a precise <strong>partition key</strong> (fast, reads only the relevant partition); <code>scan</code> reads the <strong>whole table</strong> then filters (simple but slow and costly once the table grows). The SAA insists: you <strong>design</strong> your model to query with <code>query</code>, not <code>scan</code>.</p>
+<p>Compare scan and a targeted read:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># scan : parcourt TOUTE la table (à éviter à grande échelle) / scan: goes through the WHOLE table
+awslocal dynamodb scan --table-name Commandes --query &#39;Count&#39; --output text
+awslocal dynamodb scan --table-name Commandes \
+  --filter-expression &quot;payee = :p&quot; \
+  --expression-attribute-values &#39;{&quot;:p&quot;:{&quot;BOOL&quot;:true}}&#39; \
+  --query &#39;Items[].client.S&#39; --output text
+
+# get-item ciblé par la clé (le mode efficace) / targeted get-item by key (the efficient way)
+awslocal dynamodb get-item --table-name Commandes --key &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;cmd-43&quot;}}&#39; \
+  --query &#39;Item.client.S&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le premier <code>scan</code> renvoie <code>2</code> (deux éléments dans la table). Le <code>scan</code> filtré sur <code>payee = true</code> renvoie <code>alice</code> (seule commande payée). Le <code>get-item</code> ciblé renvoie <code>bob</code>. Retiens la leçon SAA : le <code>scan</code> a dû lire <strong>tous</strong> les éléments pour en filtrer un ; sur une table de millions de lignes, c&#39;est catastrophique. Un <code>query</code> (sur clé de partition) ou un <code>get-item</code> (sur clé complète) ne lit que ce qu&#39;il faut. ⚠️ Ici on n&#39;a qu&#39;une clé de partition, donc pas de <code>query</code> par plage ; avec une <strong>clé de tri</strong>, <code>query</code> deviendrait « tous les éléments de cette partition, triés/filtrés par la clé de tri » — le vrai motif d&#39;accès efficace.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first <code>scan</code> returns <code>2</code> (two items in the table). The <code>scan</code> filtered on <code>payee = true</code> returns <code>alice</code> (the only paid order). The targeted <code>get-item</code> returns <code>bob</code>. Remember the SAA lesson: the <code>scan</code> had to read <strong>all</strong> items to filter one; on a table of millions of rows, that&#39;s catastrophic. A <code>query</code> (on partition key) or a <code>get-item</code> (on full key) reads only what&#39;s needed. ⚠️ Here we only have a partition key, so no range <code>query</code>; with a <strong>sort key</strong>, <code>query</code> would become &quot;all items of this partition, sorted/filtered by the sort key&quot; — the real efficient access pattern.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler l&#39;<strong>architecture découplée</strong>, choisir la bonne brique, puis nettoyer.</p>
+<p><strong>🤔 La grille de choix.</strong> <strong>SQS</strong> quand un travail doit être fait <strong>une fois</strong>, par <strong>un</strong> consommateur, en absorbant les pics (traiter une commande). <strong>SNS</strong> quand un événement doit être <strong>diffusé</strong> à <strong>plusieurs</strong> abonnés (notifier facturation + expédition + stats). <strong>SNS→SQS (fan-out)</strong> pour combiner diffusion <strong>et</strong> découplage tampon. <strong>DynamoDB</strong> pour stocker l&#39;<strong>état</strong> avec des accès par clé rapides. Ensemble, ils font une architecture <strong>élastique</strong> (absorbe la charge) et <strong>résiliente</strong> (un composant tombe sans faire tomber les autres).</p>
+<p>Récapitule et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>decoupled architecture</strong>, choose the right block, then clean up.</p>
+<p><strong>🤔 The choice grid.</strong> <strong>SQS</strong> when a job must be done <strong>once</strong>, by <strong>one</strong> consumer, absorbing spikes (process an order). <strong>SNS</strong> when an event must be <strong>broadcast</strong> to <strong>several</strong> subscribers (notify billing + shipping + analytics). <strong>SNS→SQS (fan-out)</strong> to combine broadcast <strong>and</strong> buffer decoupling. <strong>DynamoDB</strong> to store <strong>state</strong> with fast key-based access. Together, they make an architecture <strong>elastic</strong> (absorbs load) and <strong>resilient</strong> (a component fails without taking the others down).</p>
+<p>Recap and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Panorama / overview
+awslocal sqs list-queues --query &#39;QueueUrls&#39; --output text
+awslocal sns list-topics --query &#39;Topics[].TopicArn&#39; --output text
+awslocal dynamodb list-tables --query &#39;TableNames&#39; --output text
+
+# --- Nettoyage / cleanup ---
+awslocal sqs delete-queue --queue-url &quot;$QURL&quot;
+awslocal sqs delete-queue --queue-url &quot;$DLQ_URL&quot;
+awslocal sqs delete-queue --queue-url &quot;$FACT_URL&quot;
+awslocal sqs delete-queue --queue-url &quot;$EXPE_URL&quot;
+awslocal sqs delete-queue --queue-url &quot;$(awslocal sqs get-queue-url --queue-name transactions.fifo --query &#39;QueueUrl&#39; --output text)&quot;
+awslocal sns delete-topic --topic-arn &quot;$TARN&quot;
+awslocal dynamodb delete-table --table-name Commandes
+echo &quot;labo rangé / lab tidied&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le panorama liste tes files (<code>commandes</code>, <code>facturation</code>, <code>expedition</code>, la DLQ, la FIFO), ton sujet et ta table <code>Commandes</code>. Le nettoyage supprime tout sans erreur. <strong>La grille à graver</strong> : besoin d&#39;un <strong>tampon</strong> entre deux composants → <strong>SQS</strong> ; besoin de <strong>diffuser</strong> un événement → <strong>SNS</strong> ; besoin des deux → <strong>fan-out SNS→SQS</strong> ; besoin de <strong>stocker l&#39;état</strong> rapidement → <strong>DynamoDB</strong>. Tu as maintenant toutes les briques du projet serverless qui suit — où S3, Lambda, DynamoDB et SQS s&#39;assemblent en une vraie application.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the overview lists your queues (<code>commandes</code>, <code>facturation</code>, <code>expedition</code>, the DLQ, the FIFO), your topic and your <code>Commandes</code> table. The cleanup deletes everything with no error. <strong>The grid to engrave</strong>: need a <strong>buffer</strong> between two components → <strong>SQS</strong>; need to <strong>broadcast</strong> an event → <strong>SNS</strong>; need both → <strong>SNS→SQS fan-out</strong>; need to <strong>store state</strong> fast → <strong>DynamoDB</strong>. You now hold all the blocks of the serverless project that follows — where S3, Lambda, DynamoDB and SQS assemble into a real application.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Oublier de supprimer un message SQS.</strong> Un message reçu mais non <code>delete-message</code> <strong>redevient visible</strong> après le visibility timeout et sera <strong>retraité</strong>. C&#39;est la garantie « au moins une fois » : ton consommateur doit être <strong>idempotent</strong> (retraiter sans dégât).</p>
+<p><strong>2. Croire que SNS stocke les messages.</strong> Non : SNS <strong>pousse</strong> et oublie. Un message publié <strong>sans abonné</strong> est <strong>perdu</strong>. Pour ne rien perdre, on abonne une <strong>file SQS</strong> (qui, elle, garde) — c&#39;est le fan-out.</p>
+<p><strong>3. Confondre SQS et SNS.</strong> SQS = <strong>une file, un consommateur dépile</strong> (travail à faire une fois). SNS = <strong>un sujet, tous les abonnés reçoivent</strong> (diffusion). Question de base à l&#39;examen.</p>
+<p><strong>4. <code>scan</code> sur une grosse table.</strong> <code>scan</code> lit <strong>toute</strong> la table — lent et cher. Conçois pour <code>query</code> (clé de partition) ou <code>get-item</code> (clé complète). Le <code>scan</code> est un dernier recours.</p>
+<p><strong>5. Nom de file FIFO sans <code>.fifo</code>.</strong> Une file FIFO <strong>doit</strong> avoir un nom finissant par <code>.fifo</code> <strong>et</strong> l&#39;attribut <code>FifoQueue=true</code>. Sinon, erreur ou file standard.</p>
+<p><strong>6. Type d&#39;attribut DynamoDB manquant/erroné.</strong> Chaque valeur est typée : <code>{&quot;S&quot;:&quot;...&quot;}</code>, <code>{&quot;N&quot;:&quot;...&quot;}</code> (nombre <strong>entre guillemets</strong>), <code>{&quot;BOOL&quot;:true}</code>. Oublier le type ou se tromper = <code>ValidationException</code>.</p>
+<p><strong>7. Clé de partition dupliquée = écrasement.</strong> <code>put-item</code> avec un <code>id</code> déjà présent <strong>remplace</strong> l&#39;élément entier (pas de fusion). Pour modifier un attribut sans tout réécrire, c&#39;est <code>update-item</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Forgetting to delete an SQS message.</strong> A received but not <code>delete-message</code>d message <strong>becomes visible again</strong> after the visibility timeout and gets <strong>reprocessed</strong>. It&#39;s the &quot;at least once&quot; guarantee: your consumer must be <strong>idempotent</strong> (reprocess without harm).</p>
+<p><strong>2. Thinking SNS stores messages.</strong> No: SNS <strong>pushes</strong> and forgets. A message published <strong>with no subscriber</strong> is <strong>lost</strong>. To lose nothing, subscribe an <strong>SQS queue</strong> (which does keep) — that&#39;s fan-out.</p>
+<p><strong>3. Confusing SQS and SNS.</strong> SQS = <strong>one queue, one consumer pops</strong> (work to do once). SNS = <strong>one topic, all subscribers receive</strong> (broadcast). Basic exam question.</p>
+<p><strong>4. <code>scan</code> on a big table.</strong> <code>scan</code> reads the <strong>whole</strong> table — slow and costly. Design for <code>query</code> (partition key) or <code>get-item</code> (full key). <code>scan</code> is a last resort.</p>
+<p><strong>5. FIFO queue name without <code>.fifo</code>.</strong> A FIFO queue <strong>must</strong> have a name ending in <code>.fifo</code> <strong>and</strong> the <code>FifoQueue=true</code> attribute. Otherwise, error or a standard queue.</p>
+<p><strong>6. Missing/wrong DynamoDB attribute type.</strong> Each value is typed: <code>{&quot;S&quot;:&quot;...&quot;}</code>, <code>{&quot;N&quot;:&quot;...&quot;}</code> (number <strong>quoted</strong>), <code>{&quot;BOOL&quot;:true}</code>. Forgetting the type or getting it wrong = <code>ValidationException</code>.</p>
+<p><strong>7. Duplicate partition key = overwrite.</strong> <code>put-item</code> with an already-present <code>id</code> <strong>replaces</strong> the whole item (no merge). To modify one attribute without rewriting everything, it&#39;s <code>update-item</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu envoies, reçois et supprimes un message SQS, et tu expliques le visibility timeout.</li><li>Tu relies une DLQ (RedrivePolicy) et tu crées une file FIFO.</li><li>Tu publies dans un sujet SNS et tu comprends « pas d&#39;abonné = message perdu ».</li><li>Tu montes un fan-out SNS→2 SQS et tu vois <strong>une</strong> publication arriver dans <strong>les deux</strong> files.</li><li>Tu crées une table DynamoDB et tu écris/lis des éléments typés.</li><li>Tu opposes <code>scan</code> (toute la table) et <code>query</code>/<code>get-item</code> (ciblé).</li><li>Tu choisis SQS vs SNS vs DynamoDB sur un scénario.</li></ul>
+<p>Sept cases = tu tiens le découplage au niveau SAA. La suite : le <strong>projet d&#39;entreprise</strong> serverless.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You send, receive and delete an SQS message, and explain the visibility timeout.</li><li>You wire a DLQ (RedrivePolicy) and create a FIFO queue.</li><li>You publish to an SNS topic and understand &quot;no subscriber = lost message&quot;.</li><li>You build an SNS→2 SQS fan-out and see <strong>one</strong> publish land in <strong>both</strong> queues.</li><li>You create a DynamoDB table and write/read typed items.</li><li>You contrast <code>scan</code> (whole table) with <code>query</code>/<code>get-item</code> (targeted).</li><li>You choose SQS vs SNS vs DynamoDB on a scenario.</li></ul>
+<p>Seven boxes = you hold decoupling at SAA level. Next up: the serverless <strong>enterprise project</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track AWS → SAA-C03 :</p>
+<ol><li><strong>AWS — projet d&#39;entreprise serverless</strong> : le capstone qui assemble <strong>tout</strong> — un pipeline S3 → Lambda → DynamoDB avec notifications SNS/SQS, provisionné en Terraform contre LocalStack. Ton livrable de CV.</li><li>Enfin : <strong>passer en réel</strong> — créer un compte AWS, les garde-fous de coût, et ce que LocalStack cachait.</li></ol>
+</div>
+<div data-lang="en"><p>The AWS → SAA-C03 track continues:</p>
+<ol><li><strong>AWS — serverless enterprise project</strong>: the capstone assembling <strong>everything</strong> — an S3 → Lambda → DynamoDB pipeline with SNS/SQS notifications, provisioned in Terraform against LocalStack. Your CV deliverable.</li><li>Finally: <strong>going real</strong> — creating an AWS account, cost guardrails, and what LocalStack hid.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-projet-entreprise/">
+    <span class="num">50</span>
+    <span class="title-line" data-lang="fr">AWS — projet d&#39;entreprise : pipeline serverless</span>
+    <span class="title-line" data-lang="en">AWS — enterprise project: serverless pipeline</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire découplage.</p>
+</div>
+<div data-lang="en"><p>Decoupling cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># SQS
+awslocal sqs create-queue --queue-name q
+awslocal sqs send-message --queue-url $Q --message-body &quot;msg&quot;
+awslocal sqs receive-message --queue-url $Q               # -&gt; Body + ReceiptHandle
+awslocal sqs delete-message --queue-url $Q --receipt-handle $RH
+# FIFO : nom en .fifo + FifoQueue=true / DLQ : set-queue-attributes RedrivePolicy
+
+# SNS
+awslocal sns create-topic --name t
+awslocal sns subscribe --topic-arn $T --protocol sqs --notification-endpoint $QUEUE_ARN
+awslocal sns publish --topic-arn $T --message &quot;événement&quot;   # -&gt; tous les abonnés / all subscribers
+
+# DynamoDB
+awslocal dynamodb create-table --table-name T \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH --billing-mode PAY_PER_REQUEST
+awslocal dynamodb put-item --table-name T --item &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;a&quot;},&quot;x&quot;:{&quot;N&quot;:&quot;1&quot;}}&#39;
+awslocal dynamodb get-item --table-name T --key &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;a&quot;}}&#39;
+awslocal dynamodb query ...    # ciblé (clé) — préféré / targeted (key) — preferred
+awslocal dynamodb scan  ...    # toute la table — à éviter à grande échelle / whole table — avoid at scale</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html">Amazon SQS — guide</a> — files, visibility, DLQ, FIFO.</li><li><a href="https://docs.aws.amazon.com/sns/latest/dg/welcome.html">Amazon SNS — guide</a> — sujets, abonnements.</li><li><a href="https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html">Fan-out SNS + SQS</a> — le motif de diffusion.</li><li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html">Amazon DynamoDB — guide</a> — clés, items, query/scan.</li><li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/best-practices.html">Bonnes pratiques DynamoDB</a> — concevoir pour query.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html">Amazon SQS — guide</a> — queues, visibility, DLQ, FIFO.</li><li><a href="https://docs.aws.amazon.com/sns/latest/dg/welcome.html">Amazon SNS — guide</a> — topics, subscriptions.</li><li><a href="https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html">SNS + SQS fan-out</a> — the broadcast pattern.</li><li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html">Amazon DynamoDB — guide</a> — keys, items, query/scan.</li><li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/best-practices.html">DynamoDB best practices</a> — design for query.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>receive-message</code> ne renvoie rien.</strong> Soit la file est vide, soit un message est <strong>invisible</strong> (reçu récemment, dans son visibility timeout). Attends l&#39;expiration, ou vérifie que le producteur a bien envoyé.</p>
+<p><strong>Mon message SNS n&#39;arrive nulle part.</strong> Pas d&#39;abonné, ou l&#39;abonnement n&#39;est pas confirmé. Vérifie <code>list-subscriptions-by-topic</code>. Pour SQS, l&#39;abonnement est immédiat ; pour e-mail/HTTP il faut confirmer.</p>
+<p><strong><code>create-queue transactions.fifo</code> échoue.</strong> Une file FIFO exige le nom en <code>.fifo</code> <strong>et</strong> <code>--attributes FifoQueue=true</code>. Les deux ensemble.</p>
+<p><strong><code>ValidationException</code> sur DynamoDB.</strong> Un attribut n&#39;est pas typé correctement (<code>{&quot;N&quot;:&quot;1&quot;}</code> avec le nombre <strong>entre guillemets</strong>), ou la clé de partition manque dans <code>put-item</code>/<code>get-item</code>.</p>
+<p><strong><code>ResourceNotFoundException</code> sur une table.</strong> La table n&#39;existe pas encore (création asynchrone) ou est mal nommée. Vérifie <code>list-tables</code> et attends l&#39;état <code>ACTIVE</code>.</p>
+<p><strong>La RedrivePolicy ne s&#39;applique pas.</strong> Le JSON imbriqué est délicat à échapper en shell. Vérifie avec <code>get-queue-attributes ... RedrivePolicy</code> ; l&#39;ARN de la DLQ doit être correct.</p>
+</div>
+<div data-lang="en"><p><strong><code>receive-message</code> returns nothing.</strong> Either the queue is empty, or a message is <strong>invisible</strong> (recently received, within its visibility timeout). Wait for expiry, or check the producer actually sent.</p>
+<p><strong>My SNS message goes nowhere.</strong> No subscriber, or the subscription isn&#39;t confirmed. Check <code>list-subscriptions-by-topic</code>. For SQS the subscription is immediate; for email/HTTP you must confirm.</p>
+<p><strong><code>create-queue transactions.fifo</code> fails.</strong> A FIFO queue requires the <code>.fifo</code> name <strong>and</strong> <code>--attributes FifoQueue=true</code>. Both together.</p>
+<p><strong><code>ValidationException</code> on DynamoDB.</strong> An attribute isn&#39;t typed correctly (<code>{&quot;N&quot;:&quot;1&quot;}</code> with the number <strong>quoted</strong>), or the partition key is missing in <code>put-item</code>/<code>get-item</code>.</p>
+<p><strong><code>ResourceNotFoundException</code> on a table.</strong> The table doesn&#39;t exist yet (async creation) or is misnamed. Check <code>list-tables</code> and wait for <code>ACTIVE</code>.</p>
+<p><strong>The RedrivePolicy doesn&#39;t apply.</strong> The nested JSON is tricky to escape in the shell. Check with <code>get-queue-attributes ... RedrivePolicy</code>; the DLQ ARN must be correct.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

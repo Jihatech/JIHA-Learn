@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — variables, facts &amp; templates Jinja2 — jiha.tech</title>
+  <title data-lang="en">Ansible — variables, facts &amp; Jinja2 templates — jiha.tech</title>
+  <meta name="description" content="Le cœur data d&#39;Ansible au niveau RHCE/EX294 : la précédence des variables (extra-vars gagne toujours), les facts (structure ansible_facts, filtrage, set_fact pour dériver), les custom facts dans /etc/ansible/facts.d (ansible_local), les templates Jinja2 (filtres default/mandatory/join, boucles for et if dans un .j2), et les variables magiques (hostvars, groups) pour du templating inter-hôtes. Testable en local." data-lang="fr">
+  <meta name="description" content="Ansible&#39;s data core at RHCE/EX294 level: variable precedence (extra-vars always wins), facts (ansible_facts structure, filtering, set_fact to derive), custom facts in /etc/ansible/facts.d (ansible_local), Jinja2 templates (default/mandatory/join filters, for loops and if in a .j2), and magic variables (hostvars, groups) for cross-host templating. Testable locally." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — variables, facts &amp; templates Jinja2">
+  <meta property="og:description" content="Le cœur data d&#39;Ansible au niveau RHCE/EX294 : la précédence des variables (extra-vars gagne toujours), les facts (structure ansible_facts, filtrage, set_fact pour dériver), les custom facts dans /etc/ansible/facts.d (ansible_local), les templates Jinja2 (filtres default/mandatory/join, boucles for et if dans un .j2), et les variables magiques (hostvars, groups) pour du templating inter-hôtes. Testable en local.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-variables-facts-templates/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-variables-facts-templates/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-variables-facts-templates">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-variables-facts-templates</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-variables-facts-templates</div>
+    <h1 data-lang="fr">Ansible — variables, facts &amp; templates Jinja2</h1>
+    <h1 data-lang="en">Ansible — variables, facts &amp; Jinja2 templates</h1>
+    <p class="tagline" data-lang="fr">précédence, facts, custom facts, set_fact, Jinja2.</p>
+    <p class="tagline" data-lang="en">precedence, facts, custom facts, set_fact, Jinja2.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 220 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 220 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un playbook sans variables, c&#39;est du copier-coller déguisé : le même port écrit à dix endroits, le même chemin dupliqué, et le jour où ça change, tu oublies une occurrence. Les <strong>variables</strong>, les <strong>facts</strong> (ce qu&#39;Ansible découvre tout seul sur une machine) et les <strong>templates Jinja2</strong> (des fichiers de config générés à partir de variables) sont ce qui rend un playbook <strong>paramétrable</strong> et <strong>réutilisable</strong>. C&#39;est aussi, sans exagérer, la moitié de l&#39;examen RHCE/EX294 : « déployer un fichier de config templaté », « utiliser les facts », « gérer les variables ».</p>
+<p>Le sujet est vaste et truffé de pièges — surtout <strong>la précédence</strong> (quelle valeur gagne quand la même variable est définie à cinq endroits ?). Ce guide te fait tout <strong>manipuler</strong> : tu inspectes les facts, tu en fabriques (<code>set_fact</code>, custom facts), tu vois de tes yeux <code>-e</code> (extra-vars) écraser tout le reste, tu écris un template Jinja2 avec une <strong>boucle</strong> et une <strong>condition</strong>, et tu génères un vrai fichier de config à partir des données de ton inventaire.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises playbooks, inventaire et contrôle de flux (guides précédents) et tu veux rendre tes automatisations paramétrables.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur les playbooks → reviens aux guides précédents du track.</li><li>Tu veux chiffrer des variables sensibles → c&#39;est <strong>Ansible Vault</strong>, un guide dédié plus loin ; ici on manipule les variables « en clair ».</li></ul>
+</div>
+<div data-lang="en"><p>A playbook with no variables is disguised copy-paste: the same port written in ten places, the same path duplicated, and the day it changes you forget one occurrence. <strong>Variables</strong>, <strong>facts</strong> (what Ansible discovers on its own about a machine) and <strong>Jinja2 templates</strong> (config files generated from variables) are what make a playbook <strong>parameterizable</strong> and <strong>reusable</strong>. It&#39;s also, no exaggeration, half of the RHCE/EX294 exam: &quot;deploy a templated config file&quot;, &quot;use facts&quot;, &quot;manage variables&quot;.</p>
+<p>The topic is vast and full of traps — especially <strong>precedence</strong> (which value wins when the same variable is defined in five places?). This guide makes you <strong>handle</strong> everything: you inspect facts, you fabricate them (<code>set_fact</code>, custom facts), you see with your own eyes <code>-e</code> (extra-vars) override everything else, you write a Jinja2 template with a <strong>loop</strong> and a <strong>condition</strong>, and you generate a real config file from your inventory&#39;s data.</p>
+<p><strong>Who it&#39;s for:</strong> you master playbooks, inventory and flow control (previous guides) and you want to make your automations parameterizable.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to playbooks → go back to the earlier track guides.</li><li>You want to encrypt sensitive variables → that&#39;s <strong>Ansible Vault</strong>, a dedicated guide further along; here we handle variables &quot;in clear&quot;.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Inspecter les <strong>facts</strong> (<code>ansible_facts</code>), les <strong>filtrer</strong> et les utiliser dans une tâche.</li><li>Fabriquer une variable dérivée avec <strong><code>set_fact</code></strong>.</li><li>Prédire la <strong>précédence</strong> des variables — et prouver que <strong><code>-e</code> (extra-vars) gagne toujours</strong>.</li><li>Écrire des <strong>custom facts</strong> (<code>/etc/ansible/facts.d/*.fact</code>) et les lire via <code>ansible_local</code>.</li><li>Appliquer les <strong>filtres Jinja2</strong> essentiels : <code>default</code>, <code>mandatory</code>, <code>join</code>, <code>int</code>, ternaire.</li><li>Générer un fichier de config avec le module <strong><code>template</code></strong>, une <strong>boucle</strong> <code>for</code> et un <strong><code>if</code></strong>.</li><li>Exploiter les <strong>variables magiques</strong> (<code>hostvars</code>, <code>groups</code>, <code>inventory_hostname</code>) pour du templating inter-hôtes.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Inspect <strong>facts</strong> (<code>ansible_facts</code>), <strong>filter</strong> them and use them in a task.</li><li>Build a derived variable with <strong><code>set_fact</code></strong>.</li><li>Predict variable <strong>precedence</strong> — and prove that <strong><code>-e</code> (extra-vars) always wins</strong>.</li><li>Write <strong>custom facts</strong> (<code>/etc/ansible/facts.d/*.fact</code>) and read them via <code>ansible_local</code>.</li><li>Apply the essential <strong>Jinja2 filters</strong>: <code>default</code>, <code>mandatory</code>, <code>join</code>, <code>int</code>, ternary.</li><li>Generate a config file with the <strong><code>template</code></strong> module, a <code>for</code> <strong>loop</strong> and an <strong><code>if</code></strong>.</li><li>Use <strong>magic variables</strong> (<code>hostvars</code>, <code>groups</code>, <code>inventory_hostname</code>) for cross-host templating.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides Ansible <strong>fondamentaux</strong>, <strong>inventaire &amp; configuration</strong>, <strong>tâches avancées</strong> terminés.</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>Un dossier de travail. Tout est <strong>testable en local</strong> : les playbooks ciblent <code>localhost</code> en <code>connection: local</code>. Les facts se collectent sur ta propre machine, les templates se rendent dans <code>/tmp</code>. Aucune VM nécessaire.</li><li>Pour les custom facts (étape 6), les droits <strong>root</strong> (via <code>become</code>) pour écrire dans <code>/etc/ansible/facts.d/</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The Ansible <strong>fundamentals</strong>, <strong>inventory &amp; configuration</strong>, <strong>advanced tasks</strong> guides done.</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>A working folder. Everything is <strong>testable locally</strong>: the playbooks target <code>localhost</code> with <code>connection: local</code>. Facts are gathered on your own machine, templates render into <code>/tmp</code>. No VM needed.</li><li>For custom facts (step 6), <strong>root</strong> rights (via <code>become</code>) to write into <code>/etc/ansible/facts.d/</code>.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-taches-avancees/">
+    <span class="num">22</span>
+    <span class="title-line" data-lang="fr">Ansible — tâches avancées &amp; contrôle de flux</span>
+    <span class="title-line" data-lang="en">Ansible — advanced tasks &amp; flow control</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Facts.</strong> Des variables qu&#39;Ansible <strong>découvre</strong> automatiquement au début d&#39;un play (si <code>gather_facts: true</code>, le défaut) : OS, IP, mémoire, CPU, montages… Elles vivent sous <code>ansible_facts</code> (ex. <code>ansible_facts[&#39;distribution&#39;]</code>). Historiquement on les trouvait aussi en variables préfixées <code>ansible_</code> (ex. <code>ansible_distribution</code>) — encore courant, mais <code>ansible_facts[&#39;...&#39;]</code> est la forme moderne recommandée.</p>
+<p><strong><code>set_fact</code>.</strong> Crée (ou recalcule) une variable <strong>en cours de play</strong>, sur l&#39;hôte courant. Utile pour dériver une valeur (<code>ansible_facts[&#39;memtotal_mb&#39;] // 2</code>) ou stabiliser un calcul avant de le réutiliser.</p>
+<p><strong>Précédence des variables.</strong> Quand la même variable est définie à plusieurs endroits, Ansible applique un ordre strict. Les niveaux que tu dois connaître pour le RHCE, du <strong>plus faible au plus fort</strong> : les <em>role defaults</em> (<code>defaults/main.yml</code>) &lt; les <em>group_vars/all</em> &lt; <em>group_vars</em> d&#39;un groupe &lt; <em>host_vars</em> &lt; les <em>vars du play</em> &lt; <code>set_fact</code>/<code>register</code> &lt; les <strong>extra-vars</strong> (<code>-e</code>). Règle à graver : <strong><code>-e</code> sur la ligne de commande gagne TOUJOURS</strong>, quoi qu&#39;il y ait ailleurs.</p>
+<p><strong>Custom facts.</strong> Tes propres facts, posés sur la machine gérée dans <code>/etc/ansible/facts.d/&lt;nom&gt;.fact</code> (format INI ou script exécutable renvoyant du JSON). Ansible les collecte et les expose sous <code>ansible_local.&lt;nom&gt;.&lt;section&gt;.&lt;clé&gt;</code>. C&#39;est un objectif RHCE explicite.</p>
+<p><strong>Template Jinja2.</strong> Un fichier <code>.j2</code> où tu insères des variables (<code>{{ ma_var }}</code>), des <strong>boucles</strong> (<code>{% for x in liste %}</code>) et des <strong>conditions</strong> (<code>{% if ... %}</code>). Le module <code>template</code> le <strong>rend</strong> puis le dépose sur la cible. C&#39;est ainsi qu&#39;on génère un <code>nginx.conf</code>, un <code>/etc/hosts</code>, un fichier <code>.env</code>.</p>
+<p><strong>Filtres Jinja2.</strong> Des transformations en pipe : <code>{{ ma_var | default(&#39;valeur&#39;) }}</code> (valeur par défaut si indéfinie), <code>| mandatory</code> (échoue si indéfinie), <code>| join(&#39;,&#39;)</code>, <code>| int</code>, <code>| upper</code>, ou le ternaire <code>{{ (cond) | ternary(&#39;oui&#39;,&#39;non&#39;) }}</code>.</p>
+<p><strong>Variables magiques.</strong> Fournies par Ansible : <code>inventory_hostname</code> (le nom de l&#39;hôte courant dans l&#39;inventaire), <code>groups</code> (dict groupe → liste d&#39;hôtes), <code>hostvars</code> (accès aux variables/facts <strong>des autres</strong> hôtes). Indispensables pour générer, sur un load-balancer, la liste de ses backends.</p>
+</div>
+<div data-lang="en"><p><strong>Facts.</strong> Variables Ansible <strong>discovers</strong> automatically at the start of a play (if <code>gather_facts: true</code>, the default): OS, IP, memory, CPU, mounts… They live under <code>ansible_facts</code> (e.g. <code>ansible_facts[&#39;distribution&#39;]</code>). Historically they were also exposed as <code>ansible_</code>-prefixed variables (e.g. <code>ansible_distribution</code>) — still common, but <code>ansible_facts[&#39;...&#39;]</code> is the recommended modern form.</p>
+<p><strong><code>set_fact</code>.</strong> Creates (or recomputes) a variable <strong>during the play</strong>, on the current host. Useful to derive a value (<code>ansible_facts[&#39;memtotal_mb&#39;] // 2</code>) or stabilize a computation before reusing it.</p>
+<p><strong>Variable precedence.</strong> When the same variable is defined in several places, Ansible applies a strict order. The levels you must know for RHCE, from <strong>weakest to strongest</strong>: <em>role defaults</em> (<code>defaults/main.yml</code>) &lt; <em>group_vars/all</em> &lt; a group&#39;s <em>group_vars</em> &lt; <em>host_vars</em> &lt; <em>play vars</em> &lt; <code>set_fact</code>/<code>register</code> &lt; <strong>extra-vars</strong> (<code>-e</code>). Rule to engrave: <strong><code>-e</code> on the command line ALWAYS wins</strong>, whatever exists elsewhere.</p>
+<p><strong>Custom facts.</strong> Your own facts, placed on the managed machine in <code>/etc/ansible/facts.d/&lt;name&gt;.fact</code> (INI format or an executable script returning JSON). Ansible collects them and exposes them under <code>ansible_local.&lt;name&gt;.&lt;section&gt;.&lt;key&gt;</code>. It&#39;s an explicit RHCE objective.</p>
+<p><strong>Jinja2 template.</strong> A <code>.j2</code> file where you insert variables (<code>{{ my_var }}</code>), <strong>loops</strong> (<code>{% for x in list %}</code>) and <strong>conditions</strong> (<code>{% if ... %}</code>). The <code>template</code> module <strong>renders</strong> it then drops it on the target. That&#39;s how you generate an <code>nginx.conf</code>, an <code>/etc/hosts</code>, a <code>.env</code> file.</p>
+<p><strong>Jinja2 filters.</strong> Piped transformations: <code>{{ my_var | default(&#39;value&#39;) }}</code> (default if undefined), <code>| mandatory</code> (fails if undefined), <code>| join(&#39;,&#39;)</code>, <code>| int</code>, <code>| upper</code>, or the ternary <code>{{ (cond) | ternary(&#39;yes&#39;,&#39;no&#39;) }}</code>.</p>
+<p><strong>Magic variables.</strong> Provided by Ansible: <code>inventory_hostname</code> (the current host&#39;s name in the inventory), <code>groups</code> (dict group → list of hosts), <code>hostvars</code> (access to <strong>other</strong> hosts&#39; variables/facts). Essential to generate, on a load-balancer, the list of its backends.</p>
+</div>
+
+<figure class="schema" id="figure-ansible-var-precedence">
+  <svg viewBox="0 0 760 354" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-ansible-var-precedence">
+  <title id="s-ansible-var-precedence">Précédence des variables (faible → fort)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Précédence des variables (faible → fort)</text><rect class="box" x="90" y="40" width="580" height="40" rx="3"/><text class="lbl" x="380" y="57.5" text-anchor="middle">role defaults</text><text class="sub" x="380" y="70.5" text-anchor="middle">le plus faible</text><rect class="box" x="90" y="90" width="580" height="40" rx="3"/><text class="lbl" x="380" y="114" text-anchor="middle">group_vars</text><rect class="box" x="90" y="140" width="580" height="40" rx="3"/><text class="lbl" x="380" y="164" text-anchor="middle">host_vars</text><rect class="box" x="90" y="190" width="580" height="40" rx="3"/><text class="lbl" x="380" y="214" text-anchor="middle">play vars</text><rect class="box" x="90" y="240" width="580" height="40" rx="3"/><text class="lbl" x="380" y="264" text-anchor="middle">task vars</text><rect class="box-accent" x="90" y="290" width="580" height="40" rx="3"/><text class="lbl lbl-fill" x="380" y="307.5" text-anchor="middle">extra-vars -e</text><text class="sub sub-fill" x="380" y="320.5" text-anchor="middle">gagne toujours</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La précédence des variables, du plus faible (role defaults) au plus fort (extra-vars -e). La valeur du niveau le plus haut défini l&#39;emporte ; -e gagne toujours.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Variable precedence, from weakest (role defaults) to strongest (extra-vars -e). The highest defined level wins; -e always wins.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Inspecter les <strong>facts</strong>, les <strong>filtrer</strong>, et en utiliser un dans une tâche.</p>
+<p><strong>🤔 Pourquoi les facts d&#39;abord ?</strong> Parce que la moitié des variables que tu utilises viennent de la machine elle-même (distribution, mémoire, IP). Savoir <strong>où</strong> elles vivent (<code>ansible_facts[...]</code>) et comment n&#39;en collecter qu&#39;une partie (les facts, c&#39;est lent) est un réflexe RHCE.</p>
+<p>Crée <code>data.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Inspect <strong>facts</strong>, <strong>filter</strong> them, and use one in a task.</p>
+<p><strong>🤔 Why facts first?</strong> Because half the variables you use come from the machine itself (distribution, memory, IP). Knowing <strong>where</strong> they live (<code>ansible_facts[...]</code>) and how to gather only some (facts are slow) is an RHCE reflex.</p>
+<p>Create <code>data.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Facts &amp; variables — atelier
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tasks:
+    - name: Quelques facts utiles
+      ansible.builtin.debug:
+        msg: &gt;-
+          distro={{ ansible_facts[&#39;distribution&#39;] }}
+          {{ ansible_facts[&#39;distribution_version&#39;] }} |
+          famille={{ ansible_facts[&#39;os_family&#39;] }} |
+          mémoire={{ ansible_facts[&#39;memtotal_mb&#39;] }} Mo |
+          vcpus={{ ansible_facts[&#39;processor_vcpus&#39;] }}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Explorer les facts à la volée (ad-hoc) / explore facts on the fly
+ansible localhost -c local -m ansible.builtin.setup -a &quot;filter=ansible_memtotal_mb&quot;
+ansible localhost -c local -m ansible.builtin.setup -a &quot;filter=ansible_distribution*&quot;
+
+ansible-playbook data.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> l&#39;ad-hoc <code>filter=ansible_memtotal_mb</code> renvoie un JSON avec la mémoire totale ; <code>filter=ansible_distribution*</code> renvoie plusieurs clés (distribution, version, release…). Le playbook affiche une ligne récap <code>distro=Ubuntu 24.04 | famille=Debian | mémoire=… Mo | vcpus=…</code>. Note : en <strong>ad-hoc</strong>, le filtre utilise le nom <strong>préfixé</strong> <code>ansible_memtotal_mb</code> ; dans un <strong>playbook</strong>, tu lis <code>ansible_facts[&#39;memtotal_mb&#39;]</code> (sans le préfixe). Les deux pointent la même donnée.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the ad-hoc <code>filter=ansible_memtotal_mb</code> returns a JSON with the total memory; <code>filter=ansible_distribution*</code> returns several keys (distribution, version, release…). The playbook prints a recap line <code>distro=Ubuntu 24.04 | famille=Debian | mémoire=… Mo | vcpus=…</code>. Note: in <strong>ad-hoc</strong>, the filter uses the <strong>prefixed</strong> name <code>ansible_memtotal_mb</code>; in a <strong>playbook</strong>, you read <code>ansible_facts[&#39;memtotal_mb&#39;]</code> (no prefix). Both point to the same data.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Fabriquer une variable <strong>dérivée</strong> avec <code>set_fact</code>.</p>
+<p><strong>🤔 Quand set_fact ?</strong> Quand une valeur se <strong>calcule</strong> à partir d&#39;autres (la moitié de la RAM pour un buffer, un nom composé, une liste filtrée) et que tu veux la <strong>réutiliser</strong> ensuite sans recopier le calcul. <code>set_fact</code> fixe la valeur sur l&#39;hôte pour tout le reste du play.</p>
+<p>Ajoute à <code>data.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Build a <strong>derived</strong> variable with <code>set_fact</code>.</p>
+<p><strong>🤔 When set_fact?</strong> When a value is <strong>computed</strong> from others (half the RAM for a buffer, a composed name, a filtered list) and you want to <strong>reuse</strong> it later without copying the computation. <code>set_fact</code> pins the value on the host for the rest of the play.</p>
+<p>Add to <code>data.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Calculer la moitié de la RAM (buffer)
+      ansible.builtin.set_fact:
+        buffer_mb: &quot;{{ (ansible_facts[&#39;memtotal_mb&#39;] | int // 2) }}&quot;
+        appli_id: &quot;{{ ansible_facts[&#39;hostname&#39;] }}-{{ ansible_facts[&#39;os_family&#39;] | lower }}&quot;
+
+    - name: Réutiliser les variables dérivées
+      ansible.builtin.debug:
+        msg: &quot;buffer={{ buffer_mb }} Mo | id={{ appli_id }}&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la dernière tâche affiche <code>buffer=&lt;moitié de ta RAM&gt; Mo | id=&lt;hostname&gt;-debian</code>. Le calcul <code>// 2</code> (division entière) donne bien un entier. Tu as fabriqué deux variables qui n&#39;existaient dans aucun fichier : elles sont nées d&#39;un calcul sur les facts.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the last task prints <code>buffer=&lt;half your RAM&gt; Mo | id=&lt;hostname&gt;-debian</code>. The <code>// 2</code> computation (integer division) does yield an integer. You built two variables that existed in no file: they were born from a computation on facts.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Prouver</strong> la précédence — voir <code>-e</code> (extra-vars) écraser une variable définie dans le play.</p>
+<p><strong>🤔 Le piège d&#39;examen n°1.</strong> Tu définis <code>port: 8080</code> dans le play, mais le correcteur lance avec <code>-e port=9090</code> : c&#39;est <strong>9090</strong> qui gagne. Beaucoup perdent des points en croyant que « c&#39;est écrit dans le playbook donc ça gagne ». Non : <code>-e</code> est au sommet de la hiérarchie.</p>
+<p>Ajoute à <code>data.yml</code>, <strong>au niveau du play</strong> (pas dans une tâche) une section <code>vars:</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Prove</strong> precedence — watch <code>-e</code> (extra-vars) override a variable defined in the play.</p>
+<p><strong>🤔 Exam trap #1.</strong> You define <code>port: 8080</code> in the play, but the grader runs with <code>-e port=9090</code>: <strong>9090</strong> wins. Many lose points thinking &quot;it&#39;s written in the playbook so it wins&quot;. No: <code>-e</code> sits at the top of the hierarchy.</p>
+<p>Add to <code>data.yml</code>, <strong>at play level</strong> (not inside a task) a <code>vars:</code> section:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Facts &amp; variables — atelier
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    app_port: 8080             # valeur &quot;par défaut&quot; du play / play &quot;default&quot; value
+  tasks:
+    # ... (tâches précédentes) ...
+    - name: Quel port gagne ?
+      ansible.builtin.debug:
+        msg: &quot;port effectif = {{ app_port }}&quot;</code></pre>
+<div data-lang="fr"><p>⚠️ On nomme la variable <code>app_port</code> et <strong>pas</strong> <code>port</code> : <code>port</code> est un <strong>nom réservé</strong> (variable de connexion) dans Ansible récent et déclencherait un avertissement inutile. Réflexe utile pour l&#39;examen : évite les noms réservés (<code>port</code>, <code>hosts</code>, <code>name</code>, <code>user</code>…) pour tes variables.</p>
+</div>
+<div data-lang="en"><p>⚠️ We name the variable <code>app_port</code>, <strong>not</strong> <code>port</code>: <code>port</code> is a <strong>reserved name</strong> (connection variable) in recent Ansible and would trigger a needless warning. Useful exam reflex: avoid reserved names (<code>port</code>, <code>hosts</code>, <code>name</code>, <code>user</code>…) for your variables.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml                    # -&gt; port effectif = 8080 (valeur du play)
+ansible-playbook data.yml -e app_port=9090   # -&gt; port effectif = 9090 (extra-vars gagne !)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sans <code>-e</code>, la tâche affiche <code>port effectif = 8080</code>. Avec <code>-e app_port=9090</code>, elle affiche <code>port effectif = 9090</code> — <strong>la même variable, écrasée depuis la ligne de commande</strong>. Rien n&#39;a changé dans le fichier : c&#39;est la précédence en action. Retiens : <code>-e</code> &gt; vars du play &gt; host_vars &gt; group_vars &gt; defaults.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> without <code>-e</code>, the task prints <code>port effectif = 8080</code>. With <code>-e app_port=9090</code>, it prints <code>port effectif = 9090</code> — <strong>the same variable, overridden from the command line</strong>. Nothing changed in the file: that&#39;s precedence in action. Remember: <code>-e</code> &gt; play vars &gt; host_vars &gt; group_vars &gt; defaults.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Appliquer les <strong>filtres Jinja2</strong> essentiels — surtout <code>default</code> et <code>mandatory</code>.</p>
+<p><strong>🤔 Pourquoi c&#39;est vital.</strong> Un template qui référence une variable <strong>indéfinie</strong> plante (<code>AnsibleUndefinedVariable</code>). <code>| default(&#39;x&#39;)</code> fournit un repli ; <code>| mandatory</code> fait l&#39;inverse : il <strong>exige</strong> la variable et échoue proprement avec un message clair si elle manque. Les autres filtres (<code>join</code>, <code>int</code>, ternaire) formatent la donnée.</p>
+<p>Ajoute à <code>data.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Apply the essential <strong>Jinja2 filters</strong> — especially <code>default</code> and <code>mandatory</code>.</p>
+<p><strong>🤔 Why it&#39;s vital.</strong> A template referencing an <strong>undefined</strong> variable crashes (<code>AnsibleUndefinedVariable</code>). <code>| default(&#39;x&#39;)</code> provides a fallback; <code>| mandatory</code> does the opposite: it <strong>requires</strong> the variable and fails cleanly with a clear message if it&#39;s missing. The other filters (<code>join</code>, <code>int</code>, ternary) format the data.</p>
+<p>Add to <code>data.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Filtres Jinja2 en action
+      ansible.builtin.debug:
+        msg: &gt;-
+          default={{ region | default(&#39;eu-west&#39;) }} |
+          liste={{ [&#39;web1&#39;,&#39;web2&#39;,&#39;db1&#39;] | join(&#39;, &#39;) }} |
+          majuscules={{ ansible_facts[&#39;os_family&#39;] | upper }} |
+          ternaire={{ (ansible_facts[&#39;memtotal_mb&#39;] | int &gt; 500) | ternary(&#39;gros&#39;,&#39;petit&#39;) }}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml                     # region indéfinie -&gt; default utilisé
+ansible-playbook data.yml -e region=us-east   # region définie -&gt; sa valeur</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sans <code>-e region=...</code>, la sortie montre <code>default=eu-west</code> (le repli). Avec <code>-e region=us-east</code>, elle montre <code>default=us-east</code>. Tu vois aussi <code>liste=web1, web2, db1</code>, <code>majuscules=DEBIAN</code>, et <code>ternaire=gros</code> (si ta RAM &gt; 500 Mo). Pour tester <code>mandatory</code>, ajoute une tâche <code>msg: &quot;{{ obligatoire | mandatory }}&quot;</code> sans définir <code>obligatoire</code> : le play échoue avec <code>Mandatory variable &#39;obligatoire&#39; not defined</code> — un échec <strong>explicite</strong>, bien mieux qu&#39;un template cassé.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> without <code>-e region=...</code>, the output shows <code>default=eu-west</code> (the fallback). With <code>-e region=us-east</code>, it shows <code>default=us-east</code>. You also see <code>liste=web1, web2, db1</code>, <code>majuscules=DEBIAN</code>, and <code>ternaire=gros</code> (if your RAM &gt; 500 MB). To test <code>mandatory</code>, add a task <code>msg: &quot;{{ obligatoire | mandatory }}&quot;</code> without defining <code>obligatoire</code>: the play fails with <code>Mandatory variable &#39;obligatoire&#39; not defined</code> — an <strong>explicit</strong> failure, far better than a broken template.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer un fichier de config avec le module <strong><code>template</code></strong>, une <strong>boucle</strong> <code>for</code> et une <strong>condition</strong> <code>if</code>.</p>
+<p><strong>🤔 Le geste central du RHCE.</strong> « Déployer un fichier de config à partir d&#39;un template » est un objectif d&#39;examen quasi garanti. Un <code>.j2</code> combine texte fixe + variables + boucles + conditions. Le module <code>template</code> le rend côté nœud de contrôle puis l&#39;écrit sur la cible.</p>
+<p>Crée le template <code>serveurs.conf.j2</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate a config file with the <strong><code>template</code></strong> module, a <code>for</code> <strong>loop</strong> and an <code>if</code> <strong>condition</strong>.</p>
+<p><strong>🤔 The central RHCE move.</strong> &quot;Deploy a config file from a template&quot; is a near-guaranteed exam objective. A <code>.j2</code> combines fixed text + variables + loops + conditions. The <code>template</code> module renders it on the control node then writes it on the target.</p>
+<p>Create the template <code>serveurs.conf.j2</code>:</p>
+</div>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code># Généré par Ansible — NE PAS ÉDITER À LA MAIN
+# Hôte : {{ inventory_hostname }} — {{ ansible_facts[&#39;distribution&#39;] }}
+upstream backend {
+{% for s in serveurs %}
+    server {{ s.ip }}:{{ s.port | default(8080) }};   # {{ s.nom }}
+{% endfor %}
+}
+
+{% if activer_tls | default(false) %}
+listen 443 ssl;   # TLS activé
+{% else %}
+listen 80;        # TLS désactivé
+{% endif %}</code></pre>
+<div data-lang="fr"><p>Puis, dans <code>data.yml</code>, ajoute une tâche qui fournit les données et rend le template :</p>
+</div>
+<div data-lang="en"><p>Then, in <code>data.yml</code>, add a task that supplies the data and renders the template:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Rendre la config depuis le template
+      ansible.builtin.template:
+        src: serveurs.conf.j2
+        dest: /tmp/serveurs.conf
+      vars:
+        serveurs:
+          - { nom: web1, ip: 10.0.0.11, port: 8080 }
+          - { nom: web2, ip: 10.0.0.12 }             # pas de port -&gt; default(8080)
+          - { nom: web3, ip: 10.0.0.13, port: 9090 }
+        activer_tls: true</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml
+cat /tmp/serveurs.conf</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>/tmp/serveurs.conf</code> contient un bloc <code>upstream backend { ... }</code> avec <strong>trois</strong> lignes <code>server</code> (une par élément de la boucle). La ligne de <code>web2</code>, qui n&#39;avait pas de port, affiche <code>:8080</code> grâce à <code>default(8080)</code>. Comme <code>activer_tls: true</code>, tu vois <code>listen 443 ssl;</code> et <strong>pas</strong> <code>listen 80;</code>. Rejoue le playbook : la tâche <code>template</code> est <code>ok</code> (le fichier est identique → idempotence). Change une IP et rejoue : elle repasse <code>changed</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>/tmp/serveurs.conf</code> contains an <code>upstream backend { ... }</code> block with <strong>three</strong> <code>server</code> lines (one per loop element). The <code>web2</code> line, which had no port, shows <code>:8080</code> thanks to <code>default(8080)</code>. Since <code>activer_tls: true</code>, you see <code>listen 443 ssl;</code> and <strong>not</strong> <code>listen 80;</code>. Rerun the playbook: the <code>template</code> task is <code>ok</code> (file identical → idempotence). Change an IP and rerun: it turns <code>changed</code> again.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire des <strong>custom facts</strong> et les lire via <code>ansible_local</code> — un objectif RHCE explicite.</p>
+<p><strong>🤔 À quoi ça sert ?</strong> À poser sur une machine des métadonnées <strong>stables</strong> qu&#39;Ansible retrouvera à chaque exécution : le rôle du serveur, un numéro de tranche, l&#39;équipe propriétaire. Format le plus simple : un fichier INI dans <code>/etc/ansible/facts.d/</code>, dont le nom finit par <code>.fact</code>. Ansible l&#39;expose sous <code>ansible_local.&lt;nom_sans_.fact&gt;</code>.</p>
+<p>Écris le fact, puis relance la collecte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write <strong>custom facts</strong> and read them via <code>ansible_local</code> — an explicit RHCE objective.</p>
+<p><strong>🤔 What&#39;s it for?</strong> To place <strong>stable</strong> metadata on a machine that Ansible finds again on every run: the server&#39;s role, a shard number, the owning team. Simplest format: an INI file in <code>/etc/ansible/facts.d/</code>, whose name ends in <code>.fact</code>. Ansible exposes it under <code>ansible_local.&lt;name_without_.fact&gt;</code>.</p>
+<p>Write the fact, then re-run gathering:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Créer le dossier des custom facts
+      ansible.builtin.file:
+        path: /etc/ansible/facts.d
+        state: directory
+      become: true
+
+    - name: Déposer un custom fact (INI)
+      ansible.builtin.copy:
+        dest: /etc/ansible/facts.d/atelier.fact
+        content: |
+          [role]
+          type=frontend
+          equipe=plateforme
+          tranche=3
+      become: true
+
+    - name: Recollecter les facts pour voir le custom fact
+      ansible.builtin.setup:
+        filter: ansible_local
+
+    - name: Lire le custom fact
+      ansible.builtin.debug:
+        msg: &quot;role={{ ansible_local.atelier.role.type }} | équipe={{ ansible_local.atelier.role.equipe }} | tranche={{ ansible_local.atelier.role.tranche }}&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook data.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la dernière tâche affiche <code>role=frontend | équipe=plateforme | tranche=3</code>. Ces valeurs viennent du fichier <code>/etc/ansible/facts.d/atelier.fact</code> que tu viens d&#39;écrire, relues via <code>ansible_local.atelier.role.*</code>. ⚠️ <strong>Ordre important :</strong> les custom facts ne sont chargés qu&#39;<strong>après</strong> avoir été écrits. C&#39;est pour ça qu&#39;on ajoute la tâche <code>setup: filter=ansible_local</code> <strong>entre</strong> l&#39;écriture et la lecture — sinon <code>ansible_local.atelier</code> n&#39;existe pas encore (les facts du tout début de play ont été collectés avant l&#39;écriture).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the last task prints <code>role=frontend | équipe=plateforme | tranche=3</code>. These values come from the <code>/etc/ansible/facts.d/atelier.fact</code> file you just wrote, re-read via <code>ansible_local.atelier.role.*</code>. ⚠️ <strong>Order matters:</strong> custom facts are loaded only <strong>after</strong> being written. That&#39;s why we add the <code>setup: filter=ansible_local</code> task <strong>between</strong> writing and reading — otherwise <code>ansible_local.atelier</code> doesn&#39;t exist yet (the very-start-of-play facts were gathered before the write).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exploiter les <strong>variables magiques</strong> — <code>inventory_hostname</code>, <code>groups</code>, <code>hostvars</code> — pour un template inter-hôtes.</p>
+<p><strong>🤔 Le cas d&#39;usage roi.</strong> Sur un load-balancer, tu veux la liste de <strong>tous les backends</strong> du groupe <code>web</code> avec <strong>leur</strong> IP. C&#39;est exactement <code>groups[&#39;web&#39;]</code> (les hôtes) + <code>hostvars[h][&#39;ansible_host&#39;]</code> (l&#39;IP de chacun). Sans les variables magiques, impossible de générer une config qui parle des <em>autres</em> machines.</p>
+<p>Crée <code>magiques.yml</code> (avec un mini-inventaire en ligne pour tester en local) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Use <strong>magic variables</strong> — <code>inventory_hostname</code>, <code>groups</code>, <code>hostvars</code> — for a cross-host template.</p>
+<p><strong>🤔 The king use case.</strong> On a load-balancer, you want the list of <strong>all backends</strong> of the <code>web</code> group with <strong>their</strong> IP. That&#39;s exactly <code>groups[&#39;web&#39;]</code> (the hosts) + <code>hostvars[h][&#39;ansible_host&#39;]</code> (each one&#39;s IP). Without magic variables, you can&#39;t generate a config that talks about the <em>other</em> machines.</p>
+<p>Create <code>magiques.yml</code> (with a small inline inventory to test locally):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Variables magiques — démo
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # simule un inventaire : 3 backends avec leur IP / simulate an inventory
+    backends:
+      web1: 10.0.0.11
+      web2: 10.0.0.12
+      web3: 10.0.0.13
+  tasks:
+    - name: Qui suis-je et quels groupes existent ?
+      ansible.builtin.debug:
+        msg: &quot;je suis {{ inventory_hostname }} | groupes connus : {{ groups.keys() | list }}&quot;
+
+    - name: Générer la liste des backends (comme un LB le ferait)
+      ansible.builtin.debug:
+        msg: &quot;{% for nom, ip in backends.items() %}{{ nom }}={{ ip }} {% endfor %}&quot;</code></pre>
+<div data-lang="fr"><p>Pour la version « vraie » avec <code>hostvars</code>/<code>groups</code>, ajoute ce template <code>backends.j2</code> et rends-le contre ton inventaire de parc (<code>-i inventory.ini</code>, groupe <code>web</code>) :</p>
+</div>
+<div data-lang="en"><p>For the &quot;real&quot; version with <code>hostvars</code>/<code>groups</code>, add this <code>backends.j2</code> template and render it against your fleet inventory (<code>-i inventory.ini</code>, <code>web</code> group):</p>
+</div>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{% for h in groups[&#39;web&#39;] %}
+server {{ hostvars[h][&#39;ansible_host&#39;] | default(&#39;127.0.0.1&#39;) }};  # {{ h }}
+{% endfor %}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook magiques.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la première tâche affiche <code>je suis localhost | groupes connus : [&#39;all&#39;, &#39;ungrouped&#39;]</code> (en local, pas d&#39;autres groupes). La seconde liste <code>web1=10.0.0.11 web2=10.0.0.12 web3=10.0.0.13</code> — une boucle Jinja2 <strong>dans</strong> un <code>msg</code>. Le template <code>backends.j2</code>, rendu contre ton parc <code>web1</code>/<code>web2</code>, produirait une ligne <code>server &lt;IP&gt;;</code> par hôte du groupe <code>web</code>, en lisant l&#39;IP de <strong>chaque autre</strong> hôte via <code>hostvars</code>. C&#39;est le mécanisme exact d&#39;un <code>site.yml</code> de projet qui configure un LB.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first task prints <code>je suis localhost | groupes connus : [&#39;all&#39;, &#39;ungrouped&#39;]</code> (locally, no other groups). The second lists <code>web1=10.0.0.11 web2=10.0.0.12 web3=10.0.0.13</code> — a Jinja2 loop <strong>inside</strong> a <code>msg</code>. The <code>backends.j2</code> template, rendered against your <code>web1</code>/<code>web2</code> fleet, would produce one <code>server &lt;IP&gt;;</code> line per host of the <code>web</code> group, reading each <strong>other</strong> host&#39;s IP via <code>hostvars</code>. That&#39;s the exact mechanism of a project <code>site.yml</code> configuring a LB.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire que « c&#39;est dans le playbook donc ça gagne ».</strong> Non : <code>-e</code> (extra-vars) écrase <strong>tout</strong>, y compris les <code>vars:</code> du play. C&#39;est le piège de précédence n°1 à l&#39;examen.</p>
+<p><strong>2. <code>{{ }}</code> dans un <code>set_fact</code> ou pas.</strong> La valeur d&#39;un <code>set_fact</code> est une expression : <code>buffer_mb: &quot;{{ ... }}&quot;</code>. Mais dans un <code>when</code>, on écrit l&#39;expression <strong>nue</strong> (vu au guide précédent). Ne mélange pas les deux réflexes.</p>
+<p><strong>3. Variable indéfinie dans un template.</strong> Un <code>{{ truc }}</code> non défini fait planter le rendu. Protège avec <code>| default(...)</code>, ou exige avec <code>| mandatory</code> pour un échec clair et précoce.</p>
+<p><strong>4. Custom facts lus trop tôt.</strong> <code>ansible_local.&lt;x&gt;</code> n&#39;existe <strong>pas</strong> si le fact a été écrit <strong>après</strong> la collecte initiale. Recollecte avec une tâche <code>setup: filter=ansible_local</code> entre l&#39;écriture et la lecture.</p>
+<p><strong>5. Nom de fichier custom fact sans <code>.fact</code>.</strong> Ansible n&#39;ingère que les fichiers de <code>/etc/ansible/facts.d/</code> qui <strong>finissent par <code>.fact</code></strong>. <code>monrole.txt</code> sera ignoré. Et le fait doit être un INI valide (ou un exécutable renvoyant du JSON).</p>
+<p><strong>6. <code>ansible_facts[&#39;x&#39;]</code> vs <code>ansible_x</code>.</strong> Selon <code>inject_facts_as_vars</code> (défaut activé), les deux marchent. Mais la forme moderne et sûre est <code>ansible_facts[&#39;x&#39;]</code>. En <strong>ad-hoc</strong> avec <code>filter=</code>, on utilise le nom <strong>préfixé</strong> <code>ansible_x</code>.</p>
+<p><strong>7. Espaces Jinja2 dans les templates.</strong> <code>{% for %}</code> laisse des lignes vides. Pour un rendu propre, utilise <code>{%- ... -%}</code> (trim) ou le paramètre <code>trim_blocks</code>. Pas bloquant, mais un <code>.conf</code> truffé de lignes vides fait tache.</p>
+</div>
+<div data-lang="en"><p><strong>1. Thinking &quot;it&#39;s in the playbook so it wins&quot;.</strong> No: <code>-e</code> (extra-vars) overrides <strong>everything</strong>, including the play&#39;s <code>vars:</code>. It&#39;s precedence trap #1 on the exam.</p>
+<p><strong>2. <code>{{ }}</code> in a <code>set_fact</code> or not.</strong> A <code>set_fact</code> value is an expression: <code>buffer_mb: &quot;{{ ... }}&quot;</code>. But in a <code>when</code>, you write the expression <strong>bare</strong> (seen last guide). Don&#39;t mix the two reflexes.</p>
+<p><strong>3. Undefined variable in a template.</strong> An undefined <code>{{ thing }}</code> crashes rendering. Protect with <code>| default(...)</code>, or require with <code>| mandatory</code> for a clear, early failure.</p>
+<p><strong>4. Custom facts read too early.</strong> <code>ansible_local.&lt;x&gt;</code> does <strong>not</strong> exist if the fact was written <strong>after</strong> the initial gathering. Re-gather with a <code>setup: filter=ansible_local</code> task between writing and reading.</p>
+<p><strong>5. Custom fact filename without <code>.fact</code>.</strong> Ansible ingests only files in <code>/etc/ansible/facts.d/</code> that <strong>end in <code>.fact</code></strong>. <code>myrole.txt</code> is ignored. And the fact must be valid INI (or an executable returning JSON).</p>
+<p><strong>6. <code>ansible_facts[&#39;x&#39;]</code> vs <code>ansible_x</code>.</strong> Depending on <code>inject_facts_as_vars</code> (default on), both work. But the modern, safe form is <code>ansible_facts[&#39;x&#39;]</code>. In <strong>ad-hoc</strong> with <code>filter=</code>, you use the <strong>prefixed</strong> name <code>ansible_x</code>.</p>
+<p><strong>7. Jinja2 whitespace in templates.</strong> <code>{% for %}</code> leaves blank lines. For clean rendering, use <code>{%- ... -%}</code> (trim) or the <code>trim_blocks</code> setting. Not blocking, but a <code>.conf</code> riddled with blank lines looks sloppy.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis un fact via <code>ansible_facts[&#39;...&#39;]</code> et tu filtres avec <code>setup -a filter=</code>.</li><li>Tu dérives une variable avec <code>set_fact</code> et tu la réutilises.</li><li>Tu <strong>prouves</strong> que <code>-e app_port=9090</code> écrase le <code>app_port: 8080</code> du play.</li><li>Tu protèges une variable avec <code>| default(...)</code> et tu exiges avec <code>| mandatory</code>.</li><li>Tu génères un <code>.conf</code> avec un template <code>for</code> + <code>if</code>, et il est idempotent.</li><li>Tu écris un custom fact <code>.fact</code> et tu le relis via <code>ansible_local.*</code>.</li><li>Tu génères une liste de backends avec <code>groups[...]</code> et <code>hostvars[...]</code>.</li></ul>
+<p>Sept cases = tu paramètres tes automatisations comme un ingénieur RHCE. La suite : rôles &amp; collections.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read a fact via <code>ansible_facts[&#39;...&#39;]</code> and filter with <code>setup -a filter=</code>.</li><li>You derive a variable with <code>set_fact</code> and reuse it.</li><li>You <strong>prove</strong> that <code>-e app_port=9090</code> overrides the play&#39;s <code>app_port: 8080</code>.</li><li>You protect a variable with <code>| default(...)</code> and require it with <code>| mandatory</code>.</li><li>You generate a <code>.conf</code> with a <code>for</code> + <code>if</code> template, and it&#39;s idempotent.</li><li>You write a <code>.fact</code> custom fact and read it back via <code>ansible_local.*</code>.</li><li>You generate a backend list with <code>groups[...]</code> and <code>hostvars[...]</code>.</li></ul>
+<p>Seven boxes = you parameterize your automations like an RHCE engineer. Next up: roles &amp; collections.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track RHCE :</p>
+<ol><li><strong>Ansible — rôles &amp; collections</strong> : structurer ton code en rôles réutilisables (<code>ansible-galaxy init</code>), installer rôles et collections depuis Galaxy (<code>requirements.yml</code>), et utiliser les modules en FQCN.</li><li>Plus loin : Vault (chiffrer ces variables), administration système par modules, puis le <strong>projet d&#39;entreprise</strong> RHCE.</li></ol>
+</div>
+<div data-lang="en"><p>The RHCE track continues:</p>
+<ol><li><strong>Ansible — roles &amp; collections</strong>: structure your code into reusable roles (<code>ansible-galaxy init</code>), install roles and collections from Galaxy (<code>requirements.yml</code>), and use modules in FQCN.</li><li>Further along: Vault (encrypt those variables), system administration via modules, then the RHCE <strong>enterprise project</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-roles-collections/">
+    <span class="num">24</span>
+    <span class="title-line" data-lang="fr">Ansible — rôles &amp; collections</span>
+    <span class="title-line" data-lang="en">Ansible — roles &amp; collections</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire variables, facts &amp; Jinja2.</p>
+</div>
+<div data-lang="en"><p>Variables, facts &amp; Jinja2 cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Facts / Facts
+ansible HOST -m setup                          # tous les facts / all facts
+ansible HOST -m setup -a &quot;filter=ansible_mem*&quot; # filtrer / filter
+ansible HOST -m setup -a &quot;filter=ansible_local&quot; # custom facts
+
+# Précédence / Precedence (extra-vars gagne toujours / always wins)
+ansible-playbook site.yml -e &quot;app_port=9090&quot;
+ansible-playbook site.yml -e &quot;@vars.yml&quot;       # extra-vars depuis un fichier / from a file</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># set_fact
+- ansible.builtin.set_fact:
+    buffer_mb: &quot;{{ ansible_facts[&#39;memtotal_mb&#39;] | int // 2 }}&quot;
+
+# Filtres Jinja2 / Jinja2 filters
+&quot;{{ x | default(&#39;repli&#39;) }}&quot;       # valeur par défaut / default
+&quot;{{ x | mandatory }}&quot;              # exige la variable / require
+&quot;{{ liste | join(&#39;, &#39;) }}&quot;         # concaténer / join
+&quot;{{ (n | int &gt; 500) | ternary(&#39;gros&#39;,&#39;petit&#39;) }}&quot;
+
+# template
+- ansible.builtin.template:
+    src: fichier.conf.j2
+    dest: /etc/app/fichier.conf
+  notify: Recharger app</code></pre>
+<pre class="term lang-jinja"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">jinja</span><button class="copy-btn" type="button">Copy</button></div><code>{# Template : boucle + condition + variable magique #}
+{% for h in groups[&#39;web&#39;] %}
+server {{ hostvars[h][&#39;ansible_host&#39;] }};
+{% endfor %}
+{% if activer_tls | default(false) %}listen 443 ssl;{% endif %}</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html">Utiliser les variables</a> — définition, précédence, portée.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_vars_facts.html">Facts et magic variables</a> — <code>ansible_facts</code>, <code>set_fact</code>, custom facts.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_templating.html">Templating (Jinja2)</a> — filtres, tests, boucles.</li><li><a href="https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html">Variables spéciales (magic vars)</a> — <code>hostvars</code>, <code>groups</code>, <code>inventory_hostname</code>.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html">Using variables</a> — definition, precedence, scope.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_vars_facts.html">Facts and magic variables</a> — <code>ansible_facts</code>, <code>set_fact</code>, custom facts.</li><li><a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_templating.html">Templating (Jinja2)</a> — filters, tests, loops.</li><li><a href="https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html">Special variables (magic vars)</a> — <code>hostvars</code>, <code>groups</code>, <code>inventory_hostname</code>.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>AnsibleUndefinedVariable: &#39;xxx&#39; is undefined</code>.</strong> Une variable référencée n&#39;existe pas dans ce contexte. Protège avec <code>| default(...)</code>, ou vérifie l&#39;orthographe et la portée (une var de tâche n&#39;existe pas ailleurs).</p>
+<p><strong>Mon <code>-e</code> ne change rien.</strong> Vérifie la syntaxe : <code>-e &quot;cle=valeur&quot;</code> (ou <code>-e &#39;{&quot;cle&quot;: &quot;valeur&quot;}&#39;</code> pour du structuré, ou <code>-e @fichier.yml</code>). Et rappelle-toi que <code>-e</code> gagne — si ça ne change rien, c&#39;est que tu regardes la mauvaise variable.</p>
+<p><strong><code>ansible_local.&lt;x&gt;</code> est indéfini.</strong> Le fact n&#39;a pas été recollecté après écriture. Ajoute une tâche <code>ansible.builtin.setup: filter=ansible_local</code> avant de le lire. Vérifie aussi que le fichier finit par <code>.fact</code> et est un INI valide.</p>
+<p><strong>Le template rend des lignes vides / mal indentées.</strong> Comportement Jinja2 normal. Utilise <code>{%- -%}</code> pour rogner les espaces, ou active <code>trim_blocks</code>/<code>lstrip_blocks</code>.</p>
+<p><strong><code>int</code> échoue sur une valeur.</strong> Certains facts sont des chaînes ; ajoute <code>| int</code> avant un calcul. <code>//</code> est la division <strong>entière</strong> (résultat entier), <code>/</code> donnerait un flottant.</p>
+<p><strong>Un fact attendu est absent.</strong> Tous les facts ne sont pas collectés selon la plateforme. Liste-les avec <code>ansible HOST -m setup</code> et cherche la bonne clé — le nom peut différer (<code>processor_vcpus</code> vs <code>processor_count</code>).</p>
+</div>
+<div data-lang="en"><p><strong><code>AnsibleUndefinedVariable: &#39;xxx&#39; is undefined</code>.</strong> A referenced variable doesn&#39;t exist in this context. Protect with <code>| default(...)</code>, or check spelling and scope (a task var doesn&#39;t exist elsewhere).</p>
+<p><strong>My <code>-e</code> changes nothing.</strong> Check the syntax: <code>-e &quot;key=value&quot;</code> (or <code>-e &#39;{&quot;key&quot;: &quot;value&quot;}&#39;</code> for structured, or <code>-e @file.yml</code>). And remember <code>-e</code> wins — if nothing changes, you&#39;re looking at the wrong variable.</p>
+<p><strong><code>ansible_local.&lt;x&gt;</code> is undefined.</strong> The fact wasn&#39;t re-gathered after writing. Add a <code>ansible.builtin.setup: filter=ansible_local</code> task before reading it. Also check the file ends in <code>.fact</code> and is valid INI.</p>
+<p><strong>The template renders blank / misindented lines.</strong> Normal Jinja2 behavior. Use <code>{%- -%}</code> to trim whitespace, or enable <code>trim_blocks</code>/<code>lstrip_blocks</code>.</p>
+<p><strong><code>int</code> fails on a value.</strong> Some facts are strings; add <code>| int</code> before a computation. <code>//</code> is <strong>integer</strong> division (integer result), <code>/</code> would give a float.</p>
+<p><strong>An expected fact is missing.</strong> Not all facts are gathered depending on platform. List them with <code>ansible HOST -m setup</code> and find the right key — the name may differ (<code>processor_vcpus</code> vs <code>processor_count</code>).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

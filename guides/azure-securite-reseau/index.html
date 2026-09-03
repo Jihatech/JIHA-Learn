@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — sécurité réseau (AZ-500) : segmentation, pare-feu, WAF — jiha.tech</title>
+  <title data-lang="en">Azure — network security (AZ-500): segmentation, firewall, WAF — jiha.tech</title>
+  <meta name="description" content="&quot;Sécuriser le réseau pour l&#39;AZ-500, en local et pour de vrai : segmenter un réseau en tiers (VNet + sous-réseaux web/app/data avec NSG, déployés live sur miniblue), comprendre la logique d&#39;évaluation NSG (priorité croissante, première règle qui matche, refus implicite) avec un évaluateur exécutable, la micro-segmentation qui isole les tiers (le web ne parle PAS directement au data), le contrôle de sortie (pare-feu à liste blanche de FQDN contre l&#39;exfiltration), les points de terminaison privés (garder le PaaS hors d&#39;Internet), et un WAF + rate-limiter qui bloquent injections et abus. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Securing the network for AZ-500, locally and for real: segmenting a network into tiers (VNet + web/app/data subnets with NSGs, deployed live on miniblue), understanding NSG evaluation logic (ascending priority, first matching rule, implicit deny) with a runnable evaluator, micro-segmentation isolating tiers (web does NOT talk directly to data), egress control (an FQDN-allowlist firewall against exfiltration), private endpoints (keeping PaaS off the internet), and a WAF + rate-limiter blocking injections and abuse. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — sécurité réseau (AZ-500) : segmentation, pare-feu, WAF">
+  <meta property="og:description" content="&quot;Sécuriser le réseau pour l&#39;AZ-500, en local et pour de vrai : segmenter un réseau en tiers (VNet + sous-réseaux web/app/data avec NSG, déployés live sur miniblue), comprendre la logique d&#39;évaluation NSG (priorité croissante, première règle qui matche, refus implicite) avec un évaluateur exécutable, la micro-segmentation qui isole les tiers (le web ne parle PAS directement au data), le contrôle de sortie (pare-feu à liste blanche de FQDN contre l&#39;exfiltration), les points de terminaison privés (garder le PaaS hors d&#39;Internet), et un WAF + rate-limiter qui bloquent injections et abus. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-securite-reseau/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-securite-reseau/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-securite-reseau">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-securite-reseau</div>
+    <div class="prompt" data-lang="en">~/guides/azure-securite-reseau</div>
+    <h1 data-lang="fr">Azure — sécurité réseau (AZ-500) : segmentation, pare-feu, WAF</h1>
+    <h1 data-lang="en">Azure — network security (AZ-500): segmentation, firewall, WAF</h1>
+    <p class="tagline" data-lang="fr">segmenter, refuser par défaut, filtrer la sortie, bloquer les attaques.</p>
+    <p class="tagline" data-lang="en">segment, deny by default, filter egress, block attacks.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Après l&#39;identité, le <strong>réseau</strong>. Même avec une identité parfaite, un réseau <strong>plat</strong> (tout communique avec tout) offre à un attaquant un <strong>terrain de jeu</strong> : une machine compromise atteint tout le reste. L&#39;<strong>AZ-500</strong> attend que tu saches <strong>segmenter</strong>, <strong>refuser par défaut</strong>, <strong>filtrer la sortie</strong> et <strong>bloquer les attaques</strong>. C&#39;est la couche <strong>réseau</strong> de la défense en profondeur.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on <strong>segmente</strong> un réseau en tiers (VNet + sous-réseaux <strong>web/app/data</strong> avec NSG, déployés <strong>live</strong> sur <strong>miniblue</strong>), on <strong>décortique la logique d&#39;évaluation NSG</strong> (priorité croissante, <strong>première règle</strong> qui matche, <strong>refus implicite</strong>) avec un évaluateur <strong>exécutable</strong>, on met en place la <strong>micro-segmentation</strong> (le tier web ne parle <strong>pas</strong> directement au tier data), on <strong>contrôle la sortie</strong> (un pare-feu à <strong>liste blanche de FQDN</strong> contre l&#39;exfiltration), on garde le PaaS <strong>hors d&#39;Internet</strong> avec les <strong>points de terminaison privés</strong>, et on installe un <strong>WAF + rate-limiter</strong> qui <strong>bloquent</strong> injections et abus.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises l&#39;identité (guide précédent) et tu veux <strong>cloisonner</strong> ton réseau.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne connais pas VNet/NSG → révise <em>Azure — réseau (AZ-104)</em>.</li><li>Tu veux la <strong>conception</strong> réseau (topologie hub-spoke détaillée) → ici c&#39;est l&#39;angle <strong>sécurité</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>After identity, the <strong>network</strong>. Even with perfect identity, a <strong>flat</strong> network (everything talks to everything) hands an attacker a <strong>playground</strong>: one compromised machine reaches everything else. <strong>AZ-500</strong> expects you to <strong>segment</strong>, <strong>deny by default</strong>, <strong>filter egress</strong> and <strong>block attacks</strong>. It&#39;s the <strong>network</strong> layer of defense in depth.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we <strong>segment</strong> a network into tiers (VNet + <strong>web/app/data</strong> subnets with NSGs, deployed <strong>live</strong> on <strong>miniblue</strong>), we <strong>dissect NSG evaluation logic</strong> (ascending priority, <strong>first matching</strong> rule, <strong>implicit deny</strong>) with a <strong>runnable</strong> evaluator, we set up <strong>micro-segmentation</strong> (the web tier does <strong>not</strong> talk directly to the data tier), we <strong>control egress</strong> (an <strong>FQDN-allowlist</strong> firewall against exfiltration), we keep PaaS <strong>off the internet</strong> with <strong>private endpoints</strong>, and we install a <strong>WAF + rate-limiter</strong> that <strong>block</strong> injections and abuse.</p>
+<p><strong>Who it&#39;s for:</strong> you master identity (previous guide) and want to <strong>compartmentalize</strong> your network.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know VNet/NSG → review <em>Azure — networking (AZ-104)</em>.</li><li>You want network <strong>design</strong> (detailed hub-spoke topology) → here it&#39;s the <strong>security</strong> angle.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Segmenter</strong> un réseau en tiers (VNet + sous-réseaux + NSG) et le <strong>déployer</strong>.</li><li>Expliquer la <strong>logique d&#39;évaluation NSG</strong> (priorité, première règle, refus implicite).</li><li>Mettre en place la <strong>micro-segmentation</strong> (isoler les tiers entre eux).</li><li><strong>Contrôler la sortie</strong> (egress) avec une <strong>liste blanche de FQDN</strong>.</li><li>Comprendre les <strong>points de terminaison privés</strong> (PaaS hors d&#39;Internet).</li><li>Installer un <strong>WAF</strong> (bloquer les injections) et un <strong>rate-limiter</strong> (anti-abus/DDoS).</li><li>Situer la protection <strong>DDoS</strong> et le rôle du <strong>pare-feu</strong> applicatif.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Segment</strong> a network into tiers (VNet + subnets + NSG) and <strong>deploy</strong> it.</li><li>Explain <strong>NSG evaluation logic</strong> (priority, first rule, implicit deny).</li><li>Set up <strong>micro-segmentation</strong> (isolating tiers from each other).</li><li><strong>Control egress</strong> with an <strong>FQDN allowlist</strong>.</li><li>Understand <strong>private endpoints</strong> (PaaS off the internet).</li><li>Install a <strong>WAF</strong> (block injections) and a <strong>rate-limiter</strong> (anti-abuse/DDoS).</li><li>Place <strong>DDoS</strong> protection and the role of the application <strong>firewall</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — sécurité de l&#39;identité (AZ-500)</strong> et <em>Azure — réseau (AZ-104)</em>.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré, <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> sur le <code>PATH</code>.</li><li><strong>Python 3</strong>. <strong>Aucun compte cloud</strong> : segmentation live, évaluateurs/pare-feu/WAF exécutés en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — identity security (AZ-500)</strong> guide and <em>Azure — networking (AZ-104)</em>.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started, <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>, <code>azlocal</code> on <code>PATH</code>.</li><li><strong>Python 3</strong>. <strong>No cloud account</strong>: segmentation live, evaluators/firewall/WAF run locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-securite-identite/">
+    <span class="num">77</span>
+    <span class="title-line" data-lang="fr">Azure — sécurité de l&#39;identité (AZ-500) : RBAC, accès conditionnel, PIM</span>
+    <span class="title-line" data-lang="en">Azure — identity security (AZ-500): RBAC, conditional access, PIM</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Segmenter : diviser pour protéger.</strong> Un réseau <strong>plat</strong> est dangereux : une brèche = accès à tout. On <strong>segmente</strong> en <strong>tiers</strong> — typiquement <strong>web</strong> (exposé), <strong>app</strong> (logique), <strong>data</strong> (base). Chaque tier est un <strong>sous-réseau</strong> avec son <strong>NSG</strong>. Le trafic entre tiers est <strong>contrôlé</strong>, pas libre. C&#39;est la traduction réseau de « supposer la brèche ».</p>
+<p><strong>Le NSG et sa logique d&#39;évaluation.</strong> Un <strong>Network Security Group</strong> est une liste de <strong>règles</strong>. Azure les évalue par <strong>priorité croissante</strong> (100 avant 200…), s&#39;arrête à la <strong>première</strong> qui <strong>matche</strong> (protocole + port + source/destination + direction), et applique son <strong>action</strong> (Allow/Deny). Si <strong>aucune</strong> ne matche, une règle <strong>implicite</strong> refuse (<strong>deny by default</strong>). Corollaire : une règle de faible priorité peut <strong>masquer</strong> une règle de plus forte priorité — l&#39;<strong>ordre</strong> compte.</p>
+<p><strong>La micro-segmentation.</strong> On ne se contente pas de séparer d&#39;Internet : on <strong>cloisonne aussi à l&#39;intérieur</strong>. Le tier <strong>web</strong> peut parler au tier <strong>app</strong> ; le tier <strong>app</strong> au tier <strong>data</strong> ; mais le <strong>web</strong> <strong>ne peut PAS</strong> atteindre le <strong>data</strong> directement. Ainsi, une compromission du front-end n&#39;ouvre <strong>pas</strong> la base. Chaque flux <strong>légitime</strong> est autorisé <strong>explicitement</strong> ; tout le reste est <strong>refusé</strong>.</p>
+<p><strong>Le contrôle de sortie (egress).</strong> On filtre le trafic <strong>entrant</strong>… et souvent on <strong>oublie le sortant</strong>. Or l&#39;<strong>exfiltration</strong> de données passe par la <strong>sortie</strong>. Un <strong>pare-feu</strong> (Azure Firewall) applique des <strong>règles d&#39;application</strong> : n&#39;autoriser les sorties que vers des <strong>FQDN approuvés</strong> (<code>packages.microsoft.com</code>, ton API…). Une machine compromise ne peut <strong>pas</strong> téléverser tes données vers <code>evil-exfil.ru</code>. Refuser par défaut vaut aussi <strong>en sortie</strong>.</p>
+<p><strong>Les points de terminaison privés.</strong> Par défaut, un service PaaS (stockage, base, Key Vault) a un <strong>point d&#39;accès public</strong>. Un <strong>point de terminaison privé</strong> (<em>private endpoint</em>) lui donne une <strong>IP privée</strong> dans ton VNet et <strong>coupe</strong> l&#39;accès public : le service n&#39;est joignable que <strong>depuis ton réseau</strong>. Combiné à « <strong>public network access = disabled</strong> », c&#39;est la fin de l&#39;exposition Internet des données.</p>
+<p><strong>WAF &amp; DDoS.</strong> Devant une app web, un <strong>WAF</strong> (Web Application Firewall) inspecte les requêtes et <strong>bloque</strong> les motifs d&#39;attaque (injection SQL, XSS, traversée de chemin) — souvent via les règles <strong>OWASP</strong>. La protection <strong>DDoS</strong> absorbe les floods volumétriques ; un <strong>rate-limiter</strong> limite le nombre de requêtes par client. Ensemble : le trafic <strong>applicatif</strong> est filtré, pas seulement le trafic <strong>réseau</strong>.</p>
+<p><strong>Ce qui est live ici.</strong> La <strong>segmentation</strong> (VNet + sous-réseaux + NSG + association) se <strong>déploie</strong> sur miniblue (Terraform, live). La <strong>logique NSG</strong>, la <strong>micro-segmentation</strong>, le <strong>pare-feu de sortie</strong>, le <strong>WAF</strong> et le <strong>rate-limiter</strong> sont des <strong>moteurs exécutables</strong> en Python — de <strong>vraies</strong> décisions reproduisant la logique d&#39;Azure. Les <strong>points de terminaison privés</strong> se <strong>raisonnent</strong> (et se <strong>valident</strong> en policy). Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>Segment: divide to protect.</strong> A <strong>flat</strong> network is dangerous: one breach = access to everything. We <strong>segment</strong> into <strong>tiers</strong> — typically <strong>web</strong> (exposed), <strong>app</strong> (logic), <strong>data</strong> (database). Each tier is a <strong>subnet</strong> with its <strong>NSG</strong>. Traffic between tiers is <strong>controlled</strong>, not free. It&#39;s the network translation of &quot;assume breach&quot;.</p>
+<p><strong>The NSG and its evaluation logic.</strong> A <strong>Network Security Group</strong> is a list of <strong>rules</strong>. Azure evaluates them by <strong>ascending priority</strong> (100 before 200…), stops at the <strong>first</strong> that <strong>matches</strong> (protocol + port + source/destination + direction), and applies its <strong>action</strong> (Allow/Deny). If <strong>none</strong> matches, an <strong>implicit</strong> rule denies (<strong>deny by default</strong>). Corollary: a low-priority rule can <strong>shadow</strong> a higher-priority one — <strong>order</strong> matters.</p>
+<p><strong>Micro-segmentation.</strong> You don&#39;t just separate from the Internet: you <strong>compartmentalize inside</strong> too. The <strong>web</strong> tier can talk to the <strong>app</strong> tier; the <strong>app</strong> to the <strong>data</strong> tier; but the <strong>web</strong> <strong>can NOT</strong> reach the <strong>data</strong> directly. So a front-end compromise does <strong>not</strong> open the database. Each <strong>legitimate</strong> flow is allowed <strong>explicitly</strong>; everything else is <strong>denied</strong>.</p>
+<p><strong>Egress control.</strong> We filter <strong>inbound</strong> traffic… and often <strong>forget outbound</strong>. Yet data <strong>exfiltration</strong> goes through <strong>egress</strong>. A <strong>firewall</strong> (Azure Firewall) applies <strong>application rules</strong>: only allow egress to <strong>approved FQDNs</strong> (<code>packages.microsoft.com</code>, your API…). A compromised machine can <strong>not</strong> upload your data to <code>evil-exfil.ru</code>. Deny-by-default applies <strong>outbound</strong> too.</p>
+<p><strong>Private endpoints.</strong> By default, a PaaS service (storage, database, Key Vault) has a <strong>public endpoint</strong>. A <strong>private endpoint</strong> gives it a <strong>private IP</strong> in your VNet and <strong>cuts</strong> public access: the service is reachable only <strong>from your network</strong>. Combined with &quot;<strong>public network access = disabled</strong>&quot;, it ends Internet exposure of data.</p>
+<p><strong>WAF &amp; DDoS.</strong> In front of a web app, a <strong>WAF</strong> (Web Application Firewall) inspects requests and <strong>blocks</strong> attack patterns (SQL injection, XSS, path traversal) — often via <strong>OWASP</strong> rules. <strong>DDoS</strong> protection absorbs volumetric floods; a <strong>rate-limiter</strong> caps requests per client. Together: <strong>application</strong> traffic is filtered, not just <strong>network</strong> traffic.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>segmentation</strong> (VNet + subnets + NSG + association) is <strong>deployed</strong> on miniblue (Terraform, live). The <strong>NSG logic</strong>, <strong>micro-segmentation</strong>, <strong>egress firewall</strong>, <strong>WAF</strong> and <strong>rate-limiter</strong> are <strong>runnable engines</strong> in Python — <strong>real</strong> decisions reproducing Azure&#39;s logic. <strong>Private endpoints</strong> are <strong>reasoned</strong> (and <strong>validated</strong> in policy). All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-securite-reseau-segmentation">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-securite-reseau-segmentation">
+  <title id="s-azure-securite-reseau-segmentation">Sécurité réseau en couches</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Sécurité réseau en couches</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="64" text-anchor="middle">WAF + rate-limiter</text><text class="sub" x="98" y="77" text-anchor="middle">entrée : injection/XSS ·</text><text class="sub" x="98" y="89" text-anchor="middle">anti-DDoS</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">VNet segmenté</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">web → app → data · NSG</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="70.5" text-anchor="middle">Micro-segmentation</text><text class="sub sub-blue" x="474" y="83.5" text-anchor="middle">web ✗ data direct</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="57.5" text-anchor="middle">Egress + endpoint</text><text class="lbl" x="662" y="70.5" text-anchor="middle">privé</text><text class="sub" x="662" y="83.5" text-anchor="middle">FQDN allowlist · PaaS hors</text><text class="sub" x="662" y="95.5" text-anchor="middle">Internet</text><text class="sub" x="380" y="144" text-anchor="middle">NSG : priorité croissante · première règle · refus par défaut</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La sécurité réseau en couches : un VNet SEGMENTÉ en tiers (web → app → data), chacun un sous-réseau + NSG. La MICRO-SEGMENTATION isole les tiers (web ✗ data direct). En entrée : WAF (bloque injection/XSS) + rate-limiter (anti-DDoS). En sortie : pare-feu EGRESS à liste blanche de FQDN (bloque l&#39;exfiltration). Le PaaS (data) via POINT DE TERMINAISON PRIVÉ, hors d&#39;Internet. NSG : priorité croissante, première règle, refus par défaut.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Layered network security: a VNet SEGMENTED into tiers (web → app → data), each a subnet + NSG. MICRO-SEGMENTATION isolates the tiers (web ✗ direct data). Inbound: WAF (blocks injection/XSS) + rate-limiter (anti-DDoS). Outbound: EGRESS firewall with FQDN allowlist (blocks exfiltration). PaaS (data) via PRIVATE ENDPOINT, off the Internet. NSG: ascending priority, first rule, deny by default.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Segmenter</strong> le réseau : un VNet et des sous-réseaux <strong>web/app/data</strong> avec NSG.</p>
+<p><strong>🤔 Diviser pour protéger.</strong> On casse le réseau plat en <strong>tiers</strong>. Chaque tier est un <strong>sous-réseau</strong> ; le tier sensible (<strong>data</strong>) reçoit son <strong>NSG</strong> (associé au sous-réseau). On déploie <strong>pour de vrai</strong> sur miniblue.</p>
+<p>Déploie le réseau segmenté :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Segment</strong> the network: a VNet and <strong>web/app/data</strong> subnets with an NSG.</p>
+<p><strong>🤔 Divide to protect.</strong> We break the flat network into <strong>tiers</strong>. Each tier is a <strong>subnet</strong>; the sensitive tier (<strong>data</strong>) gets its <strong>NSG</strong> (associated with the subnet). We deploy <strong>for real</strong> on miniblue.</p>
+<p>Deploy the segmented network:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+mkdir -p reseau &amp;&amp; cd reseau
+cat &gt; providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers {
+    azurerm = {
+      source  = &quot;hashicorp/azurerm&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}
+TF
+cat &gt; main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;net&quot; {
+  name     = &quot;rg-net-securite&quot;
+  location = &quot;westeurope&quot;
+}
+resource &quot;azurerm_virtual_network&quot; &quot;app&quot; {
+  name                = &quot;vnet-app&quot;
+  location            = azurerm_resource_group.net.location
+  resource_group_name = azurerm_resource_group.net.name
+  address_space       = [&quot;10.0.0.0/16&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;web&quot; {
+  name                 = &quot;snet-web&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.app.name
+  address_prefixes     = [&quot;10.0.1.0/24&quot;]
+}
+resource &quot;azurerm_subnet&quot; &quot;data&quot; {
+  name                 = &quot;snet-data&quot;
+  resource_group_name  = azurerm_resource_group.net.name
+  virtual_network_name = azurerm_virtual_network.app.name
+  address_prefixes     = [&quot;10.0.3.0/24&quot;]
+}
+resource &quot;azurerm_network_security_group&quot; &quot;data&quot; {
+  name                = &quot;nsg-data&quot;
+  location            = azurerm_resource_group.net.location
+  resource_group_name = azurerm_resource_group.net.name
+}
+resource &quot;azurerm_subnet_network_security_group_association&quot; &quot;data&quot; {
+  subnet_id                 = azurerm_subnet.data.id
+  network_security_group_id = azurerm_network_security_group.data.id
+}
+TF
+terraform init -no-color &gt;/dev/null 2&gt;&amp;1
+terraform apply -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Apply complete&quot;
+cd ..</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> confirme <code>Apply complete! Resources: 6 added</code> — le groupe, le VNet, les <strong>deux sous-réseaux</strong> (web, data), le <strong>NSG</strong> et son <strong>association</strong> au sous-réseau data sont <strong>déployés</strong> sur miniblue. Le réseau n&#39;est plus <strong>plat</strong> : il est <strong>segmenté</strong> en tiers, et le tier sensible (<strong>data</strong>) a son <strong>garde</strong> (le NSG). On va maintenant <strong>comprendre comment</strong> ce NSG décide — sa logique d&#39;évaluation.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> confirms <code>Apply complete! Resources: 6 added</code> — the group, the VNet, the <strong>two subnets</strong> (web, data), the <strong>NSG</strong> and its <strong>association</strong> to the data subnet are <strong>deployed</strong> on miniblue. The network is no longer <strong>flat</strong>: it&#39;s <strong>segmented</strong> into tiers, and the sensitive tier (<strong>data</strong>) has its <strong>guard</strong> (the NSG). We&#39;ll now <strong>understand how</strong> this NSG decides — its evaluation logic.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décortiquer la <strong>logique d&#39;évaluation NSG</strong> — priorité, première règle, refus implicite.</p>
+<p><strong>🤔 L&#39;ordre décide.</strong> Un NSG évalue ses règles par <strong>priorité croissante</strong> et s&#39;arrête à la <strong>première</strong> qui matche. Comprendre ça évite les erreurs (une règle large en tête <strong>masque</strong> les suivantes). On écrit un <strong>évaluateur</strong> fidèle à Azure et on l&#39;éprouve.</p>
+<p>Écris l&#39;évaluateur NSG et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Dissect <strong>NSG evaluation logic</strong> — priority, first rule, implicit deny.</p>
+<p><strong>🤔 Order decides.</strong> An NSG evaluates its rules by <strong>ascending priority</strong> and stops at the <strong>first</strong> that matches. Understanding this avoids mistakes (a broad rule at the top <strong>shadows</strong> the rest). We write an <strong>evaluator</strong> faithful to Azure and test it.</p>
+<p>Write the NSG evaluator and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; nsg.py &lt;&lt;&#39;PY&#39;
+# Evaluateur NSG : priorite croissante, PREMIERE regle qui matche gagne,
+# refus IMPLICITE par defaut (exactement comme Azure).
+def evaluer(regles, flux):
+    for r in sorted(regles, key=lambda x: x[&quot;priorite&quot;]):
+        if (r[&quot;direction&quot;] == flux[&quot;direction&quot;]
+            and (r[&quot;port&quot;] == &quot;*&quot; or r[&quot;port&quot;] == flux[&quot;port&quot;])
+            and (r[&quot;source&quot;] == &quot;*&quot; or r[&quot;source&quot;] == flux[&quot;source&quot;])):
+            return r[&quot;action&quot;], r[&quot;nom&quot;], r[&quot;priorite&quot;]
+    return &quot;Deny&quot;, &quot;refus-par-defaut-implicite&quot;, 65500
+
+# NSG du tier DATA : autoriser APP (10.0.2.0/24) sur 5432 ; refuser WEB (10.0.1.0/24)
+regles_data = [
+    {&quot;nom&quot;: &quot;autoriser-app-postgres&quot;, &quot;priorite&quot;: 100, &quot;direction&quot;: &quot;Inbound&quot;, &quot;port&quot;: &quot;5432&quot;, &quot;source&quot;: &quot;10.0.2.0/24&quot;, &quot;action&quot;: &quot;Allow&quot;},
+    {&quot;nom&quot;: &quot;refuser-web-vers-data&quot;,  &quot;priorite&quot;: 200, &quot;direction&quot;: &quot;Inbound&quot;, &quot;port&quot;: &quot;*&quot;,    &quot;source&quot;: &quot;10.0.1.0/24&quot;, &quot;action&quot;: &quot;Deny&quot;},
+]
+flux = [
+    {&quot;nom&quot;: &quot;app -&gt; data:5432&quot;, &quot;direction&quot;: &quot;Inbound&quot;, &quot;port&quot;: &quot;5432&quot;, &quot;source&quot;: &quot;10.0.2.0/24&quot;},
+    {&quot;nom&quot;: &quot;web -&gt; data:5432&quot;, &quot;direction&quot;: &quot;Inbound&quot;, &quot;port&quot;: &quot;5432&quot;, &quot;source&quot;: &quot;10.0.1.0/24&quot;},
+    {&quot;nom&quot;: &quot;internet -&gt; data&quot;, &quot;direction&quot;: &quot;Inbound&quot;, &quot;port&quot;: &quot;5432&quot;, &quot;source&quot;: &quot;203.0.113.5&quot;},
+]
+for f in flux:
+    action, regle, prio = evaluer(regles_data, f)
+    print(f&quot;{f[&#39;nom&#39;]:22} -&gt; {action:5} (regle: {regle}, prio {prio})&quot;)
+PY
+python3 nsg.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre : <code>app -&gt; data:5432 -&gt; Allow (regle: autoriser-app-postgres, prio 100)</code>, <code>web -&gt; data:5432 -&gt; Deny (regle: refuser-web-vers-data, prio 200)</code>, et <code>internet -&gt; data -&gt; Deny (regle: refus-par-defaut-implicite, prio 65500)</code>. Trois enseignements : le tier <strong>app</strong> est <strong>autorisé</strong> (règle explicite prio 100), le tier <strong>web</strong> est <strong>refusé</strong> (règle prio 200), et <strong>Internet</strong> est refusé <strong>par défaut</strong> (aucune règle ne matche → refus implicite). C&#39;est <strong>exactement</strong> la logique d&#39;Azure — la <strong>priorité</strong> et la <strong>première correspondance</strong> gouvernent tout.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows: <code>app -&gt; data:5432 -&gt; Allow (regle: autoriser-app-postgres, prio 100)</code>, <code>web -&gt; data:5432 -&gt; Deny (regle: refuser-web-vers-data, prio 200)</code>, and <code>internet -&gt; data -&gt; Deny (regle: refus-par-defaut-implicite, prio 65500)</code>. Three lessons: the <strong>app</strong> tier is <strong>allowed</strong> (explicit rule prio 100), the <strong>web</strong> tier is <strong>denied</strong> (rule prio 200), and <strong>Internet</strong> is denied <strong>by default</strong> (no rule matches → implicit deny). That&#39;s <strong>exactly</strong> Azure&#39;s logic — <strong>priority</strong> and <strong>first match</strong> govern everything.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Appliquer la <strong>micro-segmentation</strong> — le web ne parle <strong>pas</strong> au data.</p>
+<p><strong>🤔 Cloisonner à l&#39;intérieur.</strong> La segmentation sépare d&#39;Internet ; la <strong>micro-segmentation</strong> sépare <strong>les tiers entre eux</strong>. Règle : web→app OK, app→data OK, mais <strong>web→data NON</strong>. On modélise les trois tiers et on vérifie qu&#39;un flux <strong>web→data</strong> est bien <strong>bloqué</strong>.</p>
+<p>Vérifie l&#39;isolation des tiers :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Apply <strong>micro-segmentation</strong> — the web does <strong>not</strong> talk to the data.</p>
+<p><strong>🤔 Compartmentalize inside.</strong> Segmentation separates from the Internet; <strong>micro-segmentation</strong> separates <strong>the tiers from each other</strong>. Rule: web→app OK, app→data OK, but <strong>web→data NO</strong>. We model the three tiers and verify a <strong>web→data</strong> flow is indeed <strong>blocked</strong>.</p>
+<p>Verify tier isolation:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; microseg.py &lt;&lt;&#39;PY&#39;
+# Micro-segmentation : matrice des flux AUTORISES entre tiers
+AUTORISES = {(&quot;web&quot;, &quot;app&quot;), (&quot;app&quot;, &quot;data&quot;)}   # tout le reste est refuse
+def flux_autorise(src, dst):
+    return (src, dst) in AUTORISES
+
+tests = [(&quot;web&quot;, &quot;app&quot;), (&quot;app&quot;, &quot;data&quot;), (&quot;web&quot;, &quot;data&quot;), (&quot;data&quot;, &quot;web&quot;), (&quot;internet&quot;, &quot;web&quot;)]
+for src, dst in tests:
+    ok = flux_autorise(src, dst)
+    note = &quot;&quot; if ok else &quot;  &lt;- cloisonne / isolated&quot;
+    print(f&quot;{src:9} -&gt; {dst:5} : {&#39;AUTORISE&#39; if ok else &#39;REFUSE&#39;}{note}&quot;)
+PY
+python3 microseg.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie confirme <code>web -&gt; app : AUTORISE</code>, <code>app -&gt; data : AUTORISE</code>, mais <code>web -&gt; data : REFUSE</code>, <code>data -&gt; web : REFUSE</code>, <code>internet -&gt; web : REFUSE</code>. Le flux <strong>web→data</strong> est <strong>cloisonné</strong> : même si le front-end est compromis, il <strong>ne peut pas</strong> attaquer la base <strong>directement</strong> — il devrait d&#39;abord passer par l&#39;<strong>app</strong> (qui, elle, a ses propres contrôles). C&#39;est la <strong>micro-segmentation</strong> : chaque flux <strong>légitime</strong> est autorisé <strong>explicitement</strong>, tout le reste est <strong>refusé</strong>. Un attaquant ne se déplace plus <strong>latéralement</strong> à volonté.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output confirms <code>web -&gt; app : AUTORISE</code>, <code>app -&gt; data : AUTORISE</code>, but <code>web -&gt; data : REFUSE</code>, <code>data -&gt; web : REFUSE</code>, <code>internet -&gt; web : REFUSE</code>. The <strong>web→data</strong> flow is <strong>isolated</strong>: even if the front-end is compromised, it <strong>can&#39;t</strong> attack the database <strong>directly</strong> — it would have to go through the <strong>app</strong> first (which has its own controls). That&#39;s <strong>micro-segmentation</strong>: each <strong>legitimate</strong> flow is allowed <strong>explicitly</strong>, everything else is <strong>denied</strong>. An attacker no longer moves <strong>laterally</strong> at will.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Contrôler la sortie</strong> (egress) — bloquer l&#39;exfiltration.</p>
+<p><strong>🤔 On oublie souvent le trafic sortant.</strong> L&#39;entrée est filtrée… mais un attaquant <strong>exfiltre</strong> par la <strong>sortie</strong>. Un <strong>pare-feu</strong> (Azure Firewall) n&#39;autorise les sorties que vers des <strong>FQDN approuvés</strong>. On écrit ce pare-feu et on tente des sorties légitimes et malveillantes.</p>
+<p>Écris le pare-feu de sortie et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Control egress</strong> — block exfiltration.</p>
+<p><strong>🤔 We often forget outbound.</strong> Inbound is filtered… but an attacker <strong>exfiltrates</strong> through <strong>egress</strong>. A <strong>firewall</strong> (Azure Firewall) only allows egress to <strong>approved FQDNs</strong>. We write that firewall and try legitimate and malicious egress.</p>
+<p>Write the egress firewall and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; egress.py &lt;&lt;&#39;PY&#39;
+# Pare-feu de sortie : n&#39;autoriser QUE des FQDN approuves (regles d&#39;application)
+FQDN_AUTORISES = {&quot;packages.microsoft.com&quot;, &quot;api.monentreprise.com&quot;, &quot;login.microsoftonline.com&quot;}
+def sortie_autorisee(fqdn):
+    return fqdn in FQDN_AUTORISES
+
+for fqdn in [&quot;api.monentreprise.com&quot;, &quot;packages.microsoft.com&quot;, &quot;evil-exfil.ru&quot;, &quot;pastebin.com&quot;]:
+    print(f&quot;sortie vers {fqdn:26} -&gt; {&#39;AUTORISEE&#39; if sortie_autorisee(fqdn) else &#39;BLOQUEE&#39;}&quot;)
+PY
+python3 egress.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les sorties vers <code>api.monentreprise.com</code> et <code>packages.microsoft.com</code> sont <strong>AUTORISEE</strong>, mais <code>evil-exfil.ru</code> et <code>pastebin.com</code> sont <strong>BLOQUEE</strong>. Le pare-feu applique le <strong>refus par défaut en sortie</strong> : seule la <strong>liste blanche</strong> de FQDN passe. Résultat : une machine compromise ne peut <strong>pas</strong> téléverser tes données vers un domaine inconnu — l&#39;<strong>exfiltration</strong> est coupée. C&#39;est le pendant <strong>sortant</strong> du NSG, indispensable et souvent négligé.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> egress to <code>api.monentreprise.com</code> and <code>packages.microsoft.com</code> is <strong>AUTORISEE</strong>, but <code>evil-exfil.ru</code> and <code>pastebin.com</code> are <strong>BLOQUEE</strong>. The firewall applies <strong>deny-by-default outbound</strong>: only the FQDN <strong>allowlist</strong> passes. Result: a compromised machine can <strong>not</strong> upload your data to an unknown domain — <strong>exfiltration</strong> is cut. It&#39;s the <strong>outbound</strong> counterpart of the NSG, essential and often neglected.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>points de terminaison privés</strong> — le PaaS hors d&#39;Internet.</p>
+<p><strong>🤔 Couper l&#39;accès public.</strong> Par défaut, un service PaaS a un <strong>point public</strong>. Un <strong>point de terminaison privé</strong> lui donne une <strong>IP privée</strong> dans ton VNet et, avec <code>public_network_access = Disabled</code>, <strong>coupe</strong> l&#39;accès Internet. On <strong>valide</strong> cette exigence avec un garde-fou : une config à accès public <strong>échoue</strong> au scan.</p>
+<p>Détecte l&#39;accès public avec un garde-fou :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>private endpoints</strong> — PaaS off the Internet.</p>
+<p><strong>🤔 Cut public access.</strong> By default, a PaaS service has a <strong>public endpoint</strong>. A <strong>private endpoint</strong> gives it a <strong>private IP</strong> in your VNet and, with <code>public_network_access = Disabled</code>, <strong>cuts</strong> Internet access. We <strong>validate</strong> this requirement with a guardrail: a public-access config <strong>fails</strong> the scan.</p>
+<p>Detect public access with a guardrail:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p paas
+cat &gt; paas/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;expose&quot; {
+  name                          = &quot;stexpose001&quot;
+  resource_group_name           = &quot;rg-x&quot;
+  location                      = &quot;westeurope&quot;
+  account_tier                  = &quot;Standard&quot;
+  account_replication_type      = &quot;LRS&quot;
+  public_network_access_enabled = true   # DANGER : PaaS exposé sur Internet
+}
+TF
+
+# Le garde-fou signale l&#39;exposition publique / the guardrail flags public exposure
+checkov -d paas --compact --quiet 2&gt;/dev/null | grep -E &quot;CKV_AZURE_59|CKV_AZURE_35|Failed checks&quot; | head -4</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov signale l&#39;exposition, par ex. <code>CKV_AZURE_59</code> (« Ensure that Storage accounts disallow public access ») et un <code>Failed checks: ≥ 1</code>. Le garde-fou <strong>exige</strong> que le PaaS ne soit <strong>pas</strong> ouvert à Internet — la bonne réponse étant un <strong>point de terminaison privé</strong> + <code>public_network_access = Disabled</code>. Ainsi, la base et le stockage ne sont joignables que <strong>depuis ton VNet</strong> (via l&#39;IP privée), jamais depuis Internet. C&#39;est la <strong>surface d&#39;attaque</strong> la plus réduite pour les données. (En vrai Azure, <strong>Azure Policy</strong> refuse la création exposée.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov flags the exposure, e.g. <code>CKV_AZURE_59</code> (&quot;Ensure that Storage accounts disallow public access&quot;) and a <code>Failed checks: ≥ 1</code>. The guardrail <strong>requires</strong> that PaaS not be <strong>open</strong> to the Internet — the right answer being a <strong>private endpoint</strong> + <code>public_network_access = Disabled</code>. This way, the database and storage are reachable only <strong>from your VNet</strong> (via the private IP), never from the Internet. It&#39;s the smallest <strong>attack surface</strong> for data. (In real Azure, <strong>Azure Policy</strong> denies exposed creation.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Filtrer le trafic <strong>applicatif</strong> — WAF (injections) + rate-limiter (abus/DDoS).</p>
+<p><strong>🤔 Le réseau ne voit pas tout.</strong> Un NSG laisse passer HTTPS ; il <strong>ne voit pas</strong> une injection SQL <strong>dans</strong> la requête. Un <strong>WAF</strong> inspecte le <strong>contenu</strong> et <strong>bloque</strong> les attaques ; un <strong>rate-limiter</strong> coupe les abus volumétriques. On écrit les deux.</p>
+<p>Écris le WAF + rate-limiter et teste :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Filter <strong>application</strong> traffic — WAF (injections) + rate-limiter (abuse/DDoS).</p>
+<p><strong>🤔 The network doesn&#39;t see everything.</strong> An NSG lets HTTPS through; it <strong>doesn&#39;t see</strong> a SQL injection <strong>inside</strong> the request. A <strong>WAF</strong> inspects the <strong>content</strong> and <strong>blocks</strong> attacks; a <strong>rate-limiter</strong> cuts volumetric abuse. We write both.</p>
+<p>Write the WAF + rate-limiter and test:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; waf.py &lt;&lt;&#39;PY&#39;
+import re
+from collections import Counter
+
+# WAF : bloquer les motifs d&#39;attaque (injection SQL, XSS, traversee de chemin)
+MOTIFS = [r&quot;(?i)union\s+select&quot;, r&quot;(?i)&lt;script&quot;, r&quot;(?i)\.\./\.\.&quot;]
+def waf_bloque(requete):
+    return any(re.search(m, requete) for m in MOTIFS)
+
+requetes = [
+    &quot;GET /produits?id=42&quot;,
+    &quot;GET /p?id=1 UNION SELECT pwd FROM users&quot;,
+    &quot;GET /?q=&lt;script&gt;alert(1)&lt;/script&gt;&quot;,
+    &quot;GET /../../etc/passwd&quot;,
+]
+print(&quot;== WAF ==&quot;)
+for r in requetes:
+    print(f&quot;{&#39;BLOQUE&#39; if waf_bloque(r) else &#39;OK    &#39;} : {r[:45]}&quot;)
+
+# Rate limiter : au-dela de SEUIL requetes par IP -&gt; bloquer (anti-abus / DDoS L7)
+print(&quot;== Rate limiter ==&quot;)
+SEUIL = 5
+compteur = Counter()
+trafic = [(&quot;1.2.3.4&quot;, i) for i in range(8)] + [(&quot;5.6.7.8&quot;, 0)]
+bloques = 0
+for ip, _ in trafic:
+    compteur[ip] += 1
+    if compteur[ip] &gt; SEUIL:
+        bloques += 1
+print(f&quot;IP 1.2.3.4 : {compteur[&#39;1.2.3.4&#39;]} req -&gt; {bloques} bloquees (seuil {SEUIL})&quot;)
+print(f&quot;IP 5.6.7.8 : {compteur[&#39;5.6.7.8&#39;]} req -&gt; 0 bloquees&quot;)
+PY
+python3 waf.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <strong>WAF</strong> laisse passer <code>GET /produits?id=42</code> (<code>OK</code>) mais <strong>bloque</strong> l&#39;injection SQL (<code>UNION SELECT</code>), le <strong>XSS</strong> (<code>&lt;script&gt;</code>) et la <strong>traversée de chemin</strong> (<code>../../</code>). Le <strong>rate-limiter</strong> compte <code>IP 1.2.3.4 : 8 req -&gt; 3 bloquees (seuil 5)</code> — au-delà de 5 requêtes, l&#39;IP est <strong>freinée</strong>, tandis que <code>5.6.7.8</code> (1 req) passe. Ensemble, ils protègent la <strong>couche applicative</strong> : le WAF contre les <strong>injections</strong> (règles OWASP), le rate-limiter contre les <strong>abus</strong> et les <strong>DDoS applicatifs</strong> (L7). En vrai Azure : <strong>Application Gateway WAF</strong> / <strong>Front Door</strong> + <strong>Azure DDoS Protection</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <strong>WAF</strong> lets <code>GET /produits?id=42</code> through (<code>OK</code>) but <strong>blocks</strong> the SQL injection (<code>UNION SELECT</code>), the <strong>XSS</strong> (<code>&lt;script&gt;</code>) and the <strong>path traversal</strong> (<code>../../</code>). The <strong>rate-limiter</strong> counts <code>IP 1.2.3.4 : 8 req -&gt; 3 bloquees (seuil 5)</code> — beyond 5 requests, the IP is <strong>throttled</strong>, while <code>5.6.7.8</code> (1 req) passes. Together they protect the <strong>application layer</strong>: the WAF against <strong>injections</strong> (OWASP rules), the rate-limiter against <strong>abuse</strong> and <strong>application DDoS</strong> (L7). In real Azure: <strong>Application Gateway WAF</strong> / <strong>Front Door</strong> + <strong>Azure DDoS Protection</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>posture réseau</strong> et nettoyer.</p>
+<p><strong>🤔 Toutes les couches réseau.</strong> On récapitule ce qui protège le réseau — segmentation, NSG, micro-segmentation, egress, points privés, WAF/DDoS — puis on détruit le lab.</p>
+<p>Récapitule la posture et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>network posture</strong> and clean up.</p>
+<p><strong>🤔 All the network layers.</strong> We recap what protects the network — segmentation, NSG, micro-segmentation, egress, private endpoints, WAF/DDoS — then destroy the lab.</p>
+<p>Recap the posture and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Posture reseau (defense en profondeur) / network posture ===&quot;
+printf &quot;%-22s %s\n&quot; &quot;Segmentation&quot;        &quot;VNet + sous-reseaux par tier (web/app/data)&quot;
+printf &quot;%-22s %s\n&quot; &quot;NSG (refus defaut)&quot;  &quot;priorite croissante, 1re regle, deny implicite&quot;
+printf &quot;%-22s %s\n&quot; &quot;Micro-segmentation&quot;  &quot;isoler les tiers (web != data direct)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Egress&quot;              &quot;pare-feu FQDN (bloque l&#39;exfiltration)&quot;
+printf &quot;%-22s %s\n&quot; &quot;Point term. prive&quot;   &quot;PaaS hors d&#39;Internet (public access disabled)&quot;
+printf &quot;%-22s %s\n&quot; &quot;WAF + DDoS&quot;          &quot;bloquer injections + rate-limiter (L7)&quot;
+
+# Nettoyer le lab / clean up
+cd reseau &amp;&amp; terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete&quot; ; cd ..</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>six leviers</strong> réseau, puis <code>Destroy complete! Resources: 6 destroyed</code> nettoie le lab. Tu tiens le pilier <strong>réseau</strong> de l&#39;AZ-500 : <strong>segmenter</strong> (tiers), <strong>refuser par défaut</strong> (NSG), <strong>cloisonner</strong> (micro-segmentation), <strong>filtrer la sortie</strong> (egress), <strong>retirer d&#39;Internet</strong> (points privés) et <strong>filtrer l&#39;applicatif</strong> (WAF/DDoS). Chaque couche <strong>contient</strong> un attaquant qui aurait franchi la précédente. La suite du track AZ-500 : la sécurité des <strong>données</strong> (chiffrement, coffre de clés, rotation), puis les <strong>opérations de sécurité</strong> (Defender, Sentinel, politiques).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>six network levers</strong>, then <code>Destroy complete! Resources: 6 destroyed</code> cleans the lab. You hold the <strong>network</strong> pillar of AZ-500: <strong>segment</strong> (tiers), <strong>deny by default</strong> (NSG), <strong>compartmentalize</strong> (micro-segmentation), <strong>filter egress</strong>, <strong>remove from the Internet</strong> (private endpoints) and <strong>filter the application</strong> (WAF/DDoS). Each layer <strong>contains</strong> an attacker who crossed the previous one. Next in the AZ-500 track: <strong>data</strong> security (encryption, key vault, rotation), then <strong>security operations</strong> (Defender, Sentinel, policies).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Réseau plat.</strong> Tout dans un seul sous-réseau = une brèche ouvre tout. <strong>Segmente</strong> en tiers.</p>
+<p><strong>2. Oublier l&#39;ordre des règles NSG.</strong> Une règle large en <strong>faible priorité</strong> masque les suivantes. Range par <strong>priorité</strong> et teste.</p>
+<p><strong>3. Segmenter d&#39;Internet mais pas à l&#39;intérieur.</strong> Sans <strong>micro-segmentation</strong>, un attaquant se déplace <strong>latéralement</strong>. Isole les tiers.</p>
+<p><strong>4. Filtrer l&#39;entrée, ignorer la sortie.</strong> L&#39;<strong>exfiltration</strong> passe par l&#39;<strong>egress</strong>. Refuse par défaut <strong>en sortie</strong> aussi (liste blanche de FQDN).</p>
+<p><strong>5. PaaS exposé sur Internet.</strong> Un stockage/base à <strong>accès public</strong> est une cible directe. <strong>Point de terminaison privé</strong> + <code>public access disabled</code>.</p>
+<p><strong>6. Croire que le NSG voit tout.</strong> Le NSG filtre <strong>ports/IP</strong>, pas le <strong>contenu</strong>. Une injection SQL passe en HTTPS. Ajoute un <strong>WAF</strong>.</p>
+<p><strong>7. Pas de limite de débit.</strong> Sans <strong>rate-limiter</strong>/DDoS, un flood applicatif (L7) sature le service. Limite par client.</p>
+</div>
+<div data-lang="en"><p><strong>1. Flat network.</strong> Everything in one subnet = one breach opens everything. <strong>Segment</strong> into tiers.</p>
+<p><strong>2. Forgetting NSG rule order.</strong> A broad rule at <strong>low priority</strong> shadows the rest. Order by <strong>priority</strong> and test.</p>
+<p><strong>3. Segmenting from the Internet but not inside.</strong> Without <strong>micro-segmentation</strong>, an attacker moves <strong>laterally</strong>. Isolate the tiers.</p>
+<p><strong>4. Filtering inbound, ignoring outbound.</strong> <strong>Exfiltration</strong> goes through <strong>egress</strong>. Deny-by-default <strong>outbound</strong> too (FQDN allowlist).</p>
+<p><strong>5. PaaS exposed on the Internet.</strong> A <strong>publicly accessible</strong> storage/database is a direct target. <strong>Private endpoint</strong> + <code>public access disabled</code>.</p>
+<p><strong>6. Thinking the NSG sees everything.</strong> The NSG filters <strong>ports/IPs</strong>, not <strong>content</strong>. A SQL injection goes through HTTPS. Add a <strong>WAF</strong>.</p>
+<p><strong>7. No rate limiting.</strong> Without a <strong>rate-limiter</strong>/DDoS, an application flood (L7) saturates the service. Cap per client.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>déploies</strong> un réseau <strong>segmenté</strong> (VNet + sous-réseaux + NSG + association).</li><li>Tu expliques la <strong>logique NSG</strong> (priorité, première règle, refus implicite) et la <strong>prouves</strong>.</li><li>Tu appliques la <strong>micro-segmentation</strong> (web ✗ data direct).</li><li>Tu <strong>contrôles la sortie</strong> avec une <strong>liste blanche de FQDN</strong>.</li><li>Tu comprends les <strong>points de terminaison privés</strong> et détectes l&#39;<strong>accès public</strong>.</li><li>Tu bloques les <strong>injections</strong> (WAF) et les <strong>abus</strong> (rate-limiter).</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>deploy</strong> a <strong>segmented</strong> network (VNet + subnets + NSG + association).</li><li>You explain <strong>NSG logic</strong> (priority, first rule, implicit deny) and <strong>prove</strong> it.</li><li>You apply <strong>micro-segmentation</strong> (web ✗ direct data).</li><li>You <strong>control egress</strong> with an <strong>FQDN allowlist</strong>.</li><li>You understand <strong>private endpoints</strong> and detect <strong>public access</strong>.</li><li>You block <strong>injections</strong> (WAF) and <strong>abuse</strong> (rate-limiter).</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — sécurité des données (AZ-500)</em> — chiffrement au repos/en transit, coffre de clés, rotation.</li><li><strong>Réviser :</strong> <em>Azure — réseau (AZ-104)</em> pour VNet/NSG.</li><li><strong>S&#39;entraîner :</strong> ajoute une règle NSG de <strong>plus faible priorité</strong> qui <strong>masque</strong> une règle Allow, et observe l&#39;effet dans <code>nsg.py</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — data security (AZ-500)</em> — encryption at rest/in transit, key vault, rotation.</li><li><strong>Review:</strong> <em>Azure — networking (AZ-104)</em> for VNet/NSG.</li><li><strong>Practice:</strong> add a <strong>lower-priority</strong> NSG rule that <strong>shadows</strong> an Allow rule, and observe the effect in <code>nsg.py</code>.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Segmentation (Terraform, live)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>VNet 10.0.0.0/16
+  snet-web  10.0.1.0/24   (expose)
+  snet-app  10.0.2.0/24   (logique)
+  snet-data 10.0.3.0/24   (base) + NSG associe</code></pre>
+<p><strong>Logique NSG</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- priorite CROISSANTE (100 avant 200...)
+- PREMIERE regle qui matche gagne (protocole+port+source+direction)
+- si aucune -&gt; REFUS implicite (deny by default)
+- l&#39;ordre compte : une regle large en tete masque les suivantes</code></pre>
+<p><strong>Les couches réseau</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Segmentation      VNet + sous-reseaux par tier
+Micro-segmentation web-&gt;app-&gt;data ; web ✗ data direct
+Egress            pare-feu FQDN (liste blanche) contre l&#39;exfiltration
+Point prive       PaaS hors Internet (public access disabled)
+WAF               bloquer injection SQL / XSS / traversee (OWASP)
+DDoS/rate-limit   limiter les requetes par client (L3/4 et L7)</code></pre>
+</div>
+<div data-lang="en"><p><strong>Segmentation (Terraform, live)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>VNet 10.0.0.0/16
+  snet-web  10.0.1.0/24   (exposed)
+  snet-app  10.0.2.0/24   (logic)
+  snet-data 10.0.3.0/24   (database) + associated NSG</code></pre>
+<p><strong>NSG logic</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- ASCENDING priority (100 before 200...)
+- FIRST matching rule wins (protocol+port+source+direction)
+- if none -&gt; implicit DENY (deny by default)
+- order matters: a broad rule on top shadows the rest</code></pre>
+<p><strong>The network layers</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Segmentation       VNet + subnets per tier
+Micro-segmentation web-&gt;app-&gt;data ; web ✗ direct data
+Egress             FQDN firewall (allowlist) against exfiltration
+Private endpoint   PaaS off the Internet (public access disabled)
+WAF                block SQL injection / XSS / traversal (OWASP)
+DDoS/rate-limit    cap requests per client (L3/4 and L7)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Réseau Azure</strong> : VNet, sous-réseaux, NSG, priorités et règles — Microsoft Learn.</li><li><strong>Azure Firewall</strong> : règles d&#39;application (FQDN), règles réseau, egress — Microsoft Learn.</li><li><strong>Points de terminaison privés &amp; Private Link</strong> : PaaS sans exposition publique — Microsoft Learn.</li><li><strong>Application Gateway WAF / Front Door</strong> : OWASP, protection applicative — Microsoft Learn.</li><li><strong>Azure DDoS Protection</strong> : L3/L4 volumétrique, bonnes pratiques — Microsoft Learn (AZ-500).</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Azure networking</strong>: VNet, subnets, NSG, priorities and rules — Microsoft Learn.</li><li><strong>Azure Firewall</strong>: application rules (FQDN), network rules, egress — Microsoft Learn.</li><li><strong>Private endpoints &amp; Private Link</strong>: PaaS with no public exposure — Microsoft Learn.</li><li><strong>Application Gateway WAF / Front Door</strong>: OWASP, application protection — Microsoft Learn.</li><li><strong>Azure DDoS Protection</strong>: L3/L4 volumetric, best practices — Microsoft Learn (AZ-500).</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform</code> : erreur TLS / certificat (step-01).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> et vérifie que miniblue tourne (port 4567).</p>
+<p><strong><code>Apply complete</code> affiche moins de 6 ressources.</strong> Vérifie que le fichier <code>main.tf</code> contient bien RG + VNet + 2 sous-réseaux + NSG + association. Une faute de frappe HCL (bloc sur une seule ligne) casse tout — garde le format multi-ligne.</p>
+<p><strong><code>nsg.py</code> renvoie toujours Deny.</strong> Vérifie que la <strong>direction</strong> et la <strong>source</strong> des flux correspondent aux règles (<code>Inbound</code>, préfixes exacts). Le refus implicite s&#39;applique si <strong>aucune</strong> règle ne matche.</p>
+<p><strong>checkov ne signale rien (step-05).</strong> Vérifie que <code>public_network_access_enabled = true</code> est bien présent dans le <code>.tf</code>. Une config <strong>durcie</strong> (public access désactivé) <strong>passe</strong> — c&#39;est voulu.</p>
+<p><strong>Les scripts Python n&#39;affichent rien.</strong> Lance <code>python3 fichier.py</code> ; chaque script est autonome. Attention aux tabulations mélangées.</p>
+<p><strong>Les points de terminaison privés ne se déploient pas en local.</strong> miniblue ne les émule pas (comme le peering/DNS privé). On les <strong>raisonne</strong> et on <strong>valide</strong> l&#39;exigence (accès public désactivé) en policy ; l&#39;exécution vise du vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform</code>: TLS / certificate error (step-01).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> and check miniblue is running (port 4567).</p>
+<p><strong><code>Apply complete</code> shows fewer than 6 resources.</strong> Check that <code>main.tf</code> holds RG + VNet + 2 subnets + NSG + association. An HCL typo (single-line block) breaks everything — keep the multi-line format.</p>
+<p><strong><code>nsg.py</code> always returns Deny.</strong> Check the flows&#39; <strong>direction</strong> and <strong>source</strong> match the rules (<code>Inbound</code>, exact prefixes). The implicit deny applies if <strong>no</strong> rule matches.</p>
+<p><strong>checkov reports nothing (step-05).</strong> Check <code>public_network_access_enabled = true</code> is present in the <code>.tf</code>. A <strong>hardened</strong> config (public access disabled) <strong>passes</strong> — that&#39;s intended.</p>
+<p><strong>The Python scripts print nothing.</strong> Run <code>python3 file.py</code>; each script is standalone. Beware mixed tabs.</p>
+<p><strong>Private endpoints won&#39;t deploy locally.</strong> miniblue doesn&#39;t emulate them (like peering/private DNS). We <strong>reason</strong> about them and <strong>validate</strong> the requirement (public access disabled) in policy; execution targets real Azure.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
