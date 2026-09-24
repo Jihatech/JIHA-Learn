@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — passer en réel proprement (AZ-104) — jiha.tech</title>
+  <title data-lang="en">Azure — going real, cleanly (AZ-104) — jiha.tech</title>
+  <meta name="description" content="La transition du labo au vrai Microsoft Azure, sans mauvaise surprise : créer un compte et un abonnement (crédit d&#39;essai + services gratuits), s&#39;authentifier (az login, principal de service pour Terraform), poser des garde-fous de coût AVANT toute ressource (budgets Azure Cost Management + alertes), retirer le bloc de ciblage miniblue et déployer ta zone d&#39;atterrissage pour de vrai (terraform apply), puis tout démonter (destroy + suppression du groupe/abonnement). Et comprendre ce que l&#39;émulateur cachait (RBAC et policies appliqués, unicité mondiale, quotas, coût réel — dont libérer les VM). Plus la feuille de route vers la certification AZ-104." data-lang="fr">
+  <meta name="description" content="The transition from lab to real Microsoft Azure, with no nasty surprise: create an account and a subscription (trial credit + free services), authenticate (az login, service principal for Terraform), set cost guardrails BEFORE any resource (Azure Cost Management budgets + alerts), remove the miniblue targeting block and deploy your landing zone for real (terraform apply), then tear it all down (destroy + resource group/subscription deletion). And understand what the emulator hid (RBAC and policies enforced, global uniqueness, quotas, real cost — including deallocating VMs). Plus the roadmap to the AZ-104 certification." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — passer en réel proprement (AZ-104)">
+  <meta property="og:description" content="La transition du labo au vrai Microsoft Azure, sans mauvaise surprise : créer un compte et un abonnement (crédit d&#39;essai + services gratuits), s&#39;authentifier (az login, principal de service pour Terraform), poser des garde-fous de coût AVANT toute ressource (budgets Azure Cost Management + alertes), retirer le bloc de ciblage miniblue et déployer ta zone d&#39;atterrissage pour de vrai (terraform apply), puis tout démonter (destroy + suppression du groupe/abonnement). Et comprendre ce que l&#39;émulateur cachait (RBAC et policies appliqués, unicité mondiale, quotas, coût réel — dont libérer les VM). Plus la feuille de route vers la certification AZ-104.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-passer-en-reel/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-passer-en-reel/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-passer-en-reel">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-passer-en-reel</div>
+    <div class="prompt" data-lang="en">~/guides/azure-passer-en-reel</div>
+    <h1 data-lang="fr">Azure — passer en réel proprement (AZ-104)</h1>
+    <h1 data-lang="en">Azure — going real, cleanly (AZ-104)</h1>
+    <p class="tagline" data-lang="fr">compte, abonnement, ADC, garde-fous de coût, ce que miniblue cachait.</p>
+    <p class="tagline" data-lang="en">account, subscription, auth, cost guardrails, what miniblue hid.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 190 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 190 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as appris tout Azure <strong>sans compte, sans carte, sans risque</strong> grâce à <strong>miniblue</strong> et Azurite. À un moment, tu voudras (ou devras) toucher au <strong>vrai</strong> Azure : pour l&#39;examen, pour un projet client, pour valider en conditions réelles. Ce guide est le <strong>pont</strong> — et surtout le <strong>garde-fou</strong>. Car le vrai Azure a une différence de taille avec l&#39;émulateur : <strong>il facture</strong>. Une VM laissée allumée, une IP publique oubliée, une passerelle coûteuse, et c&#39;est la facture surprise. Ce guide t&#39;apprend à passer en réel <strong>proprement</strong> : créer un compte, poser des garde-fous de coût <strong>avant</strong> de créer quoi que ce soit, déployer ta zone d&#39;atterrissage, puis <strong>tout démonter</strong>.</p>
+<p>On avance dans l&#39;ordre qui évite les catastrophes : d&#39;abord <strong>créer un compte</strong> et comprendre l&#39;<strong>abonnement</strong>, puis <strong>s&#39;authentifier proprement</strong> (<code>az login</code> pour toi, un <strong>principal de service</strong> pour Terraform), puis — <strong>avant toute ressource</strong> — les <strong>garde-fous de coût</strong> (budgets Azure Cost Management + alertes). Ensuite seulement on <strong>retire le bloc de ciblage miniblue</strong> de ton projet et on déploie ta <strong>zone d&#39;atterrissage</strong> pour de vrai (<code>terraform apply</code>). Enfin, on <strong>démonte tout</strong> et on démonte aussi les <strong>illusions de l&#39;émulateur</strong> : ce que miniblue simplifiait et qui compte vraiment en production.</p>
+<p>⚠️ <strong>Ce guide implique de VRAIES actions sur un VRAI compte Azure</strong>, qui peuvent <strong>coûter de l&#39;argent</strong> si tu n&#39;es pas discipliné·e. On reste dans le <strong>crédit d&#39;essai</strong> / les <strong>services gratuits</strong> et on nettoie tout — mais lis chaque avertissement. Les vérifications « ✅ » décrivent ce que tu dois <strong>voir</strong> dans le portail/CLI, pas des commandes de labo à rejouer à l&#39;aveugle.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé tout le track AZ-104 (jusqu&#39;au projet de zone d&#39;atterrissage) et tu es prêt·e à mettre le pied dans le vrai cloud.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu veux juste réviser/t&#39;entraîner → reste sur <strong>miniblue</strong>, c&#39;est gratuit et sans risque.</li><li>Tu n&#39;es pas sûr·e de pouvoir surveiller tes coûts → pose <strong>d&#39;abord</strong> les garde-fous de ce guide (étape 3), puis reviens créer des ressources.</li></ul>
+</div>
+<div data-lang="en"><p>You learned all of Azure <strong>with no account, no card, no risk</strong> thanks to <strong>miniblue</strong> and Azurite. At some point, you&#39;ll want (or need) to touch <strong>real</strong> Azure: for the exam, a client project, a real-conditions validation. This guide is the <strong>bridge</strong> — and above all the <strong>guardrail</strong>. Because real Azure has one big difference from the emulator: <strong>it bills</strong>. A VM left running, a forgotten public IP, an expensive gateway, and it&#39;s a surprise bill. This guide teaches you to go real <strong>cleanly</strong>: create an account, set cost guardrails <strong>before</strong> creating anything, deploy your landing zone, then <strong>tear it all down</strong>.</p>
+<p>We go in the disaster-avoiding order: first <strong>create an account</strong> and understand the <strong>subscription</strong>, then <strong>authenticate cleanly</strong> (<code>az login</code> for you, a <strong>service principal</strong> for Terraform), then — <strong>before any resource</strong> — the <strong>cost guardrails</strong> (Azure Cost Management budgets + alerts). Only then do we <strong>remove the miniblue targeting block</strong> from your project and deploy your <strong>landing zone</strong> for real (<code>terraform apply</code>). Finally, we <strong>tear everything down</strong> and also dismantle the <strong>emulator&#39;s illusions</strong>: what miniblue simplified and what truly matters in production.</p>
+<p>⚠️ <strong>This guide involves REAL actions on a REAL Azure account</strong>, which can <strong>cost money</strong> if you&#39;re not disciplined. We stay in the <strong>trial credit</strong> / <strong>free services</strong> and clean everything up — but read every warning. The &quot;✅&quot; checks describe what you should <strong>see</strong> in the portal/CLI, not lab commands to replay blindly.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the whole AZ-104 track (through the landing-zone project) and you&#39;re ready to step into the real cloud.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You just want to revise/practice → stay on <strong>miniblue</strong>, it&#39;s free and risk-free.</li><li>You&#39;re not sure you can watch your costs → set <strong>this guide&#39;s guardrails first</strong> (step 3), then come back to create resources.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer un <strong>compte Azure</strong> et comprendre l&#39;<strong>abonnement</strong>.</li><li>T&#39;authentifier avec <strong><code>az login</code></strong> et un <strong>principal de service</strong> (pour Terraform).</li><li>Poser des <strong>garde-fous de coût</strong> (budgets + alertes) <strong>avant</strong> toute ressource.</li><li><strong>Retirer le ciblage miniblue</strong> et déployer ta zone d&#39;atterrissage pour de vrai.</li><li><strong>Faire tourner</strong> l&#39;infra contre le vrai Azure (<code>terraform apply</code>).</li><li><strong>Tout démonter</strong> (<code>destroy</code> + suppression du groupe) — la discipline anti-facture.</li><li>Reconnaître <strong>ce que miniblue cachait</strong> (RBAC/policies appliqués, unicité, quotas, coût).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create an <strong>Azure account</strong> and understand the <strong>subscription</strong>.</li><li>Authenticate with <strong><code>az login</code></strong> and a <strong>service principal</strong> (for Terraform).</li><li>Set <strong>cost guardrails</strong> (budgets + alerts) <strong>before</strong> any resource.</li><li><strong>Remove the miniblue targeting</strong> and deploy your landing zone for real.</li><li><strong>Run</strong> the infra against real Azure (<code>terraform apply</code>).</li><li><strong>Tear everything down</strong> (<code>destroy</code> + group deletion) — the anti-bill discipline.</li><li>Recognize <strong>what miniblue hid</strong> (RBAC/policies enforced, uniqueness, quotas, cost).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure projet d&#39;entreprise</strong> terminé (la zone d&#39;atterrissage Terraform à déployer).</li><li>Un <strong>compte Microsoft</strong> et une <strong>carte bancaire</strong> (exigée pour ouvrir un abonnement, même en essai gratuit — Azure ne débite pas sans ton accord explicite en fin d&#39;essai).</li><li><strong><code>az</code></strong>, <strong>Terraform</strong> et <strong>Bicep</strong> installés.</li><li>⚠️ La volonté de <strong>lire les avertissements</strong> et de <strong>nettoyer</strong> derrière toi. Le vrai cloud facture.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure enterprise project</strong> guide done (the Terraform landing zone to deploy).</li><li>A <strong>Microsoft account</strong> and a <strong>payment card</strong> (required to open a subscription, even on the free trial — Azure won&#39;t charge without your explicit consent at trial&#39;s end).</li><li><strong><code>az</code></strong>, <strong>Terraform</strong> and <strong>Bicep</strong> installed.</li><li>⚠️ The willingness to <strong>read the warnings</strong> and <strong>clean up</strong> after yourself. Real cloud bills.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-projet-entreprise/">
+    <span class="num">63</span>
+    <span class="title-line" data-lang="fr">Azure — projet d&#39;entreprise (AZ-104) : zone d&#39;atterrissage sécurisée</span>
+    <span class="title-line" data-lang="en">Azure — enterprise project (AZ-104): secure landing zone</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Compte &amp; abonnement.</strong> Sur Azure, ton <strong>compte</strong> (identité Microsoft) contient un ou plusieurs <strong>abonnements</strong> (subscriptions) — l&#39;<strong>unité de facturation</strong> et de quota où vivent les ressources. Un abonnement est rattaché à un <strong>tenant</strong> Entra ID (ton organisation). Azure offre un <strong>compte gratuit</strong> : un <strong>crédit d&#39;essai</strong> (un montant offert sur ~30 jours), <strong>12 mois</strong> de certains services gratuits, et des services <strong>toujours gratuits</strong> (dans des quotas). Bien utilisé, ce projet se déploie <strong>sans dépenser un centime réel</strong>.</p>
+<p><strong>Authentification : toi vs les machines.</strong> Deux niveaux. <code>az login</code> t&#39;authentifie <strong>toi</strong> (ouvre le navigateur, te connecte). Pour <strong>Terraform</strong> (et toute automatisation), on crée un <strong>principal de service</strong> (service principal) — l&#39;identité d&#39;une application — avec un <code>client_id</code>/<code>client_secret</code> (ou un certificat). Terraform lit ces identifiants via des <strong>variables</strong> <code>ARM_CLIENT_ID</code>, <code>ARM_CLIENT_SECRET</code>, <code>ARM_SUBSCRIPTION_ID</code>, <code>ARM_TENANT_ID</code>. C&#39;est <strong>précisément</strong> ce que le bloc <code>miniblue</code> factice remplaçait en local.</p>
+<p><strong>Garde-fous de coût (LE réflexe).</strong> Un <strong>budget</strong> Azure Cost Management te <strong>prévient</strong> (par e-mail, à des seuils comme 50/80/100 %) quand la dépense approche une limite. ⚠️ <strong>Un budget ALERTE, il ne BLOQUE pas</strong> par défaut : c&#39;est un signal, pas un plafond dur. On le pose <strong>avant</strong> de créer quoi que ce soit. Complément : consulter le <strong>tableau de bord des coûts</strong> et <strong>supprimer</strong> ce qu&#39;on n&#39;utilise plus.</p>
+<p><strong>Retirer le ciblage miniblue.</strong> Ton projet visait l&#39;émulateur via un bloc spécifique (<code>metadata_host</code>, identifiants <code>miniblue</code>, <code>SSL_CERT_FILE</code>). Pour le <strong>vrai</strong> Azure, on <strong>retire</strong> ce bloc : le provider <code>azurerm</code> s&#39;authentifie alors normalement (via <code>az login</code> ou le principal de service). Le <strong>reste du code ne change pas</strong> — c&#39;est la force de l&#39;IaC : la même description, une cible différente.</p>
+<p><strong>Le cycle réel de Terraform.</strong> Ici, <code>terraform apply</code> <strong>crée vraiment</strong> les ressources ; le fichier d&#39;<strong>état</strong> mémorise ce qui existe. <code>destroy</code> supprime <strong>exactement</strong> ce que le state gère. En prime, la gouvernance (RBAC, policy, verrou) que tu avais <strong>validée en Bicep</strong> se <strong>déploie</strong> enfin pour de vrai (<code>az deployment group create</code>).</p>
+<p><strong>Ce que l&#39;émulateur cachait.</strong> miniblue est parfait pour apprendre la <strong>logique</strong> du plan de contrôle, mais il <strong>simplifie</strong>. En réel : le <strong>RBAC est appliqué</strong> (sans le bon rôle, accès refusé), les <strong>policies bloquent</strong> vraiment, les <strong>noms</strong> (compte de stockage) sont <strong>mondialement uniques</strong>, le <strong>peering</strong> et les <strong>cartes réseau</strong> se provisionnent complètement, il y a des <strong>quotas</strong> par région, et surtout <strong>tout coûte</strong> — une <strong>VM</strong> doit être <strong>libérée</strong> (deallocated) pour cesser de facturer.</p>
+</div>
+<div data-lang="en"><p><strong>Account &amp; subscription.</strong> On Azure, your <strong>account</strong> (Microsoft identity) holds one or more <strong>subscriptions</strong> — the <strong>billing</strong> and quota unit where resources live. A subscription is attached to an Entra ID <strong>tenant</strong> (your organization). Azure offers a <strong>free account</strong>: a <strong>trial credit</strong> (a granted amount over ~30 days), <strong>12 months</strong> of some free services, and <strong>always-free</strong> services (within quotas). Used well, this project deploys <strong>without spending a real cent</strong>.</p>
+<p><strong>Authentication: you vs machines.</strong> Two levels. <code>az login</code> authenticates <strong>you</strong> (opens the browser, signs you in). For <strong>Terraform</strong> (and any automation), you create a <strong>service principal</strong> — an application&#39;s identity — with a <code>client_id</code>/<code>client_secret</code> (or a certificate). Terraform reads these credentials via <strong>variables</strong> <code>ARM_CLIENT_ID</code>, <code>ARM_CLIENT_SECRET</code>, <code>ARM_SUBSCRIPTION_ID</code>, <code>ARM_TENANT_ID</code>. It&#39;s <strong>precisely</strong> what the dummy <code>miniblue</code> block replaced locally.</p>
+<p><strong>Cost guardrails (THE reflex).</strong> An Azure Cost Management <strong>budget</strong> <strong>warns</strong> you (by email, at thresholds like 50/80/100%) when spend approaches a limit. ⚠️ <strong>A budget ALERTS, it does NOT BLOCK</strong> by default: it&#39;s a signal, not a hard cap. You set it <strong>before</strong> creating anything. Complement: check the <strong>cost dashboard</strong> and <strong>delete</strong> what you no longer use.</p>
+<p><strong>Removing the miniblue targeting.</strong> Your project targeted the emulator via a specific block (<code>metadata_host</code>, <code>miniblue</code> credentials, <code>SSL_CERT_FILE</code>). For <strong>real</strong> Azure, you <strong>remove</strong> it: the <code>azurerm</code> provider then authenticates normally (via <code>az login</code> or the service principal). The <strong>rest of the code doesn&#39;t change</strong> — that&#39;s IaC&#39;s strength: the same description, a different target.</p>
+<p><strong>Terraform&#39;s real cycle.</strong> Here, <code>terraform apply</code> <strong>really creates</strong> resources; the <strong>state</strong> file remembers what exists. <code>destroy</code> removes <strong>exactly</strong> what the state manages. As a bonus, the governance (RBAC, policy, lock) you had <strong>validated in Bicep</strong> finally <strong>deploys</strong> for real (<code>az deployment group create</code>).</p>
+<p><strong>What the emulator hid.</strong> miniblue is perfect for learning the control-plane <strong>logic</strong>, but it <strong>simplifies</strong>. For real: <strong>RBAC is enforced</strong> (without the right role, access denied), <strong>policies really block</strong>, <strong>names</strong> (storage account) are <strong>globally unique</strong>, <strong>peering</strong> and <strong>network cards</strong> fully provision, there are <strong>quotas</strong> per region, and above all <strong>everything costs</strong> — a <strong>VM</strong> must be <strong>deallocated</strong> to stop billing.</p>
+</div>
+
+<figure class="schema" id="figure-azure-lab-to-real">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-lab-to-real">
+  <title id="s-azure-lab-to-real">Du labo au réel (Azure)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Du labo au réel (Azure)</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="70.5" text-anchor="middle">miniblue + Azurite</text><text class="sub sub-fill" x="129" y="83.5" text-anchor="middle">émulé · gratuit · sans compte</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="380" y="64" text-anchor="middle">pont</text><text class="sub" x="380" y="77" text-anchor="middle">compte+abo → auth → budgets → retirer</text><text class="sub" x="380" y="89" text-anchor="middle">miniblue</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box-soft" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="631" y="70.5" text-anchor="middle">Azure réel</text><text class="sub sub-blue" x="631" y="83.5" text-anchor="middle">terraform apply → destroy</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Du labo au réel : à gauche, miniblue (plan de contrôle émulé, gratuit, sans compte) + Azurite ; à droite, le vrai Azure. Le pont se traverse dans l&#39;ordre : compte + abonnement → auth (az login + principal de service) → garde-fous de coût (budgets/alertes) → retirer le ciblage miniblue → terraform apply → destroy. La sécurité coût avant toute ressource.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> From lab to real: on the left, miniblue (emulated control plane, free, no account) + Azurite; on the right, real Azure. The bridge is crossed in order: account + subscription → auth (az login + service principal) → cost guardrails (budgets/alerts) → remove the miniblue targeting → terraform apply → destroy. Cost safety before any resource.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>compte Azure</strong> et repérer ton <strong>abonnement</strong>.</p>
+<p><strong>🤔 L&#39;unité de facturation.</strong> Tout vit dans un <strong>abonnement</strong>. On crée un compte gratuit (crédit d&#39;essai), on se connecte, on identifie l&#39;abonnement actif.</p>
+<p>En CLI (ou via <code>portal.azure.com</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create an <strong>Azure account</strong> and locate your <strong>subscription</strong>.</p>
+<p><strong>🤔 The billing unit.</strong> Everything lives in a <strong>subscription</strong>. We create a free account (trial credit), sign in, identify the active subscription.</p>
+<p>In the CLI (or via <code>portal.azure.com</code>):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Se connecter (ouvre le navigateur) / sign in (opens the browser)
+az login
+
+# Voir tes abonnements / see your subscriptions
+az account list --output table
+
+# Fixer l&#39;abonnement actif / set the active subscription
+az account set --subscription &quot;Azure subscription 1&quot;
+az account show --output table</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>az account list</code> montre au moins un abonnement (souvent « Azure subscription 1 » ou « Essai gratuit »), avec un <strong>ID d&#39;abonnement</strong> (un GUID) et l&#39;état <code>Enabled</code>. <code>az account show</code> confirme l&#39;abonnement actif et ton <code>tenantId</code>. ⚠️ Note bien l&#39;<strong>ID d&#39;abonnement</strong> : Terraform en aura besoin (<code>ARM_SUBSCRIPTION_ID</code>). Sépare mentalement le <strong>compte</strong> (ton identité) de l&#39;<strong>abonnement</strong> (où vivent les ressources et la facture). Garde cet abonnement d&#39;essai <strong>isolé</strong> — on nettoiera tout à la fin.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>az account list</code> shows at least one subscription (often &quot;Azure subscription 1&quot; or &quot;Free Trial&quot;), with a <strong>subscription ID</strong> (a GUID) and state <code>Enabled</code>. <code>az account show</code> confirms the active subscription and your <code>tenantId</code>. ⚠️ Note the <strong>subscription ID</strong>: Terraform will need it (<code>ARM_SUBSCRIPTION_ID</code>). Mentally separate the <strong>account</strong> (your identity) from the <strong>subscription</strong> (where resources and the bill live). Keep this trial subscription <strong>isolated</strong> — we&#39;ll clean everything up at the end.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> T&#39;authentifier proprement : <strong><code>az login</code></strong> pour toi, un <strong>principal de service</strong> pour Terraform.</p>
+<p><strong>🤔 L&#39;identité des machines.</strong> Terraform ne se connecte pas via ton navigateur : il lui faut une identité <strong>non interactive</strong>. On crée un <strong>principal de service</strong> avec un rôle <strong>Contributeur</strong> limité à ton abonnement, et on exporte ses identifiants dans les variables <code>ARM_*</code>.</p>
+<p>Crée le principal de service :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Authenticate cleanly: <strong><code>az login</code></strong> for you, a <strong>service principal</strong> for Terraform.</p>
+<p><strong>🤔 The machines&#39; identity.</strong> Terraform doesn&#39;t sign in via your browser: it needs a <strong>non-interactive</strong> identity. We create a <strong>service principal</strong> with a <strong>Contributor</strong> role scoped to your subscription, and export its credentials into the <code>ARM_*</code> variables.</p>
+<p>Create the service principal:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># ID d&#39;abonnement (depuis l&#39;étape 1) / subscription ID (from step 1)
+SUB=$(az account show --query id -o tsv)
+
+# Créer un principal de service Contributeur sur l&#39;abonnement
+# Create a Contributor service principal on the subscription
+az ad sp create-for-rbac --name sp-terraform-labo \
+  --role Contributor --scopes /subscriptions/$SUB
+
+# La commande renvoie appId, password, tenant -&gt; exporte-les pour Terraform :
+export ARM_CLIENT_ID=&quot;&lt;appId&gt;&quot;
+export ARM_CLIENT_SECRET=&quot;&lt;password&gt;&quot;
+export ARM_TENANT_ID=&quot;&lt;tenant&gt;&quot;
+export ARM_SUBSCRIPTION_ID=&quot;$SUB&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>az ad sp create-for-rbac</code> renvoie un JSON avec <code>appId</code>, <code>password</code> et <code>tenant</code>. Une fois les quatre variables <code>ARM_*</code> exportées, <strong>Terraform s&#39;authentifiera tout seul</strong> (sans le bloc miniblue). ⚠️ Le <code>password</code> (secret) ne s&#39;affiche <strong>qu&#39;une fois</strong> : note-le en lieu sûr, ne le committe <strong>jamais</strong>. Principe : le principal de service a le rôle <strong>le plus étroit</strong> qui suffit (ici Contributeur sur <strong>un</strong> abonnement, pas Propriétaire). En entreprise, on préférerait une <strong>identité fédérée</strong> (OIDC) sans secret — mais pour un labo perso, le principal de service convient.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>az ad sp create-for-rbac</code> returns JSON with <code>appId</code>, <code>password</code> and <code>tenant</code>. Once the four <code>ARM_*</code> variables are exported, <strong>Terraform authenticates by itself</strong> (without the miniblue block). ⚠️ The <code>password</code> (secret) is shown <strong>only once</strong>: save it safely, <strong>never</strong> commit it. Principle: the service principal has the <strong>narrowest</strong> role that suffices (here Contributor on <strong>one</strong> subscription, not Owner). In a company you&#39;d prefer a <strong>federated identity</strong> (OIDC) with no secret — but for a personal lab, the service principal is fine.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser les <strong>garde-fous de coût</strong> — <strong>AVANT</strong> toute ressource.</p>
+<p><strong>🤔 Le réflexe qui sauve.</strong> On crée un <strong>budget</strong> Azure Cost Management avec des <strong>alertes</strong> par e-mail (par ex. à 50/80/100 % d&#39;un petit seuil, 5 €). Ça ne bloque pas la dépense, mais ça te <strong>prévient</strong> immédiatement. On le fait <strong>maintenant</strong>, avant la moindre ressource.</p>
+<p>Via le portail (recommandé) : <strong>Gestion des coûts + facturation → Budgets → Ajouter</strong>. En CLI :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set the <strong>cost guardrails</strong> — <strong>BEFORE</strong> any resource.</p>
+<p><strong>🤔 The reflex that saves you.</strong> We create an Azure Cost Management <strong>budget</strong> with email <strong>alerts</strong> (e.g. at 50/80/100% of a small threshold, €5). It doesn&#39;t block spend, but it <strong>warns</strong> you immediately. We do it <strong>now</strong>, before any resource.</p>
+<p>Via the portal (recommended): <strong>Cost Management + Billing → Budgets → Add</strong>. In the CLI:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Un budget mensuel de 5 € avec alertes (portée abonnement)
+# A €5 monthly budget with alerts (subscription scope)
+# ⚠️ `az consumption budget` est en préversion ; le portail Budgets est la voie stable
+#    `az consumption budget` is in preview; the portal Budgets is the stable path
+az consumption budget create \
+  --budget-name garde-fou-labo \
+  --amount 5 \
+  --time-grain Monthly \
+  --category Cost \
+  --start-date 2026-09-01 --end-date 2027-09-01
+# Puis, dans le portail, ajoute des seuils d&#39;alerte (50/80/100%) avec ton e-mail.</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans <strong>Gestion des coûts → Budgets</strong>, ton budget « garde-fou-labo » apparaît avec son montant. Tu recevras un e-mail dès le seuil atteint. ⚠️ <strong>Un budget n&#39;est PAS un plafond dur</strong> (point d&#39;examen crucial) : il <strong>alerte</strong>, il ne <strong>coupe</strong> pas la dépense automatiquement. Pour vraiment couper, il faut un mécanisme actif (une automatisation qui désactive/limite) — hors périmètre ici. La vraie garantie anti-facture de ce guide, c&#39;est la <strong>discipline</strong> : rester dans le crédit d&#39;essai / les services gratuits et <strong>tout supprimer</strong> (étape 7). Pose ce garde-fou <strong>avant</strong> de continuer.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in <strong>Cost Management → Budgets</strong>, your &quot;garde-fou-labo&quot; budget appears with its amount. You&#39;ll get an email as soon as the threshold is reached. ⚠️ <strong>A budget is NOT a hard cap</strong> (crucial exam point): it <strong>alerts</strong>, it doesn&#39;t <strong>cut</strong> spend automatically. To truly cut, you need an active mechanism (automation that disables/limits) — out of scope here. This guide&#39;s real anti-bill guarantee is <strong>discipline</strong>: stay in the trial credit / free services and <strong>delete everything</strong> (step 7). Set this guardrail <strong>before</strong> continuing.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Retirer le ciblage miniblue</strong> et déployer ta <strong>zone d&#39;atterrissage</strong> pour de vrai.</p>
+<p><strong>🤔 Le même code, le vrai cloud.</strong> Bonne surprise : ton infra Terraform <strong>ne change quasiment pas</strong>. Il suffit de <strong>retirer le bloc de ciblage miniblue</strong> du provider (les lignes <code>metadata_host</code>, <code>skip_provider_registration</code>, identifiants <code>miniblue</code>) — le provider <code>azurerm</code> s&#39;authentifie alors via les variables <code>ARM_*</code> (étape 2). Puis <code>apply</code>.</p>
+<p>Modifie <code>infra/providers.tf</code>, puis déploie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Remove the miniblue targeting</strong> and deploy your <strong>landing zone</strong> for real.</p>
+<p><strong>🤔 The same code, the real cloud.</strong> Good surprise: your Terraform infra <strong>barely changes</strong>. Just <strong>remove the miniblue targeting block</strong> from the provider (the <code>metadata_host</code>, <code>skip_provider_registration</code>, <code>miniblue</code> credential lines) — the <code>azurerm</code> provider then authenticates via the <code>ARM_*</code> variables (step 2). Then <code>apply</code>.</p>
+<p>Edit <code>infra/providers.tf</code>, then deploy:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/providers.tf — version RÉELLE (le bloc de ciblage miniblue est RETIRÉ)
+terraform {
+  required_providers {
+    azurerm = { source = &quot;hashicorp/azurerm&quot;, version = &quot;~&gt; 3.0&quot; }
+  }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  # plus de metadata_host / skip_provider_registration / identifiants miniblue
+  # l&#39;authentification se fait via az login OU les variables ARM_* (principal de service)
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/landing-zone/infra
+unset SSL_CERT_FILE            # plus besoin du certificat miniblue / no more miniblue cert
+terraform init -upgrade
+terraform plan                # vérifie ce qui va être créé / review what will be created
+terraform apply               # crée VRAIMENT les ressources / really creates resources</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> affiche <code>Apply complete! Resources: 8 added.</code> Dans le <strong>portail Azure</strong>, ton groupe <code>rg-landing</code>, le VNet, les sous-réseaux, le NSG et l&#39;IP publique <strong>existent réellement</strong> — avec leurs <strong>tags</strong>. Tu déploies désormais comme un pro : la <strong>même IaC</strong> qu&#39;en local, sur le vrai cloud. ⚠️ <strong>Différences réelles :</strong> le <strong>nom du compte de stockage</strong> (si tu ajoutes les charges) doit être <strong>mondialement unique</strong> ; l&#39;<strong>IP publique Standard</strong> commence à <strong>coûter</strong> dès sa création ; et la gouvernance Bicep se <strong>déploie</strong> enfin (<code>az deployment group create --resource-group rg-landing --template-file ../gouvernance/durcissement.bicep --parameters principalId=...</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> shows <code>Apply complete! Resources: 8 added.</code> In the <strong>Azure portal</strong>, your <code>rg-landing</code> group, the VNet, subnets, NSG and public IP <strong>really exist</strong> — with their <strong>tags</strong>. You now deploy like a pro: the <strong>same IaC</strong> as locally, on the real cloud. ⚠️ <strong>Real differences:</strong> the <strong>storage account name</strong> (if you add the workloads) must be <strong>globally unique</strong>; the <strong>Standard public IP</strong> starts to <strong>cost</strong> money from creation; and the Bicep governance finally <strong>deploys</strong> (<code>az deployment group create --resource-group rg-landing --template-file ../gouvernance/durcissement.bicep --parameters principalId=...</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Démonter les <strong>illusions de l&#39;émulateur</strong> — ce qui change en réel.</p>
+<p><strong>🤔 Ce que miniblue simplifiait (et qui compte à l&#39;examen).</strong> L&#39;émulateur est parfait pour la <strong>logique</strong>, mais il ne reproduit pas tout. Connaître les écarts évite les mauvaises surprises en prod — et fait répondre juste à l&#39;AZ-104.</p>
+<p>Les principaux écarts :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Dismantle the <strong>emulator&#39;s illusions</strong> — what changes for real.</p>
+<p><strong>🤔 What miniblue simplified (and what matters on the exam).</strong> The emulator is perfect for the <strong>logic</strong>, but it doesn&#39;t reproduce everything. Knowing the gaps avoids nasty prod surprises — and answers the AZ-104 correctly.</p>
+<p>The main gaps:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>miniblue (émulateur)              →  Réel / Real
+──────────────────────────────────────────────────────────────────────────
+RBAC ignoré / not enforced        →  RBAC APPLIQUÉ : sans le bon rôle, accès refusé
+policies non appliquées           →  policies BLOQUENT vraiment (deny) / audit remonte
+rôles/verrous non provisionnés    →  déployés et actifs (attribution, CanNotDelete)
+NIC/peering 404                   →  cartes réseau &amp; peering se provisionnent complètement
+noms « libres »                   →  compte de stockage = unicité MONDIALE
+pas de quotas / no quotas         →  quotas par région/famille de VM (à surveiller)
+gratuit / free                    →  facturé ; VM à LIBÉRER (deallocate) pour stopper le coût</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu peux <strong>expliquer</strong> chaque écart. Les plus piégeux à l&#39;examen : (1) le <strong>RBAC est réellement appliqué</strong> — retire un rôle, l&#39;accès est <strong>refusé</strong> (miniblue laissait tout passer) ; (2) les <strong>policies bloquent</strong> vraiment (une ressource sans le tag exigé est <strong>refusée</strong>) ; (3) <strong>cartes réseau et peering</strong> se provisionnent (plus de 404) — tu peux enfin brancher une VM à une IP publique ; (4) <strong>coût</strong> : une <strong>VM allumée facture</strong>, et « arrêter » depuis l&#39;OS <strong>ne suffit pas</strong> — il faut la <strong>libérer</strong> (<code>az vm deallocate</code>). ⚠️ Ces écarts ne <strong>remettent pas en cause</strong> ce que tu as appris : la <strong>logique</strong> est la même. Ils ajoutent la <strong>rigueur</strong> du réel — sécurité appliquée, unicité, quotas, coût.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>explain</strong> each gap. The trickiest on the exam: (1) <strong>RBAC is really enforced</strong> — remove a role, access is <strong>denied</strong> (miniblue let everything through); (2) <strong>policies really block</strong> (a resource without the required tag is <strong>denied</strong>); (3) <strong>network cards and peering</strong> provision (no more 404) — you can finally attach a VM to a public IP; (4) <strong>cost</strong>: a <strong>running VM bills</strong>, and &quot;stopping&quot; from the OS is <strong>not enough</strong> — you must <strong>deallocate</strong> it (<code>az vm deallocate</code>). ⚠️ These gaps don&#39;t <strong>invalidate</strong> what you learned: the <strong>logic</strong> is the same. They add the <strong>rigor</strong> of real life — enforced security, uniqueness, quotas, cost.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Tout démonter</strong> (la discipline anti-facture).</p>
+<p><strong>🤔 Créer → utiliser → détruire.</strong> La seule vraie garantie contre la facture surprise : <strong>supprimer</strong> ce que tu ne veux plus payer. <code>terraform destroy</code> retire ce que le state gère ; puis, pour être <strong>certain</strong> qu&#39;il ne reste <strong>rien</strong>, on supprime le <strong>groupe de ressources</strong> entier.</p>
+<p>Démonte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Tear everything down</strong> (the anti-bill discipline).</p>
+<p><strong>🤔 Create → use → destroy.</strong> The only real guarantee against a surprise bill: <strong>delete</strong> what you no longer want to pay for. <code>terraform destroy</code> removes what the state manages; then, to be <strong>certain</strong> nothing remains, we delete the whole <strong>resource group</strong>.</p>
+<p>Tear it down:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Détruire l&#39;infra gérée par Terraform / destroy the Terraform-managed infra
+cd ~/landing-zone/infra
+terraform destroy
+
+# 2) Filet de sécurité : supprimer le GROUPE entier (retire TOUT résiduel)
+#    safety net: delete the WHOLE group (removes ANY leftover)
+az group delete --name rg-landing --yes --no-wait
+
+# 3) (optionnel) supprimer le principal de service / (optional) delete the service principal
+az ad sp delete --id &quot;$ARM_CLIENT_ID&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform destroy</code> affiche <code>Destroy complete! Resources: N destroyed.</code>. <code>az group delete</code> retire le groupe et <strong>tout</strong> ce qu&#39;il contenait — dans le portail, <code>rg-landing</code> disparaît. <strong>Plus aucune ressource facturable.</strong> Tu as bouclé le cycle <strong>créer → utiliser → détruire</strong> — le réflexe d&#39;un administrateur responsable. ⚠️ Vérifie le <strong>tableau de bord des coûts</strong> quelques jours plus tard (les coûts se consolident avec un léger décalage). Pour un abonnement d&#39;essai entier dont tu ne veux plus, tu peux aussi l&#39;<strong>annuler</strong> depuis le portail. 🎓 <strong>Cap sur l&#39;AZ-104 :</strong> entraîne-toi sur des <strong>examens blancs</strong>, révise les <strong>choix de service</strong>, les <strong>rôles RBAC</strong>, les <strong>niveaux de stockage</strong> et le <strong>coût des VM</strong> (arrêtée vs libérée). Tu es prêt·e.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform destroy</code> shows <code>Destroy complete! Resources: N destroyed.</code>. <code>az group delete</code> removes the group and <strong>everything</strong> it held — in the portal, <code>rg-landing</code> disappears. <strong>No more billable resource.</strong> You closed the <strong>create → use → destroy</strong> cycle — a responsible administrator&#39;s reflex. ⚠️ Check the <strong>cost dashboard</strong> a few days later (costs consolidate with a slight delay). For an entire trial subscription you no longer want, you can also <strong>cancel</strong> it from the portal. 🎓 <strong>Aim for AZ-104:</strong> practice on <strong>mock exams</strong>, revise <strong>service choices</strong>, <strong>RBAC roles</strong>, <strong>storage tiers</strong> and <strong>VM cost</strong> (stopped vs deallocated). You&#39;re ready.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> La suite du <strong>parcours Azure</strong>.</p>
+<p><strong>🤔 Tu as bouclé l&#39;AZ-104.</strong> Administrateur, c&#39;est le socle. Le parcours Azure continue vers des rôles plus spécialisés — architecte, DevOps, sécurité, réseau — et <strong>miniblue te resservira</strong> dans chacun.</p>
+<p>La feuille de route :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> The rest of the <strong>Azure path</strong>.</p>
+<p><strong>🤔 You&#39;ve completed AZ-104.</strong> Administrator is the base. The Azure path continues toward more specialized roles — architect, DevOps, security, networking — and <strong>miniblue will serve you</strong> in each.</p>
+<p>The roadmap:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>PARCOURS AZURE / AZURE PATH
+  AZ-900   Fondamentaux (fait) / Fundamentals (done)
+  AZ-104   Administrateur (fait) / Administrator (done)      &lt;- tu es ici / you are here
+  AZ-305   Architecte de solutions / Solutions Architect
+  AZ-400   Ingénieur DevOps / DevOps Engineer
+  AZ-500   Ingénieur sécurité / Security Engineer
+  AZ-700   Ingénieur réseau / Network Engineer</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu situes ta progression. Tu as le <strong>socle</strong> (fondamentaux + administrateur) : projets &amp; abonnements, réseau, stockage, calcul, identité &amp; gouvernance, IaC (Terraform + Bicep), et la discipline de coût. La suite ajoute la <strong>conception</strong> (AZ-305), l&#39;<strong>automatisation</strong> (AZ-400), la <strong>sécurité</strong> (AZ-500) et le <strong>réseau avancé</strong> (AZ-700) — tous déployables/validables en local sur miniblue avec la méthode de ce parcours. <strong>Félicitations : tu tiens l&#39;AZ-104 de bout en bout.</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can place your progress. You have the <strong>base</strong> (fundamentals + administrator): projects &amp; subscriptions, networking, storage, compute, identity &amp; governance, IaC (Terraform + Bicep), and cost discipline. The next steps add <strong>design</strong> (AZ-305), <strong>automation</strong> (AZ-400), <strong>security</strong> (AZ-500) and <strong>advanced networking</strong> (AZ-700) — all deployable/validatable locally on miniblue with this path&#39;s method. <strong>Congratulations: you hold AZ-104 end to end.</strong></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Créer des ressources AVANT le budget.</strong> Toujours l&#39;inverse : garde-fous <strong>d&#39;abord</strong>, ressources ensuite.</p>
+<p><strong>2. Croire qu&#39;un budget bloque la dépense.</strong> Il <strong>alerte</strong>, il ne <strong>coupe</strong> pas. La vraie protection, c&#39;est la <strong>suppression</strong> (destroy + delete group).</p>
+<p><strong>3. Committer le secret du principal de service.</strong> Le <code>password</code> est aussi puissant qu&#39;un mot de passe. Jamais dans Git ; en variable d&#39;environnement seulement.</p>
+<p><strong>4. Laisser le bloc de ciblage miniblue.</strong> Si <code>metadata_host</code> reste, Terraform vise <strong>encore l&#39;émulateur</strong>. Retire-le et <code>unset SSL_CERT_FILE</code> pour le réel.</p>
+<p><strong>5. Oublier de libérer une VM.</strong> « Arrêter » depuis l&#39;OS <strong>facture encore</strong>. <code>az vm deallocate</code> pour cesser le coût de calcul.</p>
+<p><strong>6. Nom de compte de stockage non unique.</strong> En réel, les noms sont <strong>mondiaux</strong>. Ajoute un suffixe (<code>uniqueString</code>/aléatoire).</p>
+<p><strong>7. Oublier de supprimer le groupe.</strong> Le filet de sécurité ultime. <code>az group delete</code> retire <strong>tout</strong> résiduel facturable.</p>
+</div>
+<div data-lang="en"><p><strong>1. Creating resources BEFORE the budget.</strong> Always the reverse: guardrails <strong>first</strong>, resources next.</p>
+<p><strong>2. Thinking a budget blocks spend.</strong> It <strong>alerts</strong>, it doesn&#39;t <strong>cut</strong>. The real protection is <strong>deletion</strong> (destroy + delete group).</p>
+<p><strong>3. Committing the service principal secret.</strong> The <code>password</code> is as powerful as a password. Never in Git; in an environment variable only.</p>
+<p><strong>4. Leaving the miniblue targeting block.</strong> If <code>metadata_host</code> stays, Terraform <strong>still targets the emulator</strong>. Remove it and <code>unset SSL_CERT_FILE</code> for real.</p>
+<p><strong>5. Forgetting to deallocate a VM.</strong> &quot;Stopping&quot; from the OS <strong>still bills</strong>. <code>az vm deallocate</code> to stop the compute cost.</p>
+<p><strong>6. Non-unique storage account name.</strong> For real, names are <strong>global</strong>. Add a suffix (<code>uniqueString</code>/random).</p>
+<p><strong>7. Forgetting to delete the group.</strong> The ultimate safety net. <code>az group delete</code> removes <strong>all</strong> residual billable resources.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un <strong>compte</strong> et repères ton <strong>abonnement</strong> (ID).</li><li>Tu crées un <strong>principal de service</strong> et exportes les variables <code>ARM_*</code>.</li><li>Tu poses un <strong>budget + alertes</strong> <strong>avant</strong> toute ressource.</li><li>Tu <strong>retires le ciblage miniblue</strong> et fais un <code>terraform apply</code> réel.</li><li>Tu cites <strong>3 écarts</strong> émulateur → réel (RBAC appliqué, unicité, coût/deallocate…).</li><li>Tu fais <strong><code>destroy</code></strong> puis <strong>supprimes le groupe</strong> — zéro ressource facturable.</li><li>Tu situes ta progression dans le <strong>parcours Azure</strong>.</li></ul>
+<p>Sept cases = tu sais passer en réel <strong>proprement</strong>. Prochain arrêt : la <strong>certification AZ-104</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create an <strong>account</strong> and locate your <strong>subscription</strong> (ID).</li><li>You create a <strong>service principal</strong> and export the <code>ARM_*</code> variables.</li><li>You set a <strong>budget + alerts</strong> <strong>before</strong> any resource.</li><li>You <strong>remove the miniblue targeting</strong> and run a real <code>terraform apply</code>.</li><li>You name <strong>3 gaps</strong> emulator → real (RBAC enforced, uniqueness, cost/deallocate…).</li><li>You run <strong><code>destroy</code></strong> then <strong>delete the group</strong> — zero billable resource.</li><li>You place your progress in the <strong>Azure path</strong>.</li></ul>
+<p>Seven boxes = you can go real <strong>cleanly</strong>. Next stop: the <strong>AZ-104 certification</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as terminé le track <strong>AZ-104 — Administrateur Azure</strong> ! 🎉</p>
+<ol><li><strong>Certification AZ-104</strong> : entraîne-toi sur des <strong>examens blancs</strong>, révise les <strong>choix de service</strong>, les <strong>rôles RBAC</strong>, les <strong>niveaux de stockage</strong> et le <strong>coût des VM</strong>.</li><li><strong>Ton CV</strong> : mets en avant la <strong>zone d&#39;atterrissage</strong> (réseau segmenté, gouvernance, IaC).</li><li><strong>La suite du parcours Azure</strong> : <strong>AZ-305</strong> (architecte), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (sécurité), <strong>AZ-700</strong> (réseau) — même méthode, même labo miniblue.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve finished the <strong>AZ-104 — Azure Administrator</strong> track! 🎉</p>
+<ol><li><strong>AZ-104 certification</strong>: practice on <strong>mock exams</strong>, revise <strong>service choices</strong>, <strong>RBAC roles</strong>, <strong>storage tiers</strong> and <strong>VM cost</strong>.</li><li><strong>Your CV</strong>: highlight the <strong>landing zone</strong> (segmented network, governance, IaC).</li><li><strong>The rest of the Azure path</strong>: <strong>AZ-305</strong> (architect), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (security), <strong>AZ-700</strong> (networking) — same method, same miniblue lab.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire « passer en réel » (Azure).</p>
+</div>
+<div data-lang="en"><p>&quot;Going real&quot; cheat sheet (Azure).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Compte &amp; abonnement / account &amp; subscription
+az login
+az account show --query id -o tsv        # ton ID d&#39;abonnement / your subscription ID
+
+# Principal de service pour Terraform / service principal for Terraform
+az ad sp create-for-rbac --name sp-terraform-labo --role Contributor --scopes /subscriptions/&lt;SUB&gt;
+export ARM_CLIENT_ID=... ARM_CLIENT_SECRET=... ARM_TENANT_ID=... ARM_SUBSCRIPTION_ID=&lt;SUB&gt;
+
+# Garde-fou de coût AVANT tout / cost guardrail FIRST
+az consumption budget create --budget-name garde-fou-labo --amount 5 --time-grain Monthly --category Cost --start-date 2026-09-01 --end-date 2027-09-01
+
+# Déployer en réel (après avoir RETIRÉ le bloc miniblue) / deploy for real (after REMOVING the miniblue block)
+unset SSL_CERT_FILE ; terraform init -upgrade ; terraform apply
+
+# TOUT démonter / tear it ALL down
+terraform destroy ; az group delete --name rg-landing --yes --no-wait</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://azure.microsoft.com/free/">Compte Azure gratuit</a> — crédit d&#39;essai, services gratuits.</li><li><a href="https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret">Authentifier Terraform sur Azure</a> — principal de service.</li><li><a href="https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets">Budgets Azure Cost Management</a> — les garde-fous.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/states-billing">États et facturation d&#39;une VM</a> — arrêtée vs libérée.</li><li><a href="https://learn.microsoft.com/credentials/certifications/azure-administrator/">Certification AZ-104</a> — le programme officiel.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://azure.microsoft.com/free/">Free Azure account</a> — trial credit, free services.</li><li><a href="https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret">Authenticate Terraform to Azure</a> — service principal.</li><li><a href="https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets">Azure Cost Management budgets</a> — the guardrails.</li><li><a href="https://learn.microsoft.com/azure/virtual-machines/states-billing">VM states and billing</a> — stopped vs deallocated.</li><li><a href="https://learn.microsoft.com/credentials/certifications/azure-administrator/">AZ-104 certification</a> — the official program.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform apply</code> : « building account: could not... »</strong> Tu n&#39;es ni connecté (<code>az login</code>) ni pourvu des variables <code>ARM_*</code>. Exporte les identifiants du principal de service, ou reste connecté via <code>az login</code>.</p>
+<p><strong><code>terraform apply</code> vise encore miniblue.</strong> Le bloc de ciblage (<code>metadata_host</code>, identifiants <code>miniblue</code>) est toujours dans <code>providers.tf</code>. Retire-le, <code>unset SSL_CERT_FILE</code>, <code>terraform init -upgrade</code>.</p>
+<p><strong><code>az ad sp create-for-rbac</code> : permission refusée.</strong> Ton compte n&#39;a pas le droit de créer des principaux de service dans le tenant. Utilise un compte disposant des droits, ou passe par <code>az login</code> interactif pour Terraform.</p>
+<p><strong>Nom de compte de stockage rejeté (« already taken »).</strong> Les noms sont <strong>mondiaux</strong>. Rends-le plus spécifique (suffixe unique).</p>
+<p><strong>Une ressource refuse de se créer (policy).</strong> En réel, une <strong>policy</strong> peut <strong>bloquer</strong> (deny) — ex. si le tag <code>env</code> manque. Ajoute le tag requis, ou ajuste la policy.</p>
+<p><strong>Peur de la facture.</strong> Le plus sûr : <code>az group delete --name &lt;groupe&gt; --yes</code>. Ça retire <strong>tout</strong> le groupe et <strong>arrête</strong> la facturation des ressources qu&#39;il contient. Vérifie ensuite le tableau de bord des coûts.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform apply</code>: &quot;building account: could not...&quot;</strong> You&#39;re neither signed in (<code>az login</code>) nor provisioned with the <code>ARM_*</code> variables. Export the service principal&#39;s credentials, or stay signed in via <code>az login</code>.</p>
+<p><strong><code>terraform apply</code> still targets miniblue.</strong> The targeting block (<code>metadata_host</code>, <code>miniblue</code> credentials) is still in <code>providers.tf</code>. Remove it, <code>unset SSL_CERT_FILE</code>, <code>terraform init -upgrade</code>.</p>
+<p><strong><code>az ad sp create-for-rbac</code>: permission denied.</strong> Your account can&#39;t create service principals in the tenant. Use an account with the rights, or use interactive <code>az login</code> for Terraform.</p>
+<p><strong>Storage account name rejected (&quot;already taken&quot;).</strong> Names are <strong>global</strong>. Make it more specific (unique suffix).</p>
+<p><strong>A resource refuses to be created (policy).</strong> For real, a <strong>policy</strong> can <strong>block</strong> (deny) — e.g. if the <code>env</code> tag is missing. Add the required tag, or adjust the policy.</p>
+<p><strong>Fear of the bill.</strong> Safest: <code>az group delete --name &lt;group&gt; --yes</code>. It removes the <strong>whole</strong> group and <strong>stops</strong> billing for the resources it holds. Then check the cost dashboard.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

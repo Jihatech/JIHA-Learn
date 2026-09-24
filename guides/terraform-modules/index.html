@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Terraform — modules &amp; workflow d&#39;équipe — jiha.tech</title>
+  <title data-lang="en">Terraform — modules &amp; team workflow — jiha.tech</title>
+  <meta name="description" content="Emballe ton infra en modules réutilisables, gère plusieurs environnements avec les workspaces, partage l&#39;état entre configurations avec terraform_remote_state, et découvre Terraform Cloud. Le workflow d&#39;équipe attendu par la certification Terraform Associate." data-lang="fr">
+  <meta name="description" content="Package your infra into reusable modules, manage multiple environments with workspaces, share state across configurations with terraform_remote_state, and discover Terraform Cloud. The team workflow the Terraform Associate certification expects." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Terraform — modules &amp; workflow d&#39;équipe">
+  <meta property="og:description" content="Emballe ton infra en modules réutilisables, gère plusieurs environnements avec les workspaces, partage l&#39;état entre configurations avec terraform_remote_state, et découvre Terraform Cloud. Le workflow d&#39;équipe attendu par la certification Terraform Associate.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/terraform-modules/">
+  <link rel="canonical" href="https://jiha.tech/guides/terraform-modules/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="terraform-modules">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/terraform-modules</div>
+    <div class="prompt" data-lang="en">~/guides/terraform-modules</div>
+    <h1 data-lang="fr">Terraform — modules &amp; workflow d&#39;équipe</h1>
+    <h1 data-lang="en">Terraform — modules &amp; team workflow</h1>
+    <p class="tagline" data-lang="fr">Modules, workspaces, remote_state, Terraform Cloud.</p>
+    <p class="tagline" data-lang="en">Modules, workspaces, remote_state, Terraform Cloud.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 140 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 140 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Jusqu&#39;ici tu écrivais <strong>un</strong> <code>main.tf</code> que tu appliquais <strong>toi</strong>, sur <strong>ta</strong> machine. En entreprise, ce n&#39;est jamais ça : plusieurs personnes, plusieurs environnements (dev/staging/prod), et du code qu&#39;on <strong>réutilise</strong> au lieu de le copier d&#39;un projet à l&#39;autre.</p>
+<p>Ce guide te fait passer du script solo au <strong>workflow d&#39;équipe</strong>. Tu vas emballer ton infra dans un <strong>module</strong> réutilisable (avec ses entrées et sorties), t&#39;en servir plusieurs fois, isoler des environnements avec les <strong>workspaces</strong>, faire dialoguer deux configurations via <strong><code>terraform_remote_state</code></strong>, et comprendre ce qu&#39;apporte <strong>Terraform Cloud</strong>. C&#39;est le dernier gros bloc du programme <strong>Terraform Associate</strong> — celui qui sépare « je sais écrire du HCL » de « je sais livrer de l&#39;infra à plusieurs ».</p>
+<p>On reste <strong>sur ta machine</strong> : le provider Docker fournit l&#39;infra, et un backend local simule le travail partagé. Toutes les commandes tournent en local — Terraform Cloud est présenté conceptuellement, sans t&#39;obliger à créer un compte.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides fondamentaux, state et composition, et tu veux structurer un vrai projet.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas encore <code>count</code>/<code>for_each</code> et les expressions → fais d&#39;abord le guide composition.</li><li>Tu ne sais pas ce qu&#39;est le state distant → reviens au guide state avancé.</li></ul>
+</div>
+<div data-lang="en"><p>Until now you wrote <strong>one</strong> <code>main.tf</code> that <strong>you</strong> applied, on <strong>your</strong> machine. In a company it&#39;s never that: several people, several environments (dev/staging/prod), and code you <strong>reuse</strong> instead of copying from project to project.</p>
+<p>This guide takes you from the solo script to the <strong>team workflow</strong>. You&#39;ll package your infra into a reusable <strong>module</strong> (with its inputs and outputs), use it several times, isolate environments with <strong>workspaces</strong>, wire two configurations together via <strong><code>terraform_remote_state</code></strong>, and understand what <strong>Terraform Cloud</strong> brings. It&#39;s the last big chunk of the <strong>Terraform Associate</strong> program — the one that separates &quot;I can write HCL&quot; from &quot;I can ship infra as a team&quot;.</p>
+<p>We stay <strong>on your machine</strong>: the Docker provider supplies the infra, and a local backend simulates shared work. All commands run locally — Terraform Cloud is presented conceptually, without forcing you to create an account.</p>
+<p><strong>Who it&#39;s for:</strong> you have the fundamentals, state and composition guides, and you want to structure a real project.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t have <code>count</code>/<code>for_each</code> and expressions yet → do the composition guide first.</li><li>You don&#39;t know what remote state is → go back to the advanced state guide.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Comprendre ce qu&#39;est un <strong>module</strong> (le module racine et les modules enfants).</li><li><strong>Écrire</strong> un module réutilisable avec ses <strong>variables</strong> (entrées) et ses <strong>outputs</strong> (sorties).</li><li><strong>Consommer</strong> un module local, puis un module <strong>versionné</strong> depuis le Registry.</li><li><strong>Composer</strong> des modules (en passer la sortie de l&#39;un à l&#39;entrée d&#39;un autre).</li><li>Isoler plusieurs environnements avec les <strong>workspaces</strong> (<code>terraform workspace</code>).</li><li>Partager des données entre configurations avec <strong><code>terraform_remote_state</code></strong>.</li><li>Situer <strong>Terraform Cloud</strong> : le bloc <code>cloud{}</code>, l&#39;exécution distante, le free tier.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Understand what a <strong>module</strong> is (the root module and child modules).</li><li><strong>Write</strong> a reusable module with its <strong>variables</strong> (inputs) and <strong>outputs</strong>.</li><li><strong>Consume</strong> a local module, then a <strong>versioned</strong> module from the Registry.</li><li><strong>Compose</strong> modules (pass one&#39;s output into another&#39;s input).</li><li>Isolate multiple environments with <strong>workspaces</strong> (<code>terraform workspace</code>).</li><li>Share data across configurations with <strong><code>terraform_remote_state</code></strong>.</li><li>Place <strong>Terraform Cloud</strong>: the <code>cloud{}</code> block, remote execution, the free tier.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>fondamentaux</strong>, <strong>state avancé</strong> et <strong>composition</strong> acquis.</li><li><strong>Terraform</strong> et <strong>Docker</strong> installés et fonctionnels.</li><li>Un dossier de travail vierge :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>fundamentals</strong>, <strong>advanced state</strong> and <strong>composition</strong> guides under your belt.</li><li><strong>Terraform</strong> and <strong>Docker</strong> installed and working.</li><li>A blank working directory:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir tf-modules &amp;&amp; cd tf-modules</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../terraform-composition/">
+    <span class="num">30</span>
+    <span class="title-line" data-lang="fr">Terraform — composition &amp; expressions</span>
+    <span class="title-line" data-lang="en">Terraform — composition &amp; expressions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Un module, c&#39;est juste un dossier de fichiers <code>.tf</code>.</strong> Rien de magique. Le dossier où tu lances <code>terraform apply</code> est le <strong>module racine</strong> (<em>root module</em>). Dès que tu appelles un autre dossier avec un bloc <code>module &quot;...&quot;</code>, ce dossier devient un <strong>module enfant</strong> (<em>child module</em>). Un module a une <strong>interface</strong> : ses <strong>variables</strong> sont ses entrées, ses <strong>outputs</strong> ses sorties. Entre les deux, l&#39;implémentation est une <strong>boîte noire</strong> pour l&#39;appelant.</p>
+<p>Pourquoi faire ? <strong>Réutiliser</strong> (le même « patron de service web » décliné dix fois), <strong>standardiser</strong> (tout le monde crée les ressources de la même façon) et <strong>cacher la complexité</strong> (l&#39;appelant fournit trois variables, pas trente lignes de HCL).</p>
+<p>Trois provenances pour la clé <code>source</code> d&#39;un module :</p>
+<ul><li><strong>local</strong> : <code>source = &quot;./modules/webservice&quot;</code> — un dossier de ton dépôt ;</li><li><strong>Registry</strong> : <code>source = &quot;terraform-aws-modules/vpc/aws&quot;</code> + <code>version = &quot;...&quot;</code> — un module public versionné ;</li><li><strong>Git</strong> : <code>source = &quot;git::https://...&quot;</code> — un dépôt privé.</li></ul>
+<p><strong>Les workspaces</strong> permettent d&#39;avoir <strong>plusieurs states</strong> pour <strong>un même code</strong>. <code>default</code>, <code>dev</code>, <code>prod</code>… chacun a son fichier d&#39;état isolé. <code>terraform.workspace</code> te donne le nom courant, pour faire varier le code (moins de ressources en dev, plus en prod).</p>
+<p><strong><code>terraform_remote_state</code></strong> est une <strong>data source</strong> qui <strong>lit</strong> le state d&#39;une <strong>autre</strong> configuration. Le réseau expose l&#39;ID d&#39;un réseau en output ; l&#39;appli le lit sans le recréer. C&#39;est le fil qui relie des configurations séparées.</p>
+<p>Enfin, <strong>Terraform Cloud</strong> (offre SaaS de HashiCorp, free tier généreux) héberge le state, verrouille, et <strong>exécute les <code>plan</code>/<code>apply</code> à distance</strong> — pour ne pas dépendre de la machine de chacun. On l&#39;active avec un bloc <code>cloud{}</code> dans <code>terraform {}</code>.</p>
+</div>
+<div data-lang="en"><p><strong>A module is just a folder of <code>.tf</code> files.</strong> Nothing magic. The folder where you run <code>terraform apply</code> is the <strong>root module</strong>. As soon as you call another folder with a <code>module &quot;...&quot;</code> block, that folder becomes a <strong>child module</strong>. A module has an <strong>interface</strong>: its <strong>variables</strong> are its inputs, its <strong>outputs</strong> its outputs. In between, the implementation is a <strong>black box</strong> to the caller.</p>
+<p>Why bother? <strong>Reuse</strong> (the same &quot;web service pattern&quot; instantiated ten times), <strong>standardize</strong> (everyone creates resources the same way) and <strong>hide complexity</strong> (the caller provides three variables, not thirty lines of HCL).</p>
+<p>Three origins for a module&#39;s <code>source</code> key:</p>
+<ul><li><strong>local</strong>: <code>source = &quot;./modules/webservice&quot;</code> — a folder in your repo;</li><li><strong>Registry</strong>: <code>source = &quot;terraform-aws-modules/vpc/aws&quot;</code> + <code>version = &quot;...&quot;</code> — a public, versioned module;</li><li><strong>Git</strong>: <code>source = &quot;git::https://...&quot;</code> — a private repo.</li></ul>
+<p><strong>Workspaces</strong> let you have <strong>several states</strong> for <strong>one codebase</strong>. <code>default</code>, <code>dev</code>, <code>prod</code>… each has its own isolated state file. <code>terraform.workspace</code> gives you the current name, to vary the code (fewer resources in dev, more in prod).</p>
+<p><strong><code>terraform_remote_state</code></strong> is a <strong>data source</strong> that <strong>reads</strong> another configuration&#39;s state. The network exposes a network ID as an output; the app reads it without recreating it. It&#39;s the thread that links separate configurations.</p>
+<p>Finally, <strong>Terraform Cloud</strong> (HashiCorp&#39;s SaaS offering, generous free tier) hosts the state, locks it, and <strong>runs <code>plan</code>/<code>apply</code> remotely</strong> — so you don&#39;t depend on each person&#39;s machine. You enable it with a <code>cloud{}</code> block inside <code>terraform {}</code>.</p>
+</div>
+
+<figure class="schema" id="figure-terraform-module-interface">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-terraform-module-interface">
+  <title id="s-terraform-module-interface">Un module = une boîte</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Un module = une boîte</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="70.5" text-anchor="middle">variables</text><text class="sub sub-fill" x="129" y="83.5" text-anchor="middle">entrée</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box-soft" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="380" y="70.5" text-anchor="middle">ressources</text><text class="sub sub-blue" x="380" y="83.5" text-anchor="middle">cachées à l’intérieur</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="631" y="70.5" text-anchor="middle">outputs</text><text class="sub" x="631" y="83.5" text-anchor="middle">sortie</text><text class="sub" x="380" y="144" text-anchor="middle">le module racine appelle des modules enfants</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Un module = une boîte : variables en entrée, ressources cachées à l&#39;intérieur, outputs en sortie. Le module racine appelle des modules enfants.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A module = a box: variables in, hidden resources inside, outputs out. The root module calls child modules.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : écrire un module → l&#39;appeler une fois → l&#39;appeler N fois (<code>for_each</code>) → module versionné du Registry → workspaces → <code>terraform_remote_state</code> → Terraform Cloud (concept).</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: write a module → call it once → call it N times (<code>for_each</code>) → versioned Registry module → workspaces → <code>terraform_remote_state</code> → Terraform Cloud (concept).</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire un <strong>module local</strong> : un « service web » réutilisable avec ses entrées et sorties.</p>
+<p><strong>🤔 L&#39;interface d&#39;abord.</strong> Un bon module se pense par son <strong>interface</strong> : qu&#39;est-ce que l&#39;appelant fournit (variables) et qu&#39;est-ce qu&#39;il récupère (outputs) ? Ici : entrée = un nom et un port ; sortie = le nom du conteneur créé.</p>
+<p>Crée l&#39;arborescence et le module :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>local module</strong>: a reusable &quot;web service&quot; with its inputs and outputs.</p>
+<p><strong>🤔 Interface first.</strong> A good module is designed by its <strong>interface</strong>: what does the caller provide (variables) and what does it get back (outputs)? Here: input = a name and a port; output = the created container&#39;s name.</p>
+<p>Create the tree and the module:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p modules/webservice</code></pre>
+<div data-lang="fr"><p>Dans <code>modules/webservice/</code>, crée trois fichiers. <code>variables.tf</code> (les entrées) :</p>
+</div>
+<div data-lang="en"><p>In <code>modules/webservice/</code>, create three files. <code>variables.tf</code> (the inputs):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># modules/webservice/variables.tf
+variable &quot;name&quot; {
+  type        = string
+  description = &quot;Nom logique du service / Logical service name&quot;
+}
+
+variable &quot;external_port&quot; {
+  type        = number
+  description = &quot;Port exposé sur l&#39;hôte / Host-exposed port&quot;
+}
+
+variable &quot;image&quot; {
+  type        = string
+  default     = &quot;nginx:1.27&quot;
+  description = &quot;Image du conteneur / Container image&quot;
+}</code></pre>
+<div data-lang="fr"><p><code>main.tf</code> (l&#39;implémentation — la boîte noire) :</p>
+</div>
+<div data-lang="en"><p><code>main.tf</code> (the implementation — the black box):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># modules/webservice/main.tf
+resource &quot;docker_image&quot; &quot;this&quot; {
+  name = var.image
+}
+
+resource &quot;docker_container&quot; &quot;this&quot; {
+  name  = var.name
+  image = docker_image.this.image_id
+  ports {
+    internal = 80
+    external = var.external_port
+  }
+}</code></pre>
+<div data-lang="fr"><p><code>outputs.tf</code> (les sorties) :</p>
+</div>
+<div data-lang="en"><p><code>outputs.tf</code> (the outputs):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># modules/webservice/outputs.tf
+output &quot;container_name&quot; {
+  value = docker_container.this.name
+}
+
+output &quot;external_port&quot; {
+  value = var.external_port
+}</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu as <code>modules/webservice/{variables,main,outputs}.tf</code>. Note qu&#39;un module <strong>ne déclare pas le provider <code>docker</code></strong> ni le bloc <code>terraform {}</code> : c&#39;est le module racine qui les fournit et les passe à ses enfants. Un module enfant hérite des providers du root.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you have <code>modules/webservice/{variables,main,outputs}.tf</code>. Note that a module <strong>does not declare the <code>docker</code> provider</strong> nor the <code>terraform {}</code> block: the root module provides them and passes them to its children. A child module inherits the root&#39;s providers.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Appeler</strong> le module depuis le module racine, une première fois.</p>
+<p>Dans <code>tf-modules/</code> (à la racine, pas dans <code>modules/</code>), crée <code>main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Call</strong> the module from the root module, a first time.</p>
+<p>In <code>tf-modules/</code> (at the root, not inside <code>modules/</code>), create <code>main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># main.tf (module racine / root module)
+terraform {
+  required_providers {
+    docker = {
+      source  = &quot;kreuzwerker/docker&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;docker&quot; {}
+
+module &quot;blog&quot; {
+  source        = &quot;./modules/webservice&quot;
+  name          = &quot;blog&quot;
+  external_port = 8090
+}
+
+output &quot;blog_name&quot; {
+  value = module.blog.container_name   # on lit l&#39;output du module / read the module&#39;s output
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init      # télécharge le provider ET indexe le module local / fetches the provider AND indexes the local module
+terraform apply -auto-approve
+terraform output blog_name</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init</code> affiche <code>Initializing modules...</code> puis <code>- blog in modules/webservice</code>. Après <code>apply</code>, un conteneur <code>blog</code> tourne sur le port 8090, et <code>terraform output blog_name</code> renvoie <code>blog</code>. Regarde le state : <code>terraform state list</code> montre <code>module.blog.docker_container.this</code> — l&#39;adresse est <strong>préfixée par le module</strong>.</p>
+<p><strong>🤔 <code>init</code> après chaque changement de module.</strong> Si tu ajoutes/modifies un bloc <code>module</code>, relance <code>terraform init</code> : Terraform doit ré-indexer les modules avant <code>plan</code>. Il te le rappelle avec <code>Module not installed</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init</code> prints <code>Initializing modules...</code> then <code>- blog in modules/webservice</code>. After <code>apply</code>, a <code>blog</code> container runs on port 8090, and <code>terraform output blog_name</code> returns <code>blog</code>. Look at state: <code>terraform state list</code> shows <code>module.blog.docker_container.this</code> — the address is <strong>prefixed by the module</strong>.</p>
+<p><strong>🤔 <code>init</code> after every module change.</strong> If you add/modify a <code>module</code> block, re-run <code>terraform init</code>: Terraform must re-index modules before <code>plan</code>. It reminds you with <code>Module not installed</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Prouver la réutilisation : <strong>décliner</strong> le module plusieurs fois avec <strong><code>for_each</code></strong>.</p>
+<p>C&#39;est ici que le module paie. Remplace le bloc <code>module &quot;blog&quot;</code> par un appel <code>for_each</code> piloté par une map :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prove reuse: <strong>instantiate</strong> the module several times with <strong><code>for_each</code></strong>.</p>
+<p>This is where the module pays off. Replace the <code>module &quot;blog&quot;</code> block with a <code>for_each</code> call driven by a map:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>variable &quot;services&quot; {
+  type = map(number)   # nom =&gt; port / name =&gt; port
+  default = {
+    blog  = 8081
+    shop  = 8082
+    admin = 8083
+  }
+}
+
+module &quot;web&quot; {
+  source        = &quot;./modules/webservice&quot;
+  for_each      = var.services
+  name          = each.key
+  external_port = each.value
+}
+
+output &quot;web_names&quot; {
+  value = { for k, m in module.web : k =&gt; m.container_name }
+}</code></pre>
+<div data-lang="fr"><p>Supprime aussi l&#39;ancien <code>output &quot;blog_name&quot;</code> (le module <code>blog</code> n&#39;existe plus).</p>
+</div>
+<div data-lang="en"><p>Also remove the old <code>output &quot;blog_name&quot;</code> (the <code>blog</code> module no longer exists).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init      # ré-indexe / re-index
+terraform apply -auto-approve
+terraform output web_names
+terraform state list | grep module.web</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> trois conteneurs <code>blog</code>, <code>shop</code>, <code>admin</code> tournent (8081-8083). <code>terraform output web_names</code> renvoie une map <code>{blog = &quot;blog&quot;, shop = &quot;shop&quot;, admin = &quot;admin&quot;}</code>. Dans le state, chaque instance est nommée par clé : <code>module.web[&quot;blog&quot;].docker_container.this</code>. <strong>Un module + une map = N services standardisés.</strong> C&#39;est exactement le pattern d&#39;entreprise : un module « service », décliné par environnement ou par équipe.</p>
+<p><em>(Le conteneur <code>blog</code> du step-02 a été supprimé puis recréé comme <code>module.web[&quot;blog&quot;]</code> : l&#39;adresse a changé. En vrai projet, un <code>terraform state mv</code> éviterait le destroy/create — cf. guide state.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> three containers <code>blog</code>, <code>shop</code>, <code>admin</code> run (8081-8083). <code>terraform output web_names</code> returns a map <code>{blog = &quot;blog&quot;, shop = &quot;shop&quot;, admin = &quot;admin&quot;}</code>. In state, each instance is named by key: <code>module.web[&quot;blog&quot;].docker_container.this</code>. <strong>One module + one map = N standardized services.</strong> This is exactly the enterprise pattern: a &quot;service&quot; module, instantiated per environment or per team.</p>
+<p><em>(The <code>blog</code> container from step-02 was destroyed then recreated as <code>module.web[&quot;blog&quot;]</code>: the address changed. In a real project, a <code>terraform state mv</code> would avoid the destroy/create — see the state guide.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre un <strong>module versionné</strong> du Terraform Registry — et pourquoi <code>version</code> est obligatoire.</p>
+<p>Tu ne réinventes pas un VPC AWS ou un réseau : le <strong>Registry</strong> publie des milliers de modules maintenus. On ne les applique pas ici (ils exigent un provider cloud), mais tu dois <strong>savoir les lire</strong>. La syntaxe d&#39;appel typique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand a <strong>versioned module</strong> from the Terraform Registry — and why <code>version</code> is mandatory.</p>
+<p>You don&#39;t reinvent an AWS VPC or a network: the <strong>Registry</strong> publishes thousands of maintained modules. We won&#39;t apply them here (they need a cloud provider), but you must <strong>know how to read them</strong>. The typical call syntax:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Exemple (Registry) — NE PAS appliquer sans compte AWS
+# Example (Registry) — do NOT apply without an AWS account
+module &quot;vpc&quot; {
+  source  = &quot;terraform-aws-modules/vpc/aws&quot;
+  version = &quot;~&gt; 5.0&quot;           # obligatoire pour un module Registry / mandatory for a Registry module
+
+  name = &quot;prod-vpc&quot;
+  cidr = &quot;10.0.0.0/16&quot;
+}</code></pre>
+<div data-lang="fr"><p><strong>🤔 Pourquoi épingler <code>version</code> ?</strong> Un module local suit ton dépôt. Un module Registry évolue <strong>indépendamment</strong> : sans <code>version</code>, un <code>init</code> demain pourrait tirer une v6 avec des changements cassants. <code>~&gt; 5.0</code> autorise les correctifs <code>5.x</code> mais bloque <code>6.0</code>. C&#39;est la même logique que pour les providers.</p>
+<p>Le format <code>source</code> d&#39;un module Registry est <strong><code>&lt;NAMESPACE&gt;/&lt;NOM&gt;/&lt;PROVIDER&gt;</code></strong> (ici <code>terraform-aws-modules</code> / <code>vpc</code> / <code>aws</code>). <code>terraform init</code> le télécharge dans <code>.terraform/modules/</code>.</p>
+</div>
+<div data-lang="en"><p><strong>🤔 Why pin <code>version</code>?</strong> A local module follows your repo. A Registry module evolves <strong>independently</strong>: without <code>version</code>, an <code>init</code> tomorrow could pull a v6 with breaking changes. <code>~&gt; 5.0</code> allows <code>5.x</code> patches but blocks <code>6.0</code>. Same logic as providers.</p>
+<p>A Registry module&#39;s <code>source</code> format is <strong><code>&lt;NAMESPACE&gt;/&lt;NAME&gt;/&lt;PROVIDER&gt;</code></strong> (here <code>terraform-aws-modules</code> / <code>vpc</code> / <code>aws</code>). <code>terraform init</code> downloads it into <code>.terraform/modules/</code>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># À l&#39;examen Associate, sache retrouver un module et sa doc :
+# For the Associate exam, know how to find a module and its docs:
+#   registry.terraform.io -&gt; Browse Modules -&gt; onglet &quot;Inputs&quot;/&quot;Outputs&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais expliquer les trois provenances de <code>source</code> (local, Registry, Git), pourquoi <code>version</code> est requis pour un module distant, et lire la liste <strong>Inputs/Outputs</strong> d&#39;un module sur le Registry. <em>(On ne modifie pas ton projet à cette étape : c&#39;est de la lecture.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can explain the three <code>source</code> origins (local, Registry, Git), why <code>version</code> is required for a remote module, and read a module&#39;s <strong>Inputs/Outputs</strong> list on the Registry. <em>(We don&#39;t change your project at this step: it&#39;s reading.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Isoler <strong>dev</strong> et <strong>prod</strong> avec les <strong>workspaces</strong>, sans dupliquer le code.</p>
+<p><strong>🤔 Le problème.</strong> Tu veux le même code pour deux environnements, mais <strong>deux states séparés</strong> (appliquer prod ne doit pas toucher dev). Sans workspace, tu copierais le dossier. Les <strong>workspaces</strong> te donnent plusieurs states pour <strong>un</strong> code.</p>
+<p><strong>D&#39;abord, fais le ménage.</strong> Le step-03 a laissé tourner <code>blog</code>/<code>shop</code>/<code>admin</code> (ports 8081-8083) dans le workspace <code>default</code>. Ils garderaient ces ports occupés et entreraient en collision avec les environnements qu&#39;on s&#39;apprête à créer. Détruis-les :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Isolate <strong>dev</strong> and <strong>prod</strong> with <strong>workspaces</strong>, without duplicating code.</p>
+<p><strong>🤔 The problem.</strong> You want the same code for two environments, but <strong>two separate states</strong> (applying prod must not touch dev). Without workspaces, you&#39;d copy the folder. <strong>Workspaces</strong> give you multiple states for <strong>one</strong> codebase.</p>
+<p><strong>First, clean up.</strong> Step-03 left <code>blog</code>/<code>shop</code>/<code>admin</code> (ports 8081-8083) running in the <code>default</code> workspace. They&#39;d keep those ports busy and collide with the environments we&#39;re about to create. Destroy them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace show          # default
+terraform destroy -auto-approve   # libère les ports du workspace default / frees the default workspace&#39;s ports</code></pre>
+<div data-lang="fr"><p>Ensuite, rends le code sensible à l&#39;environnement via <code>terraform.workspace</code>. On ajoute aussi un <strong>décalage de port par workspace</strong> pour que dev et prod puissent tourner <strong>en même temps</strong> (deux conteneurs ne peuvent pas publier le même port hôte) :</p>
+</div>
+<div data-lang="en"><p>Then make the code environment-aware via <code>terraform.workspace</code>. We also add a <strong>per-workspace port offset</strong> so dev and prod can run <strong>at the same time</strong> (two containers can&#39;t publish the same host port):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>locals {
+  # En prod : les 3 services. Ailleurs : seulement le blog.
+  # In prod: all 3 services. Elsewhere: only the blog.
+  active_services = terraform.workspace == &quot;prod&quot; ? var.services : { blog = 8081 }
+
+  # Décale les ports selon le workspace pour éviter les collisions d&#39;hôte.
+  # Offset ports by workspace to avoid host-port collisions.
+  port_offset = lookup({ dev = 100, prod = 200 }, terraform.workspace, 0)
+}
+
+module &quot;web&quot; {
+  source        = &quot;./modules/webservice&quot;
+  for_each      = local.active_services   # &lt;- remplace var.services par local.active_services
+  name          = &quot;${each.key}-${terraform.workspace}&quot;
+  external_port = each.value + local.port_offset
+}</code></pre>
+<div data-lang="fr"><p>Puis crée et bascule entre workspaces :</p>
+</div>
+<div data-lang="en"><p>Then create and switch between workspaces:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace list                 # * default
+terraform workspace new dev              # crée et bascule sur dev / create and switch to dev
+terraform apply -auto-approve            # 1 conteneur : blog-dev sur 8181 (8081+100)
+terraform state list
+
+terraform workspace new prod             # crée et bascule sur prod / create and switch to prod
+terraform apply -auto-approve            # 3 conteneurs : blog-prod/shop-prod/admin-prod sur 8281-8283
+terraform workspace list                 #   default / dev / * prod
+
+docker ps --format &#39;{{.Names}}&#39;          # blog-dev ET blog-prod/shop-prod/admin-prod tournent ensemble</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform workspace list</code> montre <code>default</code>, <code>dev</code>, <code>prod</code> avec <code>*</code> sur le courant. En <code>dev</code>, un seul conteneur <code>blog-dev</code> (port 8181) ; en <code>prod</code>, trois conteneurs <code>-prod</code> (ports 8281-8283). Le <code>docker ps</code> final prouve la <strong>coexistence</strong> : <code>blog-dev</code> <strong>et</strong> les trois conteneurs <code>-prod</code> tournent en même temps, sans collision, grâce au décalage de port. Avec un backend local, les states vivent dans <code>terraform.tfstate.d/&lt;workspace&gt;/</code> — jette un œil.</p>
+<p><strong>⚠️ Limite des workspaces.</strong> Ils partagent <strong>le même backend et le même code</strong>. Pour des différences <strong>fortes</strong> entre environnements (comptes cloud distincts, régions, permissions), l&#39;industrie préfère souvent des <strong>dossiers séparés</strong> (<code>envs/dev</code>, <code>envs/prod</code>) réutilisant les mêmes <strong>modules</strong>. Les workspaces brillent pour des variantes <strong>légères</strong>. Sache citer cette nuance — elle tombe à l&#39;examen.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform workspace list</code> shows <code>default</code>, <code>dev</code>, <code>prod</code> with <code>*</code> on the current one. In <code>dev</code>, a single <code>blog-dev</code> container (port 8181); in <code>prod</code>, three <code>-prod</code> containers (ports 8281-8283). The final <code>docker ps</code> proves <strong>coexistence</strong>: <code>blog-dev</code> <strong>and</strong> the three <code>-prod</code> containers run at the same time, no collision, thanks to the port offset. With a local backend, states live in <code>terraform.tfstate.d/&lt;workspace&gt;/</code> — take a look.</p>
+<p><strong>⚠️ Workspace limitation.</strong> They share <strong>the same backend and the same code</strong>. For <strong>strong</strong> differences between environments (distinct cloud accounts, regions, permissions), the industry often prefers <strong>separate folders</strong> (<code>envs/dev</code>, <code>envs/prod</code>) reusing the same <strong>modules</strong>. Workspaces shine for <strong>light</strong> variants. Know how to state this nuance — it comes up on the exam.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire lire le state d&#39;une configuration par une <strong>autre</strong> avec <strong><code>terraform_remote_state</code></strong>.</p>
+<p><strong>🤔 Le scénario d&#39;équipe.</strong> L&#39;équipe « plateforme » gère un réseau ; l&#39;équipe « appli » y branche ses conteneurs. Deux configurations, deux states — mais l&#39;appli doit connaître <strong>l&#39;ID du réseau</strong> créé par la plateforme. Elle le <strong>lit</strong> via <code>terraform_remote_state</code>, elle ne le recrée pas.</p>
+<p>Place-toi sur <code>prod</code> (les trois services y tournent, on va tous les brancher) et fabrique la config « plateforme » dans un sous-dossier :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Have one configuration read another&#39;s state with <strong><code>terraform_remote_state</code></strong>.</p>
+<p><strong>🤔 The team scenario.</strong> The &quot;platform&quot; team manages a network; the &quot;app&quot; team plugs its containers into it. Two configurations, two states — but the app must know the <strong>network ID</strong> created by the platform. It <strong>reads</strong> it via <code>terraform_remote_state</code>, it doesn&#39;t recreate it.</p>
+<p>Switch to <code>prod</code> (its three services are running, we&#39;ll wire them all in) and build the &quot;platform&quot; config in a subfolder:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform workspace select prod
+mkdir -p ../tf-network &amp;&amp; cd ../tf-network</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ../tf-network/main.tf  (config &quot;plateforme&quot; / &quot;platform&quot; config)
+terraform {
+  required_providers {
+    docker = { source = &quot;kreuzwerker/docker&quot;, version = &quot;~&gt; 3.0&quot; }
+  }
+}
+provider &quot;docker&quot; {}
+
+resource &quot;docker_network&quot; &quot;shared&quot; {
+  name = &quot;app-shared-net&quot;
+}
+
+output &quot;network_name&quot; {
+  value = docker_network.shared.name
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init &amp;&amp; terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p>Maintenant, côté « appli » (retour dans <code>tf-modules</code>), déclare la data source qui lit le state de la plateforme, et branche les conteneurs sur ce réseau. Ajoute à <code>tf-modules/main.tf</code> :</p>
+</div>
+<div data-lang="en"><p>Now, on the &quot;app&quot; side (back in <code>tf-modules</code>), declare the data source that reads the platform&#39;s state, and attach the containers to that network. Add to <code>tf-modules/main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>data &quot;terraform_remote_state&quot; &quot;network&quot; {
+  backend = &quot;local&quot;
+  config = {
+    path = &quot;../tf-network/terraform.tfstate&quot;   # le state de l&#39;autre config / the other config&#39;s state
+  }
+}</code></pre>
+<div data-lang="fr"><p>Puis passe le nom du réseau au module (ajoute une variable <code>network</code> au module <code>webservice</code>, et un bloc <code>networks_advanced</code> dans son conteneur). Dans <code>modules/webservice/variables.tf</code> :</p>
+</div>
+<div data-lang="en"><p>Then pass the network name to the module (add a <code>network</code> variable to the <code>webservice</code> module, and a <code>networks_advanced</code> block in its container). In <code>modules/webservice/variables.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>variable &quot;network&quot; {
+  type        = string
+  default     = &quot;&quot;
+  description = &quot;Réseau Docker à rejoindre / Docker network to join&quot;
+}</code></pre>
+<div data-lang="fr"><p>Dans <code>modules/webservice/main.tf</code>, ajoute à la ressource <code>docker_container.this</code> :</p>
+</div>
+<div data-lang="en"><p>In <code>modules/webservice/main.tf</code>, add to the <code>docker_container.this</code> resource:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>  networks_advanced {
+    name = var.network
+  }</code></pre>
+<div data-lang="fr"><p>Et dans l&#39;appel <code>module &quot;web&quot;</code> (racine), passe la valeur <strong>lue à distance</strong> :</p>
+</div>
+<div data-lang="en"><p>And in the <code>module &quot;web&quot;</code> call (root), pass the <strong>remotely read</strong> value:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>  network = data.terraform_remote_state.network.outputs.network_name</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Éditer un module LOCAL ou ajouter une data source ne nécessite PAS d&#39;init.
+# Editing a LOCAL module or adding a data source does NOT require init.
+terraform apply -auto-approve
+docker network inspect app-shared-net --format &#39;{{range .Containers}}{{.Name}} {{end}}&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker network inspect</code> liste tes conteneurs <code>blog-prod</code>/<code>shop-prod</code>/<code>admin-prod</code> <strong>attachés</strong> au réseau <code>app-shared-net</code> que <strong>l&#39;autre</strong> configuration a créé. <em>(Ajouter un <code>networks_advanced</code> force la recréation de chaque conteneur — Terraform le fait à l&#39;identique, même port, sans collision.)</em> Tu n&#39;as jamais recréé le réseau ; tu as lu son output via <code>data.terraform_remote_state.network.outputs.network_name</code>. <strong>C&#39;est le contrat entre équipes</strong> : la plateforme <strong>expose</strong> des outputs, l&#39;appli les <strong>consomme</strong>. Règle d&#39;or : n&#39;expose en output que ce que d&#39;autres doivent lire.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker network inspect</code> lists your <code>blog-prod</code>/<code>shop-prod</code>/<code>admin-prod</code> containers <strong>attached</strong> to the <code>app-shared-net</code> network that the <strong>other</strong> configuration created. <em>(Adding a <code>networks_advanced</code> block forces each container to be recreated — Terraform does it identically, same port, no collision.)</em> You never recreated the network; you read its output via <code>data.terraform_remote_state.network.outputs.network_name</code>. <strong>This is the contract between teams</strong>: the platform <strong>exposes</strong> outputs, the app <strong>consumes</strong> them. Golden rule: only expose as outputs what others must read.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Situer <strong>Terraform Cloud / HCP Terraform</strong> : ce que change le bloc <code>cloud{}</code> (concept, sans compte).</p>
+<p><strong>🤔 Pourquoi un backend distant géré ?</strong> Avec un state local, un seul opérateur travaille à la fois, et le state (qui contient des secrets) traîne sur les machines. En équipe, on veut : state <strong>hébergé et chiffré</strong>, <strong>verrouillage</strong> automatique, <strong>historique</strong>, et souvent <strong>exécution distante</strong> (les <code>plan</code>/<code>apply</code> tournent chez HashiCorp, pas sur ton poste). C&#39;est l&#39;offre <strong>HCP Terraform</strong> (ex-« Terraform Cloud »), gratuite jusqu&#39;à un quota confortable.</p>
+<p>On l&#39;active en remplaçant le backend par un bloc <code>cloud{}</code> dans <code>terraform {}</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Place <strong>Terraform Cloud / HCP Terraform</strong>: what the <code>cloud{}</code> block changes (concept, no account).</p>
+<p><strong>🤔 Why a managed remote backend?</strong> With local state, only one operator works at a time, and the state (which holds secrets) sits on machines. As a team, you want: <strong>hosted, encrypted</strong> state, automatic <strong>locking</strong>, <strong>history</strong>, and often <strong>remote execution</strong> (<code>plan</code>/<code>apply</code> run at HashiCorp, not on your box). That&#39;s the <strong>HCP Terraform</strong> offering (formerly &quot;Terraform Cloud&quot;), free up to a comfortable quota.</p>
+<p>You enable it by replacing the backend with a <code>cloud{}</code> block in <code>terraform {}</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Exemple conceptuel — nécessite un compte HCP Terraform (free tier)
+# Conceptual example — requires an HCP Terraform account (free tier)
+terraform {
+  cloud {
+    organization = &quot;mon-org&quot;
+    workspaces {
+      name = &quot;tf-modules-prod&quot;
+    }
+  }
+  required_providers {
+    docker = { source = &quot;kreuzwerker/docker&quot;, version = &quot;~&gt; 3.0&quot; }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Le workflow devient :
+# The workflow becomes:
+terraform login     # s&#39;authentifie auprès de HCP / authenticate to HCP
+terraform init      # migre le state local -&gt; HCP / migrate local state -&gt; HCP
+terraform apply     # l&#39;exécution tourne à distance, visible dans l&#39;UI / runs remotely, visible in the UI</code></pre>
+<div data-lang="fr"><p><strong>Points d&#39;examen à retenir :</strong></p>
+<ul><li>Le bloc <code>cloud{}</code> <strong>remplace</strong> un bloc <code>backend &quot;...&quot;</code> (on ne met pas les deux).</li><li>Les <strong>workspaces HCP</strong> ne sont <strong>pas</strong> les workspaces CLI du step-05 : ce sont des unités d&#39;exécution distantes, chacune avec son state et ses variables.</li><li>Les <strong>variables</strong> (dont les secrets) se définissent dans l&#39;UI/API HCP, marquées <em>sensitive</em>, au lieu de traîner en clair.</li><li>Free tier : suffisant pour apprendre et pour de petites équipes.</li></ul>
+<p><strong>✅ Vérification :</strong> tu sais expliquer ce qu&#39;apporte HCP Terraform (state géré + verrou + exécution distante + variables sécurisées), où se déclare le bloc <code>cloud{}</code>, et la différence entre workspace <strong>CLI</strong> et workspace <strong>HCP</strong>. <em>(On ne migre pas ton projet : ça demanderait un compte. Ton state reste local pour la suite.)</em></p>
+</div>
+<div data-lang="en"><p><strong>Exam points to remember:</strong></p>
+<ul><li>The <code>cloud{}</code> block <strong>replaces</strong> a <code>backend &quot;...&quot;</code> block (never both).</li><li><strong>HCP workspaces</strong> are <strong>not</strong> the CLI workspaces from step-05: they&#39;re remote execution units, each with its own state and variables.</li><li><strong>Variables</strong> (including secrets) are defined in the HCP UI/API, marked <em>sensitive</em>, instead of sitting in cleartext.</li><li>Free tier: enough to learn and for small teams.</li></ul>
+<p><strong>✅ Check:</strong> you can explain what HCP Terraform brings (managed state + lock + remote execution + secured variables), where the <code>cloud{}</code> block is declared, and the difference between a <strong>CLI</strong> workspace and an <strong>HCP</strong> workspace. <em>(We don&#39;t migrate your project: that would need an account. Your state stays local for what follows.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer proprement — les deux configurations et les workspaces.</p>
+<p><strong>🤔 Détruire dans le bon ordre.</strong> L&#39;appli <strong>dépend</strong> du réseau (elle s&#39;y attache). On détruit donc l&#39;appli <strong>avant</strong> le réseau, sinon le réseau est encore utilisé. Et chaque <strong>workspace</strong> a son propre state : on détruit dans chacun.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tear down cleanly — both configurations and the workspaces.</p>
+<p><strong>🤔 Destroy in the right order.</strong> The app <strong>depends</strong> on the network (it attaches to it). So destroy the app <strong>before</strong> the network, otherwise the network is still in use. And each <strong>workspace</strong> has its own state: destroy in each one.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Côté appli, pour chaque workspace / app side, per workspace
+cd ../tf-modules
+terraform workspace select prod &amp;&amp; terraform destroy -auto-approve
+terraform workspace select dev  &amp;&amp; terraform destroy -auto-approve
+terraform workspace select default &amp;&amp; terraform destroy -auto-approve   # déjà vide depuis le step-05 / already empty since step-05
+
+# Puis le réseau / then the network
+cd ../tf-network &amp;&amp; terraform destroy -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker ps -a</code> ne liste plus tes conteneurs de service, et <code>docker network ls | grep app-shared-net</code> ne renvoie rien. <code>terraform workspace list</code> montre encore <code>dev</code>/<code>prod</code> (les workspaces vides subsistent ; supprime-les si tu veux avec <code>terraform workspace delete dev</code> depuis un autre workspace). Détruire <strong>par environnement</strong> est le réflexe : un <code>destroy</code> n&#39;agit que sur le <strong>state courant</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker ps -a</code> no longer lists your service containers, and <code>docker network ls | grep app-shared-net</code> returns nothing. <code>terraform workspace list</code> still shows <code>dev</code>/<code>prod</code> (empty workspaces remain; delete them if you want with <code>terraform workspace delete dev</code> from another workspace). Destroying <strong>per environment</strong> is the reflex: a <code>destroy</code> only acts on the <strong>current state</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Oublier <code>terraform init</code> après un changement de module.</strong> Ajout/modif d&#39;un bloc <code>module</code> ou d&#39;un <code>source</code> → <code>Module not installed</code>. Relance <code>init</code>.</p>
+<p><strong>2. Ne pas épingler <code>version</code> sur un module Registry/Git.</strong> Sans épinglage, une mise à jour amont casse ton <code>apply</code> sans prévenir. Toujours <code>version = &quot;~&gt; x.y&quot;</code>.</p>
+<p><strong>3. Confondre workspace CLI et workspace HCP.</strong> Le premier = plusieurs states locaux pour un code ; le second = unité d&#39;exécution distante. Deux concepts, même mot.</p>
+<p><strong>4. Croire que les workspaces isolent des comptes cloud.</strong> Ils partagent backend et code. Pour des environnements vraiment cloisonnés (comptes/régions distincts), préfère des dossiers séparés + modules partagés.</p>
+<p><strong>5. Chemin <code>terraform_remote_state</code> fragile.</strong> Un <code>path</code> relatif casse si on déplace un dossier. En vrai, on lit un backend <strong>distant</strong> (S3, HCP), pas un fichier local ; le local ne sert qu&#39;à apprendre.</p>
+<p><strong>6. Tout exposer en output « au cas où ».</strong> Les outputs d&#39;un module/config sont son <strong>contrat public</strong>. N&#39;expose que le nécessaire — un output de trop, et une autre équipe s&#39;y accroche.</p>
+<p><strong>7. Déclarer un provider dans un module enfant.</strong> Le module enfant hérite des providers du root. Redéclarer <code>provider &quot;docker&quot; {}</code> dans l&#39;enfant crée des conflits. Le root configure, l&#39;enfant consomme.</p>
+</div>
+<div data-lang="en"><p><strong>1. Forgetting <code>terraform init</code> after a module change.</strong> Adding/editing a <code>module</code> block or a <code>source</code> → <code>Module not installed</code>. Re-run <code>init</code>.</p>
+<p><strong>2. Not pinning <code>version</code> on a Registry/Git module.</strong> Without pinning, an upstream update breaks your <code>apply</code> unannounced. Always <code>version = &quot;~&gt; x.y&quot;</code>.</p>
+<p><strong>3. Confusing CLI workspace and HCP workspace.</strong> The first = several local states for one codebase; the second = a remote execution unit. Two concepts, same word.</p>
+<p><strong>4. Believing workspaces isolate cloud accounts.</strong> They share backend and code. For truly partitioned environments (distinct accounts/regions), prefer separate folders + shared modules.</p>
+<p><strong>5. Fragile <code>terraform_remote_state</code> path.</strong> A relative <code>path</code> breaks if you move a folder. In reality you read a <strong>remote</strong> backend (S3, HCP), not a local file; local is only for learning.</p>
+<p><strong>6. Exposing everything as output &quot;just in case&quot;.</strong> A module/config&#39;s outputs are its <strong>public contract</strong>. Expose only what&#39;s needed — one output too many, and another team latches onto it.</p>
+<p><strong>7. Declaring a provider in a child module.</strong> The child inherits the root&#39;s providers. Redeclaring <code>provider &quot;docker&quot; {}</code> in the child creates conflicts. The root configures, the child consumes.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu écris un module avec <code>variables.tf</code> (entrées) et <code>outputs.tf</code> (sorties), sans bloc provider.</li><li>Tu appelles un module local, puis le déclines N fois avec <code>for_each</code>.</li><li>Tu lis la doc <strong>Inputs/Outputs</strong> d&#39;un module Registry et tu épingles sa <code>version</code>.</li><li>Tu crées <code>dev</code>/<code>prod</code> avec <code>terraform workspace</code> et fais varier le code via <code>terraform.workspace</code>.</li><li>Tu relies deux configurations avec <code>terraform_remote_state</code> (une expose, l&#39;autre consomme).</li><li>Tu expliques ce qu&#39;apporte HCP Terraform et où va le bloc <code>cloud{}</code>.</li></ul>
+<p>Six cases cochées = tu livres de l&#39;infra en équipe, au niveau attendu par l&#39;Associate.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You write a module with <code>variables.tf</code> (inputs) and <code>outputs.tf</code> (outputs), no provider block.</li><li>You call a local module, then instantiate it N times with <code>for_each</code>.</li><li>You read a Registry module&#39;s <strong>Inputs/Outputs</strong> docs and pin its <code>version</code>.</li><li>You create <code>dev</code>/<code>prod</code> with <code>terraform workspace</code> and vary code via <code>terraform.workspace</code>.</li><li>You link two configurations with <code>terraform_remote_state</code> (one exposes, one consumes).</li><li>You explain what HCP Terraform brings and where the <code>cloud{}</code> block goes.</li></ul>
+<p>Six boxes ticked = you ship infra as a team, at the level the Associate expects.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>couverture de contenu</strong> de la track Terraform → Associate. Il te reste, pour valider et prouver la compétence :</p>
+<ol><li><strong>QCM + examen blanc Associate</strong> — pour mesurer, sous format d&#39;examen, ce que tu viens d&#39;apprendre (state, composition, modules, workflow).</li><li><strong>Projet d&#39;entreprise</strong> — provisionner une infrastructure <strong>multi-environnement</strong> (dev/staging/prod) avec modules, workspaces et state distant : le livrable à mettre sur ton CV et à présenter en entretien.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>content coverage</strong> of the Terraform → Associate track. What remains, to validate and prove the skill:</p>
+<ol><li><strong>Quiz + Associate mock exam</strong> — to measure, in exam format, what you just learned (state, composition, modules, workflow).</li><li><strong>Enterprise project</strong> — provision a <strong>multi-environment</strong> infrastructure (dev/staging/prod) with modules, workspaces and remote state: the deliverable for your CV and to present in interviews.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-fondamentaux/">
+    <span class="num">33</span>
+    <span class="title-line" data-lang="fr">Kubernetes — orchestrer des conteneurs</span>
+    <span class="title-line" data-lang="en">Kubernetes — orchestrate containers</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire modules &amp; workflow d&#39;équipe.</p>
+</div>
+<div data-lang="en"><p>Modules &amp; team workflow cheat sheet.</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Appeler un module / call a module
+module &quot;web&quot; {
+  source        = &quot;./modules/webservice&quot;   # local / Registry / git::https://...
+  version       = &quot;~&gt; 1.0&quot;                  # requis pour Registry &amp; Git / required for Registry &amp; Git
+  for_each      = var.services              # décliner N fois / instantiate N times
+  name          = each.key
+}
+# Lire sa sortie / read its output :  module.web[&quot;blog&quot;].container_name
+
+# Sortie d&#39;un module / a module&#39;s output
+output &quot;x&quot; { value = docker_container.this.name }
+
+# Lire le state d&#39;une autre config / read another config&#39;s state
+data &quot;terraform_remote_state&quot; &quot;net&quot; {
+  backend = &quot;local&quot;                         # ou s3 / remote / cloud
+  config  = { path = &quot;../tf-network/terraform.tfstate&quot; }
+}
+# Usage : data.terraform_remote_state.net.outputs.network_name
+
+# HCP Terraform (remplace backend &quot;...&quot; / replaces backend &quot;...&quot;)
+terraform {
+  cloud {
+    organization = &quot;mon-org&quot;
+    workspaces { name = &quot;prod&quot; }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Workspaces (plusieurs states, un code / multiple states, one codebase)
+terraform workspace list
+terraform workspace new dev
+terraform workspace select prod
+terraform workspace delete dev
+# Dans le code : terraform.workspace  -&gt; &quot;dev&quot; | &quot;prod&quot; | ...
+
+terraform init      # après TOUT changement de module / after ANY module change
+terraform login     # s&#39;authentifier à HCP / authenticate to HCP</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://developer.hashicorp.com/terraform/language/modules">Modules — vue d&#39;ensemble</a> et <a href="https://developer.hashicorp.com/terraform/language/modules/develop">développer un module</a>.</li><li><a href="https://developer.hashicorp.com/terraform/language/modules/sources">Sources d&#39;un module</a> — local, Registry, Git.</li><li><a href="https://registry.terraform.io/browse/modules">Terraform Registry</a> — modules publics versionnés.</li><li><a href="https://developer.hashicorp.com/terraform/language/state/workspaces">Workspaces (CLI)</a> et data source <a href="https://developer.hashicorp.com/terraform/language/state/remote-state-data"><code>terraform_remote_state</code></a>.</li><li><a href="https://developer.hashicorp.com/terraform/cloud-docs">HCP Terraform</a> — le bloc <code>cloud{}</code> et l&#39;exécution distante.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://developer.hashicorp.com/terraform/language/modules">Modules — overview</a> and <a href="https://developer.hashicorp.com/terraform/language/modules/develop">develop a module</a>.</li><li><a href="https://developer.hashicorp.com/terraform/language/modules/sources">Module sources</a> — local, Registry, Git.</li><li><a href="https://registry.terraform.io/browse/modules">Terraform Registry</a> — public, versioned modules.</li><li><a href="https://developer.hashicorp.com/terraform/language/state/workspaces">Workspaces (CLI)</a> and the <a href="https://developer.hashicorp.com/terraform/language/state/remote-state-data"><code>terraform_remote_state</code></a> data source.</li><li><a href="https://developer.hashicorp.com/terraform/cloud-docs">HCP Terraform</a> — the <code>cloud{}</code> block and remote execution.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>Error: Module not installed</code> (ou <code>Module not found</code>).</strong> Tu as ajouté/modifié un bloc <code>module</code> sans relancer <code>init</code>. Fais <code>terraform init</code>.</p>
+<p><strong><code>Error: Unsupported argument</code> sur un appel de module.</strong> Tu passes une variable que le module ne déclare pas (faute de frappe, ou variable absente de son <code>variables.tf</code>). Vérifie l&#39;interface du module.</p>
+<p><strong><code>Error: Missing required argument</code> sur un appel de module.</strong> Le module a une variable <strong>sans <code>default</code></strong> que tu n&#39;as pas fournie. Ajoute-la à l&#39;appel, ou donne-lui un <code>default</code> dans le module.</p>
+<p><strong><code>terraform_remote_state</code> renvoie <code>outputs is empty</code> / clé absente.</strong> L&#39;autre config n&#39;a pas (encore) appliqué, ou n&#39;expose pas cet output. Applique la config source, et vérifie qu&#39;elle a bien un bloc <code>output &quot;...&quot;</code>.</p>
+<p><strong>Après un <code>for_each</code> sur un module, tout est détruit/recréé.</strong> Tu es passé d&#39;un appel simple à <code>for_each</code> : l&#39;adresse change (<code>module.blog</code> → <code>module.web[&quot;blog&quot;]</code>). Utilise <code>terraform state mv</code> pour aligner sans destroy (cf. guide state).</p>
+<p><strong><code>terraform workspace delete</code> refuse.</strong> Le workspace n&#39;est pas vide (state non détruit) ou c&#39;est le workspace courant. Fais <code>destroy</code> dedans, bascule ailleurs (<code>select default</code>), puis supprime.</p>
+</div>
+<div data-lang="en"><p><strong><code>Error: Module not installed</code> (or <code>Module not found</code>).</strong> You added/modified a <code>module</code> block without re-running <code>init</code>. Run <code>terraform init</code>.</p>
+<p><strong><code>Error: Unsupported argument</code> on a module call.</strong> You&#39;re passing a variable the module doesn&#39;t declare (typo, or variable missing from its <code>variables.tf</code>). Check the module&#39;s interface.</p>
+<p><strong><code>Error: Missing required argument</code> on a module call.</strong> The module has a variable <strong>with no <code>default</code></strong> that you didn&#39;t provide. Add it to the call, or give it a <code>default</code> in the module.</p>
+<p><strong><code>terraform_remote_state</code> returns <code>outputs is empty</code> / missing key.</strong> The other config hasn&#39;t applied (yet), or doesn&#39;t expose that output. Apply the source config, and check it has an <code>output &quot;...&quot;</code> block.</p>
+<p><strong>After a <code>for_each</code> on a module, everything is destroyed/recreated.</strong> You went from a simple call to <code>for_each</code>: the address changes (<code>module.blog</code> → <code>module.web[&quot;blog&quot;]</code>). Use <code>terraform state mv</code> to align without a destroy (see the state guide).</p>
+<p><strong><code>terraform workspace delete</code> refuses.</strong> The workspace isn&#39;t empty (state not destroyed) or it&#39;s the current workspace. Run <code>destroy</code> in it, switch elsewhere (<code>select default</code>), then delete.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — sécurité fondamentaux (AZ-500) : défense en profondeur, Zero Trust — jiha.tech</title>
+  <title data-lang="en">Azure — security fundamentals (AZ-500): defense in depth, Zero Trust — jiha.tech</title>
+  <meta name="description" content="&quot;Poser les fondations de la sécurité Azure pour l&#39;AZ-500, en local et pour de vrai (miniblue) : le modèle mental (défense en profondeur, Zero Trust, triade CIA, responsabilité partagée), puis les ancres concrètes — le coffre Key Vault (secret stocké, live), l&#39;identité managée (authentification sans mot de passe, principalId réel, live), l&#39;anti-pattern des clés partagées de stockage (à éviter), un réseau qui refuse par défaut (NSG durci en Terraform, live), et le garde-fou policy-as-code (checkov). Plus la ligne de base de sécurité et le secure score. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Laying the foundations of Azure security for AZ-500, locally and for real (miniblue): the mental model (defense in depth, Zero Trust, CIA triad, shared responsibility), then the concrete anchors — the Key Vault (a secret stored, live), managed identity (passwordless auth, a real principalId, live), the storage shared-keys anti-pattern (to avoid), a network that denies by default (hardened NSG in Terraform, live), and the policy-as-code guardrail (checkov). Plus the security baseline and secure score. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — sécurité fondamentaux (AZ-500) : défense en profondeur, Zero Trust">
+  <meta property="og:description" content="&quot;Poser les fondations de la sécurité Azure pour l&#39;AZ-500, en local et pour de vrai (miniblue) : le modèle mental (défense en profondeur, Zero Trust, triade CIA, responsabilité partagée), puis les ancres concrètes — le coffre Key Vault (secret stocké, live), l&#39;identité managée (authentification sans mot de passe, principalId réel, live), l&#39;anti-pattern des clés partagées de stockage (à éviter), un réseau qui refuse par défaut (NSG durci en Terraform, live), et le garde-fou policy-as-code (checkov). Plus la ligne de base de sécurité et le secure score. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-securite-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-securite-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-securite-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-securite-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/azure-securite-fondamentaux</div>
+    <h1 data-lang="fr">Azure — sécurité fondamentaux (AZ-500) : défense en profondeur, Zero Trust</h1>
+    <h1 data-lang="en">Azure — security fundamentals (AZ-500): defense in depth, Zero Trust</h1>
+    <p class="tagline" data-lang="fr">le modèle mental de la sécurité + les ancres : coffre, identité, réseau.</p>
+    <p class="tagline" data-lang="en">the security mental model + the anchors: vault, identity, network.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>La sécurité n&#39;est pas une fonctionnalité qu&#39;on ajoute à la fin : c&#39;est une <strong>façon de concevoir</strong>. L&#39;examen <strong>AZ-500</strong> (Azure Security Engineer) en fait un métier — identité, réseau, données, opérations. Ce premier guide pose le <strong>modèle mental</strong> et les <strong>ancres</strong> concrètes que toute la suite réutilise.</p>
+<p>Fidèle à la méthode, on ancre les concepts <strong>en local et pour de vrai</strong> avec <strong>miniblue</strong> : on stocke un secret dans un <strong>coffre Key Vault</strong> (live), on crée une <strong>identité managée</strong> — l&#39;authentification <strong>sans mot de passe</strong> avec un vrai <strong>principalId</strong> (live), on voit l&#39;<strong>anti-pattern</strong> des <strong>clés partagées</strong> de stockage (pourquoi les éviter), on durcit un <strong>réseau</strong> qui <strong>refuse par défaut</strong> (NSG en Terraform, <strong>appliqué en vrai</strong>), et on installe un <strong>garde-fou policy-as-code</strong> (<code>checkov</code>) qui <strong>bloque</strong> une ressource non sûre. On termine par la <strong>ligne de base de sécurité</strong> et le <strong>secure score</strong> — mesurer sa posture.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu connais l&#39;architecture Azure (AZ-104/305) et tu veux la <strong>sécuriser</strong> méthodiquement.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur Azure → fais d&#39;abord <em>Azure — fondamentaux (AZ-900)</em> et l&#39;AZ-104.</li><li>Tu cherches la sécurité <strong>de la pipeline</strong> (DevSecOps) → c&#39;est l&#39;<strong>AZ-400</strong> ; ici c&#39;est la sécurité <strong>de la plateforme</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>Security isn&#39;t a feature you add at the end: it&#39;s a <strong>way of designing</strong>. The <strong>AZ-500</strong> exam (Azure Security Engineer) makes it a profession — identity, network, data, operations. This first guide lays the <strong>mental model</strong> and the concrete <strong>anchors</strong> the whole track reuses.</p>
+<p>True to the method, we ground the concepts <strong>locally and for real</strong> with <strong>miniblue</strong>: we store a secret in a <strong>Key Vault</strong> (live), create a <strong>managed identity</strong> — <strong>passwordless</strong> authentication with a real <strong>principalId</strong> (live), see the <strong>shared-keys</strong> storage <strong>anti-pattern</strong> (why to avoid them), harden a <strong>network</strong> that <strong>denies by default</strong> (NSG in Terraform, <strong>applied for real</strong>), and install a <strong>policy-as-code guardrail</strong> (<code>checkov</code>) that <strong>blocks</strong> an unsafe resource. We finish with the <strong>security baseline</strong> and the <strong>secure score</strong> — measuring your posture.</p>
+<p><strong>Who it&#39;s for:</strong> you know Azure architecture (AZ-104/305) and want to <strong>secure</strong> it methodically.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to Azure → do <em>Azure — fundamentals (AZ-900)</em> and AZ-104 first.</li><li>You want <strong>pipeline</strong> security (DevSecOps) → that&#39;s <strong>AZ-400</strong>; here it&#39;s <strong>platform</strong> security.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Expliquer la <strong>défense en profondeur</strong>, le <strong>Zero Trust</strong> et la triade <strong>CIA</strong>.</li><li>Situer la <strong>responsabilité partagée</strong> (ce qui est à toi, ce qui est à Azure).</li><li>Stocker un secret dans un <strong>Key Vault</strong> (l&#39;ancre des secrets).</li><li>Créer une <strong>identité managée</strong> et comprendre l&#39;authentification <strong>sans mot de passe</strong>.</li><li>Reconnaître l&#39;<strong>anti-pattern</strong> des <strong>clés partagées</strong> et préférer l&#39;identité.</li><li>Durcir un <strong>réseau</strong> en <strong>refus par défaut</strong> (NSG).</li><li>Installer un <strong>garde-fou policy-as-code</strong> (<code>checkov</code>) et lire un <strong>secure score</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Explain <strong>defense in depth</strong>, <strong>Zero Trust</strong> and the <strong>CIA</strong> triad.</li><li>Place the <strong>shared responsibility</strong> (what&#39;s yours, what&#39;s Azure&#39;s).</li><li>Store a secret in a <strong>Key Vault</strong> (the secrets anchor).</li><li>Create a <strong>managed identity</strong> and understand <strong>passwordless</strong> auth.</li><li>Recognize the <strong>shared-keys anti-pattern</strong> and prefer identity.</li><li>Harden a <strong>network</strong> with <strong>deny-by-default</strong> (NSG).</li><li>Install a <strong>policy-as-code guardrail</strong> (<code>checkov</code>) and read a <strong>secure score</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Un <strong>parcours Azure</strong> derrière toi : AZ-104 (réseau, stockage, identité) et idéalement AZ-305.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré (ports 4566/4567), <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>. Voir <em>Azure — fondamentaux (AZ-900)</em>.</li><li><code>azlocal</code> sur le <code>PATH</code>, <strong>Python 3</strong>, et <code>pip install checkov</code>.</li><li><strong>Aucun compte cloud</strong> : coffre, identité, réseau et policy s&#39;exécutent en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>An <strong>Azure path</strong> behind you: AZ-104 (network, storage, identity) and ideally AZ-305.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started (ports 4566/4567), <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>. See <em>Azure — fundamentals (AZ-900)</em>.</li><li><code>azlocal</code> on <code>PATH</code>, <strong>Python 3</strong>, and <code>pip install checkov</code>.</li><li><strong>No cloud account</strong>: vault, identity, network and policy run locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-projet-architecte/">
+    <span class="num">69</span>
+    <span class="title-line" data-lang="fr">Azure — projet d&#39;architecte (AZ-305) : une solution Well-Architected</span>
+    <span class="title-line" data-lang="en">Azure — architect project (AZ-305): a Well-Architected solution</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>La triade CIA.</strong> La sécurité protège trois propriétés : <strong>Confidentialité</strong> (seuls les autorisés voient la donnée), <strong>Intégrité</strong> (la donnée n&#39;est pas altérée), <strong>Disponibilité</strong> (le service reste accessible). Chaque contrôle sert au moins l&#39;une d&#39;elles. C&#39;est la boussole.</p>
+<p><strong>La défense en profondeur.</strong> On ne mise pas sur <strong>un</strong> rempart mais sur <strong>des couches</strong> : identité → périmètre → réseau → calcul → application → données. Si une couche cède, la suivante tient. Un attaquant doit <strong>toutes</strong> les franchir. En pratique : MFA (identité) <strong>et</strong> NSG (réseau) <strong>et</strong> chiffrement (données) <strong>et</strong> moindre privilège (partout).</p>
+<p><strong>Le Zero Trust.</strong> Le vieux modèle (« à l&#39;intérieur du réseau = de confiance ») est mort. <strong>Zero Trust</strong> : <em>ne jamais faire confiance, toujours vérifier</em>. Trois principes : <strong>vérifier explicitement</strong> (chaque accès authentifié et autorisé), <strong>moindre privilège</strong> (juste ce qu&#39;il faut, juste le temps qu&#39;il faut), <strong>supposer la brèche</strong> (segmenter, chiffrer, journaliser comme si l&#39;attaquant était déjà là).</p>
+<p><strong>La responsabilité partagée.</strong> Le cloud partage la sécurité. Azure sécurise le <strong>socle</strong> (datacentres, matériel, hyperviseur). <strong>Toi</strong>, tu sécurises ce que tu <strong>mets dessus</strong> : identités, configurations, données, réseau. Plus tu montes (IaaS → PaaS → SaaS), plus Azure en prend ; mais <strong>l&#39;identité et les données restent toujours à toi</strong>.</p>
+<p><strong>Les ancres concrètes.</strong> La théorie s&#39;incarne dans quelques services-clés :</p>
+<ul><li><strong>Key Vault</strong> — le <strong>coffre</strong> : secrets, clés, certificats, avec contrôle d&#39;accès et audit. Le code n&#39;a qu&#39;une <strong>référence</strong> ; rien en dur.</li><li><strong>Identité managée</strong> — une <strong>identité</strong> attachée à une ressource Azure, qui obtient des jetons <strong>sans mot de passe</strong> stocké. C&#39;est le pilier du Zero Trust côté machine.</li><li><strong>RBAC &amp; moindre privilège</strong> — donner le <strong>rôle minimal</strong> (lecteur plutôt que propriétaire), sur le <strong>périmètre minimal</strong> (une ressource, pas l&#39;abonnement).</li><li><strong>NSG &amp; refus par défaut</strong> — le réseau <strong>n&#39;autorise que</strong> ce qui est explicitement permis ; tout le reste est <strong>refusé</strong>.</li><li><strong>Policy-as-code</strong> — des <strong>règles automatiques</strong> (checkov, Azure Policy) qui <strong>empêchent</strong> une config non conforme d&#39;exister.</li></ul>
+<p><strong>L&#39;anti-pattern des clés partagées.</strong> Un compte de stockage expose des <strong>clés d&#39;accès</strong> (<code>key1</code>, <code>key2</code>) toutes-puissantes. Les distribuer, c&#39;est distribuer un <strong>passe</strong> permanent, difficile à révoquer et à tracer. La bonne voie : <strong>identité managée</strong> + <strong>RBAC</strong> (ou des <strong>SAS</strong> limitées), et les clés <strong>au coffre</strong> si vraiment nécessaires.</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>coffre</strong> stocke un secret (<code>azlocal keyvault</code>, live). L&#39;<strong>identité managée</strong> se <strong>crée</strong> avec un vrai <strong>principalId</strong> (live). Les <strong>clés de stockage</strong> se <strong>listent</strong> (pour montrer le risque, live). Le <strong>NSG</strong> en <strong>refus par défaut</strong> se <strong>déploie</strong> en Terraform (live). Le <strong>garde-fou checkov</strong> <strong>bloque</strong> une ressource non sûre (offline). Le <strong>RBAC</strong> live renvoie 404 sur miniblue : on le <strong>valide en Bicep</strong> et on le <strong>raisonne</strong>. Tout le modèle mental s&#39;ancre <strong>sans compte cloud</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>The CIA triad.</strong> Security protects three properties: <strong>Confidentiality</strong> (only the authorized see the data), <strong>Integrity</strong> (the data isn&#39;t altered), <strong>Availability</strong> (the service stays reachable). Every control serves at least one. It&#39;s the compass.</p>
+<p><strong>Defense in depth.</strong> You don&#39;t bet on <strong>one</strong> wall but on <strong>layers</strong>: identity → perimeter → network → compute → application → data. If one layer falls, the next holds. An attacker must cross <strong>all</strong> of them. In practice: MFA (identity) <strong>and</strong> NSG (network) <strong>and</strong> encryption (data) <strong>and</strong> least privilege (everywhere).</p>
+<p><strong>Zero Trust.</strong> The old model (&quot;inside the network = trusted&quot;) is dead. <strong>Zero Trust</strong>: <em>never trust, always verify</em>. Three principles: <strong>verify explicitly</strong> (every access authenticated and authorized), <strong>least privilege</strong> (just enough, just in time), <strong>assume breach</strong> (segment, encrypt, log as if the attacker were already in).</p>
+<p><strong>Shared responsibility.</strong> The cloud shares security. Azure secures the <strong>foundation</strong> (datacenters, hardware, hypervisor). <strong>You</strong> secure what you <strong>put on it</strong>: identities, configurations, data, network. The higher you go (IaaS → PaaS → SaaS), the more Azure takes; but <strong>identity and data always stay yours</strong>.</p>
+<p><strong>The concrete anchors.</strong> Theory embodies in a few key services:</p>
+<ul><li><strong>Key Vault</strong> — the <strong>vault</strong>: secrets, keys, certificates, with access control and audit. Code holds only a <strong>reference</strong>; nothing hardcoded.</li><li><strong>Managed identity</strong> — an <strong>identity</strong> attached to an Azure resource that gets tokens with <strong>no stored password</strong>. It&#39;s the machine-side pillar of Zero Trust.</li><li><strong>RBAC &amp; least privilege</strong> — grant the <strong>minimal role</strong> (reader rather than owner), on the <strong>minimal scope</strong> (a resource, not the subscription).</li><li><strong>NSG &amp; deny-by-default</strong> — the network <strong>only allows</strong> what&#39;s explicitly permitted; everything else is <strong>denied</strong>.</li><li><strong>Policy-as-code</strong> — <strong>automatic rules</strong> (checkov, Azure Policy) that <strong>prevent</strong> a non-compliant config from existing.</li></ul>
+<p><strong>The shared-keys anti-pattern.</strong> A storage account exposes all-powerful <strong>access keys</strong> (<code>key1</code>, <code>key2</code>). Distributing them is distributing a permanent <strong>master key</strong>, hard to revoke and trace. The right path: <strong>managed identity</strong> + <strong>RBAC</strong> (or limited <strong>SAS</strong>), and keys <strong>in the vault</strong> if truly needed.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>vault</strong> stores a secret (<code>azlocal keyvault</code>, live). The <strong>managed identity</strong> is <strong>created</strong> with a real <strong>principalId</strong> (live). The <strong>storage keys</strong> are <strong>listed</strong> (to show the risk, live). The <strong>deny-by-default NSG</strong> is <strong>deployed</strong> in Terraform (live). The <strong>checkov guardrail</strong> <strong>blocks</strong> an unsafe resource (offline). Live <strong>RBAC</strong> returns 404 on miniblue: we <strong>validate it in Bicep</strong> and <strong>reason</strong> about it. The whole mental model anchors <strong>without a cloud account</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-securite-defense-en-profondeur">
+  <svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-securite-defense-en-profondeur">
+  <title id="s-azure-securite-defense-en-profondeur">Défense en profondeur (Zero Trust)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Défense en profondeur (Zero Trust)</text><rect class="box-accent" x="90" y="40" width="580" height="40" rx="3"/><text class="lbl lbl-fill" x="380" y="57.5" text-anchor="middle">Identité</text><text class="sub sub-fill" x="380" y="70.5" text-anchor="middle">MFA</text><rect class="box" x="90" y="90" width="580" height="40" rx="3"/><text class="lbl" x="380" y="114" text-anchor="middle">Périmètre</text><rect class="box" x="90" y="140" width="580" height="40" rx="3"/><text class="lbl" x="380" y="157.5" text-anchor="middle">Réseau</text><text class="sub" x="380" y="170.5" text-anchor="middle">NSG refus par défaut</text><rect class="box" x="90" y="190" width="580" height="40" rx="3"/><text class="lbl" x="380" y="214" text-anchor="middle">Calcul</text><rect class="box" x="90" y="240" width="580" height="40" rx="3"/><text class="lbl" x="380" y="264" text-anchor="middle">Application</text><rect class="box" x="90" y="290" width="580" height="40" rx="3"/><text class="lbl" x="380" y="307.5" text-anchor="middle">Données</text><text class="sub" x="380" y="320.5" text-anchor="middle">chiffrement + coffre</text><text class="sub" x="380" y="372" text-anchor="middle">vérifier explicitement · moindre privilège · supposer la brèche — boussole CIA</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La défense en profondeur, guidée par Zero Trust : des COUCHES concentriques (identité → périmètre → réseau → calcul → application → données), chacune un contrôle (MFA, NSG refus par défaut, moindre privilège RBAC, chiffrement, coffre Key Vault). Zero Trust : vérifier explicitement, moindre privilège, supposer la brèche. Un garde-fou policy-as-code empêche toute config non conforme. La triade CIA (Confidentialité, Intégrité, Disponibilité) en boussole.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Defense in depth, guided by Zero Trust: concentric LAYERS (identity → perimeter → network → compute → application → data), each a control (MFA, deny-by-default NSG, least-privilege RBAC, encryption, Key Vault). Zero Trust: verify explicitly, least privilege, assume breach. A policy-as-code guardrail prevents any non-compliant config. The CIA triad (Confidentiality, Integrity, Availability) as the compass.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser l&#39;<strong>ancre des secrets</strong> : stocker un secret dans un <strong>Key Vault</strong>.</p>
+<p><strong>🤔 Rien en dur, tout au coffre.</strong> Le premier réflexe de sécurité : les secrets ne vivent <strong>pas</strong> dans le code ni les variables en clair, mais dans un <strong>coffre</strong> avec contrôle d&#39;accès. On dépose un secret et on le relit.</p>
+<p>Prépare le lab et stocke un secret :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Lay the <strong>secrets anchor</strong>: store a secret in a <strong>Key Vault</strong>.</p>
+<p><strong>🤔 Nothing hardcoded, everything in the vault.</strong> The first security reflex: secrets do <strong>not</strong> live in code or plaintext variables, but in a <strong>vault</strong> with access control. We deposit a secret and read it back.</p>
+<p>Prepare the lab and store a secret:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-securite --location westeurope &gt;/dev/null 2&gt;&amp;1
+
+# Déposer un secret dans le coffre / deposit a secret in the vault
+azlocal keyvault secret set --vault kv-securite --name db-password --value &quot;M0tDeP@sse-Fort&quot; 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;secret stocké / stored:&#39;, d[&#39;id&#39;])&quot;
+
+# Relire (ce que fait une app autorisée) / read back (what an authorized app does)
+azlocal keyvault secret show --vault kv-securite --name db-password 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;lu / read:&#39;, d[&#39;value&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>set</code> renvoie <code>secret stocké / stored: https://kv-securite.vault.azure.net/secrets/db-password</code>, et <code>show</code> renvoie <code>lu / read: M0tDeP@sse-Fort</code>. Le secret vit au <strong>coffre</strong> ; l&#39;app ne connaît que le <strong>nom</strong> (la référence). En vrai Azure, le coffre <strong>chiffre</strong> la valeur et <strong>journalise</strong> chaque accès. C&#39;est l&#39;ancre <strong>Confidentialité</strong> de la triade CIA. Mais qui a le droit de lire ? C&#39;est là qu&#39;entre l&#39;<strong>identité</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>set</code> returns <code>secret stocké / stored: https://kv-securite.vault.azure.net/secrets/db-password</code>, and <code>show</code> returns <code>lu / read: M0tDeP@sse-Fort</code>. The secret lives in the <strong>vault</strong>; the app knows only the <strong>name</strong> (the reference). In real Azure, the vault <strong>encrypts</strong> the value and <strong>audits</strong> each access. It&#39;s the <strong>Confidentiality</strong> anchor of the CIA triad. But who&#39;s allowed to read? That&#39;s where <strong>identity</strong> comes in.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer une <strong>identité managée</strong> — l&#39;authentification <strong>sans mot de passe</strong>.</p>
+<p><strong>🤔 Une identité, pas un secret.</strong> Comment une app lit-elle le coffre sans... un secret pour y accéder ? Avec une <strong>identité managée</strong> : Azure attache une <strong>identité</strong> à la ressource, qui obtient des <strong>jetons</strong> automatiquement — <strong>aucun</strong> mot de passe stocké. On la crée et on lit son <strong>principalId</strong> (l&#39;identifiant qu&#39;on autorisera).</p>
+<p>Crée une identité managée :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>managed identity</strong> — <strong>passwordless</strong> authentication.</p>
+<p><strong>🤔 An identity, not a secret.</strong> How does an app read the vault without... a secret to access it? With a <strong>managed identity</strong>: Azure attaches an <strong>identity</strong> to the resource, which gets <strong>tokens</strong> automatically — <strong>no</strong> stored password. We create it and read its <strong>principalId</strong> (the id we&#39;ll authorize).</p>
+<p>Create a managed identity:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer une identité managée / create a managed identity
+azlocal identity create --resource-group rg-securite --name id-app 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); p=d[&#39;properties&#39;]; print(&#39;identité / identity:&#39;, d[&#39;name&#39;]); print(&#39;principalId:&#39;, p[&#39;principalId&#39;]); print(&#39;clientId  :&#39;, p[&#39;clientId&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>identité / identity: id-app</code>, un <strong>principalId</strong> (ex. <code>a6329b46-…</code>) et un <strong>clientId</strong>. Ce <strong>principalId</strong> est l&#39;<strong>identité</strong> que tu <strong>autorises</strong> ensuite (ex. « lecteur de secrets sur <code>kv-securite</code> »). L&#39;app présente cette identité, Azure émet un jeton — <strong>sans mot de passe</strong> à stocker, à faire fuiter ou à faire tourner. C&#39;est le pilier <strong>machine</strong> du Zero Trust : <em>vérifier explicitement</em>, sans secret partagé. On <strong>accorde</strong> ce droit via <strong>RBAC</strong> (moindre privilège), abordé au track identité.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>identité / identity: id-app</code>, a <strong>principalId</strong> (e.g. <code>a6329b46-…</code>) and a <strong>clientId</strong>. This <strong>principalId</strong> is the <strong>identity</strong> you then <strong>authorize</strong> (e.g. &quot;secrets reader on <code>kv-securite</code>&quot;). The app presents this identity, Azure issues a token — <strong>no password</strong> to store, leak or rotate. It&#39;s the <strong>machine</strong> pillar of Zero Trust: <em>verify explicitly</em>, with no shared secret. You <strong>grant</strong> that right via <strong>RBAC</strong> (least privilege), covered in the identity track.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Voir l&#39;<strong>anti-pattern</strong> des <strong>clés partagées</strong> — et pourquoi préférer l&#39;identité.</p>
+<p><strong>🤔 La clé qui ouvre tout.</strong> Un compte de stockage expose des <strong>clés d&#39;accès</strong> toutes-puissantes. On les <strong>liste</strong> pour bien voir le danger : une clé = un <strong>passe permanent</strong>, difficile à révoquer, impossible à tracer par utilisateur. On la regarde… pour décider de <strong>ne pas</strong> l&#39;utiliser ainsi.</p>
+<p>Crée un stockage, liste ses clés, mesure le risque :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> See the <strong>shared-keys anti-pattern</strong> — and why to prefer identity.</p>
+<p><strong>🤔 The key that opens everything.</strong> A storage account exposes all-powerful <strong>access keys</strong>. We <strong>list</strong> them to see the danger clearly: a key = a <strong>permanent master pass</strong>, hard to revoke, impossible to trace per user. We look at it… to decide <strong>not</strong> to use it that way.</p>
+<p>Create storage, list its keys, gauge the risk:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal storage account create --resource-group rg-securite --name stsecurite001 &gt;/dev/null 2&gt;&amp;1
+
+# Lister les clés partagées (le danger) / list the shared keys (the danger)
+azlocal storage account list-keys --resource-group rg-securite --name stsecurite001 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;clés partagées / shared keys:&#39;, [k[&#39;keyName&#39;]+&#39; (&#39;+k[&#39;permissions&#39;]+&#39;)&#39; for k in d[&#39;keys&#39;]])&quot;
+
+echo &quot;→ Une clé &#39;Full&#39; = accès TOTAL, permanent, non traçable par utilisateur.&quot;
+echo &quot;→ Bonne pratique : identité managée + RBAC (ou SAS limitée) ; clés au coffre si indispensables.&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>clés partagées / shared keys: [&#39;key1 (Full)&#39;, &#39;key2 (Full)&#39;]</code> — deux clés à permission <strong>Full</strong>. Quiconque détient <code>key1</code> a un accès <strong>total</strong> au stockage, <strong>sans</strong> identité, <strong>sans</strong> trace, <strong>sans</strong> expiration. C&#39;est l&#39;<strong>anti-pattern</strong> : à éviter. Préfère l&#39;<strong>identité managée</strong> (step-02) + <strong>RBAC</strong> ciblé, ou une <strong>SAS</strong> (signature d&#39;accès partagé) <strong>limitée</strong> dans le temps et la portée. Si tu dois garder une clé, mets-la <strong>au coffre</strong> (step-01) et <strong>fais-la tourner</strong>. Deux clés existent justement pour <strong>rotationner</strong> sans coupure.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>clés partagées / shared keys: [&#39;key1 (Full)&#39;, &#39;key2 (Full)&#39;]</code> — two keys with <strong>Full</strong> permission. Anyone holding <code>key1</code> has <strong>total</strong> access to the storage, <strong>without</strong> identity, <strong>without</strong> trace, <strong>without</strong> expiry. That&#39;s the <strong>anti-pattern</strong>: avoid it. Prefer the <strong>managed identity</strong> (step-02) + targeted <strong>RBAC</strong>, or a <strong>SAS</strong> (shared access signature) <strong>limited</strong> in time and scope. If you must keep a key, put it <strong>in the vault</strong> (step-01) and <strong>rotate</strong> it. Two keys exist precisely to <strong>rotate</strong> without downtime.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Durcir le <strong>réseau</strong> : un NSG en <strong>refus par défaut</strong>.</p>
+<p><strong>🤔 N&#39;autorise que le nécessaire.</strong> Un groupe de sécurité réseau (<strong>NSG</strong>) filtre le trafic. Le principe Zero Trust : <strong>refuser par défaut</strong>, n&#39;<strong>autoriser</strong> que l&#39;explicitement nécessaire (ici, HTTPS entrant). On déploie ce NSG <strong>pour de vrai</strong> sur miniblue.</p>
+<p>Déploie un NSG durci :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Harden the <strong>network</strong>: a <strong>deny-by-default</strong> NSG.</p>
+<p><strong>🤔 Only allow what&#39;s needed.</strong> A network security group (<strong>NSG</strong>) filters traffic. The Zero Trust principle: <strong>deny by default</strong>, only <strong>allow</strong> the explicitly necessary (here, inbound HTTPS). We deploy this NSG <strong>for real</strong> on miniblue.</p>
+<p>Deploy a hardened NSG:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+mkdir -p secu-infra &amp;&amp; cd secu-infra
+cat &gt; providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers { azurerm = { source = &quot;hashicorp/azurerm&quot;, version = &quot;~&gt; 3.0&quot; } }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}
+TF
+cat &gt; main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;sec&quot; {
+  name     = &quot;rg-securite-net&quot;
+  location = &quot;westeurope&quot;
+}
+resource &quot;azurerm_network_security_group&quot; &quot;web&quot; {
+  name                = &quot;nsg-web&quot;
+  location            = azurerm_resource_group.sec.location
+  resource_group_name = azurerm_resource_group.sec.name
+  # N&#39;autoriser QUE HTTPS entrant ; tout le reste est refusé par défaut
+  security_rule {
+    name                       = &quot;autoriser-https&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;443&quot;
+    source_address_prefix      = &quot;Internet&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+  # Refus explicite du SSH (défense en profondeur, lisibilité)
+  security_rule {
+    name                       = &quot;refuser-ssh&quot;
+    priority                   = 200
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Deny&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;22&quot;
+    source_address_prefix      = &quot;*&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+}
+TF
+terraform init -no-color &gt;/dev/null 2&gt;&amp;1
+terraform apply -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Apply complete&quot;
+cd ..</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>apply</code> confirme <code>Apply complete! Resources: 2 added</code> — le groupe de ressources et le <strong>NSG</strong> sont <strong>déployés</strong> sur miniblue. Le NSG <strong>n&#39;autorise que</strong> HTTPS (443) depuis Internet et <strong>refuse</strong> explicitement le SSH (22). Tout ce qui n&#39;est <strong>pas</strong> autorisé est <strong>refusé par défaut</strong> (règle implicite d&#39;Azure). C&#39;est l&#39;ancre <strong>réseau</strong> de la défense en profondeur : même si l&#39;app a une faille, la <strong>surface exposée</strong> est minimale. On garde ce lab pour la suite.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>apply</code> confirms <code>Apply complete! Resources: 2 added</code> — the resource group and the <strong>NSG</strong> are <strong>deployed</strong> on miniblue. The NSG <strong>only allows</strong> HTTPS (443) from the Internet and explicitly <strong>denies</strong> SSH (22). Anything <strong>not</strong> allowed is <strong>denied by default</strong> (Azure&#39;s implicit rule). It&#39;s the <strong>network</strong> anchor of defense in depth: even if the app has a flaw, the <strong>exposed surface</strong> is minimal. We keep this lab for later.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer un <strong>garde-fou policy-as-code</strong> : <code>checkov</code> <strong>bloque</strong> une config non sûre.</p>
+<p><strong>🤔 Empêcher, pas seulement corriger.</strong> La sécurité tient si les <strong>mauvaises configs ne peuvent pas exister</strong>. Un scanner de <strong>policy-as-code</strong> (<code>checkov</code>) analyse l&#39;IaC et <strong>échoue</strong> si une règle est violée. On lui soumet un NSG <strong>dangereux</strong> (SSH ouvert au monde) et on regarde le garde-fou réagir.</p>
+<p>Soumets une config dangereuse au garde-fou :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install a <strong>policy-as-code guardrail</strong>: <code>checkov</code> <strong>blocks</strong> an unsafe config.</p>
+<p><strong>🤔 Prevent, not just fix.</strong> Security holds if <strong>bad configs can&#39;t exist</strong>. A <strong>policy-as-code</strong> scanner (<code>checkov</code>) analyzes the IaC and <strong>fails</strong> if a rule is violated. We feed it a <strong>dangerous</strong> NSG (SSH open to the world) and watch the guardrail react.</p>
+<p>Feed a dangerous config to the guardrail:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p danger
+cat &gt; danger/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_network_security_group&quot; &quot;mauvais&quot; {
+  name                = &quot;nsg-danger&quot;
+  location            = &quot;westeurope&quot;
+  resource_group_name = &quot;rg-x&quot;
+  security_rule {
+    name                       = &quot;ssh-ouvert-au-monde&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;22&quot;
+    source_address_prefix      = &quot;*&quot;     # DANGER : SSH depuis Internet entier
+    destination_address_prefix = &quot;*&quot;
+  }
+}
+TF
+
+# Le garde-fou : échoue si une règle de sécurité est violée
+checkov -d danger --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks|CKV_AZURE_10|CKV_AZURE_9&quot; | head -5</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov signale au moins un <strong>échec</strong>, par ex. <code>CKV_AZURE_10</code> / <code>CKV_AZURE_9</code> (« Ensure that SSH/RDP access is restricted from the internet »), avec un bilan <code>Failed checks: ≥ 1</code>. Le garde-fou <strong>attrape</strong> la config dangereuse <strong>avant</strong> tout déploiement — en pipeline, <code>Failed checks &gt; 0</code> <strong>bloque</strong> la fusion. C&#39;est la <strong>policy-as-code</strong> : la sécurité devient une <strong>règle automatique</strong>, pas une revue manuelle qu&#39;on oublie. (En vrai Azure, <strong>Azure Policy</strong> joue ce rôle côté plateforme, en <strong>refusant</strong> la création non conforme.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov reports at least one <strong>failure</strong>, e.g. <code>CKV_AZURE_10</code> / <code>CKV_AZURE_9</code> (&quot;Ensure that SSH/RDP access is restricted from the internet&quot;), with a <code>Failed checks: ≥ 1</code> summary. The guardrail <strong>catches</strong> the dangerous config <strong>before</strong> any deployment — in a pipeline, <code>Failed checks &gt; 0</code> <strong>blocks</strong> the merge. That&#39;s <strong>policy-as-code</strong>: security becomes an <strong>automatic rule</strong>, not a manual review you forget. (In real Azure, <strong>Azure Policy</strong> plays this role platform-side, by <strong>denying</strong> non-compliant creation.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>défense en profondeur</strong> — les couches ensemble.</p>
+<p><strong>🤔 Aucune couche ne suffit seule.</strong> La force vient de la <strong>superposition</strong> : identité (managée, sans secret) + réseau (NSG refus par défaut) + données (secret au coffre) + garde-fou (policy). On récapitule les couches déployées et on note ce que chacune protège.</p>
+<p>Dresse la carte des couches en place :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble <strong>defense in depth</strong> — the layers together.</p>
+<p><strong>🤔 No single layer is enough.</strong> Strength comes from <strong>stacking</strong>: identity (managed, secretless) + network (deny-by-default NSG) + data (secret in vault) + guardrail (policy). We recap the deployed layers and note what each protects.</p>
+<p>Draw the map of the layers in place:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export PATH=&quot;$PATH&quot;
+echo &quot;=== Défense en profondeur — couches en place / layers in place ===&quot;
+printf &quot;%-14s %-40s %s\n&quot; &quot;COUCHE&quot; &quot;CONTRÔLE&quot; &quot;PROPRIÉTÉ CIA&quot;
+printf &quot;%-14s %-40s %s\n&quot; &quot;Identité&quot;  &quot;identité managée (sans mot de passe)&quot;   &quot;Confidentialité&quot;
+printf &quot;%-14s %-40s %s\n&quot; &quot;Réseau&quot;    &quot;NSG refus par défaut (HTTPS seul)&quot;      &quot;Intégrité/Dispo&quot;
+printf &quot;%-14s %-40s %s\n&quot; &quot;Données&quot;   &quot;secret au Key Vault (chiffré, audité)&quot;  &quot;Confidentialité&quot;
+printf &quot;%-14s %-40s %s\n&quot; &quot;Gouvernance&quot; &quot;policy-as-code (checkov bloque)&quot;      &quot;les trois&quot;
+
+echo; echo &quot;→ Vérif rapide que les couches vivent :&quot;
+azlocal keyvault secret show --vault kv-securite --name db-password &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;  ✅ coffre : secret présent&quot;
+azlocal identity list --resource-group rg-securite 2&gt;/dev/null | python3 -c &quot;import sys,json; print(&#39;  ✅ identité :&#39;, len(json.load(sys.stdin)[&#39;value&#39;]), &#39;identité(s) managée(s)&#39;)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>couches</strong> (Identité, Réseau, Données, Gouvernance), leur <strong>contrôle</strong> et la <strong>propriété CIA</strong> servie ; puis les vérifs affichent <code>✅ coffre : secret présent</code> et <code>✅ identité : 1 identité(s) managée(s)</code>. Chaque couche est <strong>indépendante</strong> : compromettre le réseau ne donne pas le secret (au coffre) ; voler une identité sans droit ne sert à rien (moindre privilège). C&#39;est <strong>ça</strong>, la défense en profondeur — et c&#39;est la structure de tout le track AZ-500 : <strong>identité</strong>, <strong>réseau</strong>, <strong>données</strong>, <strong>opérations</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>layers</strong> (Identity, Network, Data, Governance), their <strong>control</strong> and the <strong>CIA property</strong> served; then the checks show <code>✅ coffre : secret présent</code> and <code>✅ identité : 1 identité(s) managée(s)</code>. Each layer is <strong>independent</strong>: compromising the network doesn&#39;t yield the secret (in the vault); stealing an identity with no rights is useless (least privilege). That <strong>is</strong> defense in depth — and it&#39;s the structure of the whole AZ-500 track: <strong>identity</strong>, <strong>network</strong>, <strong>data</strong>, <strong>operations</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>ligne de base</strong> et le <strong>secure score</strong>, puis nettoyer.</p>
+<p><strong>🤔 Mesurer sa posture.</strong> On ne sécurise pas « au ressenti ». Une <strong>ligne de base de sécurité</strong> (Azure Security Benchmark) liste les contrôles attendus ; le <strong>secure score</strong> (Defender for Cloud) <strong>note</strong> ta conformité en %. On calcule un score maison sur nos couches, puis on détruit le lab.</p>
+<p>Calcule un secure score maison, puis nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>baseline</strong> and the <strong>secure score</strong>, then clean up.</p>
+<p><strong>🤔 Measure your posture.</strong> You don&#39;t secure &quot;by feel&quot;. A <strong>security baseline</strong> (Azure Security Benchmark) lists the expected controls; the <strong>secure score</strong> (Defender for Cloud) <strong>rates</strong> your compliance in %. We compute a homemade score on our layers, then destroy the lab.</p>
+<p>Compute a homemade secure score, then clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 &lt;&lt;&#39;PY&#39;
+controles = {
+  &quot;Secrets au coffre (pas en dur)&quot;: True,
+  &quot;Identité managée (sans mot de passe)&quot;: True,
+  &quot;NSG en refus par défaut&quot;: True,
+  &quot;SSH fermé sur Internet&quot;: True,
+  &quot;Policy-as-code active (checkov)&quot;: True,
+  &quot;Clés partagées désactivées&quot;: False,   # encore actives -&gt; point à corriger
+}
+ok = sum(controles.values())
+score = 100 * ok / len(controles)
+print(f&quot;Secure score (maison) : {ok}/{len(controles)} contrôles = {score:.0f}%&quot;)
+for c, v in controles.items():
+    print(f&quot;  {&#39;✅&#39; if v else &#39;❌&#39;} {c}&quot;)
+print(&quot;→ Le point ❌ est ta prochaine recommandation (comme dans Defender for Cloud).&quot;)
+PY
+
+# Nettoyer le lab / clean up the lab
+cd secu-infra &amp;&amp; terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete&quot; ; cd ..
+azlocal group delete --name rg-securite &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-securite supprimé / deleted&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche <code>Secure score (maison) : 5/6 contrôles = 83%</code> avec la liste cochée, et pointe le <strong>❌</strong> (clés partagées encore actives) comme <strong>prochaine recommandation</strong> — exactement la logique de <strong>Defender for Cloud</strong> : un score, des recommandations priorisées, une posture qui <strong>s&#39;améliore</strong>. Puis <code>Destroy complete!</code> et <code>rg-securite supprimé</code> nettoient le lab. Tu tiens le <strong>modèle mental</strong> (CIA, défense en profondeur, Zero Trust, responsabilité partagée) et les <strong>ancres</strong> (coffre, identité, réseau, policy). La suite du track AZ-500 : l&#39;<strong>identité</strong> en profondeur (Entra ID, RBAC, PIM), puis le <strong>réseau</strong>, les <strong>données</strong>, et les <strong>opérations de sécurité</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script shows <code>Secure score (maison) : 5/6 contrôles = 83%</code> with the checked list, and points to the <strong>❌</strong> (shared keys still active) as the <strong>next recommendation</strong> — exactly <strong>Defender for Cloud</strong>&#39;s logic: a score, prioritized recommendations, a posture that <strong>improves</strong>. Then <code>Destroy complete!</code> and <code>rg-securite supprimé</code> clean the lab. You hold the <strong>mental model</strong> (CIA, defense in depth, Zero Trust, shared responsibility) and the <strong>anchors</strong> (vault, identity, network, policy). Next in the AZ-500 track: <strong>identity</strong> in depth (Entra ID, RBAC, PIM), then <strong>network</strong>, <strong>data</strong>, and <strong>security operations</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Miser sur un seul rempart.</strong> Un pare-feu ne suffit pas. La <strong>défense en profondeur</strong> superpose des couches indépendantes.</p>
+<p><strong>2. Faire confiance au « réseau interne ».</strong> C&#39;est le modèle mort. <strong>Zero Trust</strong> : vérifier <strong>chaque</strong> accès, partout.</p>
+<p><strong>3. Secrets en dur / en clair.</strong> Un secret dans le code ou une variable d&#39;env non protégée finit par fuiter. Au <strong>coffre</strong>, toujours.</p>
+<p><strong>4. Clés partagées distribuées.</strong> Une clé de stockage <code>Full</code> est un passe permanent non traçable. Préfère <strong>identité managée + RBAC</strong> ou <strong>SAS</strong> limitée.</p>
+<p><strong>5. NSG en « autoriser par défaut ».</strong> Ouvre uniquement l&#39;explicitement nécessaire ; <strong>refuse</strong> le reste. Attention au SSH/RDP ouvert sur <code>*</code>.</p>
+<p><strong>6. Sur-privilège.</strong> Donner « Propriétaire » sur l&#39;abonnement « pour que ça marche » viole le moindre privilège. Rôle <strong>minimal</strong>, périmètre <strong>minimal</strong>.</p>
+<p><strong>7. Sécurité « au ressenti ».</strong> Sans <strong>ligne de base</strong> ni <strong>score</strong>, tu ne sais pas où tu en es. Mesure (secure score) et corrige les recommandations.</p>
+</div>
+<div data-lang="en"><p><strong>1. Betting on a single wall.</strong> A firewall isn&#39;t enough. <strong>Defense in depth</strong> stacks independent layers.</p>
+<p><strong>2. Trusting the &quot;internal network&quot;.</strong> That&#39;s the dead model. <strong>Zero Trust</strong>: verify <strong>every</strong> access, everywhere.</p>
+<p><strong>3. Hardcoded / plaintext secrets.</strong> A secret in code or an unprotected env var eventually leaks. In the <strong>vault</strong>, always.</p>
+<p><strong>4. Distributed shared keys.</strong> A <code>Full</code> storage key is a permanent, untraceable master pass. Prefer <strong>managed identity + RBAC</strong> or a limited <strong>SAS</strong>.</p>
+<p><strong>5. &quot;Allow by default&quot; NSG.</strong> Only open the explicitly necessary; <strong>deny</strong> the rest. Beware SSH/RDP open on <code>*</code>.</p>
+<p><strong>6. Over-privilege.</strong> Granting &quot;Owner&quot; on the subscription &quot;to make it work&quot; violates least privilege. <strong>Minimal</strong> role, <strong>minimal</strong> scope.</p>
+<p><strong>7. Security &quot;by feel&quot;.</strong> Without a <strong>baseline</strong> or a <strong>score</strong>, you don&#39;t know where you stand. Measure (secure score) and fix the recommendations.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu expliques <strong>CIA</strong>, <strong>défense en profondeur</strong>, <strong>Zero Trust</strong> et la <strong>responsabilité partagée</strong>.</li><li>Tu <strong>stockes/lis</strong> un secret dans un <strong>Key Vault</strong>.</li><li>Tu <strong>crées</strong> une <strong>identité managée</strong> et sais lire son <strong>principalId</strong>.</li><li>Tu <strong>reconnais</strong> le danger des <strong>clés partagées</strong> et la meilleure voie (identité/RBAC/SAS).</li><li>Tu <strong>déploies</strong> un <strong>NSG en refus par défaut</strong> (HTTPS seul, SSH refusé).</li><li>Tu <strong>installes</strong> un <strong>garde-fou policy-as-code</strong> et calcules un <strong>secure score</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You explain <strong>CIA</strong>, <strong>defense in depth</strong>, <strong>Zero Trust</strong> and <strong>shared responsibility</strong>.</li><li>You <strong>store/read</strong> a secret in a <strong>Key Vault</strong>.</li><li>You <strong>create</strong> a <strong>managed identity</strong> and can read its <strong>principalId</strong>.</li><li>You <strong>recognize</strong> the danger of <strong>shared keys</strong> and the better path (identity/RBAC/SAS).</li><li>You <strong>deploy</strong> a <strong>deny-by-default NSG</strong> (HTTPS only, SSH denied).</li><li>You <strong>install</strong> a <strong>policy-as-code guardrail</strong> and compute a <strong>secure score</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — sécurité de l&#39;identité (AZ-500)</em> — Entra ID, RBAC, moindre privilège, PIM, accès conditionnel.</li><li><strong>Réviser :</strong> <em>Azure — identité &amp; gouvernance (AZ-104)</em> pour les bases RBAC.</li><li><strong>S&#39;entraîner :</strong> reprends une infra d&#39;un guide précédent et calcule son <strong>secure score</strong> maison ; corrige le premier ❌.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — identity security (AZ-500)</em> — Entra ID, RBAC, least privilege, PIM, conditional access.</li><li><strong>Review:</strong> <em>Azure — identity &amp; governance (AZ-104)</em> for RBAC basics.</li><li><strong>Practice:</strong> take an earlier guide&#39;s infra and compute its homemade <strong>secure score</strong>; fix the first ❌.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Le modèle mental</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Triade CIA        Confidentialité · Intégrité · Disponibilité
+Défense en prof.  identité → périmètre → réseau → calcul → app → données
+Zero Trust        vérifier explicitement · moindre privilège · supposer la brèche
+Resp. partagée    Azure = socle ; TOI = identités, config, données, réseau</code></pre>
+<p><strong>Les ancres (live sur miniblue)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Coffre : secrets
+azlocal keyvault secret set  --vault V --name N --value &quot;…&quot;
+azlocal keyvault secret show --vault V --name N
+# Identité managée : sans mot de passe (principalId à autoriser)
+azlocal identity create --resource-group RG --name ID
+# Clés partagées (ANTI-PATTERN — voir puis éviter)
+azlocal storage account list-keys --resource-group RG --name COMPTE</code></pre>
+<p><strong>Réseau : refus par défaut (Terraform)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>NSG : Allow 443 (Internet)  ·  Deny 22 (*)  ·  reste refusé par défaut</code></pre>
+<p><strong>Garde-fou policy-as-code</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>checkov -d infra          # échoue si une règle de sécurité est violée (CKV_AZURE_*)
+# ex : CKV_AZURE_9/10 -&gt; SSH/RDP ouvert sur Internet</code></pre>
+</div>
+<div data-lang="en"><p><strong>The mental model</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>CIA triad         Confidentiality · Integrity · Availability
+Defense in depth  identity → perimeter → network → compute → app → data
+Zero Trust        verify explicitly · least privilege · assume breach
+Shared resp.      Azure = foundation ; YOU = identities, config, data, network</code></pre>
+<p><strong>The anchors (live on miniblue)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Vault: secrets
+azlocal keyvault secret set  --vault V --name N --value &quot;…&quot;
+azlocal keyvault secret show --vault V --name N
+# Managed identity: passwordless (principalId to authorize)
+azlocal identity create --resource-group RG --name ID
+# Shared keys (ANTI-PATTERN — see then avoid)
+azlocal storage account list-keys --resource-group RG --name ACCOUNT</code></pre>
+<p><strong>Network: deny by default (Terraform)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>NSG: Allow 443 (Internet)  ·  Deny 22 (*)  ·  the rest denied by default</code></pre>
+<p><strong>Policy-as-code guardrail</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>checkov -d infra          # fails if a security rule is violated (CKV_AZURE_*)
+# e.g. CKV_AZURE_9/10 -&gt; SSH/RDP open to the Internet</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>AZ-500</strong> : Microsoft Certified Azure Security Engineer Associate — objectifs officiels, Microsoft Learn.</li><li><strong>Microsoft Cloud Security Benchmark</strong> : la ligne de base des contrôles Azure — Microsoft Learn.</li><li><strong>Zero Trust</strong> : les principes et l&#39;architecture de référence Microsoft — learn.microsoft.com/security/zero-trust.</li><li><strong>Key Vault &amp; identités managées</strong> : secrets, jetons sans mot de passe — Microsoft Learn.</li><li><strong>checkov / Azure Policy</strong> : policy-as-code, refus des configs non conformes — docs officielles.</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>AZ-500</strong>: Microsoft Certified Azure Security Engineer Associate — official objectives, Microsoft Learn.</li><li><strong>Microsoft Cloud Security Benchmark</strong>: the baseline of Azure controls — Microsoft Learn.</li><li><strong>Zero Trust</strong>: Microsoft&#39;s principles and reference architecture — learn.microsoft.com/security/zero-trust.</li><li><strong>Key Vault &amp; managed identities</strong>: secrets, passwordless tokens — Microsoft Learn.</li><li><strong>checkov / Azure Policy</strong>: policy-as-code, denying non-compliant configs — official docs.</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>azlocal : commande introuvable</code>.</strong> Ajoute son dossier au <code>PATH</code> (<code>/usr/local/bin</code> ou <code>~/bin</code>) ou appelle-le par chemin complet. Le pipe vers <code>python3</code> masque sinon l&#39;erreur en <code>JSONDecodeError</code>.</p>
+<p><strong><code>terraform</code> : erreur TLS / certificat (step-04).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> et vérifie que miniblue tourne (port 4567).</p>
+<p><strong><code>checkov : command not found</code> (step-05).</strong> <code>pip install checkov</code> ; s&#39;il atterrit dans <code>~/.local/bin</code> hors PATH, ajoute ce dossier au <code>PATH</code>.</p>
+<p><strong><code>keyvault : --vault is required</code>.</strong> Le drapeau est <code>--vault</code> (pas <code>--vault-name</code>).</p>
+<p><strong>checkov ne signale rien.</strong> Vérifie que le dossier contient bien le <code>.tf</code> <strong>dangereux</strong> (SSH <code>source_address_prefix = &quot;*&quot;</code>). Un NSG <strong>durci</strong> (comme au step-04) <strong>passe</strong> — c&#39;est voulu.</p>
+<p><strong>Le RBAC ne se crée pas en local.</strong> miniblue <strong>n&#39;émule pas</strong> les attributions de rôles (404). C&#39;est <strong>attendu</strong> : on <strong>valide</strong> le RBAC en <strong>Bicep</strong> et on le <strong>raisonne</strong> ; l&#39;exécution vise du vrai Azure. L&#39;<strong>identité</strong> (principalId), elle, est bien réelle en local.</p>
+</div>
+<div data-lang="en"><p><strong><code>azlocal: command not found</code>.</strong> Add its folder to <code>PATH</code> (<code>/usr/local/bin</code> or <code>~/bin</code>) or call it by full path. Otherwise the pipe to <code>python3</code> hides the error as a <code>JSONDecodeError</code>.</p>
+<p><strong><code>terraform</code>: TLS / certificate error (step-04).</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> and check miniblue is running (port 4567).</p>
+<p><strong><code>checkov: command not found</code> (step-05).</strong> <code>pip install checkov</code>; if it lands in <code>~/.local/bin</code> off PATH, add that folder to <code>PATH</code>.</p>
+<p><strong><code>keyvault: --vault is required</code>.</strong> The flag is <code>--vault</code> (not <code>--vault-name</code>).</p>
+<p><strong>checkov reports nothing.</strong> Check the folder holds the <strong>dangerous</strong> <code>.tf</code> (SSH <code>source_address_prefix = &quot;*&quot;</code>). A <strong>hardened</strong> NSG (like step-04) <strong>passes</strong> — that&#39;s intended.</p>
+<p><strong>RBAC won&#39;t create locally.</strong> miniblue <strong>doesn&#39;t emulate</strong> role assignments (404). That&#39;s <strong>expected</strong>: we <strong>validate</strong> RBAC in <strong>Bicep</strong> and <strong>reason</strong> about it; execution targets real Azure. The <strong>identity</strong> (principalId), though, is genuinely real locally.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

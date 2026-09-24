@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — réseau &amp; sécurité système — jiha.tech</title>
+  <title data-lang="en">Linux — networking &amp; system security — jiha.tech</title>
+  <meta name="description" content="Réseau et sécurité Linux au niveau LPIC-1 : l&#39;adressage IP et les routes (ip), les ports à l&#39;écoute (ss), la chaîne de résolution DNS (/etc/hosts, nsswitch, resolved, dig), l&#39;authentification SSH par clés, le durcissement du serveur SSH, et le pare-feu ufw. Refaisable sans risque dans une VM." data-lang="fr">
+  <meta name="description" content="Linux networking and security at LPIC-1 level: IP addressing and routes (ip), listening ports (ss), the DNS resolution chain (/etc/hosts, nsswitch, resolved, dig), SSH key authentication, SSH server hardening, and the ufw firewall. Reproducible risk-free in a VM." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — réseau &amp; sécurité système">
+  <meta property="og:description" content="Réseau et sécurité Linux au niveau LPIC-1 : l&#39;adressage IP et les routes (ip), les ports à l&#39;écoute (ss), la chaîne de résolution DNS (/etc/hosts, nsswitch, resolved, dig), l&#39;authentification SSH par clés, le durcissement du serveur SSH, et le pare-feu ufw. Refaisable sans risque dans une VM.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-reseau-securite/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-reseau-securite/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-reseau-securite">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-reseau-securite</div>
+    <div class="prompt" data-lang="en">~/guides/linux-reseau-securite</div>
+    <h1 data-lang="fr">Linux — réseau &amp; sécurité système</h1>
+    <h1 data-lang="en">Linux — networking &amp; system security</h1>
+    <p class="tagline" data-lang="fr">ip, ss, DNS, SSH, durcissement, pare-feu.</p>
+    <p class="tagline" data-lang="en">ip, ss, DNS, SSH, hardening, firewall.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 195 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 195 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un serveur <strong>est fait pour le réseau</strong> : il écoute, il répond, il se connecte. Et dès qu&#39;il est en ligne, il est <strong>exposé</strong> — d&#39;où l&#39;inséparable couple <strong>réseau &amp; sécurité</strong>. Le guide fondamentaux t&#39;a montré <code>ip a</code> et <code>ping</code> ; l&#39;examen <strong>LPIC-1</strong> attend la maîtrise d&#39;admin : <em>quelle est mon adresse, ma route, ma passerelle ? quels ports mon serveur ouvre-t-il ? comment un nom se résout-il en IP ? comment se connecter en SSH par clé (sans mot de passe) ? comment durcir le serveur SSH ? comment fermer tout sauf l&#39;essentiel avec un pare-feu ?</em></p>
+<p>Ce guide couvre les domaines <strong>Réseau &amp; sécurité</strong> : l&#39;<strong>adressage IP</strong> et les routes (<strong><code>ip</code></strong>), les <strong>ports</strong> à l&#39;écoute (<strong><code>ss</code></strong>), la <strong>résolution DNS</strong> (<code>/etc/hosts</code>, <code>nsswitch</code>, <code>resolved</code>, <code>dig</code>), l&#39;<strong>authentification SSH par clés</strong>, le <strong>durcissement</strong> du serveur SSH, et le <strong>pare-feu <code>ufw</code></strong>.</p>
+<p>⚠️ <strong>Fais ce guide dans une VM Multipass.</strong> Les étapes SSH et pare-feu <strong>peuvent couper un accès distant</strong> si elles sont mal faites. Dans une VM, tu gardes <strong>toujours</strong> la console (<code>multipass shell</code>) même si SSH ou le pare-feu bloque — c&#39;est le filet de sécurité indispensable pour apprendre ces manœuvres.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides précédents de la track et tu vises <strong>LPIC-1</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne connais pas <code>ip a</code>/<code>ping</code> → revois le réseau dans le guide fondamentaux.</li><li>Tu veux le scripting ou le projet → ce sont les étapes suivantes.</li></ul>
+</div>
+<div data-lang="en"><p>A server <strong>is made for the network</strong>: it listens, it answers, it connects. And the moment it&#39;s online, it&#39;s <strong>exposed</strong> — hence the inseparable <strong>networking &amp; security</strong> pair. The fundamentals guide showed you <code>ip a</code> and <code>ping</code>; the <strong>LPIC-1</strong> exam expects admin mastery: <em>what&#39;s my address, route, gateway? which ports does my server open? how does a name resolve to an IP? how do you SSH in with a key (no password)? how do you harden the SSH server? how do you close everything but the essentials with a firewall?</em></p>
+<p>This guide covers the <strong>Networking &amp; security</strong> domains: <strong>IP addressing</strong> and routes (<strong><code>ip</code></strong>), listening <strong>ports</strong> (<strong><code>ss</code></strong>), <strong>DNS resolution</strong> (<code>/etc/hosts</code>, <code>nsswitch</code>, <code>resolved</code>, <code>dig</code>), <strong>SSH key authentication</strong>, SSH server <strong>hardening</strong>, and the <strong><code>ufw</code> firewall</strong>.</p>
+<p>⚠️ <strong>Do this guide in a Multipass VM.</strong> The SSH and firewall steps <strong>can cut off remote access</strong> if done wrong. In a VM you <strong>always</strong> keep the console (<code>multipass shell</code>) even if SSH or the firewall blocks — the essential safety net for learning these maneuvers.</p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier track guides and you&#39;re aiming for <strong>LPIC-1</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know <code>ip a</code>/<code>ping</code> → review networking in the fundamentals guide.</li><li>You want scripting or the project → those are the next steps.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Lire l&#39;<strong>adressage</strong> : interfaces, IP/CIDR, <strong>routes</strong>, passerelle (<code>ip</code>).</li><li>Lister les <strong>ports à l&#39;écoute</strong> et les processus derrière (<code>ss</code>).</li><li>Expliquer la <strong>chaîne de résolution DNS</strong> et interroger un nom (<code>dig</code>, <code>getent</code>).</li><li>Générer une <strong>paire de clés SSH</strong> et te connecter <strong>sans mot de passe</strong>.</li><li><strong>Durcir</strong> le serveur SSH (<code>sshd_config</code> : root, mots de passe) et valider (<code>sshd -t</code>).</li><li>Configurer un <strong>pare-feu</strong> avec <code>ufw</code> (deny par défaut, autoriser l&#39;essentiel).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Read <strong>addressing</strong>: interfaces, IP/CIDR, <strong>routes</strong>, gateway (<code>ip</code>).</li><li>List <strong>listening ports</strong> and the processes behind them (<code>ss</code>).</li><li>Explain the <strong>DNS resolution chain</strong> and query a name (<code>dig</code>, <code>getent</code>).</li><li>Generate an <strong>SSH key pair</strong> and connect <strong>without a password</strong>.</li><li><strong>Harden</strong> the SSH server (<code>sshd_config</code>: root, passwords) and validate (<code>sshd -t</code>).</li><li>Configure a <strong>firewall</strong> with <code>ufw</code> (default deny, allow the essentials).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides précédents de la track Linux acquis.</li><li>Une <strong>VM Ubuntu Multipass</strong> (fortement recommandé — voir l&#39;avertissement) avec <code>sudo</code>.</li><li>Les outils réseau/SSH :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Linux track guides under your belt.</li><li>An <strong>Ubuntu Multipass VM</strong> (strongly recommended — see the warning) with <code>sudo</code>.</li><li>The networking/SSH tools:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt update &amp;&amp; sudo apt install -y bind9-dnsutils openssh-server ufw</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-boot-systemd/">
+    <span class="num">06</span>
+    <span class="title-line" data-lang="fr">Linux — boot, systemd &amp; processus</span>
+    <span class="title-line" data-lang="en">Linux — boot, systemd &amp; processes</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L&#39;adressage IP.</strong> Une machine a une ou plusieurs <strong>interfaces</strong> (<code>eth0</code>, <code>lo</code>…), chacune avec une <strong>adresse IP</strong> et un <strong>masque</strong> en notation <strong>CIDR</strong> (<code>/24</code> = 256 adresses). Pour joindre l&#39;extérieur, elle passe par une <strong>passerelle</strong> (la <strong>route par défaut</strong>). <code>ip</code> est l&#39;outil moderne : <code>ip addr</code> (adresses), <code>ip route</code> (routes), <code>ip link</code> (interfaces). Les plages <strong>privées</strong> (<code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>) ne sont pas routées sur Internet.</p>
+<p><strong>Ports &amp; sockets.</strong> Un service <strong>écoute</strong> sur un <strong>port</strong> (SSH 22, HTTP 80, HTTPS 443…). <strong><code>ss</code></strong> (successeur de <code>netstat</code>) liste les sockets : <code>ss -tlnp</code> = <strong>t</strong>cp, <strong>l</strong>istening, <strong>n</strong>umérique, <strong>p</strong>rocessus. C&#39;est ainsi qu&#39;on répond à « <strong>qu&#39;est-ce qui écoute sur ma machine ?</strong> » — première question d&#39;un audit de sécurité (chaque port ouvert est une porte).</p>
+<p><strong>La résolution DNS</strong>, la chaîne qui transforme un <strong>nom</strong> en <strong>IP</strong> :</p>
+<ol><li><strong><code>/etc/nsswitch.conf</code></strong> (ligne <code>hosts:</code>) décide de <strong>l&#39;ordre</strong> des sources.</li><li><strong><code>/etc/hosts</code></strong> : la table locale (consultée en premier, en général) — un nom → une IP, en dur.</li><li>Le <strong>résolveur DNS</strong> : sur Ubuntu, <strong><code>systemd-resolved</code></strong> (<code>/etc/resolv.conf</code> pointe vers <code>127.0.0.53</code>), qui interroge les serveurs DNS.</li></ol>
+<p>Outils : <strong><code>getent hosts nom</code></strong> (suit <strong>toute</strong> la chaîne nsswitch), <strong><code>dig</code></strong>/<strong><code>host</code></strong> (interrogent <strong>directement</strong> le DNS, sans nsswitch).</p>
+<p><strong>SSH</strong>, l&#39;accès distant sécurisé. L&#39;<strong>authentification par clés</strong> remplace le mot de passe : tu génères une <strong>paire</strong> (clé <strong>privée</strong> secrète chez toi, clé <strong>publique</strong> posée sur le serveur dans <code>~/.ssh/authorized_keys</code>). Le serveur te défie, ta clé privée répond — sans jamais transmettre de secret. C&#39;est <strong>plus sûr</strong> et scriptable. Le serveur se configure dans <strong><code>sshd_config</code></strong> ; les <strong>durcissements</strong> clés : <code>PermitRootLogin no</code> (pas de root direct), <code>PasswordAuthentication no</code> (clés seulement).</p>
+<p><strong>Le pare-feu.</strong> Par défaut, tout port ouvert est joignable. Un <strong>pare-feu</strong> applique une politique : <strong>tout refuser en entrée</strong>, puis <strong>autoriser</strong> au cas par cas (SSH, web…). Sur Ubuntu, <strong><code>ufw</code></strong> est la surcouche simple de <strong><code>nftables</code></strong> (le moteur du noyau). Principe d&#39;or : <strong>deny par défaut, allow l&#39;exception</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>IP addressing.</strong> A machine has one or more <strong>interfaces</strong> (<code>eth0</code>, <code>lo</code>…), each with an <strong>IP address</strong> and a <strong>mask</strong> in <strong>CIDR</strong> notation (<code>/24</code> = 256 addresses). To reach the outside, it goes through a <strong>gateway</strong> (the <strong>default route</strong>). <code>ip</code> is the modern tool: <code>ip addr</code> (addresses), <code>ip route</code> (routes), <code>ip link</code> (interfaces). The <strong>private</strong> ranges (<code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>) aren&#39;t routed on the Internet.</p>
+<p><strong>Ports &amp; sockets.</strong> A service <strong>listens</strong> on a <strong>port</strong> (SSH 22, HTTP 80, HTTPS 443…). <strong><code>ss</code></strong> (netstat&#39;s successor) lists sockets: <code>ss -tlnp</code> = <strong>t</strong>cp, <strong>l</strong>istening, <strong>n</strong>umeric, <strong>p</strong>rocess. That&#39;s how you answer &quot;<strong>what&#39;s listening on my machine?</strong>&quot; — the first question of a security audit (every open port is a door).</p>
+<p><strong>DNS resolution</strong>, the chain that turns a <strong>name</strong> into an <strong>IP</strong>:</p>
+<ol><li><strong><code>/etc/nsswitch.conf</code></strong> (the <code>hosts:</code> line) decides the <strong>order</strong> of sources.</li><li><strong><code>/etc/hosts</code></strong>: the local table (usually consulted first) — a name → an IP, hardcoded.</li><li>The <strong>DNS resolver</strong>: on Ubuntu, <strong><code>systemd-resolved</code></strong> (<code>/etc/resolv.conf</code> points to <code>127.0.0.53</code>), which queries the DNS servers.</li></ol>
+<p>Tools: <strong><code>getent hosts name</code></strong> (follows the <strong>whole</strong> nsswitch chain), <strong><code>dig</code></strong>/<strong><code>host</code></strong> (query <strong>DNS directly</strong>, bypassing nsswitch).</p>
+<p><strong>SSH</strong>, secure remote access. <strong>Key authentication</strong> replaces the password: you generate a <strong>pair</strong> (secret <strong>private</strong> key on your side, <strong>public</strong> key placed on the server in <code>~/.ssh/authorized_keys</code>). The server challenges you, your private key answers — without ever transmitting a secret. It&#39;s <strong>safer</strong> and scriptable. The server is configured in <strong><code>sshd_config</code></strong>; the key <strong>hardenings</strong>: <code>PermitRootLogin no</code> (no direct root), <code>PasswordAuthentication no</code> (keys only).</p>
+<p><strong>The firewall.</strong> By default, every open port is reachable. A <strong>firewall</strong> enforces a policy: <strong>deny everything inbound</strong>, then <strong>allow</strong> case by case (SSH, web…). On Ubuntu, <strong><code>ufw</code></strong> is the simple front-end to <strong><code>nftables</code></strong> (the kernel engine). Golden rule: <strong>default deny, allow the exception</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-linux-network-security">
+  <svg viewBox="0 0 760 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-linux-network-security">
+  <title id="s-linux-network-security">Réseau &amp; sécurité en ligne de commande</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Réseau &amp; sécurité en ligne de commande</text><rect class="box" x="16" y="40" width="230" height="62" rx="3"/><text class="lbl" x="131" y="68.5" text-anchor="middle">ip</text><text class="sub" x="131" y="81.5" text-anchor="middle">adresses / routes</text><rect class="box" x="264" y="40" width="230" height="62" rx="3"/><text class="lbl" x="379" y="68.5" text-anchor="middle">ss</text><text class="sub" x="379" y="81.5" text-anchor="middle">ports ouverts</text><rect class="box" x="512" y="40" width="230" height="62" rx="3"/><text class="lbl" x="627" y="68.5" text-anchor="middle">DNS</text><text class="sub" x="627" y="81.5" text-anchor="middle">résout les noms</text><rect class="box" x="16" y="118" width="230" height="62" rx="3"/><text class="lbl" x="131" y="146.5" text-anchor="middle">SSH</text><text class="sub" x="131" y="159.5" text-anchor="middle">clés, pas mot de passe</text><rect class="box-accent" x="264" y="118" width="230" height="62" rx="3"/><text class="lbl lbl-fill" x="379" y="146.5" text-anchor="middle">ufw</text><text class="sub sub-fill" x="379" y="159.5" text-anchor="middle">deny par défaut</text><rect class="box" x="512" y="118" width="230" height="62" rx="3"/><text class="lbl" x="627" y="146.5" text-anchor="middle">filtrage entrée</text><text class="sub" x="627" y="159.5" text-anchor="middle">pare-feu</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> ip (adresses/routes) et ss (ports) inspectent ; DNS résout les noms ; SSH par clés authentifie ; le pare-feu ufw filtre l&#39;entrée (deny par défaut).</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> ip (addresses/routes) and ss (ports) inspect; DNS resolves names; SSH keys authenticate; the ufw firewall filters inbound (default deny).</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : adresses &amp; routes → ports à l&#39;écoute → DNS → clés SSH → durcir SSH → pare-feu ufw.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: addresses &amp; routes → listening ports → DNS → SSH keys → harden SSH → ufw firewall.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire l&#39;<strong>adressage</strong> : interfaces, IP/CIDR, routes, passerelle.</p>
+<p><strong>🤔 Trois questions, trois vues.</strong> <em>Quelle IP ? quelle route ? quelle passerelle ?</em> Inspecte :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read <strong>addressing</strong>: interfaces, IP/CIDR, routes, gateway.</p>
+<p><strong>🤔 Three questions, three views.</strong> <em>Which IP? which route? which gateway?</em> Inspect:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ip -br addr                 # résumé : interfaces + IP/CIDR / summary: interfaces + IP/CIDR
+ip route                    # les routes ; &quot;default via X&quot; = la passerelle / routes; &quot;default via X&quot; = gateway
+ip link                     # état des interfaces (UP/DOWN) / interfaces&#39; state
+ping -c 3 1.1.1.1           # connectivité IP brute (sans DNS) / raw IP connectivity (no DNS)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ip -br addr</code> montre tes interfaces avec leur <strong>IP/CIDR</strong> (ex. <code>eth0  UP  10.x.x.x/24</code> et <code>lo  UNKNOWN  127.0.0.1/8</code>). <code>ip route</code> affiche une ligne <strong><code>default via …</code></strong> : c&#39;est ta <strong>passerelle</strong> (par où sort le trafic Internet). Le <code>ping -c 3 1.1.1.1</code> (une IP, pas un nom) teste la <strong>connectivité pure</strong>, sans DNS. Tu sais lire l&#39;identité réseau d&#39;une machine : adresse, masque, route, passerelle.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ip -br addr</code> shows your interfaces with their <strong>IP/CIDR</strong> (e.g. <code>eth0  UP  10.x.x.x/24</code> and <code>lo  UNKNOWN  127.0.0.1/8</code>). <code>ip route</code> shows a <strong><code>default via …</code></strong> line: that&#39;s your <strong>gateway</strong> (where Internet traffic exits). The <code>ping -c 3 1.1.1.1</code> (an IP, not a name) tests <strong>pure connectivity</strong>, without DNS. You can read a machine&#39;s network identity: address, mask, route, gateway.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lister les <strong>ports à l&#39;écoute</strong> — l&#39;inventaire des portes ouvertes.</p>
+<p><strong>🤔 Qu&#39;est-ce qui écoute ?</strong> Chaque service en écoute = un point d&#39;entrée. <code>ss</code> les liste (avec <code>sudo</code> pour voir les processus) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> List the <strong>listening ports</strong> — the inventory of open doors.</p>
+<p><strong>🤔 What&#39;s listening?</strong> Each listening service = an entry point. <code>ss</code> lists them (with <code>sudo</code> to see the processes):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo ss -tlnp              # TCP, Listening, Numérique, Processus / TCP, Listening, Numeric, Process
+grep -E &#39;\bssh\b&#39; /etc/services   # le port officiel de ssh (22) / ssh&#39;s official port (22)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo ss -tlnp</code> liste chaque socket <strong>en écoute</strong> avec son port et le <strong>processus</strong> derrière — au minimum le port <strong><code>:22</code></strong> (SSH) et le résolveur <code>systemd-resolve</code> sur <code>127.0.0.53:53</code>. <em>(Sur Ubuntu 24.04, SSH est <strong>activé par socket</strong> : tant qu&#39;aucune connexion n&#39;a eu lieu, <code>:22</code> est tenu par <strong><code>systemd</code></strong> (PID 1), pas par <code>sshd</code> — à la première connexion, <code>ssh.service</code>/<code>sshd</code> prend le relais.)</em> Tu réponds à « <strong>qu&#39;est-ce qui est exposé ?</strong> ». <code>/etc/services</code> mappe les noms de services aux ports (ssh → 22). Mémorise les drapeaux : <strong><code>-t</code></strong> tcp, <strong><code>-l</code></strong> listening, <strong><code>-n</code></strong> numérique (pas de résolution), <strong><code>-p</code></strong> processus. C&#39;est le réflexe d&#39;audit n°1.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo ss -tlnp</code> lists each <strong>listening</strong> socket with its port and the <strong>process</strong> behind it — at minimum port <strong><code>:22</code></strong> (SSH) and the resolver <code>systemd-resolve</code> on <code>127.0.0.53:53</code>. <em>(On Ubuntu 24.04, SSH is <strong>socket-activated</strong>: until a connection happens, <code>:22</code> is held by <strong><code>systemd</code></strong> (PID 1), not <code>sshd</code> — on the first connection, <code>ssh.service</code>/<code>sshd</code> takes over.)</em> You answer &quot;<strong>what&#39;s exposed?</strong>&quot;. <code>/etc/services</code> maps service names to ports (ssh → 22). Memorize the flags: <strong><code>-t</code></strong> tcp, <strong><code>-l</code></strong> listening, <strong><code>-n</code></strong> numeric (no resolution), <strong><code>-p</code></strong> process. It&#39;s audit reflex #1.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>chaîne de résolution DNS</strong> et interroger un nom.</p>
+<p><strong>🤔 Nom → IP, mais par où ?</strong> L&#39;ordre est dans <code>nsswitch.conf</code>, <code>/etc/hosts</code> passe souvent en premier. Prouve-le en ajoutant une entrée locale :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>DNS resolution chain</strong> and query a name.</p>
+<p><strong>🤔 Name → IP, but through what?</strong> The order is in <code>nsswitch.conf</code>, <code>/etc/hosts</code> usually comes first. Prove it by adding a local entry:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>grep &#39;^hosts:&#39; /etc/nsswitch.conf     # l&#39;ordre des sources (files dns...) / the source order
+cat /etc/resolv.conf                   # sur Ubuntu : nameserver 127.0.0.53 (systemd-resolved)
+
+echo &quot;203.0.113.42  monserveur.test&quot; | sudo tee -a /etc/hosts   # entrée locale bidon / bogus local entry
+getent hosts monserveur.test           # suit nsswitch -&gt; lit /etc/hosts / follows nsswitch -&gt; reads /etc/hosts
+dig +short example.com                  # interroge le DNS directement / queries DNS directly
+sudo sed -i &#39;/monserveur.test/d&#39; /etc/hosts    # nettoie l&#39;entrée / clean up the entry</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>grep &#39;^hosts:&#39; /etc/nsswitch.conf</code> montre l&#39;ordre — sur 24.04 avec systemd-resolved, souvent <code>files resolve [!UNAVAIL=return] dns</code>. L&#39;essentiel : <strong><code>files</code> est en premier</strong> → <strong><code>/etc/hosts</code> d&#39;abord</strong>, puis la résolution DNS. Preuve : <code>getent hosts monserveur.test</code> renvoie <strong><code>203.0.113.42</code></strong> — l&#39;IP bidon qu&#39;on a mise dans <code>/etc/hosts</code>, <strong>sans</strong> jamais toucher au DNS (elle n&#39;existe pas sur Internet). En face, <code>dig +short example.com</code> interroge <strong>directement</strong> le DNS et renvoie une vraie IP publique. Distinction d&#39;examen : <strong><code>getent</code></strong> suit <strong>nsswitch</strong> (hosts + dns), <strong><code>dig</code></strong> court-circuite et parle <strong>au DNS</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>grep &#39;^hosts:&#39; /etc/nsswitch.conf</code> shows the order — on 24.04 with systemd-resolved, often <code>files resolve [!UNAVAIL=return] dns</code>. The key point: <strong><code>files</code> is first</strong> → <strong><code>/etc/hosts</code> first</strong>, then DNS resolution. Proof: <code>getent hosts monserveur.test</code> returns <strong><code>203.0.113.42</code></strong> — the bogus IP we put in <code>/etc/hosts</code>, <strong>without</strong> ever touching DNS (it doesn&#39;t exist on the Internet). Meanwhile, <code>dig +short example.com</code> queries <strong>DNS directly</strong> and returns a real public IP. Exam distinction: <strong><code>getent</code></strong> follows <strong>nsswitch</strong> (hosts + dns), <strong><code>dig</code></strong> bypasses it and talks <strong>to DNS</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer une <strong>paire de clés SSH</strong> et te connecter <strong>sans mot de passe</strong>.</p>
+<p><strong>🤔 Clé privée vs publique.</strong> La <strong>privée</strong> reste secrète chez toi ; la <strong>publique</strong> se pose sur le serveur. On teste sur <code>localhost</code> (le serveur SSH tourne déjà) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate an <strong>SSH key pair</strong> and connect <strong>without a password</strong>.</p>
+<p><strong>🤔 Private vs public key.</strong> The <strong>private</strong> one stays secret on your side; the <strong>public</strong> one is placed on the server. We test on <code>localhost</code> (the SSH server is already running):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N &quot;&quot;    # paire de clés, sans passphrase (démo) / key pair, no passphrase
+cat ~/.ssh/id_ed25519.pub &gt;&gt; ~/.ssh/authorized_keys # pose la clé PUBLIQUE / install the PUBLIC key
+chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/authorized_keys
+
+ssh -o StrictHostKeyChecking=accept-new localhost hostname   # se connecte par CLÉ, sans mot de passe / connects by KEY</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ssh localhost hostname</code> renvoie le nom de la VM <strong>sans te demander de mot de passe</strong> — l&#39;authentification s&#39;est faite <strong>par clé</strong> : le serveur a vérifié que ta clé privée correspond à la publique posée dans <code>authorized_keys</code>. Les <strong>permissions strictes</strong> (<code>700</code> sur <code>~/.ssh</code>, <code>600</code> sur <code>authorized_keys</code>) sont <strong>obligatoires</strong> : SSH <strong>refuse</strong> les clés si le dossier est trop ouvert (sécurité). Tu as le socle de tout accès serveur moderne : <strong>des clés, pas des mots de passe</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ssh localhost hostname</code> returns the VM&#39;s name <strong>without asking for a password</strong> — authentication happened <strong>by key</strong>: the server verified your private key matches the public one placed in <code>authorized_keys</code>. The <strong>strict permissions</strong> (<code>700</code> on <code>~/.ssh</code>, <code>600</code> on <code>authorized_keys</code>) are <strong>mandatory</strong>: SSH <strong>refuses</strong> keys if the folder is too open (security). You have the foundation of all modern server access: <strong>keys, not passwords</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Durcir</strong> le serveur SSH : pas de root, pas de mots de passe.</p>
+<p>⚠️ <strong>Filet de sécurité.</strong> On désactive l&#39;auth par mot de passe : <strong>assure-toi d&#39;abord que ta clé marche</strong> (étape 4 ✅). Dans une VM, la console reste de toute façon accessible. On écrit une surcharge dans <code>sshd_config.d/</code> (propre) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Harden</strong> the SSH server: no root, no passwords.</p>
+<p>⚠️ <strong>Safety net.</strong> We disable password auth: <strong>make sure your key works first</strong> (step 4 ✅). In a VM, the console stays accessible anyway. We write an override in <code>sshd_config.d/</code> (clean):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># nom en 00- : sshd retient la PREMIÈRE valeur trouvée -&gt; on passe devant un
+# éventuel 50-cloud-init.conf qui remettrait PasswordAuthentication yes
+# 00- name: sshd keeps the FIRST value found -&gt; sort before any 50-cloud-init.conf
+sudo tee /etc/ssh/sshd_config.d/00-durcissement.conf &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+PermitRootLogin no
+PasswordAuthentication no
+X11Forwarding no
+EOF
+
+sudo sshd -t &amp;&amp; echo &quot;config SSH valide / SSH config valid&quot;   # VALIDE avant d&#39;appliquer / VALIDATE before applying
+sudo systemctl reload ssh
+sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauthentication&#39;   # confirme les valeurs effectives (sudo : lit les host keys) / effective values (sudo: reads host keys)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo sshd -t</code> ne renvoie <strong>rien</strong> (ou ton message « valide ») = la config est <strong>syntaxiquement correcte</strong> — étape <strong>cruciale</strong> avant tout <code>reload</code> (une faute ici couperait SSH). <code>sudo sshd -T | grep …</code> confirme les valeurs <strong>effectives</strong> : <code>permitrootlogin no</code> et <code>passwordauthentication no</code> <em>(le <code>sudo</code> est requis : <code>sshd -T</code> lit les clés d&#39;hôte privées)</em>. Désormais, le serveur <strong>refuse</strong> root en direct et <strong>n&#39;accepte que les clés</strong> — deux durcissements majeurs du programme LPIC-1. <em>(Un <code>Port</code> différent se change aussi ici, mais sur Ubuntu 24.04 le port est piloté par <code>ssh.socket</code> — édite-le avec <code>systemctl edit ssh.socket</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo sshd -t</code> returns <strong>nothing</strong> (or your &quot;valid&quot; message) = the config is <strong>syntactically correct</strong> — a <strong>crucial</strong> step before any <code>reload</code> (a mistake here would cut SSH). <code>sudo sshd -T | grep …</code> confirms the <strong>effective</strong> values: <code>permitrootlogin no</code> and <code>passwordauthentication no</code> <em>(the <code>sudo</code> is required: <code>sshd -T</code> reads the private host keys)</em>. The server now <strong>refuses</strong> direct root and <strong>accepts only keys</strong> — two major LPIC-1 hardenings. <em>(A different <code>Port</code> is also changed here, but on Ubuntu 24.04 the port is driven by <code>ssh.socket</code> — edit it with <code>systemctl edit ssh.socket</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Fermer tout sauf l&#39;essentiel avec le <strong>pare-feu <code>ufw</code></strong>.</p>
+<p>⚠️ <strong>Ordre vital.</strong> <strong>Autorise SSH AVANT d&#39;activer</strong> le pare-feu, sinon tu te coupes l&#39;accès. (Dans une VM, la console te sauve — mais prends le réflexe.)</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Close everything but the essentials with the <strong><code>ufw</code> firewall</strong>.</p>
+<p>⚠️ <strong>Vital order.</strong> <strong>Allow SSH BEFORE enabling</strong> the firewall, or you cut off your own access. (In a VM the console saves you — but build the reflex.)</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo ufw allow OpenSSH             # AUTORISE le SSH d&#39;abord ! (port 22) / ALLOW SSH first! (port 22)
+sudo ufw default deny incoming     # politique : tout refuser en entrée / policy: deny all inbound
+sudo ufw default allow outgoing    # ...autoriser la sortie / ...allow outbound
+sudo ufw --force enable            # active le pare-feu / enable the firewall
+sudo ufw status verbose            # règles actives / active rules</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo ufw status verbose</code> montre <strong><code>Default: deny (incoming), allow (outgoing)</code></strong> et une règle <strong><code>OpenSSH   ALLOW   Anywhere</code></strong>. Résultat : <strong>seul</strong> le port 22 (SSH) est joignable de l&#39;extérieur ; tout le reste est <strong>fermé</strong>. C&#39;est le principe <strong>deny par défaut, allow l&#39;exception</strong> — la posture de sécurité de base d&#39;un serveur. <code>ufw</code> traduit ça en règles <strong><code>nftables</code></strong> dans le noyau. <em>(Pour désactiver : <code>sudo ufw disable</code>.)</em></p>
+<p><strong>🤔 Aller plus loin.</strong> En prod, on ajoute souvent <strong><code>fail2ban</code></strong> (<code>sudo apt install fail2ban</code>) : il surveille les logs SSH et <strong>bannit</strong> temporairement les IP qui multiplient les échecs — une défense contre le <em>brute-force</em>, complémentaire des clés et du pare-feu.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo ufw status verbose</code> shows <strong><code>Default: deny (incoming), allow (outgoing)</code></strong> and an <strong><code>OpenSSH   ALLOW   Anywhere</code></strong> rule. Result: <strong>only</strong> port 22 (SSH) is reachable from outside; everything else is <strong>closed</strong>. That&#39;s the <strong>default deny, allow the exception</strong> principle — a server&#39;s baseline security posture. <code>ufw</code> translates this into <strong><code>nftables</code></strong> rules in the kernel. <em>(To disable: <code>sudo ufw disable</code>.)</em></p>
+<p><strong>🤔 Going further.</strong> In prod, you often add <strong><code>fail2ban</code></strong> (<code>sudo apt install fail2ban</code>): it watches SSH logs and temporarily <strong>bans</strong> IPs that rack up failures — a defense against <em>brute-force</em>, complementing keys and the firewall.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Activer le pare-feu avant d&#39;autoriser SSH.</strong> <code>ufw enable</code> sans <code>allow OpenSSH</code> <strong>te coupe l&#39;accès distant</strong>. Toujours autoriser SSH <strong>d&#39;abord</strong>. (D&#39;où la VM avec console.)</p>
+<p><strong>2. Désactiver <code>PasswordAuthentication</code> sans clé fonctionnelle.</strong> Tu te verrouilles dehors. <strong>Teste la connexion par clé</strong> (étape 4) <strong>avant</strong> de désactiver les mots de passe.</p>
+<p><strong>3. Recharger <code>sshd</code> sans <code>sshd -t</code>.</strong> Une faute de syntaxe dans <code>sshd_config</code> peut empêcher <code>sshd</code> de redémarrer. <strong>Valide toujours</strong> avec <code>sudo sshd -t</code> avant <code>reload</code>.</p>
+<p><strong>4. Permissions trop ouvertes sur <code>~/.ssh</code>.</strong> SSH <strong>ignore</strong> <code>authorized_keys</code>/les clés si <code>~/.ssh</code> n&#39;est pas en <code>700</code> et les fichiers en <code>600</code> (clé privée) / lisibles. Symptôme : il redemande un mot de passe.</p>
+<p><strong>5. Confondre <code>getent</code> et <code>dig</code>.</strong> <code>getent hosts</code> suit <strong>nsswitch</strong> (donc <code>/etc/hosts</code> <strong>puis</strong> DNS) ; <code>dig</code> parle <strong>directement</strong> au DNS. Un nom qui résout avec <code>getent</code> mais pas <code>dig</code> (ou l&#39;inverse) t&#39;indique <strong>où</strong> est l&#39;entrée.</p>
+<p><strong>6. Oublier <code>sudo</code> avec <code>ss -p</code>.</strong> Sans <code>sudo</code>, <code>ss</code> liste les ports mais <strong>pas</strong> les noms de processus. Pour l&#39;audit « qui écoute », il faut <code>sudo</code>.</p>
+<p><strong>7. <code>netstat</code> par habitude.</strong> <code>netstat</code> est <strong>obsolète</strong> (paquet <code>net-tools</code> souvent absent). L&#39;outil actuel est <strong><code>ss</code></strong> (et <code>ip</code> pour <code>ifconfig</code>/<code>route</code>).</p>
+</div>
+<div data-lang="en"><p><strong>1. Enabling the firewall before allowing SSH.</strong> <code>ufw enable</code> without <code>allow OpenSSH</code> <strong>cuts off your remote access</strong>. Always allow SSH <strong>first</strong>. (Hence the VM with a console.)</p>
+<p><strong>2. Disabling <code>PasswordAuthentication</code> without a working key.</strong> You lock yourself out. <strong>Test the key connection</strong> (step 4) <strong>before</strong> disabling passwords.</p>
+<p><strong>3. Reloading <code>sshd</code> without <code>sshd -t</code>.</strong> A syntax error in <code>sshd_config</code> can stop <code>sshd</code> from restarting. <strong>Always validate</strong> with <code>sudo sshd -t</code> before <code>reload</code>.</p>
+<p><strong>4. Too-open permissions on <code>~/.ssh</code>.</strong> SSH <strong>ignores</strong> <code>authorized_keys</code>/keys if <code>~/.ssh</code> isn&#39;t <code>700</code> and the files <code>600</code> (private key) / readable. Symptom: it asks for a password again.</p>
+<p><strong>5. Confusing <code>getent</code> and <code>dig</code>.</strong> <code>getent hosts</code> follows <strong>nsswitch</strong> (so <code>/etc/hosts</code> <strong>then</strong> DNS); <code>dig</code> talks <strong>directly</strong> to DNS. A name that resolves with <code>getent</code> but not <code>dig</code> (or vice versa) tells you <strong>where</strong> the entry is.</p>
+<p><strong>6. Forgetting <code>sudo</code> with <code>ss -p</code>.</strong> Without <code>sudo</code>, <code>ss</code> lists ports but <strong>not</strong> process names. For the &quot;who&#39;s listening&quot; audit, you need <code>sudo</code>.</p>
+<p><strong>7. <code>netstat</code> out of habit.</strong> <code>netstat</code> is <strong>deprecated</strong> (the <code>net-tools</code> package is often absent). The current tool is <strong><code>ss</code></strong> (and <code>ip</code> for <code>ifconfig</code>/<code>route</code>).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis interfaces, <strong>IP/CIDR</strong>, routes et <strong>passerelle</strong> avec <code>ip</code>.</li><li>Tu listes les <strong>ports à l&#39;écoute</strong> et leurs processus (<code>ss -tlnp</code>).</li><li>Tu expliques la <strong>chaîne nsswitch/hosts/DNS</strong> et tu utilises <code>getent</code>/<code>dig</code>.</li><li>Tu te connectes en <strong>SSH par clé</strong>, sans mot de passe.</li><li>Tu <strong>durcis</strong> <code>sshd</code> (root, mots de passe) et tu valides avec <code>sshd -t</code>.</li><li>Tu configures <strong><code>ufw</code></strong> en <strong>deny par défaut</strong>, SSH autorisé.</li></ul>
+<p>Six cases cochées = tu tiens <strong>Réseau &amp; sécurité</strong> du LPIC-1.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read interfaces, <strong>IP/CIDR</strong>, routes and <strong>gateway</strong> with <code>ip</code>.</li><li>You list <strong>listening ports</strong> and their processes (<code>ss -tlnp</code>).</li><li>You explain the <strong>nsswitch/hosts/DNS chain</strong> and use <code>getent</code>/<code>dig</code>.</li><li>You connect via <strong>SSH key</strong>, no password.</li><li>You <strong>harden</strong> <code>sshd</code> (root, passwords) and validate with <code>sshd -t</code>.</li><li>You set <strong><code>ufw</code></strong> to <strong>default deny</strong>, SSH allowed.</li></ul>
+<p>Six boxes ticked = you hold LPIC-1 <strong>Networking &amp; security</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Linux → LPIC-1 :</p>
+<ol><li><strong>Scripting shell (bash)</strong> — variables, conditions, boucles, fonctions.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner et durcir un serveur Linux multi-utilisateur (l&#39;aboutissement : tout ce que tu viens d&#39;apprendre, assemblé).</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Linux → LPIC-1 track:</p>
+<ol><li><strong>Shell scripting (bash)</strong> — variables, conditionals, loops, functions.</li><li><strong>Enterprise project</strong> — provision and harden a multi-user Linux server (the culmination: everything you just learned, assembled).</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">10</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire réseau &amp; sécurité.</p>
+</div>
+<div data-lang="en"><p>Networking &amp; security cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Adresses &amp; routes / addresses &amp; routes
+ip -br addr ; ip route ; ip link ; ping -c3 IP
+
+# Ports à l&#39;écoute / listening ports
+sudo ss -tlnp        # -t tcp -l listening -n numérique -p processus
+
+# DNS
+grep &#39;^hosts:&#39; /etc/nsswitch.conf ; cat /etc/resolv.conf
+getent hosts NOM     # suit nsswitch (hosts+dns) / follows nsswitch
+dig +short NOM       # DNS direct / direct DNS      ; host NOM
+
+# SSH par clé / SSH by key
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N &quot;&quot;
+ssh-copy-id user@hote   # (ou cat pub &gt;&gt; ~/.ssh/authorized_keys)
+chmod 700 ~/.ssh ; chmod 600 ~/.ssh/authorized_keys
+
+# Durcir sshd / harden sshd  (dans /etc/ssh/sshd_config.d/*.conf)
+#   PermitRootLogin no ; PasswordAuthentication no
+sudo sshd -t         # VALIDER avant reload / VALIDATE before reload
+sudo systemctl reload ssh ; sudo sshd -T | grep -i option   # sudo : sshd -T lit les host keys / reads host keys
+
+# Pare-feu / firewall  (SSH d&#39;abord !)
+sudo ufw allow OpenSSH ; sudo ufw default deny incoming ; sudo ufw enable
+sudo ufw status verbose ; sudo ufw disable</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://manpages.ubuntu.com/manpages/noble/man8/ip.8.html"><code>man ip</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man8/ss.8.html"><code>man ss</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/nsswitch.conf.5.html">DNS resolution &amp; nsswitch</a>, <code>man dig</code>, <code>man getent</code>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"><code>man sshd_config</code></a> et <a href="https://www.ssh.com/academy/ssh/keygen">OpenSSH — clés</a>.</li><li><a href="https://help.ubuntu.com/community/UFW">ufw — Ubuntu</a> et objectifs <strong>LPIC-1 109.x / 110.x</strong>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://manpages.ubuntu.com/manpages/noble/man8/ip.8.html"><code>man ip</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man8/ss.8.html"><code>man ss</code></a>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/nsswitch.conf.5.html">DNS resolution &amp; nsswitch</a>, <code>man dig</code>, <code>man getent</code>.</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/sshd_config.5.html"><code>man sshd_config</code></a> and <a href="https://www.ssh.com/academy/ssh/keygen">OpenSSH — keys</a>.</li><li><a href="https://help.ubuntu.com/community/UFW">ufw — Ubuntu</a> and <strong>LPIC-1 109.x / 110.x</strong> objectives.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>ssh localhost</code> redemande un mot de passe.</strong> L&#39;auth par clé échoue : permissions trop ouvertes sur <code>~/.ssh</code> (doit être <code>700</code>) ou <code>authorized_keys</code> (<code>600</code>), ou la clé publique n&#39;y est pas. Vérifie, et regarde <code>journalctl -u ssh</code>.</p>
+<p><strong><code>ssh: connect to host localhost port 22: Connection refused</code>.</strong> Le serveur SSH ne tourne pas : <code>sudo systemctl status ssh</code> (installe/démarre <code>openssh-server</code>).</p>
+<p><strong><code>sudo sshd -t</code> signale une erreur.</strong> Ta surcharge <code>sshd_config.d/*.conf</code> a une faute (directive mal orthographiée, valeur invalide). Corrige <strong>avant</strong> tout <code>reload</code>.</p>
+<p><strong>Après <code>ufw enable</code>, plus de SSH.</strong> Tu n&#39;as pas fait <code>ufw allow OpenSSH</code> avant. Depuis la console (VM) : <code>sudo ufw allow OpenSSH</code> (ou <code>sudo ufw disable</code>).</p>
+<p><strong><code>dig: command not found</code>.</strong> Installe <code>bind9-dnsutils</code> (<code>dig</code>/<code>host</code>). Sur d&#39;anciennes versions le paquet s&#39;appelait <code>dnsutils</code>.</p>
+<p><strong><code>getent hosts nom</code> ne renvoie rien mais le site existe.</strong> Le DNS ne résout pas (réseau/serveur DNS) : teste <code>dig nom</code>, <code>cat /etc/resolv.conf</code>, et <code>resolvectl status</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>ssh localhost</code> asks for a password again.</strong> Key auth fails: too-open permissions on <code>~/.ssh</code> (must be <code>700</code>) or <code>authorized_keys</code> (<code>600</code>), or the public key isn&#39;t there. Check, and look at <code>journalctl -u ssh</code>.</p>
+<p><strong><code>ssh: connect to host localhost port 22: Connection refused</code>.</strong> The SSH server isn&#39;t running: <code>sudo systemctl status ssh</code> (install/start <code>openssh-server</code>).</p>
+<p><strong><code>sudo sshd -t</code> reports an error.</strong> Your <code>sshd_config.d/*.conf</code> override has a mistake (misspelled directive, invalid value). Fix it <strong>before</strong> any <code>reload</code>.</p>
+<p><strong>After <code>ufw enable</code>, no more SSH.</strong> You didn&#39;t <code>ufw allow OpenSSH</code> first. From the console (VM): <code>sudo ufw allow OpenSSH</code> (or <code>sudo ufw disable</code>).</p>
+<p><strong><code>dig: command not found</code>.</strong> Install <code>bind9-dnsutils</code> (<code>dig</code>/<code>host</code>). On older versions the package was called <code>dnsutils</code>.</p>
+<p><strong><code>getent hosts name</code> returns nothing but the site exists.</strong> DNS isn&#39;t resolving (network/DNS server): test <code>dig name</code>, <code>cat /etc/resolv.conf</code>, and <code>resolvectl status</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

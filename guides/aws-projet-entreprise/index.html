@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — projet d&#39;entreprise : pipeline serverless — jiha.tech</title>
+  <title data-lang="en">AWS — enterprise project: serverless pipeline — jiha.tech</title>
+  <meta name="description" content="Le capstone AWS/SAA-C03 : un pipeline serverless complet provisionné en Terraform contre LocalStack. Un fichier déposé dans S3 déclenche une fonction Lambda qui enregistre une entrée dans DynamoDB et publie une notification SNS diffusée vers une file SQS. Rôles IAM, déclencheur S3, fan-out, tout en infrastructure-as-code idempotente. Un livrable de CV, avec README d&#39;architecture et pitch d&#39;entretien." data-lang="fr">
+  <meta name="description" content="The AWS/SAA-C03 capstone: a complete serverless pipeline provisioned with Terraform against LocalStack. A file dropped in S3 triggers a Lambda function that records an entry in DynamoDB and publishes an SNS notification broadcast to an SQS queue. IAM roles, S3 trigger, fan-out, all in idempotent infrastructure-as-code. A CV deliverable, with an architecture README and interview pitch." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — projet d&#39;entreprise : pipeline serverless">
+  <meta property="og:description" content="Le capstone AWS/SAA-C03 : un pipeline serverless complet provisionné en Terraform contre LocalStack. Un fichier déposé dans S3 déclenche une fonction Lambda qui enregistre une entrée dans DynamoDB et publie une notification SNS diffusée vers une file SQS. Rôles IAM, déclencheur S3, fan-out, tout en infrastructure-as-code idempotente. Un livrable de CV, avec README d&#39;architecture et pitch d&#39;entretien.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/aws-projet-entreprise</div>
+    <h1 data-lang="fr">AWS — projet d&#39;entreprise : pipeline serverless</h1>
+    <h1 data-lang="en">AWS — enterprise project: serverless pipeline</h1>
+    <p class="tagline" data-lang="fr">S3 → Lambda → DynamoDB + SNS/SQS, provisionné en Terraform.</p>
+    <p class="tagline" data-lang="en">S3 → Lambda → DynamoDB + SNS/SQS, provisioned with Terraform.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-13</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-13</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>C&#39;est le moment d&#39;assembler <strong>tout</strong> ce que tu as appris dans le track AWS en <strong>un seul projet</strong> montrable en entretien : un <strong>pipeline serverless de traitement de fichiers</strong>, provisionné <strong>entièrement en Terraform</strong>. Le scénario est réaliste et fréquent en entreprise : un utilisateur <strong>dépose un fichier dans S3</strong>, ce qui <strong>déclenche une fonction Lambda</strong> qui <strong>enregistre une entrée dans DynamoDB</strong> (le catalogue) et <strong>publie une notification SNS</strong>, diffusée (fan-out) vers une <strong>file SQS</strong> qu&#39;un service en aval consommera. Zéro serveur à administrer, mise à l&#39;échelle automatique, et une infrastructure <strong>décrite en code</strong>, reproductible d&#39;une commande.</p>
+<p>Ce projet mobilise <strong>toute</strong> la boîte à outils du track : <strong>IAM</strong> (rôle d&#39;exécution, moindre privilège), <strong>S3</strong> (le déclencheur), <strong>Lambda</strong> (le traitement événementiel), <strong>DynamoDB</strong> (l&#39;état), <strong>SNS/SQS</strong> (le découplage et la diffusion), et <strong>Terraform</strong> (l&#39;IaC qui assemble le tout et le rend idempotent). C&#39;est exactement l&#39;architecture qu&#39;on déploie pour du traitement d&#39;images, d&#39;imports de données, de webhooks — un vrai motif de production.</p>
+<p>Tout se monte en <strong>LocalStack</strong> : Terraform crée de vraies ressources émulées, tu déposes un fichier, et tu <strong>vois</strong> l&#39;entrée apparaître dans DynamoDB et le message atterrir dans SQS. À la fin, tu as un dépôt Git propre — <code>.tf</code>, code Lambda, README d&#39;architecture — que tu peux <strong>mettre sur ton CV et ton GitHub</strong> comme preuve concrète de tes compétences AWS/serverless/IaC.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé tout le track AWS (IAM → découplage). C&#39;est l&#39;examen final.</p>
+<p><strong>Ce que tu vas produire :</strong> un projet Terraform idempotent qui, en une commande (<code>terraform apply</code>), déploie un pipeline serverless événementiel complet — et que tu détruis proprement en une autre (<code>terraform destroy</code>).</p>
+</div>
+<div data-lang="en"><p>Time to assemble <strong>everything</strong> you learned in the AWS track into <strong>one project</strong> you can show in an interview: a <strong>serverless file-processing pipeline</strong>, provisioned <strong>entirely with Terraform</strong>. The scenario is realistic and common in companies: a user <strong>drops a file in S3</strong>, which <strong>triggers a Lambda function</strong> that <strong>records an entry in DynamoDB</strong> (the catalog) and <strong>publishes an SNS notification</strong>, fanned out to an <strong>SQS queue</strong> a downstream service will consume. Zero servers to administer, automatic scaling, and infrastructure <strong>described in code</strong>, reproducible in one command.</p>
+<p>This project mobilizes the <strong>whole</strong> track toolbox: <strong>IAM</strong> (execution role, least privilege), <strong>S3</strong> (the trigger), <strong>Lambda</strong> (event-driven processing), <strong>DynamoDB</strong> (state), <strong>SNS/SQS</strong> (decoupling and broadcast), and <strong>Terraform</strong> (the IaC that assembles it all and makes it idempotent). It&#39;s exactly the architecture deployed for image processing, data imports, webhooks — a real production pattern.</p>
+<p>Everything runs on <strong>LocalStack</strong>: Terraform creates real emulated resources, you drop a file, and you <strong>see</strong> the entry appear in DynamoDB and the message land in SQS. In the end, you have a clean Git repo — <code>.tf</code>, Lambda code, architecture README — that you can <strong>put on your CV and GitHub</strong> as concrete proof of your AWS/serverless/IaC skills.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the whole AWS track (IAM → decoupling). This is the final exam.</p>
+<p><strong>What you&#39;ll produce:</strong> an idempotent Terraform project that, in one command (<code>terraform apply</code>), deploys a complete event-driven serverless pipeline — and that you tear down cleanly with another (<code>terraform destroy</code>).</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu as construit et tu sais expliquer :</p>
+<ul><li>Un <strong>provider Terraform</strong> pointant vers LocalStack (endpoints, credentials de labo).</li><li>Un <strong>stockage S3</strong> et une <strong>table DynamoDB</strong> en IaC.</li><li>Une <strong>fonction Lambda</strong> empaquetée par Terraform, avec son <strong>rôle IAM</strong> en moindre privilège.</li><li>Un <strong>déclencheur S3 → Lambda</strong> (notification + permission).</li><li>Une <strong>notification SNS</strong> diffusée en <strong>fan-out</strong> vers une <strong>file SQS</strong>.</li><li>Un <strong>pipeline testé bout-en-bout</strong> : dépôt S3 → entrée DynamoDB + message SQS.</li><li>Un projet <strong>idempotent</strong> (<code>apply</code> deux fois = aucun changement) et un <strong>README de CV</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ve built and can explain:</p>
+<ul><li>A <strong>Terraform provider</strong> pointing to LocalStack (endpoints, lab credentials).</li><li><strong>S3 storage</strong> and a <strong>DynamoDB table</strong> in IaC.</li><li>A <strong>Lambda function</strong> packaged by Terraform, with its <strong>IAM role</strong> in least privilege.</li><li>An <strong>S3 → Lambda trigger</strong> (notification + permission).</li><li>An <strong>SNS notification</strong> broadcast in <strong>fan-out</strong> to an <strong>SQS queue</strong>.</li><li>A <strong>pipeline tested end-to-end</strong>: S3 upload → DynamoDB entry + SQS message.</li><li>An <strong>idempotent</strong> project (<code>apply</code> twice = no change) and a <strong>CV README</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Tout le track AWS</strong> terminé (fondamentaux → IAM → S3 → VPC → compute → découplage).</li><li><strong>Terraform ≥ 1.6</strong> (<code>terraform version</code>) et <strong><code>awslocal</code></strong> pour vérifier.</li><li><strong>LocalStack lancé AVEC le socket Docker</strong> (le pipeline utilise Lambda) :</li></ul>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f localstack 2&gt;/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+sleep 15</code></pre>
+<ul><li>Accès réseau à <strong>registry.terraform.io</strong> (Terraform télécharge le provider AWS au premier <code>init</code>).</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>The whole AWS track</strong> done (fundamentals → IAM → S3 → VPC → compute → decoupling).</li><li><strong>Terraform ≥ 1.6</strong> (<code>terraform version</code>) and <strong><code>awslocal</code></strong> to verify.</li><li><strong>LocalStack launched WITH the Docker socket</strong> (the pipeline uses Lambda):</li></ul>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f localstack 2&gt;/dev/null
+docker run -d --name localstack -p 4566:4566 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  localstack/localstack:3.8.1
+sleep 15</code></pre>
+<ul><li>Network access to <strong>registry.terraform.io</strong> (Terraform downloads the AWS provider on the first <code>init</code>).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-decouplage-messagerie/">
+    <span class="num">49</span>
+    <span class="title-line" data-lang="fr">AWS — découplage &amp; données : SQS, SNS, DynamoDB</span>
+    <span class="title-line" data-lang="en">AWS — decoupling &amp; data: SQS, SNS, DynamoDB</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Pipeline événementiel serverless.</strong> Une chaîne où chaque étape <strong>réagit</strong> à un événement, sans serveur permanent : un <strong>événement source</strong> (dépôt S3) déclenche un <strong>traitement</strong> (Lambda) qui <strong>écrit un état</strong> (DynamoDB) et <strong>émet une notification</strong> (SNS→SQS). Chaque maillon est managé, scalable, et facturé à l&#39;usage.</p>
+<p><strong>Terraform pour AWS.</strong> On décrit chaque ressource (<code>aws_s3_bucket</code>, <code>aws_lambda_function</code>, <code>aws_dynamodb_table</code>…) dans des fichiers <code>.tf</code>. Terraform calcule le graphe de dépendances, crée tout dans le bon ordre, et garde un <strong>état</strong> pour rendre les <code>apply</code> <strong>idempotents</strong>. Pointer Terraform vers LocalStack = un bloc <code>endpoints</code> dans le provider.</p>
+<p><strong>Empaquetage de la Lambda par Terraform.</strong> Le code de la fonction doit être livré en <strong>zip</strong>. La source de données <code>archive_file</code> de Terraform <strong>zippe automatiquement</strong> ton dossier de code à chaque <code>apply</code> — pas de zip à faire à la main, et le hash du zip déclenche une mise à jour si le code change.</p>
+<p><strong>Rôle d&#39;exécution en moindre privilège.</strong> La Lambda <strong>endosse un rôle IAM</strong> (vu au guide IAM) qui l&#39;autorise à écrire dans <strong>cette</strong> table DynamoDB et publier sur <strong>ce</strong> sujet SNS — et rien d&#39;autre. Pas de clés dans le code.</p>
+<p><strong>Déclencheur S3 → Lambda.</strong> Deux pièces : une <strong>permission</strong> (<code>aws_lambda_permission</code>) autorisant le service S3 à invoquer la fonction, et une <strong>notification de bucket</strong> (<code>aws_s3_bucket_notification</code>) qui câble l&#39;événement <code>s3:ObjectCreated:*</code> vers la fonction. Sans la permission, S3 ne peut pas invoquer.</p>
+<p><strong>Fan-out SNS → SQS.</strong> La fonction publie sur un <strong>sujet SNS</strong> ; une <strong>file SQS</strong> y est abonnée. Ça découple le traitement (Lambda) de la consommation aval (un autre service lit la file à son rythme). Une <strong>queue policy</strong> autorise SNS à déposer dans la file.</p>
+<p><strong>Endpoint dans la Lambda.</strong> Détail LocalStack : à l&#39;intérieur du conteneur d&#39;exécution, la fonction ne joint pas <code>localhost:4566</code>. LocalStack lui injecte la variable <code>AWS_ENDPOINT_URL</code> ; le code crée ses clients boto3 avec <code>endpoint_url=os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)</code> — inoffensif en réel (la variable est absente, boto3 vise le vrai AWS).</p>
+</div>
+<div data-lang="en"><p><strong>Serverless event pipeline.</strong> A chain where each step <strong>reacts</strong> to an event, with no permanent server: a <strong>source event</strong> (S3 upload) triggers a <strong>processing</strong> (Lambda) that <strong>writes state</strong> (DynamoDB) and <strong>emits a notification</strong> (SNS→SQS). Each link is managed, scalable, and billed per use.</p>
+<p><strong>Terraform for AWS.</strong> You describe each resource (<code>aws_s3_bucket</code>, <code>aws_lambda_function</code>, <code>aws_dynamodb_table</code>…) in <code>.tf</code> files. Terraform computes the dependency graph, creates everything in the right order, and keeps a <strong>state</strong> to make <code>apply</code>s <strong>idempotent</strong>. Pointing Terraform at LocalStack = an <code>endpoints</code> block in the provider.</p>
+<p><strong>Packaging the Lambda with Terraform.</strong> The function code must be delivered as a <strong>zip</strong>. Terraform&#39;s <code>archive_file</code> data source <strong>zips your code folder automatically</strong> on each <code>apply</code> — no manual zip, and the zip&#39;s hash triggers an update if the code changes.</p>
+<p><strong>Least-privilege execution role.</strong> The Lambda <strong>assumes an IAM role</strong> (seen in the IAM guide) that lets it write to <strong>this</strong> DynamoDB table and publish to <strong>this</strong> SNS topic — and nothing else. No keys in the code.</p>
+<p><strong>S3 → Lambda trigger.</strong> Two pieces: a <strong>permission</strong> (<code>aws_lambda_permission</code>) allowing the S3 service to invoke the function, and a <strong>bucket notification</strong> (<code>aws_s3_bucket_notification</code>) wiring the <code>s3:ObjectCreated:*</code> event to the function. Without the permission, S3 can&#39;t invoke.</p>
+<p><strong>SNS → SQS fan-out.</strong> The function publishes to an <strong>SNS topic</strong>; an <strong>SQS queue</strong> is subscribed. It decouples the processing (Lambda) from downstream consumption (another service reads the queue at its own pace). A <strong>queue policy</strong> allows SNS to deposit into the queue.</p>
+<p><strong>Endpoint inside the Lambda.</strong> LocalStack detail: inside the execution container, the function can&#39;t reach <code>localhost:4566</code>. LocalStack injects the <code>AWS_ENDPOINT_URL</code> variable; the code creates its boto3 clients with <code>endpoint_url=os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)</code> — harmless in real AWS (the variable is absent, boto3 targets real AWS).</p>
+</div>
+
+<figure class="schema" id="figure-aws-serverless-pipeline">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-aws-serverless-pipeline">
+  <title id="s-aws-serverless-pipeline">Pipeline serverless (Terraform)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Pipeline serverless (Terraform)</text><rect class="box-accent" x="18" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-fill" x="80" y="70.5" text-anchor="middle">S3</text><text class="sub sub-fill" x="80" y="83.5" text-anchor="middle">uploads</text><path class="arrow" d="M 142 73 L 168 73"/><rect class="box" x="168" y="40" width="124" height="66" rx="3"/><text class="lbl" x="230" y="70.5" text-anchor="middle">Lambda</text><text class="sub" x="230" y="83.5" text-anchor="middle">processeur</text><path class="arrow" d="M 292 73 L 318 73"/><rect class="box-soft" x="318" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-blue" x="380" y="70.5" text-anchor="middle">DynamoDB</text><text class="sub sub-blue" x="380" y="83.5" text-anchor="middle">catalogue</text><path class="arrow" d="M 442 73 L 468 73"/><rect class="box" x="468" y="40" width="124" height="66" rx="3"/><text class="lbl" x="530" y="70.5" text-anchor="middle">SNS</text><text class="sub" x="530" y="83.5" text-anchor="middle">notif</text><path class="arrow" d="M 592 73 L 618 73"/><rect class="box-soft" x="618" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-blue" x="680" y="70.5" text-anchor="middle">SQS</text><text class="sub sub-blue" x="680" y="83.5" text-anchor="middle">aval</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le pipeline : un dépôt dans S3 (uploads) déclenche la Lambda (processeur) qui écrit une entrée dans DynamoDB (catalogue) et publie sur SNS (notifications), diffusé en fan-out vers une file SQS (consommateur aval). Tout provisionné par Terraform.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The pipeline: an upload to S3 (uploads) triggers the Lambda (processor) which writes an entry to DynamoDB (catalog) and publishes to SNS (notifications), fanned out to an SQS queue (downstream consumer). All provisioned by Terraform.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser le <strong>squelette Terraform</strong> et le <strong>provider</strong> pointant vers LocalStack.</p>
+<p><strong>🤔 Le bloc endpoints.</strong> En réel, le provider AWS parle au vrai AWS. Pour LocalStack, on le redirige service par service via un bloc <code>endpoints</code>, avec des credentials de labo (<code>test</code>/<code>test</code>) et les <code>skip_*</code> qui évitent les vérifications propres au vrai AWS. C&#39;est <strong>la seule</strong> différence avec un projet Terraform de production.</p>
+<p>Crée le projet et <code>provider.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Lay the <strong>Terraform skeleton</strong> and the <strong>provider</strong> pointing to LocalStack.</p>
+<p><strong>🤔 The endpoints block.</strong> In real AWS, the provider talks to real AWS. For LocalStack, we redirect it service by service via an <code>endpoints</code> block, with lab credentials (<code>test</code>/<code>test</code>) and the <code>skip_*</code> flags that avoid real-AWS-specific checks. It&#39;s <strong>the only</strong> difference from a production Terraform project.</p>
+<p>Create the project and <code>provider.tf</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/projet-serverless/lambda &amp;&amp; cd ~/projet-serverless</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-serverless/provider.tf
+terraform {
+  required_providers {
+    aws     = { source = &quot;hashicorp/aws&quot;, version = &quot;~&gt; 5.0&quot; }
+    archive = { source = &quot;hashicorp/archive&quot;, version = &quot;~&gt; 2.0&quot; }
+  }
+}
+
+provider &quot;aws&quot; {
+  region                      = &quot;us-east-1&quot;
+  access_key                  = &quot;test&quot;
+  secret_key                  = &quot;test&quot;
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+  s3_use_path_style           = true
+
+  endpoints {
+    s3       = &quot;http://localhost:4566&quot;
+    lambda   = &quot;http://localhost:4566&quot;
+    dynamodb = &quot;http://localhost:4566&quot;
+    iam      = &quot;http://localhost:4566&quot;
+    sns      = &quot;http://localhost:4566&quot;
+    sqs      = &quot;http://localhost:4566&quot;
+    sts      = &quot;http://localhost:4566&quot;
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform init</code> télécharge les providers <code>hashicorp/aws</code> et <code>hashicorp/archive</code> et termine par <code>Terraform has been successfully initialized!</code>. Un dossier <code>.terraform/</code> apparaît. Le provider est prêt à parler à LocalStack. ⚠️ Si <code>init</code> échoue sur <code>registry.terraform.io</code> (réseau), vérifie ton accès Internet — le provider se télécharge une seule fois depuis le registre HashiCorp.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform init</code> downloads the <code>hashicorp/aws</code> and <code>hashicorp/archive</code> providers and ends with <code>Terraform has been successfully initialized!</code>. A <code>.terraform/</code> folder appears. The provider is ready to talk to LocalStack. ⚠️ If <code>init</code> fails on <code>registry.terraform.io</code> (network), check your internet access — the provider is downloaded once from the HashiCorp registry.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déclarer le <strong>stockage S3</strong> et la <strong>table DynamoDB</strong> en Terraform.</p>
+<p><strong>🤔 Les deux extrémités du pipeline.</strong> Le bucket S3 est l&#39;<strong>entrée</strong> (on y dépose des fichiers) ; la table DynamoDB est la <strong>sortie d&#39;état</strong> (la Lambda y écrira une entrée par fichier traité). On les déclare en premier car la fonction en dépendra.</p>
+<p>Crée <code>storage.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Declare the <strong>S3 storage</strong> and the <strong>DynamoDB table</strong> in Terraform.</p>
+<p><strong>🤔 The pipeline&#39;s two ends.</strong> The S3 bucket is the <strong>entry</strong> (you drop files in it); the DynamoDB table is the <strong>state output</strong> (the Lambda will write one entry per processed file). We declare them first because the function will depend on them.</p>
+<p>Create <code>storage.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-serverless/storage.tf
+resource &quot;aws_s3_bucket&quot; &quot;uploads&quot; {
+  bucket        = &quot;uploads-pipeline&quot;
+  force_destroy = true   # laisse &quot;terraform destroy&quot; vider le bucket avant de le supprimer / lets destroy empty the bucket first
+}
+
+resource &quot;aws_dynamodb_table&quot; &quot;catalogue&quot; {
+  name         = &quot;catalogue-fichiers&quot;
+  billing_mode = &quot;PAY_PER_REQUEST&quot;
+  hash_key     = &quot;id&quot;
+
+  attribute {
+    name = &quot;id&quot;
+    type = &quot;S&quot;
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve
+awslocal s3 ls
+awslocal dynamodb list-tables --query &#39;TableNames&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> affiche <code>Apply complete! Resources: 2 added</code>. <code>awslocal s3 ls</code> liste <code>uploads-pipeline</code> et <code>dynamodb list-tables</code> renvoie <code>catalogue-fichiers</code>. Terraform a créé les deux ressources dans LocalStack, et enregistré leur existence dans son état (<code>terraform.tfstate</code>). Tu construis l&#39;infra <strong>progressivement</strong> : à chaque étape, un <code>apply</code> ajoute les nouvelles ressources sans toucher aux précédentes.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> shows <code>Apply complete! Resources: 2 added</code>. <code>awslocal s3 ls</code> lists <code>uploads-pipeline</code> and <code>dynamodb list-tables</code> returns <code>catalogue-fichiers</code>. Terraform created both resources in LocalStack, and recorded their existence in its state (<code>terraform.tfstate</code>). You build the infra <strong>progressively</strong>: at each step, an <code>apply</code> adds the new resources without touching the previous ones.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire la <strong>fonction Lambda</strong>, son <strong>rôle IAM</strong> en moindre privilège, et laisser Terraform l&#39;<strong>empaqueter</strong>.</p>
+<p><strong>🤔 Trois pièces liées.</strong> (1) Le <strong>code</strong> (<code>lambda/handler.py</code>) qui lit l&#39;événement S3, écrit dans DynamoDB et publie sur SNS. (2) Le <strong>rôle</strong> que la fonction endosse, avec une politique qui autorise <strong>juste</strong> l&#39;écriture dans notre table et la publication sur notre sujet. (3) La ressource <code>aws_lambda_function</code>, dont le zip est produit par <code>archive_file</code>.</p>
+<p>Écris le code de la fonction :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>Lambda function</strong>, its least-privilege <strong>IAM role</strong>, and let Terraform <strong>package</strong> it.</p>
+<p><strong>🤔 Three linked pieces.</strong> (1) The <strong>code</strong> (<code>lambda/handler.py</code>) that reads the S3 event, writes to DynamoDB and publishes to SNS. (2) The <strong>role</strong> the function assumes, with a policy allowing <strong>just</strong> writing to our table and publishing to our topic. (3) The <code>aws_lambda_function</code> resource, whose zip is produced by <code>archive_file</code>.</p>
+<p>Write the function code:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-serverless/lambda/handler.py
+import os, boto3
+
+def handler(event, context):
+    endpoint = os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)  # défini par LocalStack ; absent en réel
+    ddb = boto3.client(&quot;dynamodb&quot;, endpoint_url=endpoint)
+    sns = boto3.client(&quot;sns&quot;, endpoint_url=endpoint)
+    for record in event[&quot;Records&quot;]:
+        bucket = record[&quot;s3&quot;][&quot;bucket&quot;][&quot;name&quot;]
+        key    = record[&quot;s3&quot;][&quot;object&quot;][&quot;key&quot;]
+        ddb.put_item(
+            TableName=os.environ[&quot;TABLE_NAME&quot;],
+            Item={&quot;id&quot;: {&quot;S&quot;: key}, &quot;bucket&quot;: {&quot;S&quot;: bucket}, &quot;statut&quot;: {&quot;S&quot;: &quot;traite&quot;}},
+        )
+        sns.publish(TopicArn=os.environ[&quot;TOPIC_ARN&quot;], Message=f&quot;Fichier traite : {key}&quot;)
+    return {&quot;traites&quot;: len(event[&quot;Records&quot;])}</code></pre>
+<div data-lang="fr"><p>Puis <code>lambda.tf</code> (rôle + politique + empaquetage + fonction) :</p>
+</div>
+<div data-lang="en"><p>Then <code>lambda.tf</code> (role + policy + packaging + function):</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-serverless/lambda.tf
+data &quot;archive_file&quot; &quot;code&quot; {
+  type        = &quot;zip&quot;
+  source_dir  = &quot;${path.module}/lambda&quot;
+  output_path = &quot;${path.module}/fonction.zip&quot;
+}
+
+resource &quot;aws_iam_role&quot; &quot;lambda&quot; {
+  name = &quot;role-processeur&quot;
+  assume_role_policy = jsonencode({
+    Version = &quot;2012-10-17&quot;
+    Statement = [{
+      Effect    = &quot;Allow&quot;
+      Principal = { Service = &quot;lambda.amazonaws.com&quot; }
+      Action    = &quot;sts:AssumeRole&quot;
+    }]
+  })
+}
+
+resource &quot;aws_iam_role_policy&quot; &quot;lambda&quot; {
+  name = &quot;acces-minimal&quot;
+  role = aws_iam_role.lambda.id
+  policy = jsonencode({
+    Version = &quot;2012-10-17&quot;
+    Statement = [
+      { Effect = &quot;Allow&quot;, Action = &quot;dynamodb:PutItem&quot;, Resource = aws_dynamodb_table.catalogue.arn },
+      { Effect = &quot;Allow&quot;, Action = &quot;sns:Publish&quot;,     Resource = aws_sns_topic.notifs.arn }
+    ]
+  })
+}
+
+resource &quot;aws_lambda_function&quot; &quot;processeur&quot; {
+  function_name    = &quot;processeur-fichiers&quot;
+  runtime          = &quot;python3.11&quot;
+  handler          = &quot;handler.handler&quot;
+  role             = aws_iam_role.lambda.arn
+  filename         = data.archive_file.code.output_path
+  source_code_hash = data.archive_file.code.output_base64sha256
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.catalogue.name
+      TOPIC_ARN  = aws_sns_topic.notifs.arn
+    }
+  }
+}</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ne lance <strong>ni <code>apply</code> ni <code>validate</code></strong> maintenant — <code>lambda.tf</code> référence <code>aws_sns_topic.notifs</code>, qu&#39;on ne déclare qu&#39;à l&#39;<strong>étape 5</strong>. Tant que ce sujet n&#39;existe pas dans le code, <code>terraform validate</code> <strong>échouerait</strong> avec « Reference to undeclared resource: aws_sns_topic.notifs ». C&#39;est <strong>attendu</strong> : on <strong>écrit</strong> les fichiers d&#39;abord, et on validera/déploiera une fois <strong>tout</strong> en place (étapes 5-6). Note quand même la politique du rôle : elle n&#39;autorise que <code>dynamodb:PutItem</code> sur <strong>notre</strong> table et <code>sns:Publish</code> sur <strong>notre</strong> sujet — moindre privilège.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> don&#39;t run <strong><code>apply</code> or <code>validate</code></strong> yet — <code>lambda.tf</code> references <code>aws_sns_topic.notifs</code>, which we only declare in <strong>step 5</strong>. While that topic doesn&#39;t exist in the code, <code>terraform validate</code> <strong>would fail</strong> with &quot;Reference to undeclared resource: aws_sns_topic.notifs&quot;. That&#39;s <strong>expected</strong>: we <strong>write</strong> the files first, and validate/deploy once <strong>everything</strong> is in place (steps 5-6). Still, note the role&#39;s policy: it allows only <code>dynamodb:PutItem</code> on <strong>our</strong> table and <code>sns:Publish</code> on <strong>our</strong> topic — least privilege.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Câbler le <strong>déclencheur S3 → Lambda</strong> — permission + notification.</p>
+<p><strong>🤔 Les deux pièces indispensables.</strong> (1) Une <strong>permission</strong> qui autorise le service S3 (<code>s3.amazonaws.com</code>) à invoquer notre fonction — sans elle, S3 n&#39;a pas le droit. (2) Une <strong>notification de bucket</strong> qui dit « à chaque <code>s3:ObjectCreated:*</code>, invoque cette fonction ». Terraform impose l&#39;ordre : la permission <strong>avant</strong> la notification (<code>depends_on</code>).</p>
+<p>Crée <code>trigger.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Wire the <strong>S3 → Lambda trigger</strong> — permission + notification.</p>
+<p><strong>🤔 The two essential pieces.</strong> (1) A <strong>permission</strong> allowing the S3 service (<code>s3.amazonaws.com</code>) to invoke our function — without it, S3 isn&#39;t allowed. (2) A <strong>bucket notification</strong> saying &quot;on each <code>s3:ObjectCreated:*</code>, invoke this function&quot;. Terraform enforces the order: the permission <strong>before</strong> the notification (<code>depends_on</code>).</p>
+<p>Create <code>trigger.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-serverless/trigger.tf
+resource &quot;aws_lambda_permission&quot; &quot;depuis_s3&quot; {
+  statement_id  = &quot;AutoriserS3&quot;
+  action        = &quot;lambda:InvokeFunction&quot;
+  function_name = aws_lambda_function.processeur.function_name
+  principal     = &quot;s3.amazonaws.com&quot;
+  source_arn    = aws_s3_bucket.uploads.arn
+}
+
+resource &quot;aws_s3_bucket_notification&quot; &quot;sur_depot&quot; {
+  bucket = aws_s3_bucket.uploads.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.processeur.arn
+    events              = [&quot;s3:ObjectCreated:*&quot;]
+  }
+
+  depends_on = [aws_lambda_permission.depuis_s3]
+}</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> toujours <strong>pas d&#39;<code>apply</code> ni de <code>validate</code></strong> (on attend le sujet SNS de l&#39;étape 5 ; <code>validate</code> échouerait encore sur la référence non déclarée). Observe le <code>depends_on</code> : sans lui, Terraform pourrait créer la notification <strong>avant</strong> la permission, et AWS refuserait (« Unable to validate the following destination configurations »). L&#39;ordre permission → notification est un piège classique que <code>depends_on</code> règle explicitement.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> still <strong>no <code>apply</code> or <code>validate</code></strong> (we&#39;re waiting for the SNS topic from step 5; <code>validate</code> would still fail on the undeclared reference). Notice the <code>depends_on</code>: without it, Terraform might create the notification <strong>before</strong> the permission, and AWS would refuse (&quot;Unable to validate the following destination configurations&quot;). The permission → notification order is a classic trap that <code>depends_on</code> solves explicitly.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ajouter les <strong>notifications</strong> : un <strong>sujet SNS</strong> diffusé en <strong>fan-out</strong> vers une <strong>file SQS</strong>.</p>
+<p><strong>🤔 Découpler l&#39;aval.</strong> La Lambda publie sur SNS ; une file SQS y est abonnée pour qu&#39;un service aval (facturation, indexation…) consomme à son rythme. Il faut une <strong>queue policy</strong> autorisant SNS à déposer dans la file — sinon la diffusion échoue silencieusement. C&#39;est le motif fan-out du guide précédent, en Terraform.</p>
+<p>Crée <code>notifications.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Add the <strong>notifications</strong>: an <strong>SNS topic</strong> fanned out to an <strong>SQS queue</strong>.</p>
+<p><strong>🤔 Decouple downstream.</strong> The Lambda publishes to SNS; an SQS queue is subscribed so a downstream service (billing, indexing…) consumes at its own pace. You need a <strong>queue policy</strong> allowing SNS to deposit into the queue — otherwise the broadcast fails silently. It&#39;s the fan-out pattern from the previous guide, in Terraform.</p>
+<p>Create <code>notifications.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># ~/projet-serverless/notifications.tf
+resource &quot;aws_sns_topic&quot; &quot;notifs&quot; {
+  name = &quot;notifications-fichiers&quot;
+}
+
+resource &quot;aws_sqs_queue&quot; &quot;aval&quot; {
+  name = &quot;consommateur-aval&quot;
+}
+
+# Abonner la file SQS au sujet SNS (fan-out) / subscribe the SQS queue to the SNS topic
+resource &quot;aws_sns_topic_subscription&quot; &quot;sqs&quot; {
+  topic_arn = aws_sns_topic.notifs.arn
+  protocol  = &quot;sqs&quot;
+  endpoint  = aws_sqs_queue.aval.arn
+}
+
+# Autoriser SNS à déposer dans la file / allow SNS to deposit into the queue
+resource &quot;aws_sqs_queue_policy&quot; &quot;autoriser_sns&quot; {
+  queue_url = aws_sqs_queue.aval.id
+  policy = jsonencode({
+    Version = &quot;2012-10-17&quot;
+    Statement = [{
+      Effect    = &quot;Allow&quot;
+      Principal = { Service = &quot;sns.amazonaws.com&quot; }
+      Action    = &quot;sqs:SendMessage&quot;
+      Resource  = aws_sqs_queue.aval.arn
+      Condition = { ArnEquals = { &quot;aws:SourceArn&quot; = aws_sns_topic.notifs.arn } }
+    }]
+  })
+}</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform validate</code> répond <code>Success</code> — toutes les références sont maintenant résolues (la Lambda de l&#39;étape 3 pointait vers <code>aws_sns_topic.notifs</code>, qui existe désormais). Ton infrastructure est <strong>complète en code</strong> : S3, DynamoDB, Lambda+rôle, déclencheur, SNS+SQS+abonnement+policy. On peut enfin tout déployer. La <code>queue policy</code> avec la condition <code>ArnEquals</code> sur <code>aws:SourceArn</code> est la bonne pratique : seule <strong>notre</strong> topic peut écrire dans la file.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform validate</code> answers <code>Success</code> — all references are now resolved (the step-3 Lambda pointed to <code>aws_sns_topic.notifs</code>, which now exists). Your infrastructure is <strong>complete in code</strong>: S3, DynamoDB, Lambda+role, trigger, SNS+SQS+subscription+policy. We can finally deploy it all. The <code>queue policy</code> with the <code>ArnEquals</code> condition on <code>aws:SourceArn</code> is the best practice: only <strong>our</strong> topic can write to the queue.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Déployer</strong> tout le pipeline et le <strong>tester bout-en-bout</strong> : un dépôt S3 fait apparaître une entrée DynamoDB <strong>et</strong> un message SQS.</p>
+<p><strong>🤔 Le moment de vérité.</strong> Un seul <code>terraform apply</code> crée l&#39;infra manquante et câble tout. Puis on <strong>dépose un fichier</strong> dans S3 : ça déclenche la Lambda, qui écrit dans DynamoDB et publie sur SNS, diffusé vers SQS. On <strong>observe</strong> les deux effets — c&#39;est la preuve que le pipeline vit.</p>
+<p>Déploie et déclenche :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Deploy</strong> the whole pipeline and <strong>test it end-to-end</strong>: an S3 upload makes a DynamoDB entry <strong>and</strong> an SQS message appear.</p>
+<p><strong>🤔 The moment of truth.</strong> A single <code>terraform apply</code> creates the missing infra and wires everything. Then we <strong>drop a file</strong> in S3: it triggers the Lambda, which writes to DynamoDB and publishes to SNS, fanned out to SQS. We <strong>observe</strong> both effects — proof the pipeline is alive.</p>
+<p>Deploy and trigger:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Déployer tout le pipeline / deploy the whole pipeline
+terraform apply -auto-approve
+
+# Déposer un fichier -&gt; déclenche la Lambda / drop a file -&gt; triggers the Lambda
+echo &quot;rapport annuel 2026&quot; &gt; rapport.pdf
+awslocal s3 cp rapport.pdf s3://uploads-pipeline/rapport.pdf
+sleep 8   # laisser la Lambda s&#39;exécuter (démarrage à froid) / let the Lambda run (cold start)
+
+# Effet 1 : une entrée dans DynamoDB / effect 1: a DynamoDB entry
+echo &quot;--- DynamoDB ---&quot;
+awslocal dynamodb get-item --table-name catalogue-fichiers \
+  --key &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;rapport.pdf&quot;}}&#39; --query &#39;Item.[id.S,statut.S]&#39; --output text
+
+# Effet 2 : un message dans la file SQS (via SNS) / effect 2: an SQS message (via SNS)
+echo &quot;--- SQS ---&quot;
+awslocal sqs receive-message \
+  --queue-url &quot;$(awslocal sqs get-queue-url --queue-name consommateur-aval --query &#39;QueueUrl&#39; --output text)&quot; \
+  --query &#39;Messages[0].Body&#39; --output text | head -c 120 ; echo</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> termine <code>Apply complete!</code> (les ressources restantes ajoutées). Après le dépôt de <code>rapport.pdf</code> : <strong>Effet 1</strong> — <code>get-item</code> renvoie <code>rapport.pdf   traite</code> : la Lambda a bien écrit dans DynamoDB. <strong>Effet 2</strong> — <code>receive-message</code> renvoie une enveloppe SNS contenant <code>Fichier traite : rapport.pdf</code> : la notification a été diffusée jusqu&#39;à SQS. <strong>Le pipeline complet fonctionne</strong> : S3 → Lambda → (DynamoDB + SNS → SQS). 🎉 Si l&#39;un des deux effets manque, vois le troubleshooting (souvent la permission Lambda ou l&#39;endpoint boto3).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> ends <code>Apply complete!</code> (remaining resources added). After dropping <code>rapport.pdf</code>: <strong>Effect 1</strong> — <code>get-item</code> returns <code>rapport.pdf   traite</code>: the Lambda wrote to DynamoDB. <strong>Effect 2</strong> — <code>receive-message</code> returns an SNS envelope containing <code>Fichier traite : rapport.pdf</code>: the notification was broadcast all the way to SQS. <strong>The full pipeline works</strong>: S3 → Lambda → (DynamoDB + SNS → SQS). 🎉 If either effect is missing, see troubleshooting (often the Lambda permission or the boto3 endpoint).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Prouver l&#39;<strong>idempotence</strong>, préparer le <strong>livrable CV</strong>, puis <strong>détruire</strong> proprement.</p>
+<p><strong>🤔 Le critère de qualité IaC.</strong> Un projet Terraform sérieux est <strong>idempotent</strong> : relancer <code>apply</code> sans rien changer ne doit produire <strong>aucune</strong> modification. Et il se <strong>détruit</strong> d&#39;une commande — pas de ressource oubliée qui traîne (ou facture, en réel). C&#39;est la discipline qui distingue un projet pro.</p>
+<p>Vérifie l&#39;idempotence puis détruis :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prove <strong>idempotence</strong>, prepare the <strong>CV deliverable</strong>, then <strong>destroy</strong> cleanly.</p>
+<p><strong>🤔 The IaC quality criterion.</strong> A serious Terraform project is <strong>idempotent</strong>: rerunning <code>apply</code> without changing anything must produce <strong>no</strong> modification. And it <strong>destroys</strong> in one command — no forgotten resource lingering (or billing, in real AWS). It&#39;s the discipline that sets a pro project apart.</p>
+<p>Check idempotence then destroy:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Idempotence : un 2e apply ne doit RIEN changer / a 2nd apply must change NOTHING
+terraform apply -auto-approve
+
+# Tout détruire proprement / destroy everything cleanly
+terraform destroy -auto-approve
+awslocal s3 ls ; awslocal dynamodb list-tables --query &#39;TableNames&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <strong>second</strong> <code>terraform apply</code> affiche <code>No changes. Your infrastructure matches the configuration.</code> — c&#39;est <strong>la</strong> preuve d&#39;idempotence (Terraform compare l&#39;état voulu à l&#39;état réel, et ne voit rien à faire). <code>terraform destroy</code> supprime toutes les ressources — <strong>y compris le bucket, que <code>force_destroy = true</code> vide d&#39;abord</strong> (le <code>rapport.pdf</code> déposé à l&#39;étape 6 le rend non vide ; sans ce réglage, <code>destroy</code> échouerait en <code>BucketNotEmpty</code>). Après, <code>s3 ls</code> et <code>dynamodb list-tables</code> sont vides. Ton pipeline se déploie <strong>et</strong> se démonte d&#39;une commande. ⚠️ En réel, ce <code>destroy</code> est ce qui t&#39;évite une facture — prends-en le réflexe. Tu as un projet serverless complet, idempotent, reproductible.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <strong>second</strong> <code>terraform apply</code> shows <code>No changes. Your infrastructure matches the configuration.</code> — that&#39;s <strong>the</strong> idempotence proof (Terraform compares desired state to real state, and sees nothing to do). <code>terraform destroy</code> removes all resources — <strong>including the bucket, which <code>force_destroy = true</code> empties first</strong> (the <code>rapport.pdf</code> uploaded in step 6 makes it non-empty; without this setting, <code>destroy</code> would fail with <code>BucketNotEmpty</code>). After, <code>s3 ls</code> and <code>dynamodb list-tables</code> are empty. Your pipeline deploys <strong>and</strong> tears down in one command. ⚠️ In real AWS, this <code>destroy</code> is what saves you a bill — build the reflex. You have a complete, idempotent, reproducible serverless project.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Oublier le bloc <code>endpoints</code> du provider.</strong> Sans lui, Terraform vise le <strong>vrai</strong> AWS (et échouera faute de credentials valides, ou pire). Le bloc <code>endpoints</code> + <code>test</code>/<code>test</code> + <code>skip_*</code> est ce qui redirige vers LocalStack.</p>
+<p><strong>2. Endpoint boto3 manquant dans la Lambda.</strong> Depuis le conteneur d&#39;exécution, la fonction ne joint pas <code>localhost:4566</code>. Crée les clients avec <code>endpoint_url=os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)</code> : LocalStack injecte la variable, et en réel elle est absente (boto3 vise le vrai AWS). Sans ça, la Lambda plante ou n&#39;écrit rien.</p>
+<p><strong>3. Déclencheur S3 sans permission Lambda.</strong> <code>aws_s3_bucket_notification</code> seul ne suffit pas : il faut <code>aws_lambda_permission</code> autorisant <code>s3.amazonaws.com</code>, <strong>avant</strong> (via <code>depends_on</code>). Sinon la notification est refusée ou muette.</p>
+<p><strong>4. Fan-out SNS→SQS sans queue policy.</strong> SNS ne peut déposer dans la file que si une <code>aws_sqs_queue_policy</code> l&#39;autorise. Sans elle, l&#39;abonnement existe mais aucun message n&#39;arrive.</p>
+<p><strong>5. <code>source_code_hash</code> oublié.</strong> Sans lui, Terraform ne détecte pas les changements de code : tu modifies <code>handler.py</code>, <code>apply</code> ne redéploie pas la fonction. <code>source_code_hash = data.archive_file.code.output_base64sha256</code> règle ça.</p>
+<p><strong>6. Politique de rôle trop large.</strong> <code>dynamodb:<em></code> sur <code></em></code> marche mais viole le moindre privilège. Cible <code>PutItem</code> sur l&#39;ARN de <strong>ta</strong> table, <code>Publish</code> sur <strong>ton</strong> topic. L&#39;examen (et un bon reviewer) le remarquent.</p>
+<p><strong>7. Ne pas détruire.</strong> En LocalStack c&#39;est gratuit, mais l&#39;habitude compte : <code>terraform destroy</code> à la fin. En réel, une ressource oubliée = une facture mensuelle silencieuse.</p>
+<p><strong>8. Lancer LocalStack sans le socket.</strong> Le pipeline utilise Lambda : sans <code>-v /var/run/docker.sock:...</code>, la fonction reste <code>Failed</code> et rien ne se déclenche. Relance LocalStack avec le socket (prérequis).</p>
+</div>
+<div data-lang="en"><p><strong>1. Forgetting the provider&#39;s <code>endpoints</code> block.</strong> Without it, Terraform targets <strong>real</strong> AWS (and will fail for lack of valid credentials, or worse). The <code>endpoints</code> block + <code>test</code>/<code>test</code> + <code>skip_*</code> is what redirects to LocalStack.</p>
+<p><strong>2. Missing boto3 endpoint in the Lambda.</strong> From the execution container, the function can&#39;t reach <code>localhost:4566</code>. Create clients with <code>endpoint_url=os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)</code>: LocalStack injects the variable, and in real AWS it&#39;s absent (boto3 targets real AWS). Without it, the Lambda crashes or writes nothing.</p>
+<p><strong>3. S3 trigger without Lambda permission.</strong> <code>aws_s3_bucket_notification</code> alone isn&#39;t enough: you need <code>aws_lambda_permission</code> allowing <code>s3.amazonaws.com</code>, <strong>before</strong> (via <code>depends_on</code>). Otherwise the notification is refused or silent.</p>
+<p><strong>4. SNS→SQS fan-out without a queue policy.</strong> SNS can deposit into the queue only if an <code>aws_sqs_queue_policy</code> allows it. Without it, the subscription exists but no message arrives.</p>
+<p><strong>5. Forgetting <code>source_code_hash</code>.</strong> Without it, Terraform doesn&#39;t detect code changes: you edit <code>handler.py</code>, <code>apply</code> doesn&#39;t redeploy the function. <code>source_code_hash = data.archive_file.code.output_base64sha256</code> fixes it.</p>
+<p><strong>6. Too-broad role policy.</strong> <code>dynamodb:<em></code> on <code></em></code> works but violates least privilege. Target <code>PutItem</code> on <strong>your</strong> table&#39;s ARN, <code>Publish</code> on <strong>your</strong> topic. The exam (and a good reviewer) notice.</p>
+<p><strong>7. Not destroying.</strong> In LocalStack it&#39;s free, but the habit matters: <code>terraform destroy</code> at the end. In real AWS, a forgotten resource = a silent monthly bill.</p>
+<p><strong>8. Launching LocalStack without the socket.</strong> The pipeline uses Lambda: without <code>-v /var/run/docker.sock:...</code>, the function stays <code>Failed</code> and nothing triggers. Relaunch LocalStack with the socket (prerequisites).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que le projet est réussi quand…</p>
+<ul class="checklist"><li><code>terraform init</code> télécharge les providers et le bloc <code>endpoints</code> vise LocalStack.</li><li>S3, DynamoDB, Lambda+rôle, déclencheur, SNS+SQS sont tous en <code>.tf</code>.</li><li>La politique du rôle Lambda est en <strong>moindre privilège</strong> (PutItem + Publish ciblés).</li><li>Un dépôt S3 fait apparaître une entrée DynamoDB (<code>statut = traite</code>).</li><li>Le même dépôt fait arriver un message dans la file SQS (via SNS).</li><li>Un <strong>2e</strong> <code>terraform apply</code> affiche <code>No changes</code> (idempotence).</li><li><code>terraform destroy</code> nettoie tout, et ton dépôt Git a un <strong>README d&#39;architecture</strong>.</li></ul>
+<p>Sept cases = tu as un projet serverless de niveau entreprise, prêt pour ton CV. 🏆</p>
+</div>
+<div data-lang="en"><p>You know the project is a success when…</p>
+<ul class="checklist"><li><code>terraform init</code> downloads the providers and the <code>endpoints</code> block targets LocalStack.</li><li>S3, DynamoDB, Lambda+role, trigger, SNS+SQS are all in <code>.tf</code>.</li><li>The Lambda role&#39;s policy is <strong>least privilege</strong> (targeted PutItem + Publish).</li><li>An S3 upload makes a DynamoDB entry appear (<code>statut = traite</code>).</li><li>The same upload makes a message arrive in the SQS queue (via SNS).</li><li>A <strong>2nd</strong> <code>terraform apply</code> shows <code>No changes</code> (idempotence).</li><li><code>terraform destroy</code> cleans everything, and your Git repo has an <strong>architecture README</strong>.</li></ul>
+<p>Seven boxes = you have an enterprise-grade serverless project, ready for your CV. 🏆</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p><strong>Mettre ce projet sur ton CV.</strong> Tu viens de produire une preuve concrète. Voici comment la valoriser.</p>
+<p>Structure de dépôt à pousser sur GitHub (le README est ce que le recruteur lit en premier — écris-le comme un schéma d&#39;architecture) :</p>
+</div>
+<div data-lang="en"><p><strong>Put this project on your CV.</strong> You&#39;ve just produced concrete proof. Here&#39;s how to leverage it.</p>
+<p>Repo structure to push to GitHub (the README is what a recruiter reads first — write it like an architecture diagram):</p>
+</div>
+<p>projet-serverless/     ├── README.md            # architecture, prérequis, &quot;terraform apply&quot;     ├── provider.tf          # provider AWS -&gt; LocalStack (endpoints)     ├── storage.tf           # bucket S3 + table DynamoDB     ├── lambda.tf            # rôle IAM (moindre privilège) + fonction (archive_file)     ├── trigger.tf           # permission + notification S3 -&gt; Lambda     ├── notifications.tf     # SNS + SQS + abonnement + queue policy (fan-out)     └── lambda/         └── handler.py       # code : lit l&#39;événement S3, écrit DynamoDB, publie SNS</p>
+<div data-lang="fr"><p><strong>Le pitch (2 phrases pour l&#39;entretien) :</strong> « J&#39;ai construit un pipeline serverless événementiel sur AWS, entièrement en Terraform : un dépôt de fichier dans S3 déclenche une fonction Lambda qui catalogue le fichier dans DynamoDB et publie une notification diffusée en fan-out SNS→SQS. Rôle IAM en moindre privilège, infrastructure idempotente, déployable et destructible d&#39;une commande. »</p>
+<p><strong>Pour aller plus loin :</strong></p>
+<ol><li>Ajoute un <strong>traitement réel</strong> dans la Lambda (extraire les métadonnées, redimensionner une image).</li><li>Ajoute une <strong>seconde file</strong> abonnée au même sujet (fan-out à deux consommateurs) et une <strong>DLQ</strong>.</li><li>Découpe en <strong>modules Terraform</strong> réutilisables (un module « pipeline »).</li><li><strong>Passe en réel</strong> : le guide suivant t&#39;explique comment déployer ce même projet sur un vrai compte AWS free-tier, avec les garde-fous de coût.</li></ol>
+</div>
+<div data-lang="en"><p><strong>The pitch (2 sentences for the interview):</strong> &quot;I built an event-driven serverless pipeline on AWS, entirely in Terraform: a file upload to S3 triggers a Lambda function that catalogs the file in DynamoDB and publishes a notification fanned out SNS→SQS. Least-privilege IAM role, idempotent infrastructure, deployable and destroyable in one command.&quot;</p>
+<p><strong>To go further:</strong></p>
+<ol><li>Add <strong>real processing</strong> in the Lambda (extract metadata, resize an image).</li><li>Add a <strong>second queue</strong> subscribed to the same topic (fan-out to two consumers) and a <strong>DLQ</strong>.</li><li>Split into reusable <strong>Terraform modules</strong> (a &quot;pipeline&quot; module).</li><li><strong>Go real</strong>: the next guide shows how to deploy this same project on a real AWS free-tier account, with cost guardrails.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-passer-en-reel/">
+    <span class="num">51</span>
+    <span class="title-line" data-lang="fr">AWS — passer en réel proprement</span>
+    <span class="title-line" data-lang="en">AWS — going real, cleanly</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du projet.</p>
+</div>
+<div data-lang="en"><p>Project cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle Terraform / Terraform cycle
+terraform init                    # télécharger les providers / download providers
+terraform validate                # vérifier syntaxe &amp; références / check syntax &amp; refs
+terraform plan                    # prévisualiser les changements / preview changes
+terraform apply -auto-approve     # déployer / deploy
+terraform apply -auto-approve     # 2e fois -&gt; &quot;No changes&quot; (idempotence) / 2nd time
+terraform destroy -auto-approve   # tout détruire / destroy everything
+
+# Tester le pipeline / test the pipeline
+awslocal s3 cp fichier s3://uploads-pipeline/fichier      # déclencher / trigger
+awslocal dynamodb get-item --table-name catalogue-fichiers --key &#39;{&quot;id&quot;:{&quot;S&quot;:&quot;fichier&quot;}}&#39;
+awslocal sqs receive-message --queue-url $(awslocal sqs get-queue-url --queue-name consommateur-aval --query QueueUrl --output text)</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Le motif clé : empaqueter la Lambda par Terraform / the key pattern: package the Lambda
+data &quot;archive_file&quot; &quot;code&quot; {
+  type        = &quot;zip&quot;
+  source_dir  = &quot;${path.module}/lambda&quot;
+  output_path = &quot;${path.module}/fonction.zip&quot;
+}
+# ... source_code_hash = data.archive_file.code.output_base64sha256 (détecte les changements de code)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.localstack.cloud/user-guide/integrations/terraform/">LocalStack + Terraform</a> — configurer le provider.</li><li><a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs">Provider AWS Terraform</a> — toutes les ressources.</li><li><a href="https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file"><code>archive_file</code></a> — empaqueter du code.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html">Notifications d&#39;événements S3</a> — déclencher Lambda/SNS/SQS.</li><li><a href="https://aws.amazon.com/serverless/">Architectures serverless AWS</a> — motifs de référence.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.localstack.cloud/user-guide/integrations/terraform/">LocalStack + Terraform</a> — configure the provider.</li><li><a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs">Terraform AWS provider</a> — all resources.</li><li><a href="https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file"><code>archive_file</code></a> — package code.</li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html">S3 event notifications</a> — trigger Lambda/SNS/SQS.</li><li><a href="https://aws.amazon.com/serverless/">AWS serverless architectures</a> — reference patterns.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform init</code> échoue sur registry.terraform.io.</strong> Problème réseau vers le registre HashiCorp. Vérifie ta connexion ; le provider se télécharge une fois puis est mis en cache dans <code>.terraform/</code>.</p>
+<p><strong><code>apply</code> échoue « connection refused » sur localhost:4566.</strong> LocalStack n&#39;est pas lancé ou pas prêt. Vérifie <code>docker ps</code> et le <code>health</code>, puis relance <code>apply</code>.</p>
+<p><strong>Le dépôt S3 ne crée pas d&#39;entrée DynamoDB.</strong> La Lambda ne s&#39;est pas exécutée ou a planté. Vérifie que LocalStack a le <strong>socket Docker</strong> (sinon <code>Failed</code>), que la <strong>permission</strong> S3→Lambda existe, et que le code utilise <code>endpoint_url=os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)</code>.</p>
+<p><strong>Pas de message dans SQS après le dépôt.</strong> L&#39;abonnement SNS→SQS ou la <strong>queue policy</strong> manque. Vérifie que <code>aws_sqs_queue_policy</code> autorise <code>sns.amazonaws.com</code>, et que la Lambda publie bien (Effet 1 OK mais pas Effet 2 = souci SNS/SQS, pas Lambda).</p>
+<p><strong><code>Unable to validate the following destination configurations</code>.</strong> La notification S3 est créée avant la permission Lambda. Ajoute <code>depends_on = [aws_lambda_permission...]</code> sur la notification.</p>
+<p><strong>Je modifie <code>handler.py</code> mais <code>apply</code> ne redéploie pas.</strong> Il manque <code>source_code_hash</code> sur <code>aws_lambda_function</code>. Ajoute <code>source_code_hash = data.archive_file.code.output_base64sha256</code>.</p>
+<p><strong><code>terraform destroy</code> échoue en <code>BucketNotEmpty</code>.</strong> Le bucket contient des objets (le fichier de test). La solution propre est <code>force_destroy = true</code> sur <code>aws_s3_bucket</code> (déjà dans le projet) : <code>destroy</code> le vide alors tout seul. En dépannage manuel : <code>awslocal s3 rm s3://uploads-pipeline --recursive</code> puis relance <code>destroy</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform init</code> fails on registry.terraform.io.</strong> Network issue to the HashiCorp registry. Check your connection; the provider downloads once then is cached in <code>.terraform/</code>.</p>
+<p><strong><code>apply</code> fails &quot;connection refused&quot; on localhost:4566.</strong> LocalStack isn&#39;t started or not ready. Check <code>docker ps</code> and <code>health</code>, then rerun <code>apply</code>.</p>
+<p><strong>The S3 upload doesn&#39;t create a DynamoDB entry.</strong> The Lambda didn&#39;t run or crashed. Check LocalStack has the <strong>Docker socket</strong> (else <code>Failed</code>), the S3→Lambda <strong>permission</strong> exists, and the code uses <code>endpoint_url=os.environ.get(&quot;AWS_ENDPOINT_URL&quot;)</code>.</p>
+<p><strong>No SQS message after the upload.</strong> The SNS→SQS subscription or the <strong>queue policy</strong> is missing. Check <code>aws_sqs_queue_policy</code> allows <code>sns.amazonaws.com</code>, and the Lambda publishes (Effect 1 OK but not Effect 2 = SNS/SQS issue, not Lambda).</p>
+<p><strong><code>Unable to validate the following destination configurations</code>.</strong> The S3 notification is created before the Lambda permission. Add <code>depends_on = [aws_lambda_permission...]</code> on the notification.</p>
+<p><strong>I edit <code>handler.py</code> but <code>apply</code> doesn&#39;t redeploy.</strong> Missing <code>source_code_hash</code> on <code>aws_lambda_function</code>. Add <code>source_code_hash = data.archive_file.code.output_base64sha256</code>.</p>
+<p><strong><code>terraform destroy</code> fails with <code>BucketNotEmpty</code>.</strong> The bucket holds objects (the test file). The clean fix is <code>force_destroy = true</code> on <code>aws_s3_bucket</code> (already in the project): <code>destroy</code> then empties it on its own. Manual workaround: <code>awslocal s3 rm s3://uploads-pipeline --recursive</code> then rerun <code>destroy</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

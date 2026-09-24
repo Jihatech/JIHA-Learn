@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — opérations de sécurité (AZ-500) : Policy, Defender, Sentinel — jiha.tech</title>
+  <title data-lang="en">Azure — security operations (AZ-500): Policy, Defender, Sentinel — jiha.tech</title>
+  <meta name="description" content="&quot;Les opérations de sécurité pour l&#39;AZ-500, en local et pour de vrai : Azure Policy qui REFUSE la création de ressources non conformes (évaluateur deny exécutable + checkov en shift-left), Defender for Cloud (secure score + recommandations priorisées), la centralisation des journaux, un moteur de détection type Sentinel/SIEM (force brute, voyage impossible → incidents), une requête de chasse (analogue KQL), et un playbook de réponse automatique à incident. Gouverner, mesurer, détecter, chasser, répondre. Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Security operations for AZ-500, locally and for real: Azure Policy that DENIES creation of non-compliant resources (a runnable deny evaluator + checkov shift-left), Defender for Cloud (secure score + prioritized recommendations), log centralization, a Sentinel/SIEM-style detection engine (brute force, impossible travel → incidents), a hunting query (KQL analog), and an automated incident-response playbook. Govern, measure, detect, hunt, respond. No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — opérations de sécurité (AZ-500) : Policy, Defender, Sentinel">
+  <meta property="og:description" content="&quot;Les opérations de sécurité pour l&#39;AZ-500, en local et pour de vrai : Azure Policy qui REFUSE la création de ressources non conformes (évaluateur deny exécutable + checkov en shift-left), Defender for Cloud (secure score + recommandations priorisées), la centralisation des journaux, un moteur de détection type Sentinel/SIEM (force brute, voyage impossible → incidents), une requête de chasse (analogue KQL), et un playbook de réponse automatique à incident. Gouverner, mesurer, détecter, chasser, répondre. Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-securite-operations/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-securite-operations/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-securite-operations">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-securite-operations</div>
+    <div class="prompt" data-lang="en">~/guides/azure-securite-operations</div>
+    <h1 data-lang="fr">Azure — opérations de sécurité (AZ-500) : Policy, Defender, Sentinel</h1>
+    <h1 data-lang="en">Azure — security operations (AZ-500): Policy, Defender, Sentinel</h1>
+    <p class="tagline" data-lang="fr">gouverner, mesurer la posture, détecter, chasser, répondre.</p>
+    <p class="tagline" data-lang="en">govern, measure posture, detect, hunt, respond.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 260 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 260 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as durci l&#39;<strong>identité</strong>, le <strong>réseau</strong> et les <strong>données</strong>. Reste à <strong>opérer</strong> la sécurité dans le temps : <strong>gouverner</strong> ce qui se crée, <strong>mesurer</strong> la posture, <strong>détecter</strong> les attaques, <strong>chasser</strong> les menaces et <strong>répondre</strong> aux incidents. C&#39;est le dernier pilier <strong>AZ-500</strong> — celui qui transforme des contrôles statiques en une <strong>défense vivante</strong>.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on écrit un évaluateur <strong>Azure Policy</strong> qui <strong>refuse</strong> (deny) la création de ressources non conformes, on calcule un <strong>secure score</strong> avec des <strong>recommandations priorisées</strong> (Defender for Cloud), on <strong>centralise</strong> des journaux, on écrit un <strong>moteur de détection</strong> type <strong>Sentinel/SIEM</strong> qui repère <strong>force brute</strong> et <strong>voyage impossible</strong> et <strong>lève des incidents</strong>, on écrit une <strong>requête de chasse</strong> (analogue <strong>KQL</strong>), et on <strong>répond</strong> avec un <strong>playbook automatique</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les trois piliers techniques (identité, réseau, données) et tu veux les <strong>opérer</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas les bases → fais les guides AZ-500 précédents.</li><li>Tu veux le <strong>SOC</strong> organisationnel (processus, astreintes) → ici c&#39;est la <strong>mécanique</strong> technique (détection, réponse).</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve hardened <strong>identity</strong>, <strong>network</strong> and <strong>data</strong>. What remains is to <strong>operate</strong> security over time: <strong>govern</strong> what gets created, <strong>measure</strong> posture, <strong>detect</strong> attacks, <strong>hunt</strong> threats and <strong>respond</strong> to incidents. It&#39;s the last <strong>AZ-500</strong> pillar — the one that turns static controls into a <strong>living defense</strong>.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we write an <strong>Azure Policy</strong> evaluator that <strong>denies</strong> creation of non-compliant resources, we compute a <strong>secure score</strong> with <strong>prioritized recommendations</strong> (Defender for Cloud), we <strong>centralize</strong> logs, we write a <strong>Sentinel/SIEM-style detection engine</strong> that spots <strong>brute force</strong> and <strong>impossible travel</strong> and <strong>raises incidents</strong>, we write a <strong>hunting query</strong> (<strong>KQL</strong> analog), and we <strong>respond</strong> with an <strong>automated playbook</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you have the three technical pillars (identity, network, data) and want to <strong>operate</strong> them.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You lack the basics → do the previous AZ-500 guides.</li><li>You want the organizational <strong>SOC</strong> (processes, on-call) → here it&#39;s the technical <strong>mechanics</strong> (detection, response).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Écrire une <strong>Azure Policy</strong> qui <strong>refuse</strong> (deny) une ressource non conforme.</li><li>Distinguer <strong>prévention</strong> (Policy, à la création) et <strong>shift-left</strong> (checkov, avant).</li><li>Calculer un <strong>secure score</strong> et <strong>prioriser</strong> les recommandations (Defender).</li><li><strong>Centraliser</strong> des journaux de sécurité (Log Analytics).</li><li>Écrire des <strong>règles de détection</strong> (Sentinel) — force brute, voyage impossible.</li><li>Écrire une <strong>requête de chasse</strong> (KQL) sur les journaux.</li><li><strong>Répondre</strong> à un incident avec un <strong>playbook</strong> automatique.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Write an <strong>Azure Policy</strong> that <strong>denies</strong> a non-compliant resource.</li><li>Distinguish <strong>prevention</strong> (Policy, at creation) and <strong>shift-left</strong> (checkov, before).</li><li>Compute a <strong>secure score</strong> and <strong>prioritize</strong> recommendations (Defender).</li><li><strong>Centralize</strong> security logs (Log Analytics).</li><li>Write <strong>detection rules</strong> (Sentinel) — brute force, impossible travel.</li><li>Write a <strong>hunting query</strong> (KQL) over the logs.</li><li><strong>Respond</strong> to an incident with an automated <strong>playbook</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Azure — sécurité fondamentaux / identité / réseau / données (AZ-500)</strong>.</li><li>Le <strong>lab local</strong> : <strong>Python 3</strong> (moteurs de détection/policy/réponse), <code>checkov</code> (<code>pip install checkov</code>), <strong>miniblue</strong> optionnel.</li><li><strong>Aucun compte cloud</strong> : Policy, Defender, Sentinel et playbook sont des <strong>moteurs exécutables</strong> en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — security fundamentals / identity / network / data (AZ-500)</strong> guides.</li><li>The <strong>local lab</strong>: <strong>Python 3</strong> (detection/policy/response engines), <code>checkov</code> (<code>pip install checkov</code>), <strong>miniblue</strong> optional.</li><li><strong>No cloud account</strong>: Policy, Defender, Sentinel and playbook are <strong>runnable engines</strong> locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-securite-donnees/">
+    <span class="num">79</span>
+    <span class="title-line" data-lang="fr">Azure — sécurité des données (AZ-500) : chiffrement, coffre, rotation</span>
+    <span class="title-line" data-lang="en">Azure — data security (AZ-500): encryption, vault, rotation</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Gouverner : Azure Policy.</strong> Une <strong>politique</strong> définit une <strong>règle</strong> sur les ressources et un <strong>effet</strong> : <strong>Audit</strong> (signaler la non-conformité), <strong>Deny</strong> (<strong>refuser</strong> la création), <strong>DeployIfNotExists</strong> (corriger automatiquement). Contrairement à un scan qui <strong>constate</strong>, une politique <strong>Deny empêche</strong> une ressource non conforme d&#39;<strong>exister</strong> — c&#39;est la <strong>prévention côté plateforme</strong>. Complément du <strong>shift-left</strong> (checkov, avant le déploiement), Policy est le <strong>garde-fou côté Azure</strong>.</p>
+<p><strong>Mesurer : Defender for Cloud.</strong> <strong>Microsoft Defender for Cloud</strong> évalue en continu ta posture et produit un <strong>secure score</strong> (%) avec des <strong>recommandations priorisées</strong> par sévérité. Il détecte aussi des menaces sur les ressources (comportements suspects). Le secure score est ta <strong>boussole</strong> : il monte quand tu appliques les recommandations, il baisse quand la posture dérive.</p>
+<p><strong>Centraliser : Log Analytics.</strong> On ne peut détecter que ce qu&#39;on <strong>voit</strong>. <strong>Log Analytics</strong> ingère les journaux (connexions, ressources, réseau) dans un <strong>espace de travail</strong> unique, interrogeable en <strong>KQL</strong>. Sans centralisation, chaque service a ses logs dans son coin — invisibles pour la corrélation.</p>
+<p><strong>Détecter : Sentinel (SIEM/SOAR).</strong> <strong>Microsoft Sentinel</strong> est le <strong>SIEM</strong> natif : il corrèle les journaux avec des <strong>règles de détection</strong> (analytics) et <strong>lève des incidents</strong>. Exemples classiques : <strong>force brute</strong> (beaucoup d&#39;échecs puis un succès), <strong>voyage impossible</strong> (deux connexions réussies depuis deux pays éloignés en peu de temps), <strong>élévation de privilège</strong> inattendue. Chaque règle transforme des <strong>événements bruts</strong> en <strong>alerte actionnable</strong>.</p>
+<p><strong>Chasser : KQL.</strong> La <strong>chasse aux menaces</strong> (threat hunting) est <strong>proactive</strong> : au lieu d&#39;attendre une alerte, on <strong>interroge</strong> les journaux à la recherche d&#39;indices (top des IP par échecs, comptes inhabituels, accès hors horaires). Le langage est <strong>KQL</strong> (Kusto) : <code>SigninLogs | where Result == &quot;echec&quot; | summarize count() by ip | order by count_ desc</code>.</p>
+<p><strong>Répondre : SOAR &amp; playbooks.</strong> Détecter ne suffit pas — il faut <strong>réagir vite</strong>. Un <strong>playbook</strong> (automation Sentinel/Logic App) exécute une <strong>réponse automatique</strong> à un incident : désactiver un compte, révoquer des sessions, bloquer une IP, notifier le SOC. C&#39;est le <strong>R</strong> de <strong>SOAR</strong> (Security Orchestration, Automation and Response) : réduire le <strong>MTTR</strong> (temps de réponse).</p>
+<p><strong>Ce qui est live ici.</strong> Tous les moteurs — <strong>Policy (deny)</strong>, <strong>secure score</strong>, <strong>détection</strong>, <strong>chasse (KQL analog)</strong>, <strong>playbook</strong> — sont <strong>exécutables</strong> en Python : de <strong>vraies</strong> décisions reproduisant la logique d&#39;Azure. <strong>checkov</strong> ajoute le <strong>shift-left</strong> réel (offline). Les services managés (Defender, Sentinel) se <strong>raisonnent</strong> ; leur <strong>logique</strong> est ici <strong>jouée pour de vrai</strong>. Sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>Govern: Azure Policy.</strong> A <strong>policy</strong> defines a <strong>rule</strong> on resources and an <strong>effect</strong>: <strong>Audit</strong> (flag non-compliance), <strong>Deny</strong> (<strong>refuse</strong> creation), <strong>DeployIfNotExists</strong> (auto-remediate). Unlike a scan that <strong>observes</strong>, a <strong>Deny</strong> policy <strong>prevents</strong> a non-compliant resource from <strong>existing</strong> — it&#39;s <strong>platform-side prevention</strong>. Complementing <strong>shift-left</strong> (checkov, before deployment), Policy is the <strong>Azure-side guardrail</strong>.</p>
+<p><strong>Measure: Defender for Cloud.</strong> <strong>Microsoft Defender for Cloud</strong> continuously evaluates your posture and produces a <strong>secure score</strong> (%) with <strong>recommendations prioritized</strong> by severity. It also detects threats on resources (suspicious behaviors). The secure score is your <strong>compass</strong>: it rises when you apply recommendations, drops when posture drifts.</p>
+<p><strong>Centralize: Log Analytics.</strong> You can only detect what you <strong>see</strong>. <strong>Log Analytics</strong> ingests logs (sign-ins, resources, network) into a single <strong>workspace</strong>, queryable in <strong>KQL</strong>. Without centralization, each service has its logs in its corner — invisible for correlation.</p>
+<p><strong>Detect: Sentinel (SIEM/SOAR).</strong> <strong>Microsoft Sentinel</strong> is the native <strong>SIEM</strong>: it correlates logs with <strong>detection rules</strong> (analytics) and <strong>raises incidents</strong>. Classic examples: <strong>brute force</strong> (many failures then a success), <strong>impossible travel</strong> (two successful sign-ins from two distant countries in a short time), unexpected <strong>privilege escalation</strong>. Each rule turns <strong>raw events</strong> into an <strong>actionable alert</strong>.</p>
+<p><strong>Hunt: KQL.</strong> <strong>Threat hunting</strong> is <strong>proactive</strong>: instead of waiting for an alert, you <strong>query</strong> the logs for clues (top IPs by failures, unusual accounts, off-hours access). The language is <strong>KQL</strong> (Kusto): <code>SigninLogs | where Result == &quot;echec&quot; | summarize count() by ip | order by count_ desc</code>.</p>
+<p><strong>Respond: SOAR &amp; playbooks.</strong> Detecting isn&#39;t enough — you must <strong>react fast</strong>. A <strong>playbook</strong> (Sentinel automation/Logic App) runs an <strong>automated response</strong> to an incident: disable an account, revoke sessions, block an IP, notify the SOC. It&#39;s the <strong>R</strong> of <strong>SOAR</strong> (Security Orchestration, Automation and Response): reducing the <strong>MTTR</strong> (response time).</p>
+<p><strong>What&#39;s live here.</strong> All the engines — <strong>Policy (deny)</strong>, <strong>secure score</strong>, <strong>detection</strong>, <strong>hunting (KQL analog)</strong>, <strong>playbook</strong> — are <strong>runnable</strong> in Python: <strong>real</strong> decisions reproducing Azure&#39;s logic. <strong>checkov</strong> adds real <strong>shift-left</strong> (offline). The managed services (Defender, Sentinel) are <strong>reasoned</strong>; their <strong>logic</strong> is here <strong>played for real</strong>. No cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-securite-operations-cycle">
+  <svg viewBox="0 0 760 258" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-securite-operations-cycle">
+  <title id="s-azure-securite-operations-cycle">Cycle des opérations de sécurité</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Cycle des opérations de sécurité</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="70.5" text-anchor="middle">GOUVERNER</text><text class="sub sub-fill" x="129" y="83.5" text-anchor="middle">Policy deny + checkov</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="380" y="70.5" text-anchor="middle">MESURER</text><text class="sub" x="380" y="83.5" text-anchor="middle">Defender · secure score</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="631" y="70.5" text-anchor="middle">CENTRALISER</text><text class="sub" x="631" y="83.5" text-anchor="middle">Log Analytics</text><path class="arrow" d="M 631 106 L 631 126 L 129 126 L 129 146"/><rect class="box" x="16.5" y="146" width="225" height="66" rx="3"/><text class="lbl" x="129" y="176.5" text-anchor="middle">DÉTECTER</text><text class="sub" x="129" y="189.5" text-anchor="middle">Sentinel → incidents</text><path class="arrow" d="M 241.5 179 L 267.5 179"/><rect class="box" x="267.5" y="146" width="225" height="66" rx="3"/><text class="lbl" x="380" y="176.5" text-anchor="middle">CHASSER</text><text class="sub" x="380" y="189.5" text-anchor="middle">KQL</text><path class="arrow" d="M 492.5 179 L 518.5 179"/><rect class="box-soft" x="518.5" y="146" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="631" y="176.5" text-anchor="middle">RÉPONDRE</text><text class="sub sub-blue" x="631" y="189.5" text-anchor="middle">playbook SOAR</text><text class="sub" x="380" y="250" text-anchor="middle">la chasse et la réponse nourrissent de nouvelles règles</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le cycle des opérations de sécurité : GOUVERNER (Azure Policy refuse le non-conforme + checkov en shift-left) → MESURER (Defender for Cloud : secure score + recommandations priorisées) → CENTRALISER (Log Analytics : tous les journaux) → DÉTECTER (Sentinel/SIEM : règles → incidents) → CHASSER (requêtes KQL proactives) → RÉPONDRE (playbook SOAR : désactiver, révoquer, bloquer, notifier). Une boucle continue : la réponse et la chasse nourrissent de nouvelles règles.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The security operations cycle: GOVERN (Azure Policy denies the non-compliant + checkov shift-left) → MEASURE (Defender for Cloud: secure score + prioritized recommendations) → CENTRALIZE (Log Analytics: all logs) → DETECT (Sentinel/SIEM: rules → incidents) → HUNT (proactive KQL queries) → RESPOND (SOAR playbook: disable, revoke, block, notify). A continuous loop: response and hunting feed new rules.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Gouverner</strong> avec <strong>Azure Policy</strong> — refuser (deny) le non-conforme.</p>
+<p><strong>🤔 Empêcher d&#39;exister, pas seulement signaler.</strong> Un scan <strong>constate</strong> ; une <strong>politique Deny</strong> <strong>empêche</strong> la création d&#39;une ressource non conforme. On écrit un évaluateur de politiques (HTTPS obligatoire, TLS 1.2, région UE) et on lui soumet des ressources.</p>
+<p>Écris l&#39;évaluateur de politiques et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Govern</strong> with <strong>Azure Policy</strong> — deny the non-compliant.</p>
+<p><strong>🤔 Prevent existence, not just flag.</strong> A scan <strong>observes</strong>; a <strong>Deny</strong> policy <strong>prevents</strong> creating a non-compliant resource. We write a policy evaluator (HTTPS required, TLS 1.2, EU region) and feed it resources.</p>
+<p>Write the policy evaluator and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p secops &amp;&amp; cd secops
+cat &gt; policy.py &lt;&lt;&#39;PY&#39;
+# Azure Policy : REFUSER (deny) la creation de ressources non conformes
+POLITIQUES = [
+    (&quot;Refuser stockage sans HTTPS&quot;, lambda r: r.get(&quot;https_only&quot;) is True),
+    (&quot;Refuser TLS &lt; 1.2&quot;,           lambda r: r.get(&quot;tls&quot;) == &quot;1.2&quot;),
+    (&quot;Refuser emplacement hors UE&quot;,  lambda r: r.get(&quot;region&quot;) in (&quot;westeurope&quot;, &quot;northeurope&quot;, &quot;francecentral&quot;)),
+]
+def evaluer(ressource):
+    for nom, regle in POLITIQUES:
+        if not regle(ressource):
+            return &quot;DENY&quot;, nom
+    return &quot;ALLOW&quot;, None
+
+ressources = [
+    {&quot;nom&quot;: &quot;st-conforme&quot;, &quot;https_only&quot;: True,  &quot;tls&quot;: &quot;1.2&quot;, &quot;region&quot;: &quot;francecentral&quot;},
+    {&quot;nom&quot;: &quot;st-http&quot;,     &quot;https_only&quot;: False, &quot;tls&quot;: &quot;1.2&quot;, &quot;region&quot;: &quot;westeurope&quot;},
+    {&quot;nom&quot;: &quot;st-hors-ue&quot;,  &quot;https_only&quot;: True,  &quot;tls&quot;: &quot;1.2&quot;, &quot;region&quot;: &quot;eastus&quot;},
+]
+for r in ressources:
+    dec, motif = evaluer(r)
+    print(f&quot;{r[&#39;nom&#39;]:14} -&gt; {dec}&quot; + (f&quot; (viole: {motif})&quot; if motif else &quot;&quot;))
+PY
+python3 policy.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>st-conforme -&gt; ALLOW</code>, <code>st-http -&gt; DENY (viole: Refuser stockage sans HTTPS)</code>, <code>st-hors-ue -&gt; DENY (viole: Refuser emplacement hors UE)</code>. La politique <strong>refuse</strong> ce qui viole une règle — la ressource ne peut <strong>pas être créée</strong>. C&#39;est la différence clé avec un <strong>scan</strong> (checkov, qui <strong>signale</strong> avant le déploiement, en <em>shift-left</em>) : Azure Policy <strong>empêche</strong> côté plateforme, <strong>à la création</strong>. Les deux se combinent : <strong>checkov en CI</strong> (tôt) <strong>et</strong> <strong>Policy en prod</strong> (garde-fou permanent). On mesure maintenant la <strong>posture globale</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>st-conforme -&gt; ALLOW</code>, <code>st-http -&gt; DENY (viole: Refuser stockage sans HTTPS)</code>, <code>st-hors-ue -&gt; DENY (viole: Refuser emplacement hors UE)</code>. The policy <strong>denies</strong> what violates a rule — the resource <strong>can&#39;t be created</strong>. That&#39;s the key difference from a <strong>scan</strong> (checkov, which <strong>flags</strong> before deployment, <em>shift-left</em>): Azure Policy <strong>prevents</strong> platform-side, <strong>at creation</strong>. Both combine: <strong>checkov in CI</strong> (early) <strong>and</strong> <strong>Policy in prod</strong> (permanent guardrail). We now measure the <strong>overall posture</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Mesurer</strong> la posture — secure score et <strong>recommandations priorisées</strong> (Defender).</p>
+<p><strong>🤔 Une boussole chiffrée.</strong> Defender for Cloud note ta posture (%) et <strong>priorise</strong> les corrections par <strong>sévérité</strong>. On écrit un moteur qui calcule le score et <strong>trie</strong> les recommandations (Haute d&#39;abord).</p>
+<p>Calcule le secure score et priorise :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Measure</strong> posture — secure score and <strong>prioritized recommendations</strong> (Defender).</p>
+<p><strong>🤔 A quantified compass.</strong> Defender for Cloud rates your posture (%) and <strong>prioritizes</strong> fixes by <strong>severity</strong>. We write an engine that computes the score and <strong>sorts</strong> recommendations (High first).</p>
+<p>Compute the secure score and prioritize:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; defender.py &lt;&lt;&#39;PY&#39;
+# Defender for Cloud : posture -&gt; secure score + recommandations priorisees
+controles = [
+    {&quot;nom&quot;: &quot;MFA active pour les admins&quot;,          &quot;ok&quot;: True,  &quot;severite&quot;: &quot;Haute&quot;},
+    {&quot;nom&quot;: &quot;Chiffrement au repos (stockage)&quot;,     &quot;ok&quot;: True,  &quot;severite&quot;: &quot;Haute&quot;},
+    {&quot;nom&quot;: &quot;Points de terminaison prives (PaaS)&quot;, &quot;ok&quot;: False, &quot;severite&quot;: &quot;Haute&quot;},
+    {&quot;nom&quot;: &quot;Journalisation activee&quot;,              &quot;ok&quot;: True,  &quot;severite&quot;: &quot;Moyenne&quot;},
+    {&quot;nom&quot;: &quot;Comptes sans activite desactives&quot;,    &quot;ok&quot;: False, &quot;severite&quot;: &quot;Moyenne&quot;},
+]
+ok = sum(c[&quot;ok&quot;] for c in controles)
+print(f&quot;Secure score : {ok}/{len(controles)} = {100*ok//len(controles)}%&quot;)
+recos = sorted([c for c in controles if not c[&quot;ok&quot;]], key=lambda c: 0 if c[&quot;severite&quot;] == &quot;Haute&quot; else 1)
+print(&quot;Recommandations priorisees :&quot;)
+for c in recos:
+    print(f&quot;  [{c[&#39;severite&#39;]:7}] {c[&#39;nom&#39;]}&quot;)
+PY
+python3 defender.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>Secure score : 3/5 = 60%</code>, puis les <strong>recommandations priorisées</strong> : <code>[Haute] Points de terminaison prives (PaaS)</code> <strong>avant</strong> <code>[Moyenne] Comptes sans activite desactives</code>. Defender te donne un <strong>cap</strong> : corrige les recommandations <strong>Haute</strong> d&#39;abord, ton score <strong>monte</strong>, ta surface d&#39;attaque <strong>baisse</strong>. C&#39;est le pilotage <strong>continu</strong> de la posture — pas un audit ponctuel. Mais un score suppose qu&#39;on <strong>voie</strong> ce qui se passe : il faut <strong>centraliser les journaux</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>Secure score : 3/5 = 60%</code>, then the <strong>prioritized recommendations</strong>: <code>[Haute] Points de terminaison prives (PaaS)</code> <strong>before</strong> <code>[Moyenne] Comptes sans activite desactives</code>. Defender gives you a <strong>heading</strong>: fix <strong>High</strong> recommendations first, your score <strong>rises</strong>, your attack surface <strong>drops</strong>. It&#39;s <strong>continuous</strong> posture steering — not a one-off audit. But a score assumes you <strong>see</strong> what happens: you must <strong>centralize the logs</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Centraliser</strong> les journaux — la matière première de la détection.</p>
+<p><strong>🤔 On ne détecte que ce qu&#39;on voit.</strong> Sans journaux centralisés, pas de corrélation. On rassemble des <strong>journaux d&#39;authentification structurés</strong> (user, IP, pays, résultat) — ce que <strong>Log Analytics</strong> ingérerait — et on les prépare pour l&#39;analyse.</p>
+<p>Centralise les journaux d&#39;authentification :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Centralize</strong> logs — the raw material of detection.</p>
+<p><strong>🤔 You only detect what you see.</strong> Without centralized logs, no correlation. We gather <strong>structured auth logs</strong> (user, IP, country, result) — what <strong>Log Analytics</strong> would ingest — and prepare them for analysis.</p>
+<p>Centralize the auth logs:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; journaux.json &lt;&lt;&#39;JSON&#39;
+[
+  {&quot;user&quot;:&quot;alice&quot;,&quot;ip&quot;:&quot;1.2.3.4&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;echec&quot;,&quot;t&quot;:1},
+  {&quot;user&quot;:&quot;alice&quot;,&quot;ip&quot;:&quot;1.2.3.4&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;echec&quot;,&quot;t&quot;:2},
+  {&quot;user&quot;:&quot;alice&quot;,&quot;ip&quot;:&quot;1.2.3.4&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;echec&quot;,&quot;t&quot;:3},
+  {&quot;user&quot;:&quot;alice&quot;,&quot;ip&quot;:&quot;1.2.3.4&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;echec&quot;,&quot;t&quot;:4},
+  {&quot;user&quot;:&quot;alice&quot;,&quot;ip&quot;:&quot;1.2.3.4&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;echec&quot;,&quot;t&quot;:5},
+  {&quot;user&quot;:&quot;alice&quot;,&quot;ip&quot;:&quot;1.2.3.4&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;succes&quot;,&quot;t&quot;:6},
+  {&quot;user&quot;:&quot;bob&quot;,&quot;ip&quot;:&quot;5.6.7.8&quot;,&quot;pays&quot;:&quot;FR&quot;,&quot;result&quot;:&quot;succes&quot;,&quot;t&quot;:1},
+  {&quot;user&quot;:&quot;bob&quot;,&quot;ip&quot;:&quot;9.9.9.9&quot;,&quot;pays&quot;:&quot;RU&quot;,&quot;result&quot;:&quot;succes&quot;,&quot;t&quot;:2}
+]
+JSON
+
+python3 -c &quot;
+import json
+logs = json.load(open(&#39;journaux.json&#39;))
+print(&#39;journaux centralises / centralized logs:&#39;, len(logs), &#39;evenements&#39;)
+print(&#39;  echecs / failures :&#39;, sum(1 for e in logs if e[&#39;result&#39;]==&#39;echec&#39;))
+print(&#39;  succes / success  :&#39;, sum(1 for e in logs if e[&#39;result&#39;]==&#39;succes&#39;))
+print(&#39;  utilisateurs      :&#39;, sorted(set(e[&#39;user&#39;] for e in logs)))
+&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie confirme <code>journaux centralises : 8 evenements</code>, avec <code>echecs : 5</code>, <code>succes : 3</code> et les utilisateurs <code>[&#39;alice&#39;, &#39;bob&#39;]</code>. Ces journaux <strong>structurés</strong> (champs clairs) sont <strong>interrogeables</strong> — comme dans Log Analytics. On y voit déjà des <strong>signaux</strong> : cinq échecs pour <code>alice</code>, deux connexions de <code>bob</code> depuis des pays différents. Ce sont les <strong>règles de détection</strong> qui vont transformer ces signaux bruts en <strong>incidents</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output confirms <code>journaux centralises : 8 evenements</code>, with <code>echecs : 5</code>, <code>succes : 3</code> and users <code>[&#39;alice&#39;, &#39;bob&#39;]</code>. These <strong>structured</strong> logs (clear fields) are <strong>queryable</strong> — as in Log Analytics. You can already see <strong>signals</strong>: five failures for <code>alice</code>, two sign-ins for <code>bob</code> from different countries. The <strong>detection rules</strong> will turn these raw signals into <strong>incidents</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Détecter</strong> — des règles Sentinel qui lèvent des <strong>incidents</strong>.</p>
+<p><strong>🤔 Transformer les signaux en alertes.</strong> On écrit deux <strong>règles de détection</strong> classiques : <strong>force brute</strong> (≥ 5 échecs puis succès) et <strong>voyage impossible</strong> (succès depuis deux pays). Chaque règle <strong>corrèle</strong> les journaux et <strong>lève un incident</strong>.</p>
+<p>Écris les règles de détection et lance-les :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Detect</strong> — Sentinel rules that raise <strong>incidents</strong>.</p>
+<p><strong>🤔 Turn signals into alerts.</strong> We write two classic <strong>detection rules</strong>: <strong>brute force</strong> (≥ 5 failures then success) and <strong>impossible travel</strong> (success from two countries). Each rule <strong>correlates</strong> the logs and <strong>raises an incident</strong>.</p>
+<p>Write the detection rules and run them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; detection.py &lt;&lt;&#39;PY&#39;
+import json
+from collections import defaultdict
+logs = json.load(open(&quot;journaux.json&quot;))
+incidents = []
+
+# Regle 1 : force brute (&gt;= 5 echecs puis un succes pour un meme user)
+echecs = defaultdict(int)
+for e in logs:
+    if e[&quot;result&quot;] == &quot;echec&quot;:
+        echecs[e[&quot;user&quot;]] += 1
+    elif e[&quot;result&quot;] == &quot;succes&quot; and echecs[e[&quot;user&quot;]] &gt;= 5:
+        incidents.append((&quot;Force brute&quot;, e[&quot;user&quot;], f&quot;{echecs[e[&#39;user&#39;]]} echecs puis succes&quot;))
+
+# Regle 2 : voyage impossible (2 succes depuis 2 pays)
+vu = {}
+for e in logs:
+    if e[&quot;result&quot;] == &quot;succes&quot;:
+        if e[&quot;user&quot;] in vu and vu[e[&quot;user&quot;]] != e[&quot;pays&quot;]:
+            incidents.append((&quot;Voyage impossible&quot;, e[&quot;user&quot;], f&quot;{vu[e[&#39;user&#39;]]} -&gt; {e[&#39;pays&#39;]}&quot;))
+        vu[e[&quot;user&quot;]] = e[&quot;pays&quot;]
+
+print(f&quot;INCIDENTS detectes : {len(incidents)}&quot;)
+for typ, user, det in incidents:
+    print(f&quot;  🚨 {typ:18} user={user:6} ({det})&quot;)
+PY
+python3 detection.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>INCIDENTS detectes : 2</code>, puis <code>🚨 Force brute user=alice (5 echecs puis succes)</code> et <code>🚨 Voyage impossible user=bob (FR -&gt; RU)</code>. Les règles ont <strong>corrélé</strong> les journaux bruts en <strong>incidents actionnables</strong> : une attaque par force brute réussie sur <code>alice</code>, et une connexion <code>bob</code> géographiquement <strong>impossible</strong> (FR puis RU en un instant → identifiants probablement volés). C&#39;est le cœur d&#39;un <strong>SIEM</strong> : pas juste stocker des logs, mais en <strong>extraire du sens</strong>. On peut aussi <strong>chasser</strong> proactivement.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>INCIDENTS detectes : 2</code>, then <code>🚨 Force brute user=alice (5 echecs puis succes)</code> and <code>🚨 Voyage impossible user=bob (FR -&gt; RU)</code>. The rules <strong>correlated</strong> raw logs into <strong>actionable incidents</strong>: a successful brute-force attack on <code>alice</code>, and a geographically <strong>impossible</strong> <code>bob</code> sign-in (FR then RU in an instant → likely stolen credentials). That&#39;s the heart of a <strong>SIEM</strong>: not just storing logs, but <strong>extracting meaning</strong>. You can also <strong>hunt</strong> proactively.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Chasser</strong> les menaces — une requête <strong>KQL</strong> proactive.</p>
+<p><strong>🤔 Ne pas attendre l&#39;alerte.</strong> La <strong>chasse</strong> interroge les journaux <strong>à la recherche</strong> d&#39;indices, sans attendre qu&#39;une règle se déclenche. On écrit une requête (top des IP par échecs) et sa version <strong>KQL</strong> — le langage de Sentinel/Log Analytics.</p>
+<p>Chasse les IP suspectes :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Hunt</strong> threats — a proactive <strong>KQL</strong> query.</p>
+<p><strong>🤔 Don&#39;t wait for the alert.</strong> <strong>Hunting</strong> queries the logs <strong>looking</strong> for clues, without waiting for a rule to fire. We write a query (top IPs by failures) and its <strong>KQL</strong> version — Sentinel/Log Analytics&#39;s language.</p>
+<p>Hunt suspicious IPs:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 -c &quot;
+import json
+from collections import Counter
+logs = json.load(open(&#39;journaux.json&#39;))
+
+# La MEME logique en KQL (Sentinel / Log Analytics) :
+print(&#39;--- requete de chasse (KQL) / hunting query (KQL) ---&#39;)
+print(&#39;SigninLogs&#39;)
+print(&#39;| where Result == \&quot;echec\&quot;&#39;)
+print(&#39;| summarize echecs = count() by ip&#39;)
+print(&#39;| order by echecs desc&#39;)
+print(&#39;--- resultat / result ---&#39;)
+echecs = Counter(e[&#39;ip&#39;] for e in logs if e[&#39;result&#39;]==&#39;echec&#39;)
+for ip, n in echecs.most_common():
+    print(f&#39;  {ip:12} {n} echecs&#39;)
+&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre la <strong>requête KQL</strong> (<code>SigninLogs | where Result == &quot;echec&quot; | summarize count() by ip | order by ... desc</code>) puis son <strong>résultat</strong> : <code>1.2.3.4  5 echecs</code> en tête. La chasse <strong>révèle</strong> l&#39;IP la plus agressive <strong>avant</strong> même qu&#39;une règle ne se soit peut-être déclenchée — utile pour repérer les attaques <strong>lentes</strong> ou <strong>nouvelles</strong> que les règles ne couvrent pas encore. En vrai Azure, ces requêtes <strong>KQL</strong> s&#39;exécutent sur <strong>Log Analytics</strong> ; ici, on reproduit <strong>exactement</strong> leur logique. Reste à <strong>répondre</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows the <strong>KQL query</strong> (<code>SigninLogs | where Result == &quot;echec&quot; | summarize count() by ip | order by ... desc</code>) then its <strong>result</strong>: <code>1.2.3.4  5 echecs</code> on top. Hunting <strong>reveals</strong> the most aggressive IP <strong>before</strong> a rule may have even fired — useful to spot <strong>slow</strong> or <strong>novel</strong> attacks the rules don&#39;t cover yet. In real Azure, these <strong>KQL</strong> queries run on <strong>Log Analytics</strong>; here we reproduce <strong>exactly</strong> their logic. Now to <strong>respond</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Répondre</strong> — un playbook automatique (SOAR).</p>
+<p><strong>🤔 Détecter puis agir, vite.</strong> Un <strong>playbook</strong> exécute une <strong>réponse automatique</strong> à un incident, pour réduire le <strong>MTTR</strong>. On écrit un playbook qui, selon le type d&#39;incident, <strong>désactive</strong> le compte, <strong>révoque</strong> les sessions, <strong>bloque</strong> l&#39;IP et <strong>notifie</strong>.</p>
+<p>Écris le playbook et déclenche-le sur un incident :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Respond</strong> — an automated playbook (SOAR).</p>
+<p><strong>🤔 Detect then act, fast.</strong> A <strong>playbook</strong> runs an <strong>automated response</strong> to an incident, to reduce the <strong>MTTR</strong>. We write a playbook that, by incident type, <strong>disables</strong> the account, <strong>revokes</strong> sessions, <strong>blocks</strong> the IP and <strong>notifies</strong>.</p>
+<p>Write the playbook and trigger it on an incident:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; playbook.py &lt;&lt;&#39;PY&#39;
+# Playbook de reponse automatique (SOAR / Sentinel automation)
+def repondre(incident):
+    typ, user = incident[&quot;type&quot;], incident[&quot;user&quot;]
+    actions = []
+    if typ == &quot;Force brute&quot;:
+        actions += [f&quot;desactiver temporairement le compte {user}&quot;, &quot;exiger reinitialisation MDP + MFA&quot;, &quot;bloquer l&#39;IP source&quot;]
+    elif typ == &quot;Voyage impossible&quot;:
+        actions += [f&quot;revoquer les sessions de {user}&quot;, &quot;exiger re-authentification MFA&quot;, &quot;notifier le SOC&quot;]
+    return actions
+
+for inc in [{&quot;type&quot;: &quot;Force brute&quot;, &quot;user&quot;: &quot;alice&quot;}, {&quot;type&quot;: &quot;Voyage impossible&quot;, &quot;user&quot;: &quot;bob&quot;}]:
+    print(f&quot;Incident: {inc[&#39;type&#39;]} ({inc[&#39;user&#39;]}) -&gt; reponse automatique :&quot;)
+    for a in repondre(inc):
+        print(f&quot;  -&gt; {a}&quot;)
+PY
+python3 playbook.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> pour l&#39;incident <strong>Force brute (alice)</strong>, le playbook <strong>désactive le compte</strong>, <strong>exige MDP + MFA</strong> et <strong>bloque l&#39;IP</strong> ; pour <strong>Voyage impossible (bob)</strong>, il <strong>révoque les sessions</strong>, <strong>exige la ré-authentification MFA</strong> et <strong>notifie le SOC</strong>. La réponse est <strong>immédiate et automatique</strong> — pas d&#39;attente d&#39;un humain à 3 h du matin. C&#39;est le <strong>R</strong> de <strong>SOAR</strong> : le <strong>MTTR</strong> chute. En vrai Azure, ce playbook est une <strong>Logic App</strong> déclenchée par l&#39;alerte Sentinel. Tu as bouclé le <strong>cycle SecOps</strong> : gouverner → mesurer → détecter → chasser → répondre. On récapitule.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> for the <strong>Force brute (alice)</strong> incident, the playbook <strong>disables the account</strong>, <strong>requires password + MFA</strong> and <strong>blocks the IP</strong>; for <strong>Voyage impossible (bob)</strong>, it <strong>revokes sessions</strong>, <strong>requires MFA re-auth</strong> and <strong>notifies the SOC</strong>. The response is <strong>immediate and automatic</strong> — no waiting for a human at 3am. That&#39;s the <strong>R</strong> of <strong>SOAR</strong>: <strong>MTTR</strong> drops. In real Azure, this playbook is a <strong>Logic App</strong> triggered by the Sentinel alert. You closed the <strong>SecOps cycle</strong>: govern → measure → detect → hunt → respond. Let&#39;s recap.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler le <strong>cycle SecOps</strong> — et clore le track AZ-500.</p>
+<p><strong>🤔 Une boucle vivante.</strong> On récapitule les six maillons des opérations de sécurité, qui forment un <strong>cycle continu</strong> : ce qu&#39;on découvre en chasse et en réponse <strong>nourrit</strong> de nouvelles règles et politiques.</p>
+<p>Récapitule le cycle SecOps :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>SecOps cycle</strong> — and close the AZ-500 track.</p>
+<p><strong>🤔 A living loop.</strong> We recap the six links of security operations, which form a <strong>continuous cycle</strong>: what you discover in hunting and response <strong>feeds</strong> new rules and policies.</p>
+<p>Recap the SecOps cycle:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Cycle des operations de securite / security operations cycle ===&quot;
+printf &quot;%-14s %s\n&quot; &quot;1. GOUVERNER&quot; &quot;Azure Policy (deny non-conforme) + checkov (shift-left)&quot;
+printf &quot;%-14s %s\n&quot; &quot;2. MESURER&quot;   &quot;Defender for Cloud (secure score + recommandations)&quot;
+printf &quot;%-14s %s\n&quot; &quot;3. CENTRALISER&quot; &quot;Log Analytics (tous les journaux, interrogeables KQL)&quot;
+printf &quot;%-14s %s\n&quot; &quot;4. DETECTER&quot;  &quot;Sentinel/SIEM (regles -&gt; incidents)&quot;
+printf &quot;%-14s %s\n&quot; &quot;5. CHASSER&quot;   &quot;KQL proactif (menaces lentes/nouvelles)&quot;
+printf &quot;%-14s %s\n&quot; &quot;6. REPONDRE&quot;  &quot;Playbook SOAR (desactiver/revoquer/bloquer/notifier)&quot;
+echo &quot;-&gt; boucle : chasse + reponse nourrissent de nouvelles regles et politiques.&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les <strong>six maillons</strong> — gouverner, mesurer, centraliser, détecter, chasser, répondre — reliés en <strong>boucle continue</strong>. Tu tiens le pilier <strong>opérations</strong> de l&#39;AZ-500, et avec lui <strong>tout le track de sécurité</strong> : fondamentaux (Zero Trust), <strong>identité</strong> (RBAC/PIM), <strong>réseau</strong> (segmentation/WAF), <strong>données</strong> (chiffrement/rotation) et <strong>opérations</strong> (Policy/Defender/Sentinel). La sécurité n&#39;est plus une case cochée mais une <strong>pratique vivante</strong> : on gouverne ce qui se crée, on mesure la posture, et on détecte-chasse-répond en continu. <strong>Félicitations — tu as terminé le track AZ-500 !</strong> Il ne reste que le <strong>projet de synthèse</strong> pour l&#39;emballage CV.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the <strong>six links</strong> — govern, measure, centralize, detect, hunt, respond — connected in a <strong>continuous loop</strong>. You hold the <strong>operations</strong> pillar of AZ-500, and with it <strong>the whole security track</strong>: fundamentals (Zero Trust), <strong>identity</strong> (RBAC/PIM), <strong>network</strong> (segmentation/WAF), <strong>data</strong> (encryption/rotation) and <strong>operations</strong> (Policy/Defender/Sentinel). Security is no longer a checkbox but a <strong>living practice</strong>: you govern what gets created, measure posture, and detect-hunt-respond continuously. <strong>Congratulations — you finished the AZ-500 track!</strong> Only the capstone <strong>project</strong> remains, for CV packaging.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Auditer sans refuser.</strong> Une politique en <strong>Audit</strong> signale mais <strong>laisse passer</strong>. Pour ce qui est critique, utilise <strong>Deny</strong> (empêcher la création).</p>
+<p><strong>2. Scanner OU gouverner.</strong> checkov (shift-left) <strong>et</strong> Azure Policy (plateforme) sont <strong>complémentaires</strong>, pas alternatifs. Les deux.</p>
+<p><strong>3. Mesurer sans agir.</strong> Un secure score qu&#39;on ne fait pas <strong>monter</strong> ne sert à rien. Corrige les recommandations <strong>Haute</strong> d&#39;abord.</p>
+<p><strong>4. Logs éparpillés.</strong> Sans <strong>centralisation</strong> (Log Analytics), pas de corrélation ni de détection. Rassemble d&#39;abord.</p>
+<p><strong>5. Détecter sans répondre.</strong> Une alerte sans <strong>playbook</strong> attend un humain — le MTTR explose. Automatise la réponse (SOAR).</p>
+<p><strong>6. Que du réactif.</strong> Attendre les alertes rate les attaques lentes/nouvelles. <strong>Chasse</strong> proactivement (KQL).</p>
+<p><strong>7. Boucle ouverte.</strong> Ce que tu apprends en incident doit <strong>nourrir</strong> de nouvelles règles/politiques. Sinon tu re-subis la même attaque.</p>
+</div>
+<div data-lang="en"><p><strong>1. Auditing without denying.</strong> An <strong>Audit</strong> policy flags but <strong>lets it through</strong>. For the critical, use <strong>Deny</strong> (prevent creation).</p>
+<p><strong>2. Scan OR govern.</strong> checkov (shift-left) <strong>and</strong> Azure Policy (platform) are <strong>complementary</strong>, not alternatives. Both.</p>
+<p><strong>3. Measuring without acting.</strong> A secure score you don&#39;t <strong>raise</strong> is useless. Fix <strong>High</strong> recommendations first.</p>
+<p><strong>4. Scattered logs.</strong> Without <strong>centralization</strong> (Log Analytics), no correlation or detection. Gather first.</p>
+<p><strong>5. Detecting without responding.</strong> An alert with no <strong>playbook</strong> waits for a human — MTTR explodes. Automate the response (SOAR).</p>
+<p><strong>6. Reactive only.</strong> Waiting for alerts misses slow/novel attacks. <strong>Hunt</strong> proactively (KQL).</p>
+<p><strong>7. Open loop.</strong> What you learn in an incident must <strong>feed</strong> new rules/policies. Otherwise you suffer the same attack again.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu écris une <strong>Azure Policy</strong> qui <strong>refuse</strong> (deny) le non-conforme, et la distingues d&#39;un <strong>scan</strong> (checkov).</li><li>Tu calcules un <strong>secure score</strong> et <strong>priorises</strong> les recommandations.</li><li>Tu <strong>centralises</strong> des journaux structurés.</li><li>Tu écris des <strong>règles de détection</strong> (force brute, voyage impossible) qui <strong>lèvent des incidents</strong>.</li><li>Tu écris une <strong>requête de chasse</strong> KQL.</li><li>Tu écris un <strong>playbook</strong> de réponse automatique et fermes la <strong>boucle SecOps</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You write an <strong>Azure Policy</strong> that <strong>denies</strong> the non-compliant, and distinguish it from a <strong>scan</strong> (checkov).</li><li>You compute a <strong>secure score</strong> and <strong>prioritize</strong> recommendations.</li><li>You <strong>centralize</strong> structured logs.</li><li>You write <strong>detection rules</strong> (brute force, impossible travel) that <strong>raise incidents</strong>.</li><li>You write a KQL <strong>hunting query</strong>.</li><li>You write an automated response <strong>playbook</strong> and close the <strong>SecOps loop</strong>.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — projet de sécurité (AZ-500)</em> — le projet de synthèse : durcir et opérer un workload de bout en bout.</li><li><strong>Réviser :</strong> n&#39;importe quel guide AZ-500 dont un pilier t&#39;a semblé fragile.</li><li><strong>S&#39;entraîner :</strong> ajoute une règle de détection (accès hors horaires) et son playbook, et une politique <strong>Deny</strong> sur une balise (tag) obligatoire.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — security project (AZ-500)</em> — the capstone: harden and operate a workload end to end.</li><li><strong>Review:</strong> any AZ-500 guide whose pillar felt shaky.</li><li><strong>Practice:</strong> add a detection rule (off-hours access) and its playbook, and a <strong>Deny</strong> policy on a required tag.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Le cycle SecOps</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. GOUVERNER   Azure Policy : Audit (signaler) / Deny (refuser) / DeployIfNotExists
+               + checkov (shift-left, en CI)
+2. MESURER     Defender for Cloud : secure score % + recommandations par severite
+3. CENTRALISER Log Analytics : journaux dans un espace unique, interrogeable KQL
+4. DETECTER    Sentinel : regles d&#39;analyse -&gt; incidents (force brute, voyage impossible)
+5. CHASSER     KQL proactif : SigninLogs | where ... | summarize count() by ...
+6. REPONDRE    Playbook SOAR : desactiver / revoquer / bloquer / notifier</code></pre>
+<p><strong>KQL (essentiel)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Table | where &lt;condition&gt; | summarize &lt;agg&gt; by &lt;colonne&gt; | order by &lt;col&gt; desc
+# ex : SigninLogs | where Result==&quot;echec&quot; | summarize c=count() by ip | order by c desc</code></pre>
+<p><strong>Deny vs Audit vs shift-left</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>checkov     : AVANT le deploiement (CI) -&gt; bloque la fusion
+Azure Deny  : A la creation (plateforme) -&gt; empeche d&#39;exister
+Azure Audit : signale la non-conformite (n&#39;empeche pas)</code></pre>
+</div>
+<div data-lang="en"><p><strong>The SecOps cycle</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. GOVERN      Azure Policy: Audit (flag) / Deny (refuse) / DeployIfNotExists
+               + checkov (shift-left, in CI)
+2. MEASURE     Defender for Cloud: secure score % + recommendations by severity
+3. CENTRALIZE  Log Analytics: logs in one workspace, KQL-queryable
+4. DETECT      Sentinel: analytics rules -&gt; incidents (brute force, impossible travel)
+5. HUNT        proactive KQL: SigninLogs | where ... | summarize count() by ...
+6. RESPOND     SOAR playbook: disable / revoke / block / notify</code></pre>
+<p><strong>KQL (essentials)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Table | where &lt;condition&gt; | summarize &lt;agg&gt; by &lt;column&gt; | order by &lt;col&gt; desc
+# e.g. SigninLogs | where Result==&quot;echec&quot; | summarize c=count() by ip | order by c desc</code></pre>
+<p><strong>Deny vs Audit vs shift-left</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>checkov     : BEFORE deployment (CI) -&gt; blocks the merge
+Azure Deny  : at creation (platform) -&gt; prevents existence
+Azure Audit : flags non-compliance (doesn&#39;t prevent)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Azure Policy</strong> : définitions, effets (Audit/Deny/DINE), initiatives — Microsoft Learn.</li><li><strong>Microsoft Defender for Cloud</strong> : secure score, recommandations, protection des charges — Microsoft Learn.</li><li><strong>Microsoft Sentinel</strong> : SIEM/SOAR, règles d&#39;analyse, incidents, playbooks — Microsoft Learn (AZ-500).</li><li><strong>KQL (Kusto Query Language)</strong> : requêtes, opérateurs, chasse aux menaces — Microsoft Learn.</li><li><strong>Log Analytics</strong> : espaces de travail, ingestion, requêtes — Microsoft Learn.</li><li><strong>checkov</strong> : policy-as-code shift-left (complément d&#39;Azure Policy) — docs checkov.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Azure Policy</strong>: definitions, effects (Audit/Deny/DINE), initiatives — Microsoft Learn.</li><li><strong>Microsoft Defender for Cloud</strong>: secure score, recommendations, workload protection — Microsoft Learn.</li><li><strong>Microsoft Sentinel</strong>: SIEM/SOAR, analytics rules, incidents, playbooks — Microsoft Learn (AZ-500).</li><li><strong>KQL (Kusto Query Language)</strong>: queries, operators, threat hunting — Microsoft Learn.</li><li><strong>Log Analytics</strong>: workspaces, ingestion, queries — Microsoft Learn.</li><li><strong>checkov</strong>: shift-left policy-as-code (complements Azure Policy) — checkov docs.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Les scripts Python n&#39;affichent rien.</strong> Lance <code>python3 fichier.py</code> depuis le dossier <code>secops</code>. Chaque script est autonome ; <code>detection.py</code>, <code>hunt</code> et l&#39;analyse lisent <code>journaux.json</code> (créé au step-03).</p>
+<p><strong><code>FileNotFoundError: journaux.json</code> (step-04/05).</strong> Le step-03 doit avoir créé le fichier dans le <strong>même dossier</strong>. Vérifie ton <code>cd secops</code> et relance le step-03.</p>
+<p><strong>Ma règle de détection ne lève rien.</strong> Vérifie le <strong>seuil</strong> (≥ 5 échecs) et l&#39;<strong>ordre</strong> des événements (les échecs <strong>avant</strong> le succès). La logique dépend de la séquence temporelle (<code>t</code>).</p>
+<p><strong>Deny vs Audit : lequel choisir ?</strong> <strong>Deny</strong> pour ce qui est <strong>critique</strong> (empêcher d&#39;exister). <strong>Audit</strong> pour <strong>cartographier</strong> la non-conformité sans casser l&#39;existant, avant de durcir en Deny.</p>
+<p><strong>checkov et Azure Policy font-ils double emploi ?</strong> Non — <strong>complémentaires</strong> : checkov <strong>en CI</strong> (tôt, sur le code) ; Azure Policy <strong>en prod</strong> (permanent, sur la plateforme). Utilise les deux.</p>
+<p><strong>Le playbook n&#39;agit pas « vraiment ».</strong> Ici il <strong>imprime</strong> les actions (démonstration de la logique). En vrai Azure, c&#39;est une <strong>Logic App</strong> qui appelle les API (désactiver un compte, bloquer une IP) — même orchestration.</p>
+</div>
+<div data-lang="en"><p><strong>The Python scripts print nothing.</strong> Run <code>python3 file.py</code> from the <code>secops</code> folder. Each script is standalone; <code>detection.py</code>, <code>hunt</code> and the analysis read <code>journaux.json</code> (created in step-03).</p>
+<p><strong><code>FileNotFoundError: journaux.json</code> (step-04/05).</strong> step-03 must have created the file in the <strong>same folder</strong>. Check your <code>cd secops</code> and re-run step-03.</p>
+<p><strong>My detection rule raises nothing.</strong> Check the <strong>threshold</strong> (≥ 5 failures) and the <strong>order</strong> of events (failures <strong>before</strong> the success). The logic depends on the temporal sequence (<code>t</code>).</p>
+<p><strong>Deny vs Audit: which to choose?</strong> <strong>Deny</strong> for the <strong>critical</strong> (prevent existence). <strong>Audit</strong> to <strong>map</strong> non-compliance without breaking the existing, before hardening to Deny.</p>
+<p><strong>Do checkov and Azure Policy overlap?</strong> No — <strong>complementary</strong>: checkov <strong>in CI</strong> (early, on code); Azure Policy <strong>in prod</strong> (permanent, on the platform). Use both.</p>
+<p><strong>The playbook doesn&#39;t &quot;really&quot; act.</strong> Here it <strong>prints</strong> the actions (demonstrating the logic). In real Azure, it&#39;s a <strong>Logic App</strong> calling the APIs (disable an account, block an IP) — same orchestration.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

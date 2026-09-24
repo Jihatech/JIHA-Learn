@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — projet d&#39;entreprise (AZ-104) : zone d&#39;atterrissage sécurisée — jiha.tech</title>
+  <title data-lang="en">Azure — enterprise project (AZ-104): secure landing zone — jiha.tech</title>
+  <meta name="description" content="Le projet de CV du track AZ-104 : une zone d&#39;atterrissage Azure sécurisée, décrite en Terraform paramétré (variables, for_each, tags communs, outputs) et DÉPLOYÉE EN LIVE contre miniblue — un réseau segmenté (hub + sous-réseaux web/app/data), un NSG par tier, une IP publique ; des charges de travail (compte de stockage, identité managée, VM) via azlocal ; et un durcissement gouvernance (RBAC au moindre privilège, policy, verrou) validé en Bicep. Appliqué, vérifié, détruit, à coût zéro. Un livrable d&#39;administrateur cloud." data-lang="fr">
+  <meta name="description" content="The AZ-104 track&#39;s CV project: a secure Azure landing zone, described in parameterized Terraform (variables, for_each, common tags, outputs) and DEPLOYED LIVE against miniblue — a segmented network (hub + web/app/data subnets), an NSG per tier, a public IP; workloads (storage account, managed identity, VM) via azlocal; and governance hardening (least-privilege RBAC, policy, lock) validated in Bicep. Applied, verified, destroyed, at zero cost. A cloud-administrator deliverable." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — projet d&#39;entreprise (AZ-104) : zone d&#39;atterrissage sécurisée">
+  <meta property="og:description" content="Le projet de CV du track AZ-104 : une zone d&#39;atterrissage Azure sécurisée, décrite en Terraform paramétré (variables, for_each, tags communs, outputs) et DÉPLOYÉE EN LIVE contre miniblue — un réseau segmenté (hub + sous-réseaux web/app/data), un NSG par tier, une IP publique ; des charges de travail (compte de stockage, identité managée, VM) via azlocal ; et un durcissement gouvernance (RBAC au moindre privilège, policy, verrou) validé en Bicep. Appliqué, vérifié, détruit, à coût zéro. Un livrable d&#39;administrateur cloud.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/azure-projet-entreprise</div>
+    <h1 data-lang="fr">Azure — projet d&#39;entreprise (AZ-104) : zone d&#39;atterrissage sécurisée</h1>
+    <h1 data-lang="en">Azure — enterprise project (AZ-104): secure landing zone</h1>
+    <p class="tagline" data-lang="fr">réseau segmenté + charges + gouvernance, en IaC déployé live.</p>
+    <p class="tagline" data-lang="en">segmented network + workloads + governance, as live-deployed IaC.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 300 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 300 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Voici le <strong>livrable</strong> du track AZ-104 : un projet <strong>complet, de niveau entreprise</strong>, que tu pourras <strong>présenter sur ton CV</strong> et <strong>défendre en entretien</strong>. On ne fait pas un jouet — on construit une <strong>zone d&#39;atterrissage</strong> (landing zone) : la fondation d&#39;infrastructure <strong>sécurisée et gouvernée</strong> sur laquelle une organisation pose ses applications. Réseau segmenté, sécurité par tier, identités, gouvernance : tout ce que tu as appris — réseau, stockage, calcul, identité — converge ici, <strong>en Terraform déployé pour de vrai</strong>.</p>
+<p>L&#39;architecture : un <strong>réseau segmenté</strong> (un VNet « hub » découpé en sous-réseaux <strong>web / app / data</strong>), un <strong>groupe de sécurité réseau</strong> par tier exposé, une <strong>IP publique</strong> ; par-dessus, des <strong>charges de travail</strong> (un <strong>compte de stockage</strong>, une <strong>identité managée</strong>, une <strong>VM</strong>) ; et un <strong>durcissement gouvernance</strong> (RBAC au <strong>moindre privilège</strong>, <strong>policy</strong> imposant les tags, <strong>verrou</strong> de protection). Le tout <strong>taggé</strong> pour le suivi des coûts.</p>
+<p>Et — c&#39;est la marque du track — <strong>tu le déploies EN LOCAL</strong>, sur <strong>miniblue</strong>, sans compte ni facture. L&#39;infrastructure réseau est décrite en <strong>Terraform paramétré</strong> (variables, <code>for_each</code>, tags communs, outputs) et <strong>appliquée en live</strong> (<code>apply</code>), <strong>vérifiée</strong>, puis <strong>détruite</strong> (<code>destroy</code>). Les charges tournent via <code>azlocal</code> ; la gouvernance est <strong>validée en Bicep</strong>. Un projet qui <strong>prouve</strong> des compétences d&#39;administrateur Azure, à coût zéro, prêt pour le vrai cloud (guide suivant).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>réseau</em>, <em>stockage</em>, <em>calcul</em> et <em>identité &amp; gouvernance</em>. C&#39;est l&#39;aboutissement — prévois une bonne session.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Il te manque un des guides AZ-104 → fais-les d&#39;abord ; ce projet les assemble.</li><li>miniblue ne tourne pas → relance le labo (<em>fondamentaux</em>).</li></ul>
+</div>
+<div data-lang="en"><p>Here&#39;s the <strong>deliverable</strong> of the AZ-104 track: a <strong>complete, enterprise-grade</strong> project you can <strong>put on your CV</strong> and <strong>defend in an interview</strong>. We&#39;re not building a toy — we build a <strong>landing zone</strong>: the <strong>secure, governed</strong> infrastructure foundation an organization deploys its applications onto. Segmented network, per-tier security, identities, governance: everything you learned — networking, storage, compute, identity — converges here, <strong>in Terraform deployed for real</strong>.</p>
+<p>The architecture: a <strong>segmented network</strong> (a &quot;hub&quot; VNet split into <strong>web / app / data</strong> subnets), a <strong>network security group</strong> per exposed tier, a <strong>public IP</strong>; on top, <strong>workloads</strong> (a <strong>storage account</strong>, a <strong>managed identity</strong>, a <strong>VM</strong>); and <strong>governance hardening</strong> (least-privilege <strong>RBAC</strong>, a <strong>policy</strong> enforcing tags, a protection <strong>lock</strong>). All <strong>tagged</strong> for cost tracking.</p>
+<p>And — the track&#39;s signature — <strong>you deploy it LOCALLY</strong>, on <strong>miniblue</strong>, no account or bill. The network infrastructure is described in <strong>parameterized Terraform</strong> (variables, <code>for_each</code>, common tags, outputs) and <strong>applied live</strong> (<code>apply</code>), <strong>verified</strong>, then <strong>destroyed</strong> (<code>destroy</code>). Workloads run via <code>azlocal</code>; governance is <strong>validated in Bicep</strong>. A project that <strong>proves</strong> Azure-administrator skills, at zero cost, ready for the real cloud (next guide).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>networking</em>, <em>storage</em>, <em>compute</em> and <em>identity &amp; governance</em>. This is the culmination — set aside a good session.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re missing an AZ-104 guide → do them first; this project assembles them.</li><li>miniblue isn&#39;t running → restart the lab (<em>fundamentals</em>).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu as construit et tu sais expliquer :</p>
+<ul><li>Une <strong>zone d&#39;atterrissage</strong> : réseau segmenté + charges + gouvernance.</li><li>Une <strong>infrastructure Terraform paramétrée</strong> (variables, <code>for_each</code>, tags communs, outputs).</li><li>Un <strong>réseau segmenté</strong> (hub + sous-réseaux web/app/data) avec <strong>NSG</strong> et <strong>IP publique</strong>, déployé en live.</li><li>Des <strong>charges de travail</strong> (compte de stockage, identité managée, VM) dans la zone.</li><li>Un <strong>durcissement gouvernance</strong> (RBAC moindre privilège, policy, verrou) validé en Bicep.</li><li>Une <strong>vérification bout en bout</strong> (outputs, état, ressources côté émulateur).</li><li>Comment <strong>présenter ce projet</strong> sur un CV et en entretien.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ve built and can explain:</p>
+<ul><li>A <strong>landing zone</strong>: segmented network + workloads + governance.</li><li>A <strong>parameterized Terraform infrastructure</strong> (variables, <code>for_each</code>, common tags, outputs).</li><li>A <strong>segmented network</strong> (hub + web/app/data subnets) with <strong>NSG</strong> and <strong>public IP</strong>, deployed live.</li><li><strong>Workloads</strong> (storage account, managed identity, VM) in the zone.</li><li><strong>Governance hardening</strong> (least-privilege RBAC, policy, lock) validated in Bicep.</li><li>An <strong>end-to-end verification</strong> (outputs, state, emulator-side resources).</li><li>How to <strong>present this project</strong> on a CV and in an interview.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides AZ-104 <strong>réseau</strong>, <strong>stockage</strong>, <strong>calcul</strong>, <strong>identité &amp; gouvernance</strong> terminés.</li><li><strong>miniblue</strong> qui tourne (<code>azlocal health</code>), <strong>Terraform</strong> et <strong>Bicep</strong> installés.</li><li>La confiance du certificat : <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Rappel : Terraform (provider <code>azurerm</code>) déploie le <strong>réseau</strong> en live sur miniblue ; <code>azlocal</code> crée les <strong>charges</strong> ; Bicep <strong>valide</strong> la gouvernance.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The AZ-104 <strong>networking</strong>, <strong>storage</strong>, <strong>compute</strong>, <strong>identity &amp; governance</strong> guides done.</li><li><strong>miniblue</strong> running (<code>azlocal health</code>), <strong>Terraform</strong> and <strong>Bicep</strong> installed.</li><li>Certificate trust: <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Reminder: Terraform (<code>azurerm</code> provider) deploys the <strong>network</strong> live on miniblue; <code>azlocal</code> creates the <strong>workloads</strong>; Bicep <strong>validates</strong> the governance.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-reseau/">
+    <span class="num">59</span>
+    <span class="title-line" data-lang="fr">Azure — réseau (AZ-104) : VNet, sous-réseaux, NSG, en Terraform live</span>
+    <span class="title-line" data-lang="en">Azure — networking (AZ-104): VNet, subnets, NSG, live in Terraform</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../azure-stockage/">
+    <span class="num">60</span>
+    <span class="title-line" data-lang="fr">Azure — stockage (AZ-104) : comptes, Blob, niveaux d&#39;accès, SAS</span>
+    <span class="title-line" data-lang="en">Azure — storage (AZ-104): accounts, Blob, access tiers, SAS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../azure-calcul/">
+    <span class="num">61</span>
+    <span class="title-line" data-lang="fr">Azure — calcul (AZ-104) : machines virtuelles, disques, mise à l&#39;échelle</span>
+    <span class="title-line" data-lang="en">Azure — compute (AZ-104): virtual machines, disks, scaling</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../azure-identite-gouvernance/">
+    <span class="num">62</span>
+    <span class="title-line" data-lang="fr">Azure — identité &amp; gouvernance (AZ-104) : Entra ID, RBAC, policies</span>
+    <span class="title-line" data-lang="en">Azure — identity &amp; governance (AZ-104): Entra ID, RBAC, policies</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>La zone d&#39;atterrissage (landing zone).</strong> Un concept clé d&#39;Azure : plutôt que de créer des ressources en vrac, une organisation prépare une <strong>fondation</strong> standardisée — réseau, sécurité, identité, gouvernance — sur laquelle les équipes déploient ensuite leurs applications, <strong>en conformité par construction</strong>. C&#39;est exactement ce qu&#39;un administrateur AZ-104 met en place.</p>
+<p><strong>Trois couches, trois outils.</strong> Notre zone a trois couches, chacune avec l&#39;outil adapté : (1) la <strong>fondation réseau</strong> — décrite en <strong>Terraform</strong> et <strong>déployée en live</strong> sur miniblue (le cœur reproductible) ; (2) les <strong>charges de travail</strong> — créées via <strong><code>azlocal</code></strong> (compte de stockage, identité managée, VM) ; (3) le <strong>durcissement gouvernance</strong> — <strong>validé en Bicep</strong> (RBAC, policy, verrou), prêt à déployer sur un vrai compte.</p>
+<p><strong>Terraform paramétré.</strong> Un projet sérieux n&#39;a pas de valeurs en dur : on utilise des <strong>variables</strong> (le préfixe, les tags communs), la boucle <strong><code>for_each</code></strong> (créer les trois sous-réseaux sans copier-coller), et des <strong>outputs</strong> (exposer les identifiants utiles). C&#39;est la marque d&#39;une IaC <strong>maintenable</strong>.</p>
+<p><strong>Réseau segmenté &amp; tags communs.</strong> Le VNet est découpé en tiers (<strong>web</strong> exposé, <strong>app</strong> logique, <strong>data</strong> privé) — la <strong>segmentation</strong>, base de la défense en profondeur. Un <strong>NSG</strong> protège le tier web. Et <strong>chaque ressource porte les mêmes tags</strong> (<code>env</code>, <code>projet</code>, <code>cost-center</code>) — la traçabilité et la ventilation des coûts, imposées de façon cohérente.</p>
+<p><strong>Charges de travail.</strong> Sur la fondation, les ressources qui <strong>travaillent</strong> : un <strong>compte de stockage</strong> (données), une <strong>identité managée</strong> (l&#39;identité sans mot de passe d&#39;une application), une <strong>VM</strong> (le calcul). Elles vivent <strong>dans</strong> le groupe de ressources de la zone.</p>
+<p><strong>Durcissement gouvernance.</strong> La sécurité de la zone : une <strong>attribution RBAC au moindre privilège</strong> (l&#39;identité managée n&#39;a que le rôle nécessaire), une <strong>policy</strong> (imposer le tag <code>env</code>), un <strong>verrou</strong> (empêcher la suppression accidentelle). Validé en Bicep, déployé en réel.</p>
+<p><strong>Le cycle IaC complet.</strong> <code>apply</code> déploie la fondation réseau en live ; on <strong>vérifie</strong> (outputs, état Terraform, ressources côté miniblue) ; <code>destroy</code> retire tout proprement. C&#39;est le workflow exact d&#39;un administrateur — reproductible, versionné, <strong>sans risque</strong> ici.</p>
+</div>
+<div data-lang="en"><p><strong>The landing zone.</strong> A key Azure concept: rather than creating resources ad hoc, an organization prepares a standardized <strong>foundation</strong> — network, security, identity, governance — that teams then deploy their applications onto, <strong>compliant by construction</strong>. It&#39;s exactly what an AZ-104 administrator sets up.</p>
+<p><strong>Three layers, three tools.</strong> Our zone has three layers, each with the right tool: (1) the <strong>network foundation</strong> — described in <strong>Terraform</strong> and <strong>deployed live</strong> on miniblue (the reproducible core); (2) the <strong>workloads</strong> — created via <strong><code>azlocal</code></strong> (storage account, managed identity, VM); (3) the <strong>governance hardening</strong> — <strong>validated in Bicep</strong> (RBAC, policy, lock), ready to deploy on a real account.</p>
+<p><strong>Parameterized Terraform.</strong> A serious project has no hard-coded values: you use <strong>variables</strong> (the prefix, common tags), the <strong><code>for_each</code></strong> loop (create the three subnets without copy-paste), and <strong>outputs</strong> (expose useful ids). It&#39;s the mark of <strong>maintainable</strong> IaC.</p>
+<p><strong>Segmented network &amp; common tags.</strong> The VNet is split into tiers (<strong>web</strong> exposed, <strong>app</strong> logic, <strong>data</strong> private) — <strong>segmentation</strong>, the base of defense in depth. An <strong>NSG</strong> protects the web tier. And <strong>every resource carries the same tags</strong> (<code>env</code>, <code>projet</code>, <code>cost-center</code>) — traceability and cost allocation, enforced consistently.</p>
+<p><strong>Workloads.</strong> On the foundation, the resources that <strong>work</strong>: a <strong>storage account</strong> (data), a <strong>managed identity</strong> (an application&#39;s password-less identity), a <strong>VM</strong> (compute). They live <strong>in</strong> the zone&#39;s resource group.</p>
+<p><strong>Governance hardening.</strong> The zone&#39;s security: a <strong>least-privilege RBAC assignment</strong> (the managed identity gets only the needed role), a <strong>policy</strong> (enforce the <code>env</code> tag), a <strong>lock</strong> (prevent accidental deletion). Validated in Bicep, deployed for real.</p>
+<p><strong>The full IaC cycle.</strong> <code>apply</code> deploys the network foundation live; you <strong>verify</strong> (outputs, Terraform state, miniblue-side resources); <code>destroy</code> removes everything cleanly. It&#39;s an administrator&#39;s exact workflow — reproducible, versioned, <strong>risk-free</strong> here.</p>
+</div>
+
+<figure class="schema" id="figure-azure-landing-zone">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-landing-zone">
+  <title id="s-azure-landing-zone">Zone d’atterrissage (AZ-104)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Zone d’atterrissage (AZ-104)</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="64" text-anchor="middle">RÉSEAU</text><text class="sub sub-fill" x="129" y="77" text-anchor="middle">VNet hub + sous-réseaux + NSG ·</text><text class="sub sub-fill" x="129" y="89" text-anchor="middle">Terraform live</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box-soft" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="380" y="64" text-anchor="middle">CHARGES</text><text class="sub sub-blue" x="380" y="77" text-anchor="middle">stockage · identité managée · VM ·</text><text class="sub sub-blue" x="380" y="89" text-anchor="middle">azlocal</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="631" y="70.5" text-anchor="middle">DURCISSEMENT</text><text class="sub" x="631" y="83.5" text-anchor="middle">RBAC + policy tag + verrou · Bicep</text><text class="sub" x="380" y="144" text-anchor="middle">tags communs · appliqué → vérifié → détruit sur miniblue</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La zone d&#39;atterrissage : la fondation RÉSEAU (VNet hub + sous-réseaux web/app/data, NSG sur le web, IP publique) en Terraform déployé live ; les CHARGES (compte de stockage, identité managée, VM) via azlocal ; le DURCISSEMENT (RBAC moindre privilège, policy tag obligatoire, verrou) validé en Bicep. Tags communs sur tout. Appliqué → vérifié → détruit sur miniblue.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The landing zone: the NETWORK foundation (hub VNet + web/app/data subnets, NSG on web, public IP) in live-deployed Terraform; the WORKLOADS (storage account, managed identity, VM) via azlocal; the HARDENING (least-privilege RBAC, mandatory-tag policy, lock) validated in Bicep. Common tags on everything. Applied → verified → destroyed on miniblue.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser l&#39;<strong>architecture</strong> et le <strong>squelette</strong> du projet.</p>
+<p><strong>🤔 Un vrai projet a une structure.</strong> On sépare l&#39;<strong>infra réseau</strong> (Terraform), la <strong>gouvernance</strong> (Bicep) et la doc. Cette organisation est un <strong>signal de maturité</strong> pour un recruteur.</p>
+<p>Crée l&#39;arborescence :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Lay down the project&#39;s <strong>architecture</strong> and <strong>skeleton</strong>.</p>
+<p><strong>🤔 A real project has structure.</strong> We separate the <strong>network infra</strong> (Terraform), the <strong>governance</strong> (Bicep) and the docs. This organization is a <strong>maturity signal</strong> to a recruiter.</p>
+<p>Create the tree:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/landing-zone/infra ~/landing-zone/gouvernance
+cd ~/landing-zone
+# Structure cible / target structure :
+#   infra/         -&gt; Terraform (réseau déployé live sur miniblue)
+#   gouvernance/   -&gt; Bicep (RBAC, policy, verrou — validés)
+#   README.md
+export SSL_CERT_FILE=~/.miniblue/cert.pem      # confiance du certificat miniblue</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls ~/landing-zone</code> montre <code>gouvernance</code> et <code>infra</code>. Tu tiens le <strong>plan</strong> : la fondation réseau (Terraform, live), les charges (azlocal), le durcissement (Bicep). Garde cette phrase en tête — c&#39;est <strong>exactement</strong> ce que tu diras en entretien : « J&#39;ai construit une zone d&#39;atterrissage sécurisée : réseau segmenté, charges, et gouvernance au moindre privilège, le tout en IaC. » Les prochaines étapes remplissent chaque couche, <strong>une pièce testée à la fois</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls ~/landing-zone</code> shows <code>gouvernance</code> and <code>infra</code>. You hold the <strong>plan</strong>: the network foundation (Terraform, live), the workloads (azlocal), the hardening (Bicep). Keep this sentence in mind — it&#39;s <strong>exactly</strong> what you&#39;ll say in an interview: &quot;I built a secure landing zone: segmented network, workloads, and least-privilege governance, all as IaC.&quot; The next steps fill each layer, <strong>one tested piece at a time</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer la <strong>fondation réseau</strong> en Terraform paramétré — live sur miniblue.</p>
+<p><strong>🤔 Le cœur reproductible.</strong> On décrit le réseau avec des <strong>variables</strong> (préfixe, tags communs), une boucle <strong><code>for_each</code></strong> (les trois sous-réseaux), un <strong>NSG</strong>, une <strong>IP publique</strong>, et des <strong>outputs</strong>. Puis on <strong>applique</strong> — de vraies ressources apparaissent sur miniblue.</p>
+<p>Crée <code>infra/providers.tf</code>, <code>infra/variables.tf</code>, <code>infra/main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>network foundation</strong> in parameterized Terraform — live on miniblue.</p>
+<p><strong>🤔 The reproducible core.</strong> We describe the network with <strong>variables</strong> (prefix, common tags), a <strong><code>for_each</code></strong> loop (the three subnets), an <strong>NSG</strong>, a <strong>public IP</strong>, and <strong>outputs</strong>. Then we <strong>apply</strong> — real resources appear on miniblue.</p>
+<p>Create <code>infra/providers.tf</code>, <code>infra/variables.tf</code>, <code>infra/main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/providers.tf
+terraform {
+  required_providers {
+    azurerm = { source = &quot;hashicorp/azurerm&quot;, version = &quot;~&gt; 3.0&quot; }
+  }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  # --- ciblage miniblue (à retirer pour le vrai Azure) ---
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot;
+  environment                = &quot;public&quot;
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/variables.tf
+variable &quot;prefixe&quot; {
+  type    = string
+  default = &quot;landing&quot;
+}
+variable &quot;tags_communs&quot; {
+  type = map(string)
+  default = {
+    env         = &quot;labo&quot;
+    projet      = &quot;landing-zone&quot;
+    cost-center = &quot;formation&quot;
+  }
+}</code></pre>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/main.tf
+resource &quot;azurerm_resource_group&quot; &quot;lz&quot; {
+  name     = &quot;rg-${var.prefixe}&quot;
+  location = &quot;westeurope&quot;
+  tags     = var.tags_communs
+}
+
+resource &quot;azurerm_virtual_network&quot; &quot;hub&quot; {
+  name                = &quot;vnet-${var.prefixe}&quot;
+  address_space       = [&quot;10.0.0.0/16&quot;]
+  location            = azurerm_resource_group.lz.location
+  resource_group_name = azurerm_resource_group.lz.name
+  tags                = var.tags_communs
+}
+
+resource &quot;azurerm_subnet&quot; &quot;tiers&quot; {
+  for_each             = { web = &quot;10.0.1.0/24&quot;, app = &quot;10.0.2.0/24&quot;, data = &quot;10.0.3.0/24&quot; }
+  name                 = &quot;snet-${each.key}&quot;
+  resource_group_name  = azurerm_resource_group.lz.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [each.value]
+}
+
+resource &quot;azurerm_network_security_group&quot; &quot;web&quot; {
+  name                = &quot;nsg-web&quot;
+  location            = azurerm_resource_group.lz.location
+  resource_group_name = azurerm_resource_group.lz.name
+  tags                = var.tags_communs
+  security_rule {
+    name                       = &quot;autoriser-https&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;443&quot;
+    source_address_prefix      = &quot;Internet&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+}
+
+resource &quot;azurerm_subnet_network_security_group_association&quot; &quot;web&quot; {
+  subnet_id                 = azurerm_subnet.tiers[&quot;web&quot;].id
+  network_security_group_id = azurerm_network_security_group.web.id
+}
+
+resource &quot;azurerm_public_ip&quot; &quot;web&quot; {
+  name                = &quot;pip-web&quot;
+  location            = azurerm_resource_group.lz.location
+  resource_group_name = azurerm_resource_group.lz.name
+  allocation_method   = &quot;Static&quot;
+  sku                 = &quot;Standard&quot;
+  tags                = var.tags_communs
+}
+
+output &quot;resource_group&quot; { value = azurerm_resource_group.lz.name }
+output &quot;subnets&quot;        { value = [for s in azurerm_subnet.tiers : s.name] }</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/landing-zone/infra
+terraform init
+terraform apply -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> se termine par <code>Apply complete! Resources: 8 added.</code> — le groupe de ressources, le VNet, les <strong>trois</strong> sous-réseaux (créés par <code>for_each</code>), le NSG, l&#39;association et l&#39;IP publique, <strong>tous taggés</strong>. Tu as déployé une <strong>fondation réseau segmentée</strong> en live, de façon <strong>paramétrée</strong> et reproductible. Note la puissance : changer <code>var.prefixe</code>, et toute la zone se re-nomme ; un <code>for_each</code>, et les sous-réseaux se multiplient sans copier-coller. ⚠️ C&#39;est <strong>exactement</strong> le cœur d&#39;une vraie zone d&#39;atterrissage Azure.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> ends with <code>Apply complete! Resources: 8 added.</code> — the resource group, the VNet, the <strong>three</strong> subnets (created by <code>for_each</code>), the NSG, the association and the public IP, <strong>all tagged</strong>. You deployed a <strong>segmented network foundation</strong> live, in a <strong>parameterized</strong>, reproducible way. Note the power: change <code>var.prefixe</code>, and the whole zone renames; one <code>for_each</code>, and the subnets multiply without copy-paste. ⚠️ It&#39;s <strong>exactly</strong> the core of a real Azure landing zone.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer les <strong>charges de travail</strong> dans la zone — via azlocal, live.</p>
+<p><strong>🤔 Les ressources qui travaillent.</strong> Sur la fondation, on pose : un <strong>compte de stockage</strong> (les données), une <strong>identité managée</strong> (l&#39;identité de l&#39;application), une <strong>VM</strong> (le calcul). Elles vivent <strong>dans</strong> le groupe de ressources de la zone (<code>rg-landing</code>).</p>
+<p>Crée les charges :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>workloads</strong> in the zone — via azlocal, live.</p>
+<p><strong>🤔 The resources that work.</strong> On the foundation, we place: a <strong>storage account</strong> (the data), a <strong>managed identity</strong> (the application&#39;s identity), a <strong>VM</strong> (the compute). They live <strong>in</strong> the zone&#39;s resource group (<code>rg-landing</code>).</p>
+<p>Create the workloads:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Dans le groupe de la zone (rg-landing) / in the zone&#39;s group (rg-landing)
+azlocal storage account create --name stlanding2026 --resource-group rg-landing
+azlocal identity create        --name id-workload    --resource-group rg-landing
+azlocal vm create              --name vm-web          --resource-group rg-landing \
+  --image UbuntuLTS --size Standard_B1s</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les trois commandes renvoient des objets ARM <code>Succeeded</code> : le compte <code>stlanding2026</code> (<code>StorageV2</code>), l&#39;identité managée <code>id-workload</code> (avec un <code>clientId</code>), la VM <code>vm-web</code> (<code>Standard_B1s</code>, adossée à un conteneur). Ta zone a maintenant des <strong>charges</strong> : du stockage, une identité pour les faire communiquer sans mot de passe, et du calcul. ⚠️ Ces charges vivent <strong>dans le même groupe de ressources</strong> que le réseau — quand tu supprimeras le groupe, <strong>tout</strong> partira ensemble (étape 7). C&#39;est l&#39;intérêt du groupe de ressources comme <strong>unité de cycle de vie</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the three commands return <code>Succeeded</code> ARM objects: the <code>stlanding2026</code> account (<code>StorageV2</code>), the <code>id-workload</code> managed identity (with a <code>clientId</code>), the <code>vm-web</code> VM (<code>Standard_B1s</code>, container-backed). Your zone now has <strong>workloads</strong>: storage, an identity to make them communicate without a password, and compute. ⚠️ These workloads live <strong>in the same resource group</strong> as the network — when you delete the group, <strong>everything</strong> goes together (step 7). That&#39;s the point of the resource group as a <strong>lifecycle unit</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décrire le <strong>durcissement gouvernance</strong> en Bicep — validé.</p>
+<p><strong>🤔 Sécuriser la zone.</strong> Trois protections : une <strong>attribution RBAC au moindre privilège</strong> (l&#39;identité managée reçoit un rôle <strong>Lecteur</strong>, pas plus), une <strong>policy</strong> (imposer le tag <code>env</code>), un <strong>verrou</strong> (empêcher la suppression). On les décrit en Bicep et on les <strong>valide</strong>.</p>
+<p>Crée <code>gouvernance/durcissement.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Describe the <strong>governance hardening</strong> in Bicep — validated.</p>
+<p><strong>🤔 Secure the zone.</strong> Three protections: a <strong>least-privilege RBAC assignment</strong> (the managed identity gets a <strong>Reader</strong> role, no more), a <strong>policy</strong> (enforce the <code>env</code> tag), a <strong>lock</strong> (prevent deletion). We describe them in Bicep and <strong>validate</strong> them.</p>
+<p>Create <code>gouvernance/durcissement.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// gouvernance/durcissement.bicep — RBAC moindre privilège + verrou (portée groupe)
+targetScope = &#39;resourceGroup&#39;
+
+@description(&#39;Id du principal de l identite manageee (clientId/principalId)&#39;)
+param principalId string
+
+var readerRoleId = &#39;acdd72a7-3385-48ef-bd42-f606fba81ae7&#39; // rôle intégré Lecteur
+
+// L&#39;identité managée n&#39;obtient QUE le rôle Lecteur (moindre privilège)
+resource attribution &#39;Microsoft.Authorization/roleAssignments@2022-04-01&#39; = {
+  name: guid(resourceGroup().id, principalId, readerRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId(&#39;Microsoft.Authorization/roleDefinitions&#39;, readerRoleId)
+    principalId: principalId
+    principalType: &#39;ServicePrincipal&#39;
+  }
+}
+
+// Verrou : protéger la zone d&#39;une suppression accidentelle
+resource verrou &#39;Microsoft.Authorization/locks@2020-05-01&#39; = {
+  name: &#39;protege-landing&#39;
+  properties: {
+    level: &#39;CanNotDelete&#39;
+    notes: &#39;Zone d atterrissage — suppression protegee&#39;
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/landing-zone/gouvernance
+bicep build durcissement.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile <strong>deux</strong> ressources — <code>roleAssignments</code> (l&#39;identité managée en <strong>Lecteur</strong> seulement) et <code>locks</code> (verrou <code>CanNotDelete</code>) — sans erreur. Ta zone est <strong>durcie</strong> : l&#39;application ne peut que <strong>lire</strong> (moindre privilège), et le groupe est <strong>protégé</strong> de la suppression. ⚠️ <strong>Rappel :</strong> RBAC et verrous se <strong>valident</strong> ici (miniblue ne provisionne pas ces API) ; ils se <strong>déploient</strong> sur un vrai compte (<code>az deployment</code>, guide <em>passer en réel</em>). Tu peux compléter avec la <strong>policy</strong> du guide <em>identité &amp; gouvernance</em> (imposer le tag <code>env</code>, portée abonnement).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles <strong>two</strong> resources — <code>roleAssignments</code> (the managed identity as <strong>Reader</strong> only) and <code>locks</code> (a <code>CanNotDelete</code> lock) — with no error. Your zone is <strong>hardened</strong>: the application can only <strong>read</strong> (least privilege), and the group is <strong>protected</strong> from deletion. ⚠️ <strong>Reminder:</strong> RBAC and locks are <strong>validated</strong> here (miniblue doesn&#39;t provision these APIs); they <strong>deploy</strong> on a real account (<code>az deployment</code>, <em>going real</em> guide). You can complete it with the <strong>policy</strong> from the <em>identity &amp; governance</em> guide (enforce the <code>env</code> tag, subscription scope).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Vérifier</strong> la zone bout en bout.</p>
+<p><strong>🤔 La preuve par l&#39;état.</strong> On croise trois vues : les <strong>outputs</strong> Terraform, l&#39;<strong>état</strong> Terraform (ce que le code gère), et les <strong>ressources côté miniblue</strong> (ce qui existe réellement). Trois angles, une seule vérité.</p>
+<p>Vérifie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Verify</strong> the zone end-to-end.</p>
+<p><strong>🤔 Proof by state.</strong> We cross three views: the Terraform <strong>outputs</strong>, the Terraform <strong>state</strong> (what the code manages), and the <strong>miniblue-side resources</strong> (what really exists). Three angles, one truth.</p>
+<p>Verify:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cd ~/landing-zone/infra
+terraform output                     # resource_group + liste des sous-réseaux
+terraform state list                 # les 8 ressources gérées
+
+# Côté émulateur / emulator side
+azlocal network vnet list --resource-group rg-landing
+azlocal vm list            --resource-group rg-landing</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform output</code> affiche <code>resource_group = &quot;rg-landing&quot;</code> et la liste <code>[&quot;snet-app&quot;, &quot;snet-data&quot;, &quot;snet-web&quot;]</code>. <code>terraform state list</code> énumère les <strong>8</strong> ressources réseau. Côté miniblue, <code>network vnet list</code> montre <code>vnet-landing</code> et <code>vm list</code> montre <code>vm-web</code> — <strong>preuve indépendante</strong> que tout est bien déployé. Ta zone d&#39;atterrissage est <strong>complète et vérifiée</strong> : réseau segmenté + charges, taggée, prête à durcir. C&#39;est <strong>la démo</strong> à faire tourner devant un recruteur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform output</code> shows <code>resource_group = &quot;rg-landing&quot;</code> and the list <code>[&quot;snet-app&quot;, &quot;snet-data&quot;, &quot;snet-web&quot;]</code>. <code>terraform state list</code> enumerates the <strong>8</strong> network resources. On miniblue, <code>network vnet list</code> shows <code>vnet-landing</code> and <code>vm list</code> shows <code>vm-web</code> — <strong>independent proof</strong> that everything is deployed. Your landing zone is <strong>complete and verified</strong>: segmented network + workloads, tagged, ready to harden. It&#39;s <strong>the demo</strong> to run in front of a recruiter.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Emballer</strong> le projet pour ton CV.</p>
+<p><strong>🤔 Un projet non présenté n&#39;existe pas.</strong> Un <code>README</code> clair, une phrase d&#39;accroche, la liste des compétences prouvées : c&#39;est ce qui transforme un dossier en <strong>atout d&#39;embauche</strong>.</p>
+<p>Crée <code>README.md</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Package</strong> the project for your CV.</p>
+<p><strong>🤔 An unpresented project doesn&#39;t exist.</strong> A clear <code>README</code>, a hook sentence, the list of proven skills: that&#39;s what turns a folder into a <strong>hiring asset</strong>.</p>
+<p>Create <code>README.md</code>:</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Valeurs en dur au lieu de variables.</strong> Un projet sérieux paramètre (préfixe, tags, plages). Les variables et <code>for_each</code> rendent l&#39;IaC <strong>maintenable</strong> et <strong>réutilisable</strong>.</p>
+<p><strong>2. Tags incohérents.</strong> Applique les <strong>mêmes tags communs</strong> partout (via <code>var.tags_communs</code>) — sinon la ventilation des coûts est trouée.</p>
+<p><strong>3. Oublier la segmentation.</strong> Un seul sous-réseau « à plat », c&#39;est aucune défense en profondeur. Sépare web / app / data.</p>
+<p><strong>4. Trop de droits à l&#39;identité managée.</strong> Moindre privilège : le rôle <strong>Lecteur</strong> suffit ici. Jamais Contributeur/Propriétaire « par confort ».</p>
+<p><strong>5. Mélanger les couches et les outils.</strong> Réseau → Terraform (live) ; charges → azlocal ; gouvernance → Bicep (validé). Chaque outil pour ce qu&#39;il fait le mieux sur miniblue.</p>
+<p><strong>6. Ne pas vérifier avant de livrer.</strong> Croise <code>terraform output</code>, <code>state list</code> et <code>azlocal ... list</code>. La démo doit <strong>tourner</strong>.</p>
+<p><strong>7. Un projet sans README.</strong> Le code seul ne se vend pas. Le README (architecture, stack, compétences) est ce que lit le recruteur <strong>en premier</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Hard-coded values instead of variables.</strong> A serious project parameterizes (prefix, tags, ranges). Variables and <code>for_each</code> make IaC <strong>maintainable</strong> and <strong>reusable</strong>.</p>
+<p><strong>2. Inconsistent tags.</strong> Apply the <strong>same common tags</strong> everywhere (via <code>var.tags_communs</code>) — else cost allocation is full of holes.</p>
+<p><strong>3. Forgetting segmentation.</strong> A single &quot;flat&quot; subnet means no defense in depth. Separate web / app / data.</p>
+<p><strong>4. Over-granting the managed identity.</strong> Least privilege: the <strong>Reader</strong> role is enough here. Never Contributor/Owner &quot;for convenience&quot;.</p>
+<p><strong>5. Mixing layers and tools.</strong> Network → Terraform (live); workloads → azlocal; governance → Bicep (validated). Each tool for what it does best on miniblue.</p>
+<p><strong>6. Not verifying before delivering.</strong> Cross <code>terraform output</code>, <code>state list</code> and <code>azlocal ... list</code>. The demo must <strong>run</strong>.</p>
+<p><strong>7. A project with no README.</strong> Code alone doesn&#39;t sell. The README (architecture, stack, skills) is what the recruiter reads <strong>first</strong>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Ton <code>infra/</code> déploie <strong>8 ressources</strong> en live (<code>terraform apply</code>).</li><li>Tu utilises <strong>variables</strong>, <strong><code>for_each</code></strong> et <strong>outputs</strong>.</li><li>Tes ressources portent des <strong>tags communs</strong> cohérents.</li><li>Tu ajoutes les <strong>charges</strong> (stockage, identité, VM) dans la zone.</li><li>Tu <strong>valides</strong> le durcissement (RBAC Lecteur + verrou) en Bicep.</li><li>Tu <strong>vérifies</strong> (output, state, azlocal) et <strong>détruis</strong> proprement.</li><li>Ton <code>README.md</code> raconte le projet en une phrase d&#39;accroche.</li></ul>
+<p>Sept cases = tu as un <strong>projet d&#39;entreprise</strong> AZ-104 défendable. La suite : passer en réel.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>Your <code>infra/</code> deploys <strong>8 resources</strong> live (<code>terraform apply</code>).</li><li>You use <strong>variables</strong>, <strong><code>for_each</code></strong> and <strong>outputs</strong>.</li><li>Your resources carry consistent <strong>common tags</strong>.</li><li>You add the <strong>workloads</strong> (storage, identity, VM) to the zone.</li><li>You <strong>validate</strong> the hardening (Reader RBAC + lock) in Bicep.</li><li>You <strong>verify</strong> (output, state, azlocal) and <strong>destroy</strong> cleanly.</li><li>Your <code>README.md</code> tells the project in a hook sentence.</li></ul>
+<p>Seven boxes = you have a defensible AZ-104 <strong>enterprise project</strong>. Next up: going real.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La fin du track AZ-104, puis la suite du parcours Azure :</p>
+<ol><li><strong>Azure — passer en réel</strong> : créer un vrai compte/abonnement, brancher les identifiants, poser des garde-fous de coût, faire un vrai <code>terraform apply</code> de cette zone, puis <code>destroy</code>. Et la <strong>certification AZ-104</strong>.</li><li>Ensuite : <strong>AZ-305</strong> (architecte), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (sécurité), <strong>AZ-700</strong> (réseau) — le labo miniblue te resservira partout.</li></ol>
+</div>
+<div data-lang="en"><p>The end of the AZ-104 track, then the Azure path continues:</p>
+<ol><li><strong>Azure — going real</strong>: create a real account/subscription, wire credentials, set cost guardrails, run a real <code>terraform apply</code> of this zone, then <code>destroy</code>. And the <strong>AZ-104 certification</strong>.</li><li>Then: <strong>AZ-305</strong> (architect), <strong>AZ-400</strong> (DevOps), <strong>AZ-500</strong> (security), <strong>AZ-700</strong> (networking) — the miniblue lab will serve you everywhere.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire du projet (depuis <code>~/landing-zone</code>).</p>
+</div>
+<div data-lang="en"><p>Project cheat sheet (from <code>~/landing-zone</code>).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=~/.miniblue/cert.pem
+
+# Fondation réseau (Terraform, live) / network foundation (Terraform, live)
+cd infra &amp;&amp; terraform init &amp;&amp; terraform apply -auto-approve
+terraform output ; terraform state list
+
+# Charges (azlocal) / workloads (azlocal) — dans rg-landing
+azlocal storage account create --name stlanding2026 --resource-group rg-landing
+azlocal identity create        --name id-workload    --resource-group rg-landing
+azlocal vm create              --name vm-web          --resource-group rg-landing --image UbuntuLTS --size Standard_B1s
+
+# Durcissement (Bicep, validé) / hardening (Bicep, validated)
+cd ../gouvernance &amp;&amp; bicep build durcissement.bicep --stdout
+
+# Démonter / tear down
+azlocal vm delete --name vm-web -g rg-landing ; cd ../infra &amp;&amp; terraform destroy -auto-approve</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/">Zones d&#39;atterrissage Azure</a> — le concept de référence.</li><li><a href="https://learn.microsoft.com/azure/developer/terraform/">Terraform sur Azure</a> — provider azurerm, bonnes pratiques.</li><li><a href="https://developer.hashicorp.com/terraform/language/meta-arguments/for_each">Meta-argument for_each</a> — la boucle Terraform.</li><li><a href="https://learn.microsoft.com/security/benchmark/azure/">Baseline de sécurité Azure</a> — durcir une infra.</li><li><a href="https://github.com/moabukar/miniblue">miniblue — émulateur Azure local</a> — le labo.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/">Azure landing zones</a> — the reference concept.</li><li><a href="https://learn.microsoft.com/azure/developer/terraform/">Terraform on Azure</a> — azurerm provider, best practices.</li><li><a href="https://developer.hashicorp.com/terraform/language/meta-arguments/for_each">for_each meta-argument</a> — the Terraform loop.</li><li><a href="https://learn.microsoft.com/security/benchmark/azure/">Azure security baseline</a> — hardening an infra.</li><li><a href="https://github.com/moabukar/miniblue">miniblue — local Azure emulator</a> — the lab.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>terraform apply</code> : erreur de certificat.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> avant Terraform.</p>
+<p><strong><code>terraform apply</code> : connexion refusée (localhost:4567).</strong> miniblue ne tourne pas. Lance <code>miniblue</code>, vérifie <code>azlocal health</code>.</p>
+<p><strong><code>for_each</code> : erreur de type.</strong> La valeur passée à <code>for_each</code> doit être une <strong>map</strong> ou un <strong>set</strong> (ici une map <code>{web=..., app=..., data=...}</code>), pas une liste.</p>
+<p><strong><code>azlocal ... create</code> échoue avec « resource group not found ».</strong> Lance d&#39;abord <code>terraform apply</code> (qui crée <code>rg-landing</code>), puis les charges. Le groupe doit exister.</p>
+<p><strong><code>bicep build durcissement.bicep</code> : <code>principalId</code> requis.</strong> Passe-le au déploiement, ou donne-lui une valeur par défaut pour la simple compilation. En réel, mets le <code>clientId</code>/<code>principalId</code> de l&#39;identité managée.</p>
+<p><strong>Le state Terraform est désynchronisé (après <code>azlocal reset</code>).</strong> Réinitialiser miniblue efface son état ; supprime <code>terraform.tfstate</code> et recommence, ou <code>terraform apply</code> pour recréer.</p>
+</div>
+<div data-lang="en"><p><strong><code>terraform apply</code>: certificate error.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> before Terraform.</p>
+<p><strong><code>terraform apply</code>: connection refused (localhost:4567).</strong> miniblue isn&#39;t running. Start <code>miniblue</code>, check <code>azlocal health</code>.</p>
+<p><strong><code>for_each</code>: type error.</strong> The value passed to <code>for_each</code> must be a <strong>map</strong> or a <strong>set</strong> (here a map <code>{web=..., app=..., data=...}</code>), not a list.</p>
+<p><strong><code>azlocal ... create</code> fails with &quot;resource group not found&quot;.</strong> Run <code>terraform apply</code> first (which creates <code>rg-landing</code>), then the workloads. The group must exist.</p>
+<p><strong><code>bicep build durcissement.bicep</code>: <code>principalId</code> required.</strong> Pass it at deployment, or give it a default for plain compilation. For real, use the managed identity&#39;s <code>clientId</code>/<code>principalId</code>.</p>
+<p><strong>Terraform state out of sync (after <code>azlocal reset</code>).</strong> Resetting miniblue clears its state; delete <code>terraform.tfstate</code> and start over, or <code>terraform apply</code> to recreate.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

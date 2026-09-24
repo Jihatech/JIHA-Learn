@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker — orchestration Swarm — jiha.tech</title>
+  <title data-lang="en">Docker — Swarm orchestration — jiha.tech</title>
+  <meta name="description" content="L&#39;orchestration Docker Swarm au niveau DCA (le plus gros domaine de l&#39;examen) : le mode Swarm, les services et le scaling, les mises à jour progressives et le rollback, le réseau overlay et le routing mesh, les secrets Swarm, et le déploiement de stacks — refaisable sur un cluster mono-nœud en local." data-lang="fr">
+  <meta name="description" content="Docker Swarm orchestration at DCA level (the exam&#39;s biggest domain): Swarm mode, services and scaling, rolling updates and rollback, the overlay network and routing mesh, Swarm secrets, and stack deployment — reproducible on a single-node cluster locally." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker — orchestration Swarm">
+  <meta property="og:description" content="L&#39;orchestration Docker Swarm au niveau DCA (le plus gros domaine de l&#39;examen) : le mode Swarm, les services et le scaling, les mises à jour progressives et le rollback, le réseau overlay et le routing mesh, les secrets Swarm, et le déploiement de stacks — refaisable sur un cluster mono-nœud en local.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-swarm/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-swarm/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-swarm">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-swarm</div>
+    <div class="prompt" data-lang="en">~/guides/docker-swarm</div>
+    <h1 data-lang="fr">Docker — orchestration Swarm</h1>
+    <h1 data-lang="en">Docker — Swarm orchestration</h1>
+    <p class="tagline" data-lang="fr">Services, scaling, rolling update, overlay, secrets, stacks.</p>
+    <p class="tagline" data-lang="en">Services, scaling, rolling update, overlay, secrets, stacks.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 190 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 190 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Lancer un conteneur, tu sais faire. Mais <strong>en production</strong>, on ne lance pas des conteneurs à la main : on décrit un <strong>état voulu</strong> (« je veux 3 répliques de ce service, toujours ») et un <strong>orchestrateur</strong> s&#39;occupe de le maintenir — répartition, redémarrage, mise à jour sans coupure. Docker embarque le sien : <strong>Swarm</strong>. C&#39;est le <strong>plus gros domaine du DCA (~25 %)</strong>, et il répond à : <em>comment transformer Docker en cluster ? déployer un service répliqué ? le mettre à jour sans coupure ? relier des conteneurs sur plusieurs machines ? distribuer un secret ? déployer une appli entière d&#39;un fichier ?</em></p>
+<p>Ce guide couvre l&#39;<strong>orchestration Swarm</strong> : le <strong>mode Swarm</strong> (init, nœuds), les <strong>services</strong> et le <strong>scaling</strong>, les <strong>rolling updates</strong> et le <strong>rollback</strong>, le réseau <strong>overlay</strong> et le <strong>routing mesh</strong>, les <strong>secrets Swarm</strong>, et le déploiement de <strong>stacks</strong>.</p>
+<p>On travaille sur un <strong>cluster Swarm mono-nœud</strong>, en local — un seul nœud suffit à pratiquer <strong>toutes</strong> ces notions (services, secrets, overlay, stacks). <em>(Note : Kubernetes a largement gagné la bataille de l&#39;orchestration en entreprise ; Swarm reste plus simple et <strong>au programme du DCA</strong> — c&#39;est pour ça qu&#39;on l&#39;apprend ici.)</em></p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides Docker précédents et tu vises le <strong>DCA</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne maîtrises pas images/réseau/volumes → fais les guides précédents.</li><li>Tu veux le projet fil-rouge → c&#39;est l&#39;étape <strong>finale</strong> de la track, juste après.</li></ul>
+</div>
+<div data-lang="en"><p>Launching a container, you can do. But <strong>in production</strong>, you don&#39;t launch containers by hand: you describe a <strong>desired state</strong> (&quot;I want 3 replicas of this service, always&quot;) and an <strong>orchestrator</strong> keeps it — spreading, restarting, updating without downtime. Docker ships its own: <strong>Swarm</strong>. It&#39;s the <strong>DCA&#39;s biggest domain (~25%)</strong>, and it answers: <em>how do you turn Docker into a cluster? deploy a replicated service? update it without downtime? link containers across machines? distribute a secret? deploy a whole app from one file?</em></p>
+<p>This guide covers <strong>Swarm orchestration</strong>: <strong>Swarm mode</strong> (init, nodes), <strong>services</strong> and <strong>scaling</strong>, <strong>rolling updates</strong> and <strong>rollback</strong>, the <strong>overlay</strong> network and <strong>routing mesh</strong>, <strong>Swarm secrets</strong>, and deploying <strong>stacks</strong>.</p>
+<p>We work on a <strong>single-node Swarm cluster</strong>, locally — one node is enough to practice <strong>all</strong> these notions (services, secrets, overlay, stacks). <em>(Note: Kubernetes has largely won the enterprise orchestration battle; Swarm stays simpler and is <strong>on the DCA syllabus</strong> — that&#39;s why we learn it here.)</em></p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier Docker guides and you&#39;re aiming for the <strong>DCA</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable with images/networking/volumes → do the earlier guides.</li><li>You want the capstone → that&#39;s the <strong>final</strong> step of the track, right after.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Passer Docker en <strong>mode Swarm</strong> et lire l&#39;état des <strong>nœuds</strong>.</li><li>Créer un <strong>service</strong> répliqué, le <strong>scaler</strong>, et voir le <strong>self-healing</strong>.</li><li>Faire une <strong>mise à jour progressive</strong> (rolling update) et un <strong>rollback</strong>.</li><li>Créer un réseau <strong>overlay</strong> et comprendre le <strong>routing mesh</strong>.</li><li>Créer et monter un <strong>secret Swarm</strong> (chiffré, en fichier).</li><li>Déployer une appli entière avec un <strong>stack</strong> (<code>docker stack deploy</code>).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Put Docker into <strong>Swarm mode</strong> and read the <strong>nodes&#39;</strong> state.</li><li>Create a replicated <strong>service</strong>, <strong>scale</strong> it, and see <strong>self-healing</strong>.</li><li>Do a <strong>rolling update</strong> and a <strong>rollback</strong>.</li><li>Create an <strong>overlay</strong> network and understand the <strong>routing mesh</strong>.</li><li>Create and mount a <strong>Swarm secret</strong> (encrypted, as a file).</li><li>Deploy a whole app with a <strong>stack</strong> (<code>docker stack deploy</code>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides Docker précédents acquis.</li><li><strong>Docker</strong> installé et lancé.</li><li>Un dossier de travail vierge :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Docker guides under your belt.</li><li><strong>Docker</strong> installed and running.</li><li>A blank working directory:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir docker-swarm &amp;&amp; cd docker-swarm</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-securite/">
+    <span class="num">16</span>
+    <span class="title-line" data-lang="fr">Docker — sécurité</span>
+    <span class="title-line" data-lang="en">Docker — security</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le mode Swarm</strong> transforme un (ou plusieurs) Docker en <strong>cluster</strong>. On l&#39;active avec <code>docker swarm init</code>. Les machines sont des <strong>nœuds</strong> : les <strong>managers</strong> (qui décident, maintiennent l&#39;état voulu, hébergent la base <em>raft</em>) et les <strong>workers</strong> (qui exécutent les tâches). Un seul nœud peut être <strong>manager ET worker</strong> — c&#39;est notre cas en local.</p>
+<p><strong>Le service, pas le conteneur.</strong> En Swarm, tu ne lances plus des conteneurs : tu déclares un <strong>service</strong> — « fais tourner N répliques de cette image ». Swarm crée N <strong>tâches</strong> (chaque tâche = un conteneur), les <strong>répartit</strong> sur les nœuds, et <strong>surveille</strong> : si une tâche meurt, il en recrée une (self-healing) ; si un nœud tombe, il redéploie ailleurs. C&#39;est du <strong>déclaratif</strong>, comme Kubernetes.</p>
+<p><strong>La mise à jour progressive (rolling update).</strong> Changer l&#39;image d&#39;un service ne coupe pas le service : Swarm remplace les tâches <strong>par lots</strong> (<code>--update-parallelism</code>), avec un <strong>délai</strong> entre chaque (<code>--update-delay</code>). Si ça se passe mal, <strong><code>docker service rollback</code></strong> revient à la version précédente. <strong>Zéro coupure</strong>, comme en prod.</p>
+<p><strong>Le réseau overlay &amp; le routing mesh.</strong> Le pilote <strong><code>overlay</code></strong> (vu au guide réseau) relie les tâches <strong>à travers les nœuds</strong> — c&#39;est le réseau des services Swarm. Et le <strong>routing mesh</strong> : un port <strong>publié</strong> par un service est joignable sur <strong>n&#39;importe quel nœud</strong> du cluster (Swarm route en interne vers une tâche vivante), même celui qui n&#39;héberge aucune réplique.</p>
+<p><strong>Les secrets Swarm.</strong> Enfin la bonne façon de gérer un secret (cf. guide sécurité) : <code>docker secret create</code> stocke la valeur <strong>chiffrée</strong> dans le raft ; un service qui la demande (<code>--secret</code>) la reçoit montée en <strong>fichier</strong> dans <strong><code>/run/secrets/&lt;nom&gt;</code></strong> (un <code>tmpfs</code>, jamais sur disque, jamais dans une <code>ENV</code>). C&#39;est <strong>la</strong> solution attendue à l&#39;examen.</p>
+<p><strong>Les stacks.</strong> Décrire des services à la main est fastidieux. Un <strong>stack</strong> est une appli multi-services décrite dans un <strong>fichier Compose</strong> (avec une section <strong><code>deploy:</code></strong> propre à Swarm : replicas, update, placement). <strong><code>docker stack deploy -c fichier.yml nom</code></strong> déploie tout d&#39;un coup — le Compose, mais pour un cluster.</p>
+</div>
+<div data-lang="en"><p><strong>Swarm mode</strong> turns one (or more) Docker into a <strong>cluster</strong>. You enable it with <code>docker swarm init</code>. Machines are <strong>nodes</strong>: the <strong>managers</strong> (which decide, keep the desired state, host the <em>raft</em> store) and the <strong>workers</strong> (which run tasks). A single node can be <strong>manager AND worker</strong> — our local case.</p>
+<p><strong>The service, not the container.</strong> In Swarm, you no longer launch containers: you declare a <strong>service</strong> — &quot;run N replicas of this image&quot;. Swarm creates N <strong>tasks</strong> (each task = a container), <strong>spreads</strong> them across nodes, and <strong>watches</strong>: if a task dies, it recreates one (self-healing); if a node falls, it redeploys elsewhere. It&#39;s <strong>declarative</strong>, like Kubernetes.</p>
+<p><strong>The rolling update.</strong> Changing a service&#39;s image doesn&#39;t cut the service: Swarm replaces tasks <strong>in batches</strong> (<code>--update-parallelism</code>), with a <strong>delay</strong> between each (<code>--update-delay</code>). If it goes wrong, <strong><code>docker service rollback</code></strong> reverts to the previous version. <strong>Zero downtime</strong>, like in prod.</p>
+<p><strong>The overlay network &amp; routing mesh.</strong> The <strong><code>overlay</code></strong> driver (seen in the networking guide) links tasks <strong>across nodes</strong> — it&#39;s the Swarm services&#39; network. And the <strong>routing mesh</strong>: a port <strong>published</strong> by a service is reachable on <strong>any node</strong> of the cluster (Swarm routes internally to a live task), even one hosting no replica.</p>
+<p><strong>Swarm secrets.</strong> Finally the right way to handle a secret (see the security guide): <code>docker secret create</code> stores the value <strong>encrypted</strong> in raft; a service that requests it (<code>--secret</code>) gets it mounted as a <strong>file</strong> in <strong><code>/run/secrets/&lt;name&gt;</code></strong> (a <code>tmpfs</code>, never on disk, never in an <code>ENV</code>). It&#39;s <strong>the</strong> exam-expected solution.</p>
+<p><strong>Stacks.</strong> Describing services by hand is tedious. A <strong>stack</strong> is a multi-service app described in a <strong>Compose file</strong> (with a Swarm-specific <strong><code>deploy:</code></strong> section: replicas, update, placement). <strong><code>docker stack deploy -c file.yml name</code></strong> deploys it all at once — Compose, but for a cluster.</p>
+</div>
+
+<figure class="schema" id="figure-docker-swarm">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-docker-swarm">
+  <title id="s-docker-swarm">Docker Swarm</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Docker Swarm</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">Manager</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">état voulu · raft</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="77" text-anchor="middle">Services</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="70.5" text-anchor="middle">Tâches</text><text class="sub sub-blue" x="474" y="83.5" text-anchor="middle">réparties sur les nœuds</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">Routing mesh</text><text class="sub" x="662" y="83.5" text-anchor="middle">port publié partout</text><text class="sub" x="380" y="144" text-anchor="middle">secrets montés en /run/secrets</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Manager (état voulu, raft) pilote des services -&gt; tâches réparties sur les nœuds. Routing mesh : un port publié joignable sur tout nœud. Secrets montés en /run/secrets.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Manager (desired state, raft) drives services -&gt; tasks spread over nodes. Routing mesh: a published port reachable on any node. Secrets mounted at /run/secrets.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : init Swarm → service &amp; scaling → rolling update &amp; rollback → overlay &amp; routing mesh → secrets → stack.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: Swarm init → service &amp; scaling → rolling update &amp; rollback → overlay &amp; routing mesh → secrets → stack.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Activer le <strong>mode Swarm</strong> et voir le nœud.</p>
+<p><strong>🤔 Un cluster d&#39;un nœud.</strong> <code>docker swarm init</code> fait de ta machine un <strong>manager</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Enable <strong>Swarm mode</strong> and see the node.</p>
+<p><strong>🤔 A one-node cluster.</strong> <code>docker swarm init</code> makes your machine a <strong>manager</strong>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker swarm init      # (si plusieurs IP : docker swarm init --advertise-addr &lt;IP&gt;)
+docker node ls         # les nœuds du cluster / the cluster nodes
+docker info --format &#39;{{.Swarm.LocalNodeState}} / {{.Swarm.ControlAvailable}}&#39;   # active / true</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker node ls</code> liste <strong>un</strong> nœud, <code>Leader</code>, statut <code>Ready</code> et disponibilité <code>Active</code> — ta machine est un <strong>manager</strong> (elle décide) <strong>et</strong> un worker (elle exécute). <code>docker info</code> confirme <code>Swarm: active</code>. Tu es passé du Docker « lance des conteneurs » au Docker <strong>orchestrateur</strong> : à partir de maintenant, on déclare des <strong>services</strong>, pas des conteneurs. <em>(Le message d&#39;<code>init</code> affiche aussi une commande <code>docker swarm join</code> — c&#39;est elle qu&#39;on lancerait sur d&#39;autres machines pour agrandir le cluster.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker node ls</code> lists <strong>one</strong> node, <code>Leader</code>, status <code>Ready</code> and availability <code>Active</code> — your machine is a <strong>manager</strong> (it decides) <strong>and</strong> a worker (it runs tasks). <code>docker info</code> confirms <code>Swarm: active</code>. You&#39;ve moved from &quot;launch containers&quot; Docker to <strong>orchestrator</strong> Docker: from now on, you declare <strong>services</strong>, not containers. <em>(The <code>init</code> message also shows a <code>docker swarm join</code> command — that&#39;s what you&#39;d run on other machines to grow the cluster.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>service</strong> répliqué, le <strong>scaler</strong>, et voir le <strong>self-healing</strong>.</p>
+<p><strong>🤔 Déclarer, pas lancer.</strong> Crée un service à 3 répliques, publié sur 8080 :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a replicated <strong>service</strong>, <strong>scale</strong> it, and see <strong>self-healing</strong>.</p>
+<p><strong>🤔 Declare, don&#39;t launch.</strong> Create a 3-replica service, published on 8080:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker service create --name web --replicas 3 -p 8080:80 nginx:1.27-alpine
+docker service ls                        # REPLICAS 3/3 / 3 tasks running
+docker service ps web                    # les 3 tâches et leur nœud / the 3 tasks and their node
+curl -s localhost:8080 | grep -i nginx   # le service répond / the service answers
+
+docker service scale web=5               # passe à 5 répliques / scale to 5
+# self-healing : tue une tâche, Swarm la recrée / kill a task, Swarm recreates it
+docker rm -f &quot;$(docker ps -q -f name=web | head -1)&quot;
+# attends que Swarm recrée la tâche (jusqu&#39;à ~10 s) / wait for Swarm to recreate the task
+for i in $(seq 10); do docker service ls | grep -q &#39;5/5&#39; &amp;&amp; break; sleep 1; done
+docker service ls                        # toujours 5/5 (une tâche recréée) / still 5/5 (one recreated)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker service ls</code> affiche <code>web  replicated  5/5</code> après le scale, et <code>docker service ps web</code> liste les tâches (<code>web.1</code>, <code>web.2</code>…) avec leur état <code>Running</code>. Preuve du <strong>self-healing</strong> : après avoir supprimé de force le conteneur d&#39;une tâche, Swarm en recrée <strong>une</strong> pour revenir à l&#39;état voulu (5/5) — tu n&#39;as <strong>rien</strong> fait. C&#39;est la <strong>réconciliation</strong> : tu déclares « je veux 5 », Swarm <strong>maintient</strong> 5, quoi qu&#39;il arrive. Tu ne gères plus des conteneurs, tu gères un <strong>état voulu</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker service ls</code> shows <code>web  replicated  5/5</code> after the scale, and <code>docker service ps web</code> lists the tasks (<code>web.1</code>, <code>web.2</code>…) in <code>Running</code> state. Proof of <strong>self-healing</strong>: after force-removing one task&#39;s container, Swarm recreates <strong>one</strong> to return to the desired state (5/5) — you did <strong>nothing</strong>. That&#39;s <strong>reconciliation</strong>: you declare &quot;I want 5&quot;, Swarm <strong>keeps</strong> 5, whatever happens. You no longer manage containers, you manage a <strong>desired state</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire une <strong>mise à jour progressive</strong> (rolling update) puis un <strong>rollback</strong>.</p>
+<p><strong>🤔 Zéro coupure.</strong> On change l&#39;image du service, <strong>une tâche à la fois</strong>, avec un délai — le service reste debout :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Do a <strong>rolling update</strong> then a <strong>rollback</strong>.</p>
+<p><strong>🤔 Zero downtime.</strong> We change the service&#39;s image, <strong>one task at a time</strong>, with a delay — the service stays up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker service update \
+  --image nginx:1.26-alpine \
+  --update-parallelism 1 --update-delay 3s \
+  web
+docker service ps web --format &#39;{{.Name}} {{.Image}} {{.CurrentState}}&#39; | head   # tâches en cours de bascule / tasks flipping
+
+# rollback : revenir à l&#39;image précédente / revert to the previous image
+docker service rollback web
+docker service inspect web --format &#39;{{.Spec.TaskTemplate.ContainerSpec.Image}}&#39; | cut -d@ -f1   # de retour à nginx:1.27-alpine (@sha256 retiré) / back to nginx:1.27-alpine (@sha256 stripped)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> pendant l&#39;<code>update</code>, <code>docker service ps web</code> montre Swarm remplacer les tâches <strong>progressivement</strong> (1 à la fois, 3 s d&#39;écart) : d&#39;anciennes tâches <code>Shutdown</code> et de nouvelles <code>Running</code> avec la nouvelle image <code>nginx:1.26-alpine</code> — <strong>sans</strong> que <code>curl localhost:8080</code> cesse de répondre. Puis <strong><code>docker service rollback</code></strong> ramène le service à <code>nginx:1.27-alpine</code> (confirmé par l&#39;<code>inspect</code>). C&#39;est le <strong>déploiement sans coupure</strong> et son filet de sécurité : mettre à jour par lots, et <strong>revenir en arrière</strong> en une commande si un problème surgit. Le cœur de l&#39;exploitation moderne.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> during the <code>update</code>, <code>docker service ps web</code> shows Swarm replacing tasks <strong>progressively</strong> (1 at a time, 3s apart): old tasks <code>Shutdown</code> and new ones <code>Running</code> with the new <code>nginx:1.26-alpine</code> image — <strong>without</strong> <code>curl localhost:8080</code> ever stopping. Then <strong><code>docker service rollback</code></strong> brings the service back to <code>nginx:1.27-alpine</code> (confirmed by <code>inspect</code>). That&#39;s <strong>zero-downtime deployment</strong> and its safety net: update in batches, and <strong>revert</strong> in one command if a problem arises. The heart of modern operations.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un réseau <strong>overlay</strong> et comprendre le <strong>routing mesh</strong>.</p>
+<p><strong>🤔 Le réseau des services.</strong> L&#39;<code>overlay</code> relie les tâches entre nœuds ; le <strong>routing mesh</strong> publie un port sur <strong>tout</strong> le cluster. Crée le réseau et un service dessus :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create an <strong>overlay</strong> network and understand the <strong>routing mesh</strong>.</p>
+<p><strong>🤔 The services&#39; network.</strong> The <code>overlay</code> links tasks across nodes; the <strong>routing mesh</strong> publishes a port across <strong>the whole</strong> cluster. Create the network and a service on it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create -d overlay --attachable appnet     # réseau overlay / overlay network
+docker service create --name api --network appnet --replicas 2 -p 9090:80 nginx:1.27-alpine
+docker service ps api
+curl -s localhost:9090 | grep -i nginx                    # joignable via le routing mesh / via the routing mesh</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le service <code>api</code> tourne sur le réseau <strong><code>overlay</code></strong> <code>appnet</code>, et <code>curl localhost:9090</code> répond — le port <strong>9090</strong> est publié par le <strong>routing mesh</strong> sur le nœud. Sur un cluster multi-nœuds, ce <strong>même</strong> port serait joignable sur <strong>n&#39;importe quel</strong> nœud (même sans réplique locale), Swarm routant en interne vers une tâche vivante. L&#39;<code>overlay</code> est <strong>le</strong> réseau des applications distribuées : les services y communiquent <strong>par leur nom</strong> (DNS interne, comme un bridge utilisateur) <strong>à travers les machines</strong>. C&#39;est ce qui rend un cluster réellement utile.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>api</code> service runs on the <strong><code>overlay</code></strong> network <code>appnet</code>, and <code>curl localhost:9090</code> answers — port <strong>9090</strong> is published by the <strong>routing mesh</strong> on the node. On a multi-node cluster, that <strong>same</strong> port would be reachable on <strong>any</strong> node (even without a local replica), Swarm routing internally to a live task. The <code>overlay</code> is <strong>the</strong> network for distributed apps: services talk to each other <strong>by name</strong> (internal DNS, like a user bridge) <strong>across machines</strong>. That&#39;s what makes a cluster actually useful.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>secret Swarm</strong> et le monter dans un service.</p>
+<p><strong>🤔 La bonne façon (enfin).</strong> Le secret est chiffré dans le cluster et monté en <strong>fichier</strong>, jamais en <code>ENV</code>. Crée-le et consomme-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>Swarm secret</strong> and mount it in a service.</p>
+<p><strong>🤔 The right way (finally).</strong> The secret is encrypted in the cluster and mounted as a <strong>file</strong>, never as an <code>ENV</code>. Create it and consume it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>printf &#39;s3cr3t-de-prod&#39; | docker secret create db_pass -      # crée le secret (chiffré) / create the (encrypted) secret
+docker secret ls
+
+docker service create --name coffre --secret db_pass alpine:3.20 sleep 300
+# le secret est monté en fichier dans /run/secrets/ / mounted as a file in /run/secrets/
+docker exec &quot;$(docker ps -q -f name=coffre | head -1)&quot; cat /run/secrets/db_pass ; echo</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker secret ls</code> liste <code>db_pass</code>, et l&#39;<code>exec</code> dans la tâche du service <code>coffre</code> affiche <strong><code>s3cr3t-de-prod</code></strong> — le secret a été monté dans <strong><code>/run/secrets/db_pass</code></strong> (un <code>tmpfs</code> en RAM), lisible par l&#39;appli <strong>comme un fichier</strong>, mais <strong>jamais</strong> exposé dans une <code>ENV</code>, <code>docker inspect</code>, ou une couche d&#39;image. C&#39;est <strong>la</strong> solution du guide sécurité, appliquée : contrairement à l&#39;<code>ENV</code> qui fuit, le <strong>secret Swarm</strong> est chiffré au repos (dans le raft) et livré à l&#39;exécution, en fichier. <em>(Nettoyage plus loin.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker secret ls</code> lists <code>db_pass</code>, and the <code>exec</code> in the <code>coffre</code> service&#39;s task prints <strong><code>s3cr3t-de-prod</code></strong> — the secret was mounted at <strong><code>/run/secrets/db_pass</code></strong> (an in-RAM <code>tmpfs</code>), readable by the app <strong>as a file</strong>, but <strong>never</strong> exposed in an <code>ENV</code>, <code>docker inspect</code>, or an image layer. It&#39;s <strong>the</strong> security-guide solution, applied: unlike the <code>ENV</code> that leaks, the <strong>Swarm secret</strong> is encrypted at rest (in raft) and delivered at runtime, as a file. <em>(Cleanup below.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer une appli entière avec un <strong>stack</strong> — le Compose du cluster.</p>
+<p><strong>🤔 Tout dans un fichier.</strong> Un stack décrit plusieurs services + leur config Swarm dans un fichier Compose. Crée <code>stack.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy a whole app with a <strong>stack</strong> — the cluster&#39;s Compose.</p>
+<p><strong>🤔 All in one file.</strong> A stack describes several services + their Swarm config in a Compose file. Create <code>stack.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># stack.yml
+services:
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - &quot;8081:80&quot;
+    deploy:
+      replicas: 3                     # &lt;- section deploy = spécifique à Swarm / Swarm-specific
+      update_config:
+        parallelism: 1
+        delay: 3s
+      restart_policy:
+        condition: on-failure</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker stack deploy -c stack.yml monapp
+docker stack services monapp          # les services du stack / the stack&#39;s services
+docker stack ps monapp                 # les tâches / the tasks
+curl -s localhost:8081 | grep -i nginx</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker stack deploy</code> crée le service <code>monapp_web</code> (nommé <code>&lt;stack&gt;_&lt;service&gt;</code>), et <code>docker stack services monapp</code> affiche <code>3/3</code> répliques ; <code>curl localhost:8081</code> répond. Tu as déployé une appli <strong>d&#39;un seul fichier</strong>, avec sa config d&#39;orchestration (<strong><code>deploy:</code></strong> : replicas, mise à jour progressive, politique de redémarrage) — c&#39;est <strong>Compose, mais pour un cluster</strong>. Modifie le YAML et <strong>redéploie</strong> : Swarm applique le diff (rolling update inclus). Le stack est <strong>l&#39;unité de déploiement</strong> d&#39;une appli Swarm. <em>(Nettoyage : voir la section suivante.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker stack deploy</code> creates the <code>monapp_web</code> service (named <code>&lt;stack&gt;_&lt;service&gt;</code>), and <code>docker stack services monapp</code> shows <code>3/3</code> replicas; <code>curl localhost:8081</code> answers. You deployed an app <strong>from a single file</strong>, with its orchestration config (<strong><code>deploy:</code></strong>: replicas, rolling update, restart policy) — it&#39;s <strong>Compose, but for a cluster</strong>. Edit the YAML and <strong>redeploy</strong>: Swarm applies the diff (rolling update included). The stack is <strong>the deployment unit</strong> of a Swarm app. <em>(Cleanup: see the next section.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Confondre conteneur et service.</strong> En Swarm, <code>docker run</code> reste local au nœud ; c&#39;est <strong><code>docker service</code></strong> qui orchestre (répliques, self-healing, répartition). Ne mélange pas les deux mondes.</p>
+<p><strong>2. <code>deploy:</code> ignoré par <code>docker compose up</code>.</strong> La section <code>deploy:</code> (replicas, update_config) n&#39;est prise en compte que par <strong>Swarm</strong> (<code>docker stack deploy</code>), <strong>pas</strong> par <code>docker compose up</code>. À l&#39;inverse, certaines clés Compose (<code>build</code>, <code>depends_on</code>) sont ignorées en Swarm.</p>
+<p><strong>3. Mettre un secret en <code>ENV</code> en Swarm.</strong> Alors que les <strong>secrets Swarm</strong> existent (chiffrés, en fichier). Utilise <code>docker secret</code> + <code>--secret</code>, jamais <code>-e</code>.</p>
+<p><strong>4. Oublier <code>--advertise-addr</code> sur une machine multi-IP.</strong> <code>docker swarm init</code> peut échouer/mal choisir l&#39;IP. Précise <code>--advertise-addr &lt;IP&gt;</code>.</p>
+<p><strong>5. Croire le routing mesh multi-nœuds sur un seul nœud.</strong> En local (1 nœud), tu ne <strong>vois</strong> pas la magie multi-hôtes ; le comportement (port publié partout) se révèle sur un vrai cluster. Le mécanisme, lui, est le même.</p>
+<p><strong>6. <code>docker service rm</code> ne libère pas tout.</strong> Les réseaux overlay, secrets, volumes restent. Nettoie explicitement (<code>docker network rm</code>, <code>docker secret rm</code>).</p>
+<p><strong>7. Éditer une tâche à la main.</strong> Supprimer/modifier le conteneur d&#39;une tâche est <strong>inutile</strong> : Swarm réconcilie vers l&#39;état voulu. Change le <strong>service</strong> (<code>service update</code>), pas la tâche.</p>
+</div>
+<div data-lang="en"><p><strong>1. Confusing container and service.</strong> In Swarm, <code>docker run</code> stays local to the node; it&#39;s <strong><code>docker service</code></strong> that orchestrates (replicas, self-healing, spreading). Don&#39;t mix the two worlds.</p>
+<p><strong>2. <code>deploy:</code> ignored by <code>docker compose up</code>.</strong> The <code>deploy:</code> section (replicas, update_config) is honored only by <strong>Swarm</strong> (<code>docker stack deploy</code>), <strong>not</strong> by <code>docker compose up</code>. Conversely, some Compose keys (<code>build</code>, <code>depends_on</code>) are ignored in Swarm.</p>
+<p><strong>3. Putting a secret in <code>ENV</code> in Swarm.</strong> While <strong>Swarm secrets</strong> exist (encrypted, as a file). Use <code>docker secret</code> + <code>--secret</code>, never <code>-e</code>.</p>
+<p><strong>4. Forgetting <code>--advertise-addr</code> on a multi-IP machine.</strong> <code>docker swarm init</code> may fail/pick the wrong IP. Specify <code>--advertise-addr &lt;IP&gt;</code>.</p>
+<p><strong>5. Believing the routing mesh is multi-node on a single node.</strong> Locally (1 node), you don&#39;t <strong>see</strong> the multi-host magic; the behavior (port published everywhere) reveals itself on a real cluster. The mechanism is the same, though.</p>
+<p><strong>6. <code>docker service rm</code> doesn&#39;t free everything.</strong> Overlay networks, secrets, volumes remain. Clean up explicitly (<code>docker network rm</code>, <code>docker secret rm</code>).</p>
+<p><strong>7. Editing a task by hand.</strong> Deleting/modifying a task&#39;s container is <strong>pointless</strong>: Swarm reconciles to the desired state. Change the <strong>service</strong> (<code>service update</code>), not the task.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu passes en <strong>mode Swarm</strong> et tu lis <code>docker node ls</code>.</li><li>Tu crées un <strong>service</strong>, tu le <strong>scales</strong>, et tu vois le <strong>self-healing</strong>.</li><li>Tu fais un <strong>rolling update</strong> et un <strong>rollback</strong>.</li><li>Tu crées un réseau <strong>overlay</strong> et tu expliques le <strong>routing mesh</strong>.</li><li>Tu crées un <strong>secret Swarm</strong> monté en <code>/run/secrets</code>.</li><li>Tu déploies un <strong>stack</strong> depuis un fichier Compose (<code>deploy:</code>).</li></ul>
+<p>Six cases cochées = tu tiens <strong>l&#39;orchestration</strong> du DCA (le plus gros domaine).</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You enter <strong>Swarm mode</strong> and read <code>docker node ls</code>.</li><li>You create a <strong>service</strong>, <strong>scale</strong> it, and see <strong>self-healing</strong>.</li><li>You do a <strong>rolling update</strong> and a <strong>rollback</strong>.</li><li>You create an <strong>overlay</strong> network and explain the <strong>routing mesh</strong>.</li><li>You create a <strong>Swarm secret</strong> mounted at <code>/run/secrets</code>.</li><li>You deploy a <strong>stack</strong> from a Compose file (<code>deploy:</code>).</li></ul>
+<p>Six boxes ticked = you hold DCA <strong>orchestration</strong> (the biggest domain).</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>couverture de contenu</strong> de la track Docker → DCA. Il reste le <strong>projet d&#39;entreprise</strong> :</p>
+<ul><li><strong>Projet d&#39;entreprise</strong> — construire une <strong>image multi-stage</strong>, la pousser dans un <strong>registre</strong>, et déployer une <strong>stack Swarm</strong> complète (service répliqué + secret + réseau overlay + rolling update + healthcheck) dans un dépôt documenté. Le livrable Docker pour ton CV.</li></ul>
+<p><strong>Ménage :</strong> <code>docker stack rm monapp ; docker service rm web api coffre 2&gt;/dev/null ; docker secret rm db_pass 2&gt;/dev/null ; sleep 3 ; docker network rm appnet 2&gt;/dev/null ; docker swarm leave --force</code>  <em>(le <code>sleep</code> laisse la suppression des services libérer le réseau overlay).</em></p>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>content coverage</strong> of the Docker → DCA track. The <strong>enterprise project</strong> remains:</p>
+<ul><li><strong>Enterprise project</strong> — build a <strong>multi-stage image</strong>, push it to a <strong>registry</strong>, and deploy a complete <strong>Swarm stack</strong> (replicated service + secret + overlay network + rolling update + healthcheck) in a documented repo. The Docker deliverable for your CV.</li></ul>
+<p><strong>Cleanup:</strong> <code>docker stack rm monapp ; docker service rm web api coffre 2&gt;/dev/null ; docker secret rm db_pass 2&gt;/dev/null ; sleep 3 ; docker network rm appnet 2&gt;/dev/null ; docker swarm leave --force</code>  <em>(the <code>sleep</code> lets service removal release the overlay network).</em></p>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../cicd-github-actions/">
+    <span class="num">19</span>
+    <span class="title-line" data-lang="fr">CI/CD avec GitHub Actions</span>
+    <span class="title-line" data-lang="en">CI/CD with GitHub Actions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire Swarm.</p>
+</div>
+<div data-lang="en"><p>Swarm cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cluster
+docker swarm init [--advertise-addr IP] ; docker node ls ; docker swarm leave --force
+
+# Services
+docker service create --name web --replicas 3 -p 8080:80 nginx:1.27-alpine
+docker service ls ; docker service ps web ; docker service scale web=5
+docker service update --image IMG --update-parallelism 1 --update-delay 5s web
+docker service rollback web ; docker service rm web
+
+# Overlay &amp; secrets
+docker network create -d overlay --attachable appnet
+printf &#39;val&#39; | docker secret create NOM - ; docker service create --secret NOM ...   # -&gt; /run/secrets/NOM
+
+# Stacks (Compose + section deploy:)
+docker stack deploy -c stack.yml monapp
+docker stack services monapp ; docker stack ps monapp ; docker stack rm monapp</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com/engine/swarm/">Mode Swarm</a> — vue d&#39;ensemble et concepts.</li><li><a href="https://docs.docker.com/engine/swarm/services/">Services</a> et <a href="https://docs.docker.com/engine/swarm/swarm-tutorial/rolling-update/">rolling updates</a>.</li><li><a href="https://docs.docker.com/engine/swarm/secrets/">Secrets Swarm</a> et <a href="https://docs.docker.com/engine/swarm/stack-deploy/">déployer un stack</a>.</li><li>Domaine <strong>DCA « Orchestration »</strong> (~25 %, le plus gros).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com/engine/swarm/">Swarm mode</a> — overview and concepts.</li><li><a href="https://docs.docker.com/engine/swarm/services/">Services</a> and <a href="https://docs.docker.com/engine/swarm/swarm-tutorial/rolling-update/">rolling updates</a>.</li><li><a href="https://docs.docker.com/engine/swarm/secrets/">Swarm secrets</a> and <a href="https://docs.docker.com/engine/swarm/stack-deploy/">deploy a stack</a>.</li><li><strong>DCA &quot;Orchestration&quot;</strong> domain (~25%, the biggest).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>docker swarm init</code> : « could not choose an IP address ».</strong> Machine multi-IP : précise <code>docker swarm init --advertise-addr &lt;IP&gt;</code> (une IP de la machine).</p>
+<p><strong><code>docker service create</code> : « This node is not a swarm manager ».</strong> Tu n&#39;es pas en Swarm (ou pas manager). Fais <code>docker swarm init</code> d&#39;abord.</p>
+<p><strong>Le service reste en <code>0/3</code>.</strong> Les tâches ne démarrent pas : <code>docker service ps --no-trunc web</code> montre l&#39;<strong>erreur</strong> (image introuvable, port déjà pris, contrainte de placement non satisfaite).</p>
+<p><strong><code>curl</code> sur le port publié échoue.</strong> Sur un seul nœud, vérifie que le service est <code>Running</code> et le port bien publié (<code>docker service inspect --format &#39;{{.Endpoint.Ports}}&#39; web</code>). Le routing mesh route vers une tâche <strong>vivante</strong> seulement.</p>
+<p><strong>Impossible de supprimer un réseau overlay.</strong> Un service y est encore attaché. Supprime d&#39;abord les services (<code>docker service rm</code>), puis le réseau.</p>
+<p><strong><code>deploy:</code> ne fait rien.</strong> Tu as lancé <code>docker compose up</code> (qui <strong>ignore</strong> <code>deploy:</code>). Pour Swarm, c&#39;est <strong><code>docker stack deploy -c fichier.yml nom</code></strong>.</p>
+</div>
+<div data-lang="en"><p><strong><code>docker swarm init</code>: &quot;could not choose an IP address&quot;.</strong> Multi-IP machine: specify <code>docker swarm init --advertise-addr &lt;IP&gt;</code> (one of the machine&#39;s IPs).</p>
+<p><strong><code>docker service create</code>: &quot;This node is not a swarm manager&quot;.</strong> You&#39;re not in Swarm (or not a manager). Run <code>docker swarm init</code> first.</p>
+<p><strong>The service stays at <code>0/3</code>.</strong> Tasks aren&#39;t starting: <code>docker service ps --no-trunc web</code> shows the <strong>error</strong> (image not found, port already taken, unmet placement constraint).</p>
+<p><strong><code>curl</code> on the published port fails.</strong> On a single node, check the service is <code>Running</code> and the port is published (<code>docker service inspect --format &#39;{{.Endpoint.Ports}}&#39; web</code>). The routing mesh routes only to a <strong>live</strong> task.</p>
+<p><strong>Can&#39;t delete an overlay network.</strong> A service is still attached. Remove the services first (<code>docker service rm</code>), then the network.</p>
+<p><strong><code>deploy:</code> does nothing.</strong> You ran <code>docker compose up</code> (which <strong>ignores</strong> <code>deploy:</code>). For Swarm, it&#39;s <strong><code>docker stack deploy -c file.yml name</code></strong>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

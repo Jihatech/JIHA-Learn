@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — accès privé aux services (AZ-700) : Private Endpoint, Private Link — jiha.tech</title>
+  <title data-lang="en">Azure — private access to services (AZ-700): Private Endpoint, Private Link — jiha.tech</title>
+  <meta name="description" content="&quot;Rendre le PaaS privé pour l&#39;AZ-700, en local et pour de vrai : le problème de l&#39;exposition publique (checkov le signale), les points de terminaison de service (identité du VNet étendue au PaaS) vs les points de terminaison privés (IP privée dans ton VNet via Private Link, écrit et validé en Bicep), l&#39;intégration DNS privatelink obligatoire (zone privée + enregistrement, azlocal live), un moteur de décision service endpoint vs private endpoint, et la fermeture de l&#39;accès public (checkov au vert). Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Making PaaS private for AZ-700, locally and for real: the public-exposure problem (checkov flags it), service endpoints (VNet identity extended to PaaS) vs private endpoints (a private IP in your VNet via Private Link, written and validated in Bicep), the mandatory privatelink DNS integration (private zone + record, azlocal live), a service-endpoint vs private-endpoint decision engine, and closing public access (checkov green). No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — accès privé aux services (AZ-700) : Private Endpoint, Private Link">
+  <meta property="og:description" content="&quot;Rendre le PaaS privé pour l&#39;AZ-700, en local et pour de vrai : le problème de l&#39;exposition publique (checkov le signale), les points de terminaison de service (identité du VNet étendue au PaaS) vs les points de terminaison privés (IP privée dans ton VNet via Private Link, écrit et validé en Bicep), l&#39;intégration DNS privatelink obligatoire (zone privée + enregistrement, azlocal live), un moteur de décision service endpoint vs private endpoint, et la fermeture de l&#39;accès public (checkov au vert). Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-reseau-acces-prive/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-reseau-acces-prive/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-reseau-acces-prive">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-reseau-acces-prive</div>
+    <div class="prompt" data-lang="en">~/guides/azure-reseau-acces-prive</div>
+    <h1 data-lang="fr">Azure — accès privé aux services (AZ-700) : Private Endpoint, Private Link</h1>
+    <h1 data-lang="en">Azure — private access to services (AZ-700): Private Endpoint, Private Link</h1>
+    <p class="tagline" data-lang="fr">sortir le PaaS d&#39;Internet — IP privée, coupe l&#39;accès public, DNS privé.</p>
+    <p class="tagline" data-lang="en">take PaaS off the Internet — private IP, cut public access, private DNS.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 250 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 250 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Par défaut, un service <strong>PaaS</strong> (stockage, base, Key Vault) a un <strong>point d&#39;accès public</strong> — joignable depuis <strong>Internet</strong>. Pour des données sensibles, c&#39;est une <strong>surface d&#39;attaque</strong> inutile. L&#39;<strong>AZ-700</strong> attend que tu saches <strong>retirer le PaaS d&#39;Internet</strong> : le rendre joignable <strong>uniquement depuis ton réseau</strong>, via des <strong>points de terminaison privés</strong> et <strong>Private Link</strong>.</p>
+<p>Fidèle à la méthode, on pratique <strong>en local et pour de vrai</strong> : on <strong>constate l&#39;exposition</strong> publique (checkov la signale), on distingue <strong>points de terminaison de service</strong> (identité du VNet étendue au PaaS) et <strong>points de terminaison privés</strong> (une <strong>IP privée</strong> dans ton VNet via <strong>Private Link</strong>, écrit et <strong>validé</strong> en Bicep), on met en place l&#39;<strong>intégration DNS privatelink</strong> <strong>obligatoire</strong> (zone privée + enregistrement, <strong>live</strong> sur miniblue), on <strong>choisit</strong> entre les deux avec un <strong>moteur de décision</strong>, et on <strong>ferme l&#39;accès public</strong> (checkov au vert).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises le réseau AZ-700 (guides précédents) et tu veux <strong>privatiser</strong> l&#39;accès au PaaS.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas les fondations réseau/DNS → fais <em>Azure — réseau fondamentaux (AZ-700)</em>.</li><li>Tu cherches le durcissement <strong>données</strong> (chiffrement) → c&#39;est l&#39;<strong>AZ-500</strong> ; ici c&#39;est l&#39;<strong>accès réseau</strong> privé.</li></ul>
+</div>
+<div data-lang="en"><p>By default, a <strong>PaaS</strong> service (storage, database, Key Vault) has a <strong>public endpoint</strong> — reachable from <strong>the Internet</strong>. For sensitive data, that&#39;s a needless <strong>attack surface</strong>. <strong>AZ-700</strong> expects you to <strong>take PaaS off the Internet</strong>: make it reachable <strong>only from your network</strong>, via <strong>private endpoints</strong> and <strong>Private Link</strong>.</p>
+<p>True to the method, we practice <strong>locally and for real</strong>: we <strong>observe the public</strong> exposure (checkov flags it), we distinguish <strong>service endpoints</strong> (VNet identity extended to PaaS) and <strong>private endpoints</strong> (a <strong>private IP</strong> in your VNet via <strong>Private Link</strong>, written and <strong>validated</strong> in Bicep), we set up the <strong>mandatory</strong> privatelink <strong>DNS integration</strong> (private zone + record, <strong>live</strong> on miniblue), we <strong>choose</strong> between the two with a <strong>decision engine</strong>, and we <strong>close public access</strong> (checkov green).</p>
+<p><strong>Who it&#39;s for:</strong> you master AZ-700 networking (previous guides) and want to <strong>privatize</strong> PaaS access.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You lack the network/DNS foundations → do <em>Azure — network fundamentals (AZ-700)</em>.</li><li>You want <strong>data</strong> hardening (encryption) → that&#39;s <strong>AZ-500</strong>; here it&#39;s private <strong>network access</strong>.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Constater</strong> l&#39;exposition publique d&#39;un PaaS (avec un garde-fou).</li><li>Distinguer <strong>point de terminaison de service</strong> et <strong>point de terminaison privé</strong>.</li><li>Écrire un <strong>point de terminaison privé</strong> et le <strong>valider</strong> en Bicep.</li><li>Mettre en place l&#39;<strong>intégration DNS privatelink</strong> (zone privée + enregistrement).</li><li><strong>Choisir</strong> entre service endpoint et private endpoint selon le besoin.</li><li><strong>Fermer l&#39;accès public</strong> (<code>public_network_access = Disabled</code>) et le <strong>valider</strong>.</li><li>Comprendre le rôle de <strong>Private Link</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Observe</strong> a PaaS&#39;s public exposure (with a guardrail).</li><li>Distinguish a <strong>service endpoint</strong> and a <strong>private endpoint</strong>.</li><li>Write a <strong>private endpoint</strong> and <strong>validate</strong> it in Bicep.</li><li>Set up the <strong>privatelink DNS integration</strong> (private zone + record).</li><li><strong>Choose</strong> between service endpoint and private endpoint by need.</li><li><strong>Close public access</strong> (<code>public_network_access = Disabled</code>) and <strong>validate</strong> it.</li><li>Understand the role of <strong>Private Link</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides <strong>Azure — réseau fondamentaux / routage (AZ-700)</strong> (VNet, DNS privé).</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré (DNS live), <code>azlocal</code> sur le <code>PATH</code>, <strong>Bicep CLI</strong>, <strong>Python 3</strong>, <code>pip install checkov</code>.</li><li><strong>Aucun compte cloud</strong> : DNS privatelink live, point de terminaison privé validé en Bicep.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — network fundamentals / routing (AZ-700)</strong> guides (VNet, private DNS).</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started (DNS live), <code>azlocal</code> on <code>PATH</code>, <strong>Bicep CLI</strong>, <strong>Python 3</strong>, <code>pip install checkov</code>.</li><li><strong>No cloud account</strong>: privatelink DNS live, private endpoint validated in Bicep.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-reseau-distribution/">
+    <span class="num">85</span>
+    <span class="title-line" data-lang="fr">Azure — distribution applicative (AZ-700) : équilibrage, App Gateway, Front Door</span>
+    <span class="title-line" data-lang="en">Azure — application delivery (AZ-700): load balancing, App Gateway, Front Door</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Le problème : le PaaS public.</strong> Un compte de stockage, une base, un coffre : par défaut, chacun expose un <strong>point d&#39;accès public</strong> (un nom DNS public, une IP publique). Même protégé par un mot de passe ou un pare-feu, il <strong>reste joignable</strong> depuis Internet — donc <strong>attaquable</strong> (force brute, fuite de clé, faille). Pour les données sensibles, on veut le <strong>sortir d&#39;Internet</strong>.</p>
+<p><strong>Les points de terminaison de service (Service Endpoints).</strong> Première approche : <strong>étendre l&#39;identité du VNet</strong> au service PaaS. Le PaaS n&#39;accepte alors le trafic <strong>que</strong> depuis les sous-réseaux autorisés, via le <strong>backbone Azure</strong> (pas l&#39;Internet public). Simple à activer. Limite : le service <strong>garde son IP publique</strong> (l&#39;accès est <strong>restreint</strong>, pas rendu <strong>privé</strong>) ; ça ne couvre pas l&#39;accès <strong>depuis l&#39;on-prem</strong>.</p>
+<p><strong>Les points de terminaison privés (Private Endpoints).</strong> Approche plus forte : donner au PaaS une <strong>interface réseau avec une IP privée</strong> <strong>dans ton VNet</strong>. Le service devient une <strong>ressource de ton réseau</strong> : on le joint par son <strong>IP privée</strong>, et on peut <strong>couper totalement</strong> l&#39;accès public. C&#39;est <strong>Private Link</strong> : une connexion <strong>privée</strong> entre ton VNet et le service, sans passer par Internet. Ça marche aussi <strong>depuis l&#39;on-prem</strong> (via VPN/ExpressRoute).</p>
+<p><strong>L&#39;intégration DNS : obligatoire.</strong> Un point de terminaison privé donne une <strong>IP privée</strong> — mais le nom DNS <strong>public</strong> du service (<code>monstockage.blob.core.windows.net</code>) pointe encore vers l&#39;<strong>IP publique</strong>. Il faut donc une <strong>zone DNS privée</strong> spéciale (<code>privatelink.blob.core.windows.net</code>) qui <strong>résout le nom vers l&#39;IP privée</strong> du point de terminaison. <strong>Sans cette intégration DNS, le point de terminaison privé ne sert à rien</strong> : les clients continuent d&#39;aller vers l&#39;IP publique. C&#39;est <strong>l&#39;</strong> erreur classique.</p>
+<p><strong>Service endpoint ou private endpoint ?</strong> <strong>Service endpoint</strong> : rapide, gratuit, restreint l&#39;accès à tes sous-réseaux (mais IP publique conservée, pas d&#39;on-prem). <strong>Private endpoint</strong> : IP privée dans le VNet, accès public <strong>coupable</strong>, marche depuis l&#39;on-prem, mais coûte (par endpoint) et demande la <strong>config DNS</strong>. Pour du <strong>vraiment privé</strong> (données sensibles, conformité), c&#39;est le <strong>private endpoint</strong>.</p>
+<p><strong>Fermer l&#39;accès public.</strong> Le point de terminaison privé n&#39;a de sens que si on <strong>coupe</strong> l&#39;accès public : <code>public_network_access = Disabled</code>. Ainsi, le service n&#39;est joignable <strong>que</strong> par son IP privée. Un scan de sécurité (checkov, <code>CKV_AZURE_59</code>) <strong>exige</strong> cette fermeture.</p>
+<p><strong>Ce qui est live ici.</strong> La <strong>zone DNS privatelink</strong> et son <strong>enregistrement</strong> se <strong>créent</strong> sur miniblue (azlocal, live) — c&#39;est le cœur de l&#39;intégration DNS. Le <strong>point de terminaison privé</strong> s&#39;écrit et se <strong>compile en ARM</strong> avec <strong>Bicep</strong> (validation ; miniblue ne l&#39;émule pas). L&#39;<strong>exposition publique</strong> se <strong>détecte</strong> avec <strong>checkov</strong> (offline). Le <strong>choix</strong> service/private endpoint est un <strong>moteur exécutable</strong>. Tout sans compte cloud.</p>
+</div>
+<div data-lang="en"><p><strong>The problem: public PaaS.</strong> A storage account, a database, a vault: by default, each exposes a <strong>public endpoint</strong> (a public DNS name, a public IP). Even protected by a password or firewall, it <strong>stays reachable</strong> from the Internet — thus <strong>attackable</strong> (brute force, key leak, flaw). For sensitive data, we want to <strong>take it off the Internet</strong>.</p>
+<p><strong>Service endpoints.</strong> First approach: <strong>extend the VNet&#39;s identity</strong> to the PaaS service. The PaaS then accepts traffic <strong>only</strong> from authorized subnets, via the <strong>Azure backbone</strong> (not the public Internet). Simple to enable. Limit: the service <strong>keeps its public IP</strong> (access is <strong>restricted</strong>, not made <strong>private</strong>); it doesn&#39;t cover access <strong>from on-prem</strong>.</p>
+<p><strong>Private endpoints.</strong> A stronger approach: give the PaaS a <strong>network interface with a private IP</strong> <strong>in your VNet</strong>. The service becomes a <strong>resource of your network</strong>: you reach it by its <strong>private IP</strong>, and you can <strong>fully cut</strong> public access. That&#39;s <strong>Private Link</strong>: a <strong>private</strong> connection between your VNet and the service, without going through the Internet. It also works <strong>from on-prem</strong> (via VPN/ExpressRoute).</p>
+<p><strong>DNS integration: mandatory.</strong> A private endpoint gives a <strong>private IP</strong> — but the service&#39;s <strong>public</strong> DNS name (<code>mystorage.blob.core.windows.net</code>) still points to the <strong>public IP</strong>. You therefore need a special <strong>private DNS zone</strong> (<code>privatelink.blob.core.windows.net</code>) that <strong>resolves the name to the endpoint&#39;s private IP</strong>. <strong>Without this DNS integration, the private endpoint is useless</strong>: clients keep going to the public IP. That&#39;s <strong>the</strong> classic mistake.</p>
+<p><strong>Service endpoint or private endpoint?</strong> <strong>Service endpoint</strong>: fast, free, restricts access to your subnets (but keeps public IP, no on-prem). <strong>Private endpoint</strong>: private IP in the VNet, public access <strong>can be cut</strong>, works from on-prem, but costs (per endpoint) and requires <strong>DNS config</strong>. For <strong>truly private</strong> (sensitive data, compliance), it&#39;s the <strong>private endpoint</strong>.</p>
+<p><strong>Closing public access.</strong> The private endpoint only makes sense if you <strong>cut</strong> public access: <code>public_network_access = Disabled</code>. Then the service is reachable <strong>only</strong> by its private IP. A security scan (checkov, <code>CKV_AZURE_59</code>) <strong>requires</strong> this closure.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>privatelink DNS zone</strong> and its <strong>record</strong> are <strong>created</strong> on miniblue (azlocal, live) — the heart of the DNS integration. The <strong>private endpoint</strong> is written and <strong>compiled to ARM</strong> with <strong>Bicep</strong> (validation; miniblue doesn&#39;t emulate it). The <strong>public exposure</strong> is <strong>detected</strong> with <strong>checkov</strong> (offline). The service/private endpoint <strong>choice</strong> is a <strong>runnable engine</strong>. All without a cloud account.</p>
+</div>
+
+<figure class="schema" id="figure-azure-reseau-acces-prive-privatelink">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-reseau-acces-prive-privatelink">
+  <title id="s-azure-reseau-acces-prive-privatelink">Accès privé au PaaS</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Accès privé au PaaS</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="70.5" text-anchor="middle">Service public</text><text class="sub" x="98" y="83.5" text-anchor="middle">IP publique</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="64" text-anchor="middle">Point de terminaison</text><text class="lbl lbl-fill" x="286" y="77" text-anchor="middle">privé</text><text class="sub sub-fill" x="286" y="90" text-anchor="middle">IP privée · Private Link</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="70.5" text-anchor="middle">DNS privatelink</text><text class="sub sub-blue" x="474" y="83.5" text-anchor="middle">résout → IP privée</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">Accès public coupé</text><text class="sub" x="662" y="83.5" text-anchor="middle">Disabled</text><text class="sub" x="380" y="144" text-anchor="middle">alternative légère : point de terminaison de service (IP publique conservée)</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;accès privé au PaaS : un service public (IP publique, joignable d&#39;Internet) devient PRIVÉ via un POINT DE TERMINAISON PRIVÉ — une carte réseau avec une IP PRIVÉE dans ton VNet (Private Link). La ZONE DNS privatelink résout le nom public vers l&#39;IP privée (intégration OBLIGATOIRE). On COUPE l&#39;accès public (public access = Disabled). Alternative plus légère : le POINT DE TERMINAISON DE SERVICE (identité du VNet étendue, IP publique conservée).</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Private access to PaaS: a public service (public IP, reachable from the Internet) becomes PRIVATE via a PRIVATE ENDPOINT — a NIC with a PRIVATE IP in your VNet (Private Link). The privatelink DNS ZONE resolves the public name to the private IP (MANDATORY integration). We CUT public access (public access = Disabled). Lighter alternative: the SERVICE ENDPOINT (VNet identity extended, public IP kept).</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Constater</strong> l&#39;exposition publique d&#39;un PaaS.</p>
+<p><strong>🤔 Le PaaS est public par défaut.</strong> Un stockage à accès public est joignable d&#39;Internet. On l&#39;écrit et on lance un <strong>garde-fou</strong> qui <strong>signale</strong> l&#39;exposition.</p>
+<p>Écris un stockage exposé et scanne-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Observe</strong> a PaaS&#39;s public exposure.</p>
+<p><strong>🤔 PaaS is public by default.</strong> A public-access storage is reachable from the Internet. We write one and run a <strong>guardrail</strong> that <strong>flags</strong> the exposure.</p>
+<p>Write an exposed storage and scan it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p acces-prive/infra &amp;&amp; cd acces-prive
+cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;public&quot; {
+  name                          = &quot;stpublic001&quot;
+  resource_group_name           = &quot;rg-x&quot;
+  location                      = &quot;westeurope&quot;
+  account_tier                  = &quot;Standard&quot;
+  account_replication_type      = &quot;LRS&quot;
+  public_network_access_enabled = true   # DANGER : joignable depuis Internet
+}
+TF
+
+checkov -d infra --compact --quiet 2&gt;/dev/null | grep -E &quot;CKV_AZURE_59|Failed checks&quot; | head -3</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov signale l&#39;exposition : <code>CKV_AZURE_59</code> (« Ensure that Storage accounts disallow public access ») et un <code>Failed checks: ≥ 1</code>. Ce stockage est <strong>joignable depuis Internet</strong> — même avec des clés, c&#39;est une <strong>surface d&#39;attaque</strong>. Le garde-fou le <strong>détecte</strong>. La bonne réponse : le rendre <strong>privé</strong>. Deux options — service endpoint (léger) ou private endpoint (fort) — qu&#39;on découvre maintenant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov flags the exposure: <code>CKV_AZURE_59</code> (&quot;Ensure that Storage accounts disallow public access&quot;) and a <code>Failed checks: ≥ 1</code>. This storage is <strong>reachable from the Internet</strong> — even with keys, it&#39;s an <strong>attack surface</strong>. The guardrail <strong>detects</strong> it. The right answer: make it <strong>private</strong>. Two options — service endpoint (light) or private endpoint (strong) — which we discover now.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les <strong>points de terminaison de service</strong> — restreindre au VNet.</p>
+<p><strong>🤔 Étendre l&#39;identité du VNet.</strong> Un <strong>service endpoint</strong> dit au PaaS : « n&#39;accepte le trafic <strong>que</strong> depuis ces sous-réseaux ». Le trafic passe par le <strong>backbone Azure</strong>, pas l&#39;Internet public. Simple, mais le service <strong>garde son IP publique</strong>. On modélise la restriction.</p>
+<p>Modélise le service endpoint :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong>service endpoints</strong> — restrict to the VNet.</p>
+<p><strong>🤔 Extend the VNet&#39;s identity.</strong> A <strong>service endpoint</strong> tells the PaaS: &quot;only accept traffic <strong>from</strong> these subnets&quot;. Traffic goes over the <strong>Azure backbone</strong>, not the public Internet. Simple, but the service <strong>keeps its public IP</strong>. We model the restriction.</p>
+<p>Model the service endpoint:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; service_endpoint.py &lt;&lt;&#39;PY&#39;
+# Service endpoint : le PaaS n&#39;accepte QUE les sous-reseaux autorises (backbone Azure)
+SOUS_RESEAUX_AUTORISES = {&quot;snet-app&quot;, &quot;snet-web&quot;}
+def accepte(source_subnet):
+    return source_subnet in SOUS_RESEAUX_AUTORISES
+
+for src in [&quot;snet-app&quot;, &quot;snet-web&quot;, &quot;snet-inconnu&quot;, &quot;internet&quot;]:
+    print(f&quot;acces depuis {src:14} -&gt; {&#39;AUTORISE (backbone Azure)&#39; if accepte(src) else &#39;REFUSE&#39;}&quot;)
+print(&quot;-&gt; Note : le PaaS garde son IP PUBLIQUE ; l&#39;acces est RESTREINT, pas rendu prive.&quot;)
+PY
+python3 service_endpoint.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie montre que <code>snet-app</code> et <code>snet-web</code> sont <strong>AUTORISE (backbone Azure)</strong>, mais <code>snet-inconnu</code> et <code>internet</code> sont <strong>REFUSE</strong>. Le <strong>service endpoint</strong> restreint l&#39;accès au PaaS <strong>à tes sous-réseaux</strong> — c&#39;est mieux qu&#39;un accès ouvert. <strong>Mais</strong> : le service <strong>garde son IP publique</strong> (l&#39;accès est <strong>restreint</strong>, pas <strong>privé</strong>), et ça ne couvre <strong>pas</strong> l&#39;accès depuis l&#39;<strong>on-prem</strong>. Pour un accès <strong>vraiment privé</strong>, il faut le <strong>point de terminaison privé</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>snet-app</code> and <code>snet-web</code> are <strong>AUTORISE (backbone Azure)</strong>, but <code>snet-inconnu</code> and <code>internet</code> are <strong>REFUSE</strong>. The <strong>service endpoint</strong> restricts PaaS access <strong>to your subnets</strong> — better than open access. <strong>But</strong>: the service <strong>keeps its public IP</strong> (access is <strong>restricted</strong>, not <strong>private</strong>), and it doesn&#39;t cover access from <strong>on-prem</strong>. For <strong>truly private</strong> access, you need the <strong>private endpoint</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire un <strong>point de terminaison privé</strong> et le <strong>valider</strong> en Bicep.</p>
+<p><strong>🤔 Une IP privée dans ton VNet.</strong> Le <strong>private endpoint</strong> donne au PaaS une <strong>carte réseau</strong> avec une <strong>IP privée</strong> dans ton sous-réseau, via <strong>Private Link</strong>. On l&#39;écrit en Bicep (connexion au stockage, groupe <code>blob</code>) et on le <strong>compile</strong>.</p>
+<p>Écris le point de terminaison privé et valide-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>private endpoint</strong> and <strong>validate</strong> it in Bicep.</p>
+<p><strong>🤔 A private IP in your VNet.</strong> The <strong>private endpoint</strong> gives the PaaS a <strong>NIC</strong> with a <strong>private IP</strong> in your subnet, via <strong>Private Link</strong>. We write it in Bicep (connection to the storage, <code>blob</code> group) and <strong>compile</strong> it.</p>
+<p>Write the private endpoint and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; pe.bicep &lt;&lt;&#39;BICEP&#39;
+param location string = resourceGroup().location
+
+resource pe &#39;Microsoft.Network/privateEndpoints@2023-05-01&#39; = {
+  name: &#39;pe-stockage&#39;
+  location: location
+  properties: {
+    subnet: {
+      id: resourceId(&#39;Microsoft.Network/virtualNetworks/subnets&#39;, &#39;vnet-hub&#39;, &#39;snet-data&#39;)
+    }
+    privateLinkServiceConnections: [
+      {
+        name: &#39;vers-stockage&#39;
+        properties: {
+          privateLinkServiceId: resourceId(&#39;Microsoft.Storage/storageAccounts&#39;, &#39;monstockage&#39;)
+          groupIds: [ &#39;blob&#39; ]   // le sous-service cible (blob, file, table...)
+        }
+      }
+    ]
+  }
+}
+BICEP
+
+bicep build pe.bicep --stdout 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;private endpoint -&gt; ARM OK, ressource:&#39;, d[&#39;resources&#39;][0][&#39;type&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>private endpoint -&gt; ARM OK, ressource: Microsoft.Network/privateEndpoints</code>. Le point de terminaison est <strong>valide</strong> : il connecte le stockage <code>monstockage</code> (sous-service <strong><code>blob</code></strong>) à ton sous-réseau <strong><code>snet-data</code></strong>, via <strong>Private Link</strong>. Une fois déployé (en vrai Azure), le stockage a une <strong>IP privée</strong> dans ton VNet — il devient une <strong>ressource de ton réseau</strong>, joignable <strong>sans passer par Internet</strong>, et <strong>depuis l&#39;on-prem</strong> aussi. ⚠️ miniblue ne l&#39;exécute pas : on le <strong>valide</strong> en Bicep. Mais il manque <strong>l&#39;</strong> élément crucial : la <strong>résolution DNS</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>private endpoint -&gt; ARM OK, ressource: Microsoft.Network/privateEndpoints</code>. The endpoint is <strong>valid</strong>: it connects the <code>monstockage</code> storage (sub-service <strong><code>blob</code></strong>) to your <strong><code>snet-data</code></strong> subnet, via <strong>Private Link</strong>. Once deployed (in real Azure), the storage has a <strong>private IP</strong> in your VNet — it becomes a <strong>resource of your network</strong>, reachable <strong>without going through the Internet</strong>, and <strong>from on-prem</strong> too. ⚠️ miniblue doesn&#39;t execute it: we <strong>validate</strong> it in Bicep. But <strong>the</strong> crucial element is missing: <strong>DNS resolution</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mettre en place l&#39;<strong>intégration DNS privatelink</strong> — obligatoire.</p>
+<p><strong>🤔 Sans DNS, le point de terminaison privé est inutile.</strong> Le nom public du stockage pointe encore vers l&#39;<strong>IP publique</strong>. Il faut une <strong>zone DNS privée</strong> <code>privatelink.blob.core.windows.net</code> qui résout le nom vers l&#39;<strong>IP privée</strong> du point de terminaison. On la crée <strong>pour de vrai</strong> sur miniblue.</p>
+<p>Crée la zone DNS privatelink et l&#39;enregistrement :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set up the <strong>privatelink DNS integration</strong> — mandatory.</p>
+<p><strong>🤔 Without DNS, the private endpoint is useless.</strong> The storage&#39;s public name still points to the <strong>public IP</strong>. You need a <strong>private DNS zone</strong> <code>privatelink.blob.core.windows.net</code> that resolves the name to the endpoint&#39;s <strong>private IP</strong>. We create it <strong>for real</strong> on miniblue.</p>
+<p>Create the privatelink DNS zone and record:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal group create --name rg-acces-prive --location westeurope &gt;/dev/null 2&gt;&amp;1
+
+# Zone DNS privee speciale &quot;privatelink&quot; / special &quot;privatelink&quot; private DNS zone
+azlocal dns zone create --resource-group rg-acces-prive --name privatelink.blob.core.windows.net 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;zone privatelink creee:&#39;, json.load(sys.stdin)[&#39;name&#39;])&quot;
+
+# Enregistrement : le nom du stockage -&gt; l&#39;IP PRIVEE du point de terminaison
+azlocal dns record create --resource-group rg-acces-prive --zone privatelink.blob.core.windows.net --name monstockage --type A --value 10.0.3.10 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;resolution:&#39;, d[&#39;name&#39;], &#39;-&gt; 10.0.3.10 (IP privee du point de terminaison)&#39;)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie confirme <code>zone privatelink creee: privatelink.blob.core.windows.net</code> et <code>resolution: monstockage -&gt; 10.0.3.10 (IP privee du point de terminaison)</code>. C&#39;est <strong>l&#39;</strong> élément qui fait tout fonctionner : quand un client résout <code>monstockage.blob.core.windows.net</code>, la zone <strong>privatelink</strong> répond avec l&#39;<strong>IP privée</strong> (<code>10.0.3.10</code>) au lieu de l&#39;IP publique. Le trafic va donc au <strong>point de terminaison privé</strong>, <strong>dans ton VNet</strong>. ⚠️ <strong>Oublier cette intégration DNS est l&#39;erreur n°1</strong> : le point de terminaison existe, mais les clients continuent d&#39;aller vers l&#39;IP publique. Zone + enregistrement + liaison au VNet = accès privé <strong>effectif</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output confirms <code>zone privatelink creee: privatelink.blob.core.windows.net</code> and <code>resolution: monstockage -&gt; 10.0.3.10 (IP privee du point de terminaison)</code>. This is <strong>the</strong> element that makes it all work: when a client resolves <code>monstockage.blob.core.windows.net</code>, the <strong>privatelink</strong> zone answers with the <strong>private IP</strong> (<code>10.0.3.10</code>) instead of the public IP. Traffic thus goes to the <strong>private endpoint</strong>, <strong>in your VNet</strong>. ⚠️ <strong>Forgetting this DNS integration is mistake #1</strong>: the endpoint exists, but clients keep going to the public IP. Zone + record + VNet link = <strong>effective</strong> private access.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Choisir</strong> entre service endpoint et private endpoint.</p>
+<p><strong>🤔 Léger ou fort ?</strong> Service endpoint : rapide, gratuit, restreint (mais IP publique, pas d&#39;on-prem). Private endpoint : IP privée, accès public coupable, on-prem, mais coûte + DNS. On écrit un <strong>moteur de décision</strong>.</p>
+<p>Écris le moteur de décision et teste-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Choose</strong> between service endpoint and private endpoint.</p>
+<p><strong>🤔 Light or strong?</strong> Service endpoint: fast, free, restricted (but public IP, no on-prem). Private endpoint: private IP, public access can be cut, on-prem, but costs + DNS. We write a <strong>decision engine</strong>.</p>
+<p>Write the decision engine and test it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; acces.py &lt;&lt;&#39;PY&#39;
+def choisir(b):
+    if b[&quot;ip_privee_dans_vnet&quot;] or b[&quot;depuis_on_prem&quot;] or b[&quot;couper_public&quot;]:
+        return &quot;Private Endpoint&quot;, &quot;IP privee dans le VNet (Private Link), coupe l&#39;acces public, marche depuis l&#39;on-prem&quot;
+    if b[&quot;restreindre_aux_sous_reseaux&quot;]:
+        return &quot;Service Endpoint&quot;, &quot;restreint aux sous-reseaux (IP publique conservee), rapide/gratuit&quot;
+    return &quot;Acces public (a eviter)&quot;, &quot;exposition Internet&quot;
+
+cas = [
+    {&quot;nom&quot;:&quot;donnees sensibles, zero Internet&quot;,&quot;ip_privee_dans_vnet&quot;:True, &quot;depuis_on_prem&quot;:False,&quot;couper_public&quot;:True, &quot;restreindre_aux_sous_reseaux&quot;:False},
+    {&quot;nom&quot;:&quot;acces aussi depuis l&#39;on-prem&quot;,     &quot;ip_privee_dans_vnet&quot;:False,&quot;depuis_on_prem&quot;:True, &quot;couper_public&quot;:False,&quot;restreindre_aux_sous_reseaux&quot;:False},
+    {&quot;nom&quot;:&quot;juste restreindre a mes subnets&quot;,  &quot;ip_privee_dans_vnet&quot;:False,&quot;depuis_on_prem&quot;:False,&quot;couper_public&quot;:False,&quot;restreindre_aux_sous_reseaux&quot;:True},
+]
+for c in cas:
+    sol, pourquoi = choisir(c)
+    print(f&quot;{c[&#39;nom&#39;]:30} -&gt; {sol:18} ({pourquoi})&quot;)
+PY
+python3 acces.py</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le moteur recommande : <code>donnees sensibles, zero Internet -&gt; Private Endpoint</code>, <code>acces aussi depuis l&#39;on-prem -&gt; Private Endpoint</code>, <code>juste restreindre a mes subnets -&gt; Service Endpoint</code>. La règle : dès qu&#39;il faut une <strong>IP privée</strong>, <strong>couper l&#39;accès public</strong>, ou <strong>atteindre depuis l&#39;on-prem</strong> → <strong>private endpoint</strong>. Si on veut juste <strong>restreindre</strong> l&#39;accès à ses sous-réseaux (sans supprimer l&#39;IP publique) → <strong>service endpoint</strong> (léger). Pour la plupart des données <strong>sensibles</strong>, c&#39;est le <strong>private endpoint</strong> + fermeture publique. On finit par cette <strong>fermeture</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the engine recommends: <code>donnees sensibles, zero Internet -&gt; Private Endpoint</code>, <code>acces aussi depuis l&#39;on-prem -&gt; Private Endpoint</code>, <code>juste restreindre a mes subnets -&gt; Service Endpoint</code>. The rule: as soon as you need a <strong>private IP</strong>, to <strong>cut public access</strong>, or to <strong>reach from on-prem</strong> → <strong>private endpoint</strong>. If you just want to <strong>restrict</strong> access to your subnets (without removing the public IP) → <strong>service endpoint</strong> (light). For most <strong>sensitive</strong> data, it&#39;s the <strong>private endpoint</strong> + public closure. We finish with that <strong>closure</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Fermer l&#39;accès public</strong> et le <strong>valider</strong>.</p>
+<p><strong>🤔 Le point de terminaison privé sans fermeture ne suffit pas.</strong> Tant que l&#39;accès public reste <strong>ouvert</strong>, le service est <strong>encore</strong> joignable d&#39;Internet. On le <strong>ferme</strong> (<code>public_network_access = Disabled</code>) et on <strong>vérifie</strong> que le scan passe au vert.</p>
+<p>Ferme l&#39;accès public et re-scanne :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Close public access</strong> and <strong>validate</strong> it.</p>
+<p><strong>🤔 A private endpoint without closure isn&#39;t enough.</strong> As long as public access stays <strong>open</strong>, the service is <strong>still</strong> reachable from the Internet. We <strong>close</strong> it (<code>public_network_access = Disabled</code>) and <strong>check</strong> the scan goes green.</p>
+<p>Close public access and re-scan:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;prive&quot; {
+  name                          = &quot;stprive001&quot;
+  resource_group_name           = &quot;rg-x&quot;
+  location                      = &quot;westeurope&quot;
+  account_tier                  = &quot;Standard&quot;
+  account_replication_type      = &quot;LRS&quot;
+  public_network_access_enabled = false   # accès public FERME (joignable seulement par le point de terminaison prive)
+}
+TF
+
+checkov -d infra --check CKV_AZURE_59 --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov affiche <code>Passed checks: 1, Failed checks: 0</code> sur <code>CKV_AZURE_59</code> — l&#39;accès public est <strong>fermé</strong>. Le service n&#39;est désormais joignable <strong>que</strong> par son <strong>point de terminaison privé</strong> (IP privée dans ton VNet), avec la <strong>résolution DNS privatelink</strong> (step-04). La boucle est complète : <strong>IP privée</strong> (private endpoint) + <strong>DNS privé</strong> (privatelink) + <strong>accès public coupé</strong> = le PaaS est <strong>hors d&#39;Internet</strong>, joignable <strong>uniquement</strong> depuis ton réseau. C&#39;est la <strong>surface d&#39;attaque minimale</strong> pour les données. On récapitule.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov shows <code>Passed checks: 1, Failed checks: 0</code> on <code>CKV_AZURE_59</code> — public access is <strong>closed</strong>. The service is now reachable <strong>only</strong> by its <strong>private endpoint</strong> (private IP in your VNet), with the <strong>privatelink DNS resolution</strong> (step-04). The loop is complete: <strong>private IP</strong> (private endpoint) + <strong>private DNS</strong> (privatelink) + <strong>public access cut</strong> = the PaaS is <strong>off the Internet</strong>, reachable <strong>only</strong> from your network. That&#39;s the <strong>minimal attack surface</strong> for data. Let&#39;s recap.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler l&#39;<strong>accès privé</strong> et récapituler.</p>
+<p><strong>🤔 Le PaaS privé, de bout en bout.</strong> On récapitule les trois briques indissociables — point de terminaison privé, DNS privatelink, fermeture publique — puis on nettoie.</p>
+<p>Récapitule l&#39;accès privé et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble <strong>private access</strong> and recap.</p>
+<p><strong>🤔 Private PaaS, end to end.</strong> We recap the three inseparable pieces — private endpoint, privatelink DNS, public closure — then clean up.</p>
+<p>Recap private access and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;=== Acces prive au PaaS (AZ-700) / private PaaS access ===&quot;
+printf &quot;%-24s %s\n&quot; &quot;Service Endpoint&quot;     &quot;restreint aux sous-reseaux (IP publique conservee)&quot;
+printf &quot;%-24s %s\n&quot; &quot;Private Endpoint&quot;     &quot;IP privee dans le VNet (Private Link), on-prem OK&quot;
+printf &quot;%-24s %s\n&quot; &quot;DNS privatelink&quot;      &quot;OBLIGATOIRE : resout le nom -&gt; IP privee&quot;
+printf &quot;%-24s %s\n&quot; &quot;Fermer l&#39;acces public&quot; &quot;public_network_access = Disabled&quot;
+echo &quot;-&gt; Les 3 ensemble (private endpoint + DNS + fermeture) = PaaS hors d&#39;Internet.&quot;
+
+# Nettoyer le lab / clean up
+azlocal group delete --name rg-acces-prive &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;rg-acces-prive supprime / deleted&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la table récapitule les briques de l&#39;accès privé, puis <code>rg-acces-prive supprime</code> nettoie le lab. Tu tiens le pilier <strong>accès privé</strong> de l&#39;AZ-700 : distinguer <strong>service endpoint</strong> (léger, restreint) et <strong>private endpoint</strong> (fort, IP privée), écrire le point de terminaison (<strong>Bicep</strong>), mettre en place l&#39;<strong>intégration DNS privatelink</strong> (l&#39;élément <strong>obligatoire</strong>, trop souvent oublié) et <strong>fermer l&#39;accès public</strong>. Ton PaaS n&#39;est plus sur Internet : il est <strong>privé</strong>, joignable uniquement depuis ton réseau. Tu as désormais tous les piliers réseau AZ-700 — il ne reste que le <strong>projet de synthèse</strong> pour l&#39;emballage CV.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the table recaps the private-access pieces, then <code>rg-acces-prive supprime</code> cleans the lab. You hold the <strong>private access</strong> pillar of AZ-700: distinguishing <strong>service endpoint</strong> (light, restricted) and <strong>private endpoint</strong> (strong, private IP), writing the endpoint (<strong>Bicep</strong>), setting up the <strong>privatelink DNS integration</strong> (the <strong>mandatory</strong> element, too often forgotten) and <strong>closing public access</strong>. Your PaaS is no longer on the Internet: it&#39;s <strong>private</strong>, reachable only from your network. You now have all the AZ-700 network pillars — only the capstone <strong>project</strong> remains for CV packaging.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Oublier l&#39;intégration DNS.</strong> <strong>L&#39;erreur n°1.</strong> Sans la zone <code>privatelink.*</code> qui résout vers l&#39;IP privée, les clients vont <strong>encore</strong> à l&#39;IP publique — le point de terminaison privé est <strong>inutile</strong>.</p>
+<p><strong>2. Point de terminaison privé sans fermer l&#39;accès public.</strong> Le service reste joignable d&#39;Internet. Coupe <code>public_network_access</code>.</p>
+<p><strong>3. Confondre service endpoint et private endpoint.</strong> Le service endpoint <strong>restreint</strong> (IP publique conservée) ; le private endpoint <strong>privatise</strong> (IP privée). Besoins différents.</p>
+<p><strong>4. Service endpoint pour l&#39;on-prem.</strong> Il ne couvre <strong>pas</strong> l&#39;accès depuis l&#39;on-prem. Pour ça, <strong>private endpoint</strong> (via VPN/ExpressRoute).</p>
+<p><strong>5. Mauvais <code>groupId</code>.</strong> Un stockage a plusieurs sous-services (<code>blob</code>, <code>file</code>, <code>table</code>, <code>queue</code>). Le point de terminaison privé cible <strong>un</strong> <code>groupId</code> — choisis le bon.</p>
+<p><strong>6. Sous-réseau du point de terminaison mal choisi.</strong> Réserve un sous-réseau pour tes points de terminaison privés (et attention aux politiques réseau du sous-réseau).</p>
+<p><strong>7. Croire qu&#39;un pare-feu suffit.</strong> Un PaaS avec pare-feu IP <strong>reste</strong> exposé (IP publique). Le <strong>private endpoint</strong> le <strong>retire</strong> vraiment d&#39;Internet.</p>
+</div>
+<div data-lang="en"><p><strong>1. Forgetting DNS integration.</strong> <strong>Mistake #1.</strong> Without the <code>privatelink.*</code> zone resolving to the private IP, clients <strong>still</strong> go to the public IP — the private endpoint is <strong>useless</strong>.</p>
+<p><strong>2. Private endpoint without closing public access.</strong> The service stays reachable from the Internet. Cut <code>public_network_access</code>.</p>
+<p><strong>3. Confusing service endpoint and private endpoint.</strong> The service endpoint <strong>restricts</strong> (public IP kept); the private endpoint <strong>privatizes</strong> (private IP). Different needs.</p>
+<p><strong>4. Service endpoint for on-prem.</strong> It doesn&#39;t cover access from on-prem. For that, <strong>private endpoint</strong> (via VPN/ExpressRoute).</p>
+<p><strong>5. Wrong <code>groupId</code>.</strong> A storage has several sub-services (<code>blob</code>, <code>file</code>, <code>table</code>, <code>queue</code>). The private endpoint targets <strong>one</strong> <code>groupId</code> — pick the right one.</p>
+<p><strong>6. Wrong endpoint subnet.</strong> Reserve a subnet for your private endpoints (and mind the subnet&#39;s network policies).</p>
+<p><strong>7. Thinking a firewall is enough.</strong> A PaaS with an IP firewall <strong>stays</strong> exposed (public IP). The <strong>private endpoint</strong> truly <strong>removes</strong> it from the Internet.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>détectes</strong> l&#39;exposition publique d&#39;un PaaS (checkov).</li><li>Tu distingues <strong>service endpoint</strong> (restreint) et <strong>private endpoint</strong> (privé).</li><li>Tu écris un <strong>point de terminaison privé</strong> et le <strong>valides</strong> en Bicep.</li><li>Tu mets en place l&#39;<strong>intégration DNS privatelink</strong> (zone + enregistrement).</li><li>Tu <strong>choisis</strong> la bonne option selon le besoin (on-prem, couper public…).</li><li>Tu <strong>fermes l&#39;accès public</strong> et le <strong>valides</strong> au vert.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>detect</strong> a PaaS&#39;s public exposure (checkov).</li><li>You distinguish <strong>service endpoint</strong> (restricted) and <strong>private endpoint</strong> (private).</li><li>You write a <strong>private endpoint</strong> and <strong>validate</strong> it in Bicep.</li><li>You set up the <strong>privatelink DNS integration</strong> (zone + record).</li><li>You <strong>choose</strong> the right option by need (on-prem, cut public…).</li><li>You <strong>close public access</strong> and <strong>validate</strong> it green.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — projet réseau (AZ-700)</em> — le projet de synthèse : concevoir et implémenter une topologie réseau complète.</li><li><strong>Réviser :</strong> <em>Azure — réseau fondamentaux (AZ-700)</em> pour le DNS privé.</li><li><strong>S&#39;entraîner :</strong> ajoute un point de terminaison privé pour un <code>Microsoft.KeyVault/vaults</code> (groupId <code>vault</code>) et sa zone <code>privatelink.vaultcore.azure.net</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — network project (AZ-700)</em> — the capstone: design and implement a complete network topology.</li><li><strong>Review:</strong> <em>Azure — network fundamentals (AZ-700)</em> for private DNS.</li><li><strong>Practice:</strong> add a private endpoint for a <code>Microsoft.KeyVault/vaults</code> (groupId <code>vault</code>) and its <code>privatelink.vaultcore.azure.net</code> zone.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Service endpoint vs private endpoint</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Service Endpoint : restreint le PaaS a tes sous-reseaux (backbone Azure)
+                   -&gt; IP PUBLIQUE conservee, pas d&#39;on-prem, gratuit
+Private Endpoint : IP PRIVEE dans ton VNet (Private Link)
+                   -&gt; coupe l&#39;acces public, marche depuis l&#39;on-prem, coute + DNS</code></pre>
+<p><strong>Les 3 briques d&#39;un acces vraiment prive</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. Private endpoint : Microsoft.Network/privateEndpoints (subnet + privateLinkServiceId + groupIds)
+2. DNS privatelink  : zone privatelink.&lt;service&gt; + enregistrement A -&gt; IP privee  (OBLIGATOIRE)
+3. Fermer le public : public_network_access_enabled = false   (CKV_AZURE_59)</code></pre>
+<p><strong>Zones privatelink (exemples)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Blob     privatelink.blob.core.windows.net
+Key Vault privatelink.vaultcore.azure.net
+SQL      privatelink.database.windows.net</code></pre>
+<p><strong>DNS privatelink (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal dns zone create   --resource-group RG --name privatelink.blob.core.windows.net
+azlocal dns record create --resource-group RG --zone privatelink.blob.core.windows.net --name monstockage --type A --value 10.0.3.10</code></pre>
+</div>
+<div data-lang="en"><p><strong>Service endpoint vs private endpoint</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Service Endpoint : restricts PaaS to your subnets (Azure backbone)
+                   -&gt; PUBLIC IP kept, no on-prem, free
+Private Endpoint : PRIVATE IP in your VNet (Private Link)
+                   -&gt; cuts public access, works from on-prem, costs + DNS</code></pre>
+<p><strong>The 3 pieces of truly private access</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. Private endpoint: Microsoft.Network/privateEndpoints (subnet + privateLinkServiceId + groupIds)
+2. privatelink DNS : privatelink.&lt;service&gt; zone + A record -&gt; private IP  (MANDATORY)
+3. Close public    : public_network_access_enabled = false   (CKV_AZURE_59)</code></pre>
+<p><strong>privatelink zones (examples)</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>Blob      privatelink.blob.core.windows.net
+Key Vault privatelink.vaultcore.azure.net
+SQL       privatelink.database.windows.net</code></pre>
+<p><strong>privatelink DNS (live)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal dns zone create   --resource-group RG --name privatelink.blob.core.windows.net
+azlocal dns record create --resource-group RG --zone privatelink.blob.core.windows.net --name mystorage --type A --value 10.0.3.10</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>Azure Private Link / Private Endpoint</strong> : IP privée, connexions, groupIds — Microsoft Learn.</li><li><strong>Points de terminaison de service</strong> : restriction aux sous-réseaux — Microsoft Learn.</li><li><strong>Intégration DNS privée</strong> : zones <code>privatelink.*</code>, liaison au VNet — Microsoft Learn (AZ-700).</li><li><strong>Fermeture de l&#39;accès public</strong> : <code>publicNetworkAccess</code>, pare-feu PaaS — Microsoft Learn.</li><li><strong>checkov</strong> : <code>CKV_AZURE_59</code> (accès public) — docs checkov.</li><li><strong>miniblue</strong> : émulateur Azure local (DNS live) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Azure Private Link / Private Endpoint</strong>: private IP, connections, groupIds — Microsoft Learn.</li><li><strong>Service endpoints</strong>: subnet restriction — Microsoft Learn.</li><li><strong>Private DNS integration</strong>: <code>privatelink.*</code> zones, VNet link — Microsoft Learn (AZ-700).</li><li><strong>Closing public access</strong>: <code>publicNetworkAccess</code>, PaaS firewall — Microsoft Learn.</li><li><strong>checkov</strong>: <code>CKV_AZURE_59</code> (public access) — checkov docs.</li><li><strong>miniblue</strong>: local Azure emulator (DNS live) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le point de terminaison privé « ne marche pas ».</strong> <strong>99% du temps : le DNS.</strong> Vérifie la zone <code>privatelink.&lt;service&gt;</code> <strong>et</strong> l&#39;enregistrement A vers l&#39;IP privée <strong>et</strong> la liaison au VNet. Sans ça, le client résout encore l&#39;IP publique.</p>
+<p><strong><code>bicep : command not found</code> (step-03).</strong> <code>az bicep install</code> ou le binaire autonome.</p>
+<p><strong><code>azlocal dns</code> : erreur (step-04).</strong> Le groupe de ressources doit exister (<code>azlocal group create</code>). Vérifie que miniblue tourne (DNS live) et <code>azlocal</code> sur le <code>PATH</code>.</p>
+<p><strong>checkov signale encore l&#39;accès public (step-06).</strong> Vérifie <code>public_network_access_enabled = false</code> dans le <code>.tf</code>. Avec <code>true</code>, <code>CKV_AZURE_59</code> <strong>échoue</strong> — c&#39;est voulu.</p>
+<p><strong>Quel <code>groupId</code> pour mon service ?</strong> Il dépend du sous-service : stockage <code>blob</code>/<code>file</code>/<code>table</code>/<code>queue</code>, Key Vault <code>vault</code>, SQL <code>sqlServer</code>. Un mauvais groupId ne connecte pas le bon endpoint.</p>
+<p><strong>Les points de terminaison privés ne se déploient pas en local.</strong> miniblue ne les émule pas. On <strong>valide</strong> en <strong>Bicep</strong> et on <strong>crée le DNS</strong> (live) ; l&#39;exécution du endpoint vise du vrai Azure.</p>
+</div>
+<div data-lang="en"><p><strong>The private endpoint &quot;doesn&#39;t work&quot;.</strong> <strong>99% of the time: DNS.</strong> Check the <code>privatelink.&lt;service&gt;</code> zone <strong>and</strong> the A record to the private IP <strong>and</strong> the VNet link. Without them, the client still resolves the public IP.</p>
+<p><strong><code>bicep: command not found</code> (step-03).</strong> <code>az bicep install</code> or the standalone binary.</p>
+<p><strong><code>azlocal dns</code>: error (step-04).</strong> The resource group must exist (<code>azlocal group create</code>). Check miniblue is running (DNS live) and <code>azlocal</code> on <code>PATH</code>.</p>
+<p><strong>checkov still flags public access (step-06).</strong> Check <code>public_network_access_enabled = false</code> in the <code>.tf</code>. With <code>true</code>, <code>CKV_AZURE_59</code> <strong>fails</strong> — that&#39;s intended.</p>
+<p><strong>Which <code>groupId</code> for my service?</strong> It depends on the sub-service: storage <code>blob</code>/<code>file</code>/<code>table</code>/<code>queue</code>, Key Vault <code>vault</code>, SQL <code>sqlServer</code>. A wrong groupId doesn&#39;t connect the right endpoint.</p>
+<p><strong>Private endpoints won&#39;t deploy locally.</strong> miniblue doesn&#39;t emulate them. We <strong>validate</strong> in <strong>Bicep</strong> and <strong>create the DNS</strong> (live); the endpoint&#39;s execution targets real Azure.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

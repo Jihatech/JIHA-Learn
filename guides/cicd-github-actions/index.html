@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">CI/CD avec GitHub Actions — jiha.tech</title>
+  <title data-lang="en">CI/CD with GitHub Actions — jiha.tech</title>
+  <meta name="description" content="Apprends la CI/CD avec GitHub Actions : workflows, tests automatisés, matrice de versions, cache, build et publication d&#39;une image Docker sur GHCR, et exécution locale avec act." data-lang="fr">
+  <meta name="description" content="Learn CI/CD with GitHub Actions: workflows, automated tests, version matrix, caching, building and publishing a Docker image to GHCR, and running locally with act." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="CI/CD avec GitHub Actions">
+  <meta property="og:description" content="Apprends la CI/CD avec GitHub Actions : workflows, tests automatisés, matrice de versions, cache, build et publication d&#39;une image Docker sur GHCR, et exécution locale avec act.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/cicd-github-actions/">
+  <link rel="canonical" href="https://jiha.tech/guides/cicd-github-actions/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="cicd-github-actions">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/cicd-github-actions</div>
+    <div class="prompt" data-lang="en">~/guides/cicd-github-actions</div>
+    <h1 data-lang="fr">CI/CD avec GitHub Actions</h1>
+    <h1 data-lang="en">CI/CD with GitHub Actions</h1>
+    <p class="tagline" data-lang="fr">Automatiser build, tests et image Docker à chaque push.</p>
+    <p class="tagline" data-lang="en">Automate build, tests and Docker image on every push.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 150 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 150 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>La <strong>CI/CD</strong> (intégration et livraison continues) automatise ce que tu fais aujourd&#39;hui à la main : lancer les tests, construire une image, la publier. À chaque <code>git push</code>, une machine neuve vérifie ton code <strong>à ta place</strong> — et te prévient avant que le bug n&#39;atteigne la production.</p>
+<p><strong>GitHub Actions</strong> est le moteur de CI/CD intégré à GitHub. Son gros avantage pour apprendre : les <strong>runners sont gratuits</strong> (dans les limites du dépôt public / du quota), donc <strong>aucun serveur à provisionner</strong>. Tu écris un fichier YAML, tu pousses, ça tourne.</p>
+<p>Ce guide construit une chaîne complète, de « faire tourner les tests » à « publier une image Docker », en réutilisant Git et Docker que tu connais déjà. Et pour rester fidèle à l&#39;esprit « sur ta machine », on finit par exécuter tes workflows <strong>en local</strong> avec <code>act</code>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu sais versionner avec Git et construire une image Docker, et tu veux automatiser la boucle test → build → publication.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne maîtrises pas encore Git (branches, PR) ou Docker (image, Dockerfile) → repasse par ces guides d&#39;abord, ce sont des prérequis durs.</li><li>Tu cherches à <strong>déployer sur un serveur</strong> : c&#39;est la suite logique, traitée dans le projet homelab (il faut un serveur, hors périmètre local de ce guide).</li></ul>
+</div>
+<div data-lang="en"><p><strong>CI/CD</strong> (continuous integration and delivery) automates what you do by hand today: run the tests, build an image, publish it. On every <code>git push</code>, a fresh machine checks your code <strong>for you</strong> — and warns you before the bug reaches production.</p>
+<p><strong>GitHub Actions</strong> is the CI/CD engine built into GitHub. Its big advantage for learning: the <strong>runners are free</strong> (within the public-repo / quota limits), so <strong>no server to provision</strong>. You write a YAML file, you push, it runs.</p>
+<p>This guide builds a complete pipeline, from &quot;run the tests&quot; to &quot;publish a Docker image&quot;, reusing the Git and Docker you already know. And to stay true to the &quot;on your machine&quot; spirit, we finish by running your workflows <strong>locally</strong> with <code>act</code>.</p>
+<p><strong>Who it&#39;s for:</strong> you can version with Git and build a Docker image, and you want to automate the test → build → publish loop.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable with Git (branches, PRs) or Docker (image, Dockerfile) yet → go through those guides first, they&#39;re hard prerequisites.</li><li>You&#39;re looking to <strong>deploy to a server</strong>: that&#39;s the logical next step, covered in the homelab project (it needs a server, outside this guide&#39;s local scope).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>La structure d&#39;un <strong>workflow</strong> : <code>jobs</code>, <code>steps</code>, <code>runners</code>, déclencheurs.</li><li>Lancer des <strong>tests automatisés</strong> à chaque push et sur les pull requests.</li><li>Utiliser des <strong>actions</strong> du marketplace (<code>checkout</code>, <code>setup-*</code>).</li><li>Tester sur plusieurs versions avec une <strong>matrice</strong>.</li><li>Accélérer avec le <strong>cache</strong> de dépendances.</li><li><strong>Construire et publier</strong> une image Docker sur GHCR (le registry de GitHub).</li><li>Gérer <strong>secrets</strong> et <strong>permissions</strong> du jeton avec le moindre privilège.</li><li>Exécuter tes workflows <strong>en local</strong> avec <code>act</code>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Structure a <strong>workflow</strong>: <code>jobs</code>, <code>steps</code>, <code>runners</code>, triggers.</li><li>Run <strong>automated tests</strong> on every push and on pull requests.</li><li>Use marketplace <strong>actions</strong> (<code>checkout</code>, <code>setup-*</code>).</li><li>Test across versions with a <strong>matrix</strong>.</li><li>Speed things up with <strong>dependency caching</strong>.</li><li><strong>Build and publish</strong> a Docker image to GHCR (GitHub&#39;s registry).</li><li>Handle <strong>secrets</strong> and token <strong>permissions</strong> with least privilege.</li><li>Run your workflows <strong>locally</strong> with <code>act</code>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>Git &amp; collaboration</strong> et <strong>Docker fondamentaux</strong> acquis (prérequis durs).</li><li>Un <strong>compte GitHub</strong> et <code>git</code> configuré sur ta machine.</li><li><strong>Docker</strong> installé en local (pour l&#39;étape image et pour <code>act</code>).</li><li>Un petit dépôt de travail. On part d&#39;une mini-application Python à tester — crée un dossier vide, un dépôt Git, et pousse-le sur GitHub :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Git &amp; collaboration</strong> and <strong>Docker fundamentals</strong> guides under your belt (hard prerequisites).</li><li>A <strong>GitHub account</strong> and <code>git</code> configured on your machine.</li><li><strong>Docker</strong> installed locally (for the image step and for <code>act</code>).</li><li>A small working repository. We start from a tiny Python app to test — create an empty folder, a Git repo, and push it to GitHub:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir ci-demo &amp;&amp; cd ci-demo
+git init -b main
+# crée les fichiers ci-dessous, puis / create the files below, then:
+# git add . &amp;&amp; git commit -m &quot;init&quot; &amp;&amp; git remote add origin git@github.com:&lt;toi&gt;/ci-demo.git &amp;&amp; git push -u origin main</code></pre>
+<div data-lang="fr"><p>Crée l&#39;application <code>app.py</code> et son test <code>test_app.py</code> :</p>
+</div>
+<div data-lang="en"><p>Create the application <code>app.py</code> and its test <code>test_app.py</code>:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># app.py
+def add(a, b):
+    return a + b
+
+if __name__ == &quot;__main__&quot;:
+    print(add(2, 3))</code></pre>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code># test_app.py
+from app import add
+
+def test_add():
+    assert add(2, 3) == 5</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">10</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Un <strong>workflow</strong> est un fichier YAML dans <code>.github/workflows/</code>. Il se déclenche sur un <strong>événement</strong> (<code>push</code>, <code>pull_request</code>, planification…) et contient un ou plusieurs <strong>jobs</strong>. Chaque job tourne sur un <strong>runner</strong> — une machine virtuelle neuve et jetable fournie par GitHub (<code>ubuntu-latest</code>) — et exécute une suite d&#39;<strong>steps</strong>. Un step est soit une commande shell (<code>run:</code>), soit une <strong>action</strong> réutilisable du marketplace (<code>uses:</code>), comme <code>actions/checkout</code> qui récupère ton code.</p>
+<p>Deux idées structurantes :</p>
+<ul><li><strong>Les jobs sont isolés et parallèles</strong> par défaut : chacun démarre sur une machine vierge. S&#39;ils dépendent l&#39;un de l&#39;autre, on l&#39;écrit explicitement (<code>needs:</code>).</li><li><strong>Le runner ne sait rien de ton dépôt</strong> tant que tu ne fais pas <code>checkout</code>. La première étape de presque tout job, c&#39;est récupérer le code.</li></ul>
+<p>La <strong>sécurité</strong> repose sur deux leviers : les <strong>secrets</strong> (valeurs chiffrées, jamais en clair dans le YAML) et les <strong>permissions</strong> du jeton automatique <code>GITHUB_TOKEN</code>, qu&#39;on réduit au strict nécessaire.</p>
+</div>
+<div data-lang="en"><p>A <strong>workflow</strong> is a YAML file in <code>.github/workflows/</code>. It triggers on an <strong>event</strong> (<code>push</code>, <code>pull_request</code>, schedule…) and contains one or more <strong>jobs</strong>. Each job runs on a <strong>runner</strong> — a fresh, disposable virtual machine provided by GitHub (<code>ubuntu-latest</code>) — and executes a series of <strong>steps</strong>. A step is either a shell command (<code>run:</code>) or a reusable marketplace <strong>action</strong> (<code>uses:</code>), like <code>actions/checkout</code> which fetches your code.</p>
+<p>Two structuring ideas:</p>
+<ul><li><strong>Jobs are isolated and parallel</strong> by default: each starts on a blank machine. If they depend on each other, you say so explicitly (<code>needs:</code>).</li><li><strong>The runner knows nothing about your repo</strong> until you <code>checkout</code>. The first step of almost every job is fetching the code.</li></ul>
+<p><strong>Security</strong> rests on two levers: <strong>secrets</strong> (encrypted values, never in clear text in the YAML) and the <strong>permissions</strong> of the automatic <code>GITHUB_TOKEN</code>, which you reduce to the strict minimum.</p>
+</div>
+
+<figure class="schema" id="figure-cicd-pipeline">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-cicd-pipeline">
+  <title id="s-cicd-pipeline">Pipeline CI/CD (workflow)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Pipeline CI/CD (workflow)</text><rect class="box" x="18" y="40" width="124" height="66" rx="3"/><text class="lbl" x="80" y="77" text-anchor="middle">push</text><path class="arrow" d="M 142 73 L 168 73"/><rect class="box" x="168" y="40" width="124" height="66" rx="3"/><text class="lbl" x="230" y="70.5" text-anchor="middle">checkout</text><text class="sub" x="230" y="83.5" text-anchor="middle">récupère le code</text><path class="arrow" d="M 292 73 L 318 73"/><rect class="box-accent" x="318" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-fill" x="380" y="77" text-anchor="middle">test</text><path class="arrow" d="M 442 73 L 468 73"/><rect class="box" x="468" y="40" width="124" height="66" rx="3"/><text class="lbl" x="530" y="77" text-anchor="middle">build image</text><path class="arrow" d="M 592 73 L 618 73"/><rect class="box-soft" x="618" y="40" width="124" height="66" rx="3"/><text class="lbl lbl-blue" x="680" y="77" text-anchor="middle">publish</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Un push déclenche le workflow : le runner récupère le code, teste, construit l&#39;image, la publie.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> A push triggers the workflow: the runner checks out the code, tests, builds the image, publishes it.</figcaption>
+</figure>
+<div data-lang="fr"><p>On construit la chaîne étape par étape : premier workflow → tests → pull requests → matrice → cache → image Docker → publication → exécution locale.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll build the pipeline step by step: first workflow → tests → pull requests → matrix → cache → Docker image → publishing → local run.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ton premier workflow et le voir s&#39;exécuter.</p>
+<p><strong>🤔 Pourquoi ce squelette ?</strong> <code>on: push</code> déclenche à chaque envoi. Le job tourne sur <code>ubuntu-latest</code>. <code>actions/checkout@v4</code> récupère ton dépôt sur le runner — <strong>on pinne la version</strong> (<code>@v4</code>) pour ne pas subir un changement surprise, exactement comme un tag d&#39;image Docker.</p>
+<p>Crée <code>.github/workflows/ci.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create your first workflow and watch it run.</p>
+<p><strong>🤔 Why this skeleton?</strong> <code>on: push</code> triggers on every push. The job runs on <code>ubuntu-latest</code>. <code>actions/checkout@v4</code> fetches your repo onto the runner — <strong>we pin the version</strong> (<code>@v4</code>) so we don&#39;t suffer a surprise change, exactly like a Docker image tag.</p>
+<p>Create <code>.github/workflows/ci.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>name: CI
+on: push
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo &quot;Le code est là :&quot; &amp;&amp; ls -la</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git add .github/workflows/ci.yml app.py test_app.py
+git commit -m &quot;ci: premier workflow&quot;
+git push</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> sur GitHub, onglet <strong>Actions</strong> → ton workflow « CI » apparaît avec une pastille verte. Clique dessus : tu vois les logs du step, dont le <code>ls -la</code> qui liste <code>app.py</code> (donc le checkout a bien fonctionné).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on GitHub, the <strong>Actions</strong> tab → your &quot;CI&quot; workflow appears with a green check. Click it: you see the step logs, including the <code>ls -la</code> listing <code>app.py</code> (so checkout worked).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer les tests automatiquement.</p>
+<p><strong>🤔 Pourquoi <code>setup-python</code> ?</strong> Le runner est neuf : Python 3 y est présent, mais on <strong>fixe une version précise</strong> avec <code>actions/setup-python</code> pour un environnement reproductible. On installe <code>pytest</code>, puis on lance les tests. Si un test échoue, le step échoue, et tout le workflow passe au rouge — c&#39;est exactement le but.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run the tests automatically.</p>
+<p><strong>🤔 Why <code>setup-python</code>?</strong> The runner is fresh: Python 3 is present, but we <strong>pin a precise version</strong> with <code>actions/setup-python</code> for a reproducible environment. We install <code>pytest</code>, then run the tests. If a test fails, the step fails, and the whole workflow goes red — which is exactly the point.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>name: CI
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: &quot;3.12&quot;
+      - run: pip install pytest
+      - run: pytest -v</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> pousse, puis dans <strong>Actions</strong> le job <code>test</code> est vert et ses logs montrent <code>test_app.py::test_add PASSED</code>. Pour t&#39;en convaincre, casse volontairement le test (<code>assert add(2, 3) == 6</code>), pousse : le workflow devient <strong>rouge</strong>. Remets la bonne valeur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> push, then in <strong>Actions</strong> the <code>test</code> job is green and its logs show <code>test_app.py::test_add PASSED</code>. To convince yourself, deliberately break the test (<code>assert add(2, 3) == 6</code>), push: the workflow turns <strong>red</strong>. Restore the correct value.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Tester aussi les pull requests, et transformer la CI en garde-fou de fusion.</p>
+<p><strong>🤔 Pourquoi sur les PR ?</strong> L&#39;intérêt de la CI, c&#39;est d&#39;attraper les régressions <strong>avant</strong> la fusion. En ajoutant <code>pull_request</code>, chaque PR affiche un check vert/rouge : tu peux ensuite exiger qu&#39;il soit vert pour merger (branch protection).</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Also test pull requests, and turn CI into a merge guardrail.</p>
+<p><strong>🤔 Why on PRs?</strong> The whole point of CI is to catch regressions <strong>before</strong> merge. By adding <code>pull_request</code>, each PR shows a green/red check: you can then require it to be green to merge (branch protection).</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> crée une branche, modifie un fichier, ouvre une PR. Dans la PR, une section « Checks » affiche l&#39;exécution de <code>test</code>. <em>(Pour rendre le check obligatoire : Settings → Branches → règle de protection sur <code>main</code> → « Require status checks ».)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> create a branch, change a file, open a PR. In the PR, a &quot;Checks&quot; section shows the <code>test</code> run. <em>(To make the check mandatory: Settings → Branches → protection rule on <code>main</code> → &quot;Require status checks&quot;.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Tester sur plusieurs versions de Python d&#39;un coup, avec une <strong>matrice</strong>.</p>
+<p><strong>🤔 Pourquoi une matrice ?</strong> Ton code doit peut-être marcher sur plusieurs versions. La matrice <strong>duplique le job</strong> pour chaque valeur, en parallèle, sans copier-coller. <code>${{ matrix.python }}</code> injecte la valeur courante.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Test across several Python versions at once, with a <strong>matrix</strong>.</p>
+<p><strong>🤔 Why a matrix?</strong> Your code may need to work on multiple versions. The matrix <strong>duplicates the job</strong> for each value, in parallel, with no copy-paste. <code>${{ matrix.python }}</code> injects the current value.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [&quot;3.11&quot;, &quot;3.12&quot;, &quot;3.13&quot;]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install pytest
+      - run: pytest -v</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans <strong>Actions</strong>, le job <code>test</code> apparaît en <strong>trois exécutions</strong> (<code>test (3.11)</code>, <code>test (3.12)</code>, <code>test (3.13)</code>), toutes vertes, lancées en parallèle.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in <strong>Actions</strong>, the <code>test</code> job appears as <strong>three runs</strong> (<code>test (3.11)</code>, <code>test (3.12)</code>, <code>test (3.13)</code>), all green, launched in parallel.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Accélérer les exécutions en mettant les dépendances en cache.</p>
+<p><strong>🤔 Pourquoi le cache ?</strong> Réinstaller les dépendances à chaque exécution est lent. <code>setup-python</code> sait mettre en cache le dossier <code>pip</code> : la clé du cache dépend du fichier de dépendances, donc il n&#39;est réutilisé que tant que celui-ci ne change pas. Créons un vrai <code>requirements.txt</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Speed up runs by caching dependencies.</p>
+<p><strong>🤔 Why caching?</strong> Reinstalling dependencies on every run is slow. <code>setup-python</code> can cache the <code>pip</code> folder: the cache key depends on the requirements file, so it&#39;s reused only as long as that file doesn&#39;t change. Let&#39;s create a real <code>requirements.txt</code>:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>pytest==8.3.2</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest -v</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> à la <strong>deuxième</strong> exécution (sans avoir modifié <code>requirements.txt</code>), le step de setup affiche « Cache restored » et l&#39;installation est quasi instantanée.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the <strong>second</strong> run (without changing <code>requirements.txt</code>), the setup step shows &quot;Cache restored&quot; and installation is near-instant.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Construire une image Docker de l&#39;application dans la CI.</p>
+<p><strong>🤔 Pourquoi un job séparé ?</strong> Construire l&#39;image n&#39;a de sens que si les tests passent : on crée un job <code>build</code> qui <strong>dépend</strong> du job <code>test</code> via <code>needs: test</code>. Il ne se lancera pas si les tests sont rouges. Ajoute d&#39;abord un <code>Dockerfile</code> minimal :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Build a Docker image of the application in CI.</p>
+<p><strong>🤔 Why a separate job?</strong> Building the image only makes sense if the tests pass: we create a <code>build</code> job that <strong>depends</strong> on the <code>test</code> job via <code>needs: test</code>. It won&#39;t run if tests are red. First add a minimal <code>Dockerfile</code>:</p>
+</div>
+<pre class="term lang-dockerfile"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">Dockerfile</span><button class="copy-btn" type="button">Copy</button></div><code>FROM python:3.12-slim
+WORKDIR /app
+COPY . .
+CMD [&quot;python&quot;, &quot;app.py&quot;]</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ci-demo:${{ github.sha }} .</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> dans le graphe du workflow, <code>build</code> s&#39;affiche <strong>après</strong> <code>test</code> (relié par une flèche) et ses logs montrent les couches Docker se construire. <code>${{ github.sha }}</code> tague l&#39;image avec le hash du commit — traçable et unique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> in the workflow graph, <code>build</code> appears <strong>after</strong> <code>test</code> (linked by an arrow) and its logs show the Docker layers building. <code>${{ github.sha }}</code> tags the image with the commit hash — traceable and unique.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Publier l&#39;image sur <strong>GHCR</strong> (GitHub Container Registry).</p>
+<p><strong>🤔 Pourquoi <code>GITHUB_TOKEN</code> et <code>permissions</code> ?</strong> GitHub fournit à chaque workflow un jeton temporaire (<code>GITHUB_TOKEN</code>) — <strong>pas besoin de créer un secret manuellement</strong>. Par défaut il est en lecture seule ; on lui accorde explicitement le droit d&#39;écrire des paquets (<code>packages: write</code>), et <strong>rien de plus</strong> (moindre privilège). On se connecte au registry, puis on pousse.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Publish the image to <strong>GHCR</strong> (GitHub Container Registry).</p>
+<p><strong>🤔 Why <code>GITHUB_TOKEN</code> and <code>permissions</code>?</strong> GitHub gives each workflow a temporary token (<code>GITHUB_TOKEN</code>) — <strong>no need to create a secret manually</strong>. By default it&#39;s read-only; we explicitly grant it the right to write packages (<code>packages: write</code>), and <strong>nothing more</strong> (least privilege). We log in to the registry, then push.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login GHCR
+        run: echo &quot;${{ secrets.GITHUB_TOKEN }}&quot; | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build &amp; push
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}:${{ github.sha }}
+          docker build -t &quot;$IMAGE&quot; .
+          docker push &quot;$IMAGE&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après exécution, va sur la page de ton dépôt → <strong>Packages</strong> : l&#39;image <code>ci-demo</code> y apparaît, taguée avec le hash du commit. <em>(Si le push échoue en « denied », vérifie le bloc <code>permissions: packages: write</code>.)</em></p>
+<p>⚠️ <strong>Ne mets jamais un secret en clair</strong> dans le YAML ni dans un <code>echo</code>. Les secrets passent <strong>uniquement</strong> par <code>${{ secrets.* }}</code> ; GitHub les masque dans les logs. Ici on utilise <code>--password-stdin</code> pour ne pas exposer le jeton en argument de commande.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after the run, go to your repo page → <strong>Packages</strong>: the <code>ci-demo</code> image appears, tagged with the commit hash. <em>(If the push fails with &quot;denied&quot;, check the <code>permissions: packages: write</code> block.)</em></p>
+<p>⚠️ <strong>Never put a secret in clear text</strong> in the YAML or in an <code>echo</code>. Secrets pass <strong>only</strong> through <code>${{ secrets.* }}</code>; GitHub masks them in logs. Here we use <code>--password-stdin</code> to avoid exposing the token as a command argument.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exécuter tes workflows <strong>en local</strong>, sans pousser, avec <code>act</code>.</p>
+<p><strong>🤔 Pourquoi <code>act</code> ?</strong> Itérer en poussant à chaque essai est lent et pollue l&#39;historique. <code>act</code> rejoue tes workflows <strong>sur ta machine</strong> dans des conteneurs Docker — la boucle de feedback passe de minutes à secondes. C&#39;est le pont « sur ta propre machine » de ce guide.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Run your workflows <strong>locally</strong>, without pushing, using <code>act</code>.</p>
+<p><strong>🤔 Why <code>act</code>?</strong> Iterating by pushing on every attempt is slow and pollutes history. <code>act</code> replays your workflows <strong>on your machine</strong> in Docker containers — the feedback loop goes from minutes to seconds. It&#39;s this guide&#39;s &quot;on your own machine&quot; bridge.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Installe act (voir la doc pour ton OS) / install act (see docs for your OS)
+# ex. / e.g.: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+act -l                 # liste les workflows détectés / list detected workflows
+act push -j test       # exécute le job &quot;test&quot; localement / run the &quot;test&quot; job locally</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>act push -j test</code> télécharge une image de runner, exécute tes steps dans un conteneur, et affiche <code>test_app.py::test_add PASSED</code> — <strong>sans aucun push</strong>. <em>(Le job <code>build</code> qui pousse sur GHCR n&#39;est pas fait pour tourner en local : <code>act</code> sert surtout à valider tests et logique de workflow.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>act push -j test</code> downloads a runner image, executes your steps in a container, and prints <code>test_app.py::test_add PASSED</code> — <strong>with no push at all</strong>. <em>(The <code>build</code> job that pushes to GHCR isn&#39;t meant to run locally: <code>act</code> is mainly for validating tests and workflow logic.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Secrets dans les logs.</strong> Un <code>echo &quot;$MA_CLE&quot;</code>, une variable non déclarée comme secret, et ta clé fuite dans les logs publics. N&#39;expose jamais un secret ; passe par <code>${{ secrets.* }}</code> et <code>--password-stdin</code>.</p>
+<p><strong>2. Actions non pinnées.</strong> <code>uses: actions/checkout@main</code> peut changer sous tes pieds. Pinne un tag (<code>@v4</code>) — et pour les actions tierces sensibles, un SHA de commit.</p>
+<p><strong>3. Permissions trop larges.</strong> Ne laisse pas <code>GITHUB_TOKEN</code> en écriture partout. Déclare <code>permissions:</code> au niveau du job, au strict nécessaire (souvent <code>contents: read</code>).</p>
+<p><strong>4. <code>pull_request_target</code> avec du code non fiable.</strong> Ce déclencheur donne accès aux secrets à des PR venues de forks — un vecteur d&#39;attaque classique. Tiens-t&#39;en à <code>pull_request</code> sauf besoin précis et maîtrisé.</p>
+<p><strong>5. Tout mettre dans un seul job géant.</strong> Sépare <code>test</code> et <code>build</code> (via <code>needs:</code>) : c&#39;est plus lisible, ça parallélise, et ça évite de construire une image quand les tests échouent.</p>
+<p><strong>6. Ignorer le coût / les minutes.</strong> Les runners gratuits ont un quota. Une matrice de 12 versions × 5 OS qui tourne à chaque commit, ça se paie : reste raisonnable.</p>
+</div>
+<div data-lang="en"><p><strong>1. Secrets in logs.</strong> An <code>echo &quot;$MY_KEY&quot;</code>, a variable not declared as a secret, and your key leaks into public logs. Never expose a secret; go through <code>${{ secrets.* }}</code> and <code>--password-stdin</code>.</p>
+<p><strong>2. Unpinned actions.</strong> <code>uses: actions/checkout@main</code> can change under your feet. Pin a tag (<code>@v4</code>) — and for sensitive third-party actions, a commit SHA.</p>
+<p><strong>3. Over-broad permissions.</strong> Don&#39;t leave <code>GITHUB_TOKEN</code> writable everywhere. Declare <code>permissions:</code> at the job level, to the strict minimum (often <code>contents: read</code>).</p>
+<p><strong>4. <code>pull_request_target</code> with untrusted code.</strong> This trigger gives secret access to PRs from forks — a classic attack vector. Stick to <code>pull_request</code> unless you have a precise, controlled need.</p>
+<p><strong>5. Cramming everything into one giant job.</strong> Split <code>test</code> and <code>build</code> (via <code>needs:</code>): it&#39;s more readable, it parallelizes, and it avoids building an image when tests fail.</p>
+<p><strong>6. Ignoring cost / minutes.</strong> Free runners have a quota. A matrix of 12 versions × 5 OSes running on every commit adds up: stay reasonable.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis et écris un workflow (<code>jobs</code>, <code>steps</code>, <code>uses</code>, <code>run</code>) sans modèle sous les yeux.</li><li>Tes tests tournent à chaque push <strong>et</strong> sur les PR, et un échec passe le workflow au rouge.</li><li>Tu sais paralléliser avec une <strong>matrice</strong> et accélérer avec le <strong>cache</strong>.</li><li>Tu construis une image Docker conditionnée à la réussite des tests (<code>needs:</code>).</li><li>Tu publies sur GHCR avec <code>GITHUB_TOKEN</code> et des <code>permissions</code> minimales.</li><li>Tu itères en local avec <code>act</code> sans polluer ton historique.</li></ul>
+<p>Six cases cochées = tu automatises la boucle test → build → publication comme en entreprise. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read and write a workflow (<code>jobs</code>, <code>steps</code>, <code>uses</code>, <code>run</code>) without a template in front of you.</li><li>Your tests run on every push <strong>and</strong> on PRs, and a failure turns the workflow red.</li><li>You can parallelize with a <strong>matrix</strong> and speed up with the <strong>cache</strong>.</li><li>You build a Docker image gated on passing tests (<code>needs:</code>).</li><li>You publish to GHCR with <code>GITHUB_TOKEN</code> and minimal <code>permissions</code>.</li><li>You iterate locally with <code>act</code> without polluting your history.</li></ul>
+<p>Six boxes ticked = you automate the test → build → publish loop like in a real company. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite logique :</p>
+<ol><li><strong>Traefik</strong> — un reverse proxy pour exposer proprement les services que tu déploieras ensuite.</li><li>Plus loin dans le parcours : <strong>automatiser un serveur</strong> (Ansible) et <strong>provisionner l&#39;infra</strong> (Terraform), puis le <strong>projet homelab</strong> où la CI/CD déclenche un vrai déploiement.</li></ol>
+</div>
+<div data-lang="en"><p>The logical next steps:</p>
+<ol><li><strong>Traefik</strong> — a reverse proxy to cleanly expose the services you&#39;ll deploy next.</li><li>Further along the track: <strong>automating a server</strong> (Ansible) and <strong>provisioning infrastructure</strong> (Terraform), then the <strong>homelab project</strong> where CI/CD triggers a real deployment.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire d&#39;un workflow GitHub Actions.</p>
+</div>
+<div data-lang="en"><p>GitHub Actions workflow cheat sheet.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>name: CI
+on:                               # déclencheurs / triggers
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+
+permissions:                      # moindre privilège / least privilege
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { python: [&quot;3.12&quot;, &quot;3.13&quot;] }   # matrice / matrix
+    steps:
+      - uses: actions/checkout@v4                      # récupère le code / checkout
+      - uses: actions/setup-python@v5
+        with: { python-version: &quot;${{ matrix.python }}&quot;, cache: pip }
+      - run: pip install -r requirements.txt
+      - run: pytest -v
+
+  build:
+    needs: test                    # ne tourne que si test est vert / only if test is green
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo &quot;${{ secrets.GITHUB_TOKEN }}&quot; | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - run: |
+          IMAGE=ghcr.io/${{ github.repository }}:${{ github.sha }}
+          docker build -t &quot;$IMAGE&quot; . &amp;&amp; docker push &quot;$IMAGE&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>act -l            # lister / list           act push -j test   # exécuter en local / run locally</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.github.com/actions">Documentation GitHub Actions</a> — la référence.</li><li><a href="https://github.com/marketplace?type=actions">Marketplace des actions</a> — briques réutilisables.</li><li><a href="https://github.com/nektos/act">act (nektos/act)</a> — exécuter les workflows en local.</li><li><a href="https://docs.github.com/actions/security-guides/security-hardening-for-github-actions">Sécuriser vos workflows</a> — secrets, permissions, bonnes pratiques.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.github.com/actions">GitHub Actions documentation</a> — the reference.</li><li><a href="https://github.com/marketplace?type=actions">Actions marketplace</a> — reusable building blocks.</li><li><a href="https://github.com/nektos/act">act (nektos/act)</a> — run workflows locally.</li><li><a href="https://docs.github.com/actions/security-guides/security-hardening-for-github-actions">Securing your workflows</a> — secrets, permissions, best practices.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le workflow ne se déclenche pas.</strong> Vérifie le chemin (<code>.github/workflows/*.yml</code>), l&#39;indentation YAML (2 espaces, jamais de tabulations), et que le déclencheur (<code>on:</code>) correspond à ton action (push sur la bonne branche ?).</p>
+<p><strong>« denied » / « permission_denied » au push GHCR.</strong> Il manque <code>permissions: packages: write</code> au job, ou tu pousses vers un mauvais chemin (<code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;</code>). Le premier push crée le package en privé — rends-le public dans ses réglages si besoin.</p>
+<p><strong>Un secret apparaît vide.</strong> Un secret de dépôt n&#39;est pas disponible pour les PR issues de forks (par sécurité). Vérifie aussi l&#39;orthographe et l&#39;endroit où tu l&#39;as défini (Settings → Secrets and variables → Actions).</p>
+<p><strong><code>act</code> échoue au démarrage.</strong> <code>act</code> a besoin de Docker en marche. Vérifie <code>docker ps</code>. Certaines actions supposent des outils absents de l&#39;image de runner locale par défaut : utilise une image plus complète (<code>act -P ubuntu-latest=catthehacker/ubuntu:act-latest</code>).</p>
+<p><strong>Erreur YAML « mapping values are not allowed ».</strong> Presque toujours une indentation ou un <code>:</code> mal placé. Colle ton fichier dans un validateur YAML.</p>
+</div>
+<div data-lang="en"><p><strong>The workflow doesn&#39;t trigger.</strong> Check the path (<code>.github/workflows/*.yml</code>), the YAML indentation (2 spaces, never tabs), and that the trigger (<code>on:</code>) matches your action (push on the right branch?).</p>
+<p><strong>&quot;denied&quot; / &quot;permission_denied&quot; on GHCR push.</strong> The job is missing <code>permissions: packages: write</code>, or you&#39;re pushing to a wrong path (<code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;</code>). The first push creates the package as private — make it public in its settings if needed.</p>
+<p><strong>A secret shows up empty.</strong> A repo secret isn&#39;t available to PRs from forks (by design). Also check the spelling and where you defined it (Settings → Secrets and variables → Actions).</p>
+<p><strong><code>act</code> fails to start.</strong> <code>act</code> needs Docker running. Check <code>docker ps</code>. Some actions assume tools missing from the default local runner image: use a fuller image (<code>act -P ubuntu-latest=catthehacker/ubuntu:act-latest</code>).</p>
+<p><strong>YAML error &quot;mapping values are not allowed&quot;.</strong> Almost always a misplaced indentation or <code>:</code>. Paste your file into a YAML validator.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

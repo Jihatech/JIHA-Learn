@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — projet DevOps (AZ-400) : une chaîne de livraison complète — jiha.tech</title>
+  <title data-lang="en">Azure — DevOps project (AZ-400): a complete delivery chain — jiha.tech</title>
+  <meta name="description" content="&quot;Le projet de CV du track AZ-400 : assembler une chaîne de livraison DevOps COMPLÈTE, en local et pour de vrai. Un dépôt avec branche de fonctionnalité + fusion façon pull request, une porte de sécurité (hook detect-secrets fail-closed + checkov), une CI reproductible (npm ci, node --test en matrice), une CD qui déploie l&#39;IaC sur l&#39;émulateur miniblue (terraform plan/apply live) avec le secret au coffre Key Vault, un smoke test post-déploiement (sonde readiness), la pipeline complète assemblée et validée (sécurité → build → plan → deploy, porte d&#39;environnement, actions épinglées SHA, moindre privilège), et la mesure DORA. Puis l&#39;emballage pour le CV. Sans compte ni facture.&quot;," data-lang="fr">
+  <meta name="description" content="The AZ-400 track&#39;s CV project: assembling a COMPLETE DevOps delivery chain, locally and for real. A repo with a feature branch + pull-request-style merge, a security gate (fail-closed detect-secrets hook + checkov), a reproducible CI (npm ci, node --test in a matrix), a CD that deploys IaC to the miniblue emulator (terraform plan/apply live) with the secret in Key Vault, a post-deploy smoke test (readiness probe), the complete pipeline assembled and validated (security → build → plan → deploy, environment gate, SHA-pinned actions, least privilege), and DORA measurement. Then CV packaging. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — projet DevOps (AZ-400) : une chaîne de livraison complète">
+  <meta property="og:description" content="&quot;Le projet de CV du track AZ-400 : assembler une chaîne de livraison DevOps COMPLÈTE, en local et pour de vrai. Un dépôt avec branche de fonctionnalité + fusion façon pull request, une porte de sécurité (hook detect-secrets fail-closed + checkov), une CI reproductible (npm ci, node --test en matrice), une CD qui déploie l&#39;IaC sur l&#39;émulateur miniblue (terraform plan/apply live) avec le secret au coffre Key Vault, un smoke test post-déploiement (sonde readiness), la pipeline complète assemblée et validée (sécurité → build → plan → deploy, porte d&#39;environnement, actions épinglées SHA, moindre privilège), et la mesure DORA. Puis l&#39;emballage pour le CV. Sans compte ni facture.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-projet-devops/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-projet-devops/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-projet-devops">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-projet-devops</div>
+    <div class="prompt" data-lang="en">~/guides/azure-projet-devops</div>
+    <h1 data-lang="fr">Azure — projet DevOps (AZ-400) : une chaîne de livraison complète</h1>
+    <h1 data-lang="en">Azure — DevOps project (AZ-400): a complete delivery chain</h1>
+    <p class="tagline" data-lang="fr">de la branche au déploiement supervisé — sécurisé, mesuré, pour le CV.</p>
+    <p class="tagline" data-lang="en">from branch to monitored deployment — secured, measured, CV-worthy.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 320 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 320 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>C&#39;est le <strong>projet de synthèse</strong> du track <strong>AZ-400</strong>. Tu as appris, un pilier à la fois : la <strong>culture</strong> et Git, les <strong>pipelines CI/CD</strong>, l&#39;<strong>IaC dans les pipelines</strong>, le <strong>DevSecOps</strong>, la <strong>supervision</strong>. Ici, tu <strong>assembles tout</strong> en <strong>une seule chaîne de livraison</strong> — le genre de projet qui tient sur un CV et qu&#39;on peut <strong>montrer</strong> en entretien.</p>
+<p>Fidèle à la méthode, tout est <strong>local et pour de vrai</strong> : un dépôt avec une <strong>branche de fonctionnalité</strong> fusionnée façon <strong>pull request</strong>, une <strong>porte de sécurité</strong> (hook <code>detect-secrets</code> <strong>fail-closed</strong> + <code>checkov</code>), une <strong>CI reproductible</strong> (<code>npm ci</code>, <code>node --test</code> en <strong>matrice</strong>), une <strong>CD</strong> qui déploie l&#39;<strong>IaC</strong> sur l&#39;émulateur <strong>miniblue</strong> (<code>terraform plan</code>/<code>apply</code> <strong>live</strong>) avec le <strong>secret</strong> rangé au <strong>coffre Key Vault</strong>, un <strong>smoke test</strong> post-déploiement (sonde <code>readiness</code>), la <strong>pipeline complète</strong> assemblée et <strong>validée</strong> (sécurité → build → plan → deploy, <strong>porte</strong> d&#39;environnement, actions <strong>épinglées SHA</strong>, <strong>moindre privilège</strong>), et la <strong>mesure DORA</strong>. On finit par l&#39;<strong>emballage CV</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait les cinq guides AZ-400 et tu veux un <strong>livrable</strong> qui prouve tes compétences DevOps.</p>
+<p><strong>Ce que tu vas produire :</strong> un dépôt Git complet — app + tests + IaC + pipeline sécurisée + supervision — <strong>déployable sur l&#39;émulateur</strong>, et une <strong>fiche CV</strong> qui le résume.</p>
+</div>
+<div data-lang="en"><p>This is the <strong>capstone</strong> of the <strong>AZ-400</strong> track. You learned, one pillar at a time: <strong>culture</strong> and Git, <strong>CI/CD pipelines</strong>, <strong>IaC in pipelines</strong>, <strong>DevSecOps</strong>, <strong>monitoring</strong>. Here you <strong>assemble everything</strong> into <strong>one delivery chain</strong> — the kind of project that fits on a CV and can be <strong>shown</strong> in an interview.</p>
+<p>True to the method, everything is <strong>local and for real</strong>: a repo with a <strong>feature branch</strong> merged pull-request-style, a <strong>security gate</strong> (fail-closed <code>detect-secrets</code> hook + <code>checkov</code>), a <strong>reproducible CI</strong> (<code>npm ci</code>, <code>node --test</code> in a <strong>matrix</strong>), a <strong>CD</strong> that deploys <strong>IaC</strong> to the <strong>miniblue</strong> emulator (<code>terraform plan</code>/<code>apply</code> <strong>live</strong>) with the <strong>secret</strong> stored in <strong>Key Vault</strong>, a post-deploy <strong>smoke test</strong> (readiness probe), the <strong>complete pipeline</strong> assembled and <strong>validated</strong> (security → build → plan → deploy, environment <strong>gate</strong>, <strong>SHA-pinned</strong> actions, <strong>least privilege</strong>), and <strong>DORA measurement</strong>. We finish with <strong>CV packaging</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you did the five AZ-400 guides and want a <strong>deliverable</strong> that proves your DevOps skills.</p>
+<p><strong>What you&#39;ll produce:</strong> a complete Git repo — app + tests + IaC + secured pipeline + monitoring — <strong>deployable to the emulator</strong>, and a <strong>CV sheet</strong> summarizing it.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu sais :</p>
+<ul><li>Structurer un <strong>dépôt</strong> avec branche de fonctionnalité et <strong>fusion</strong> façon PR.</li><li>Poser une <strong>porte de sécurité</strong> (hook <code>detect-secrets</code> fail-closed + <code>checkov</code>).</li><li>Écrire une <strong>CI reproductible</strong> (<code>npm ci</code>, <code>node --test</code>, matrice).</li><li>Déployer l&#39;<strong>IaC</strong> sur l&#39;émulateur (<code>terraform plan</code>/<code>apply</code> <strong>live</strong>) avec <strong>Key Vault</strong>.</li><li>Ajouter un <strong>smoke test</strong> post-déploiement (sonde <code>readiness</code>).</li><li><strong>Assembler</strong> et <strong>valider</strong> la pipeline complète (sécurité → build → plan → deploy).</li><li><strong>Mesurer</strong> (DORA) et <strong>emballer</strong> le projet pour le CV.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you can:</p>
+<ul><li>Structure a <strong>repo</strong> with a feature branch and a PR-style <strong>merge</strong>.</li><li>Set a <strong>security gate</strong> (fail-closed <code>detect-secrets</code> hook + <code>checkov</code>).</li><li>Write a <strong>reproducible CI</strong> (<code>npm ci</code>, <code>node --test</code>, matrix).</li><li>Deploy <strong>IaC</strong> to the emulator (<code>terraform plan</code>/<code>apply</code> <strong>live</strong>) with <strong>Key Vault</strong>.</li><li>Add a post-deploy <strong>smoke test</strong> (readiness probe).</li><li><strong>Assemble</strong> and <strong>validate</strong> the complete pipeline (security → build → plan → deploy).</li><li><strong>Measure</strong> (DORA) and <strong>package</strong> the project for the CV.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li><strong>Tous les guides AZ-400</strong> : fondamentaux, pipelines CI/CD, IaC dans les pipelines, DevSecOps, supervision.</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré (port 4567), <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>.</li><li><strong>Node.js</strong> (<code>node -v</code> ≥ 18), <strong>Python 3</strong>, et <code>pip install detect-secrets checkov</code>.</li><li><strong>Aucun compte cloud</strong> : le déploiement cible l&#39;émulateur ; la pipeline se valide en local.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>All AZ-400 guides</strong>: fundamentals, CI/CD pipelines, IaC in pipelines, DevSecOps, monitoring.</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started (port 4567), <strong>Terraform</strong>, <code>SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code>.</li><li><strong>Node.js</strong> (<code>node -v</code> ≥ 18), <strong>Python 3</strong>, and <code>pip install detect-secrets checkov</code>.</li><li><strong>No cloud account</strong>: the deployment targets the emulator; the pipeline validates locally.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-supervision-livraison/">
+    <span class="num">74</span>
+    <span class="title-line" data-lang="fr">Azure — supervision de la livraison (AZ-400) : DORA, sondes, canari</span>
+    <span class="title-line" data-lang="en">Azure — delivery monitoring (AZ-400): DORA, probes, canary</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Une chaîne de livraison, cinq maillons.</strong> Le projet relie ce que tu as vu séparément, dans l&#39;ordre où une <strong>vraie</strong> livraison s&#39;exécute :</p>
+<ol><li><strong>Source &amp; collaboration.</strong> Le code vit dans Git ; on travaille sur une <strong>branche de fonctionnalité</strong> et on fusionne via <strong>pull request</strong> (fusion <code>--no-ff</code> qui garde la trace de la revue). C&#39;est le point d&#39;entrée de toute la chaîne.</li><li><strong>Sécurité (shift-left).</strong> Avant même la CI, un <strong>hook pre-commit</strong> bloque les secrets (<strong>fail-closed</strong>), et un scan <strong>checkov</strong> garde l&#39;IaC. La sécurité est <strong>d&#39;abord</strong>, pas après.</li><li><strong>CI (intégration).</strong> À chaque changement, on <strong>installe à l&#39;identique</strong> (<code>npm ci</code>) et on <strong>teste</strong> (<code>node --test</code>) sur plusieurs versions (<strong>matrice</strong>). Vert = on continue.</li><li><strong>CD (déploiement).</strong> On <strong>planifie</strong> l&#39;IaC (<code>terraform plan -out</code>), un humain approuve la <strong>porte</strong> d&#39;environnement, puis on <strong>applique</strong> (<code>apply</code>). Le <strong>secret</strong> ne vit <strong>jamais</strong> dans le code : il est au <strong>coffre</strong> (Key Vault).</li><li><strong>Supervision.</strong> Après déploiement, un <strong>smoke test</strong> (sonde <code>readiness</code>) confirme la santé ; les métriques <strong>DORA</strong> mesurent la performance de la chaîne dans le temps.</li></ol>
+<p><strong>Le fil conducteur : la porte et l&#39;artefact.</strong> Deux idées structurent la chaîne. La <strong>porte</strong> (approbation d&#39;environnement) sépare ce qui est <strong>automatique</strong> (build, tests, plan) de ce qui <strong>engage la prod</strong> (apply). L&#39;<strong>artefact</strong> (le plan Terraform, le paquet) <strong>voyage</strong> d&#39;un stage à l&#39;autre : on <strong>revoit</strong> puis on <strong>applique exactement</strong> ce qui a été revu. Sécurité, reproductibilité, traçabilité — les trois piliers d&#39;une livraison sérieuse.</p>
+<p><strong>Pourquoi ça vaut pour un CV.</strong> Ce projet démontre, <strong>preuves à l&#39;appui</strong>, que tu sais : versionner et collaborer, sécuriser une chaîne (secrets, IaC), automatiser build/test/déploiement, gérer des secrets et des portes d&#39;approbation, et mesurer la performance. C&#39;est <strong>exactement</strong> le périmètre de l&#39;<strong>AZ-400</strong> — et le quotidien d&#39;un ingénieur DevOps.</p>
+<p><strong>Ce qui est live ici.</strong> L&#39;app <strong>se teste</strong> (<code>node --test</code>), la sécurité <strong>bloque</strong> vraiment (hook + checkov), l&#39;IaC se <strong>déploie et se détruit</strong> sur <strong>miniblue</strong> (<code>terraform apply</code>/<code>destroy</code>), le <strong>secret</strong> vit au <strong>coffre</strong> (Key Vault <code>set</code>/<code>show</code>), le <strong>smoke test</strong> interroge une <strong>vraie</strong> sonde, les <strong>métriques DORA</strong> se <strong>calculent</strong> sur l&#39;historique Git. La <strong>pipeline complète</strong> (GitHub Actions) se <strong>valide</strong> en local ; son <strong>exécution</strong> sur runner cible un vrai dépôt. <strong>Sans compte cloud.</strong></p>
+</div>
+<div data-lang="en"><p><strong>One delivery chain, five links.</strong> The project connects what you saw separately, in the order a <strong>real</strong> delivery runs:</p>
+<ol><li><strong>Source &amp; collaboration.</strong> Code lives in Git; you work on a <strong>feature branch</strong> and merge via <strong>pull request</strong> (a <code>--no-ff</code> merge that keeps the review trace). It&#39;s the entry point of the whole chain.</li><li><strong>Security (shift-left).</strong> Even before CI, a <strong>pre-commit hook</strong> blocks secrets (<strong>fail-closed</strong>), and a <strong>checkov</strong> scan guards the IaC. Security comes <strong>first</strong>, not after.</li><li><strong>CI (integration).</strong> On every change, you <strong>install identically</strong> (<code>npm ci</code>) and <strong>test</strong> (<code>node --test</code>) across versions (<strong>matrix</strong>). Green = continue.</li><li><strong>CD (deployment).</strong> You <strong>plan</strong> the IaC (<code>terraform plan -out</code>), a human approves the environment <strong>gate</strong>, then you <strong>apply</strong> (<code>apply</code>). The <strong>secret</strong> <strong>never</strong> lives in code: it&#39;s in the <strong>vault</strong> (Key Vault).</li><li><strong>Monitoring.</strong> After deployment, a <strong>smoke test</strong> (readiness probe) confirms health; <strong>DORA</strong> metrics measure the chain&#39;s performance over time.</li></ol>
+<p><strong>The through-line: the gate and the artifact.</strong> Two ideas structure the chain. The <strong>gate</strong> (environment approval) separates what&#39;s <strong>automatic</strong> (build, tests, plan) from what <strong>commits prod</strong> (apply). The <strong>artifact</strong> (the Terraform plan, the package) <strong>travels</strong> from stage to stage: you <strong>review</strong> then <strong>apply exactly</strong> what was reviewed. Security, reproducibility, traceability — the three pillars of a serious delivery.</p>
+<p><strong>Why it&#39;s CV-worthy.</strong> This project demonstrates, <strong>with evidence</strong>, that you can: version and collaborate, secure a chain (secrets, IaC), automate build/test/deployment, manage secrets and approval gates, and measure performance. That&#39;s <strong>exactly</strong> the <strong>AZ-400</strong> scope — and a DevOps engineer&#39;s daily work.</p>
+<p><strong>What&#39;s live here.</strong> The app <strong>is tested</strong> (<code>node --test</code>), security really <strong>blocks</strong> (hook + checkov), the IaC <strong>deploys and destroys</strong> on <strong>miniblue</strong> (<code>terraform apply</code>/<code>destroy</code>), the <strong>secret</strong> lives in the <strong>vault</strong> (Key Vault <code>set</code>/<code>show</code>), the <strong>smoke test</strong> queries a <strong>real</strong> probe, the <strong>DORA metrics</strong> are <strong>computed</strong> on Git history. The <strong>complete pipeline</strong> (GitHub Actions) is <strong>validated</strong> locally; its <strong>execution</strong> on a runner targets a real repo. <strong>No cloud account.</strong></p>
+</div>
+
+<figure class="schema" id="figure-azure-projet-devops-chain">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-projet-devops-chain">
+  <title id="s-azure-projet-devops-chain">Chaîne de livraison complète (projet)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Chaîne de livraison complète (projet)</text><rect class="box-accent" x="16.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-fill" x="129" y="70.5" text-anchor="middle">SOURCE → SÉCURITÉ</text><text class="sub sub-fill" x="129" y="83.5" text-anchor="middle">branche+PR · hook + checkov</text><path class="arrow" d="M 241.5 73 L 267.5 73"/><rect class="box" x="267.5" y="40" width="225" height="66" rx="3"/><text class="lbl" x="380" y="70.5" text-anchor="middle">CI → PORTE</text><text class="sub" x="380" y="83.5" text-anchor="middle">npm ci + test · approbation</text><path class="arrow" d="M 492.5 73 L 518.5 73"/><rect class="box-soft" x="518.5" y="40" width="225" height="66" rx="3"/><text class="lbl lbl-blue" x="631" y="64" text-anchor="middle">CD → SUPERVISION</text><text class="sub sub-blue" x="631" y="77" text-anchor="middle">apply live + Key Vault · smoke test +</text><text class="sub sub-blue" x="631" y="89" text-anchor="middle">DORA</text><text class="sub" x="380" y="144" text-anchor="middle">actions épinglées SHA · moindre privilège · un dépôt, une pipeline, prête pour le CV</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La chaîne de livraison complète du projet : SOURCE (branche + fusion PR) → SÉCURITÉ (hook detect-secrets fail-closed + checkov) → CI (npm ci + node --test en matrice) → PORTE (approbation d&#39;environnement) → CD (terraform plan-artefact → apply live sur miniblue, secret au Key Vault) → SUPERVISION (smoke test readiness + métriques DORA). Actions épinglées SHA, moindre privilège. Un seul dépôt, une seule pipeline, prête pour le CV.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The project&#39;s complete delivery chain: SOURCE (branch + PR merge) → SECURITY (fail-closed detect-secrets hook + checkov) → CI (npm ci + node --test matrix) → GATE (environment approval) → CD (terraform plan-artifact → live apply on miniblue, secret in Key Vault) → MONITORING (readiness smoke test + DORA metrics). SHA-pinned actions, least privilege. One repo, one pipeline, CV-ready.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Échafauder le <strong>dépôt</strong> : app + tests + IaC, une <strong>branche de fonctionnalité</strong> fusionnée façon <strong>PR</strong>.</p>
+<p><strong>🤔 Tout part de la source.</strong> On crée le squelette (une petite app avec une fonction <code>sante()</code>, un test, un dossier <code>infra</code>), puis on travaille comme une équipe : <strong>branche</strong>, commit, <strong>fusion <code>--no-ff</code></strong> (qui garde la trace de la PR).</p>
+<p>Crée le projet et joue le flux de branche :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Scaffold the <strong>repo</strong>: app + tests + IaC, a <strong>feature branch</strong> merged pull-request-style.</p>
+<p><strong>🤔 Everything starts from source.</strong> We create the skeleton (a small app with a <code>sante()</code> function, a test, an <code>infra</code> folder), then work like a team: <strong>branch</strong>, commit, <strong><code>--no-ff</code> merge</strong> (which keeps the PR trace).</p>
+<p>Create the project and play the branch flow:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p projet-devops/src projet-devops/test projet-devops/infra &amp;&amp; cd projet-devops
+git init -q &amp;&amp; git config user.email you@example.com &amp;&amp; git config user.name student &amp;&amp; git branch -M main
+
+cat &gt; package.json &lt;&lt;&#39;JSON&#39;
+{ &quot;name&quot;: &quot;jiha-devops-projet&quot;, &quot;version&quot;: &quot;1.0.0&quot;, &quot;main&quot;: &quot;src/app.js&quot;,
+  &quot;scripts&quot;: { &quot;lint&quot;: &quot;node -e \&quot;process.exit(0)\&quot;&quot;, &quot;test&quot;: &quot;node --test&quot; } }
+JSON
+cat &gt; src/app.js &lt;&lt;&#39;JS&#39;
+function sante() { return { status: &quot;ok&quot;, version: process.env.APP_VERSION || &quot;dev&quot; }; }
+module.exports = { sante };
+JS
+cat &gt; test/app.test.js &lt;&lt;&#39;JS&#39;
+const test = require(&quot;node:test&quot;), assert = require(&quot;node:assert&quot;);
+const { sante } = require(&quot;../src/app.js&quot;);
+test(&quot;santé ok&quot;, () =&gt; assert.strictEqual(sante().status, &quot;ok&quot;));
+JS
+cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_resource_group&quot; &quot;app&quot; {
+  name     = &quot;rg-jiha-devops&quot;
+  location = &quot;westeurope&quot;
+  tags     = { projet = &quot;jiha-devops-projet&quot;, gere = &quot;terraform&quot; }
+}
+
+# Un groupe de sécurité réseau durci (n&#39;autorise que HTTPS entrant)
+resource &quot;azurerm_network_security_group&quot; &quot;app&quot; {
+  name                = &quot;nsg-app&quot;
+  location            = azurerm_resource_group.app.location
+  resource_group_name = azurerm_resource_group.app.name
+  security_rule {
+    name                       = &quot;autoriser-https&quot;
+    priority                   = 100
+    direction                  = &quot;Inbound&quot;
+    access                     = &quot;Allow&quot;
+    protocol                   = &quot;Tcp&quot;
+    source_port_range          = &quot;*&quot;
+    destination_port_range     = &quot;443&quot;
+    source_address_prefix      = &quot;*&quot;
+    destination_address_prefix = &quot;*&quot;
+  }
+  tags = azurerm_resource_group.app.tags
+}
+TF
+
+# Ignorer les artefacts (état/plan/verrou de provider) — jamais versionnés
+cat &gt; .gitignore &lt;&lt;&#39;GI&#39;
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/tfplan
+*.tfstate
+*.tfstate.*
+smoke.js
+GI
+
+git add -A &amp;&amp; git commit -qm &quot;chore: échafaudage du projet DevOps&quot;
+
+# Branche de fonctionnalité + fusion façon PR / feature branch + PR-style merge
+git checkout -q -b feature/sante
+echo &quot;// endpoint de santé exposé / health endpoint exposed&quot; &gt;&gt; src/app.js
+git commit -qam &quot;feat: endpoint de santé&quot;
+git checkout -q main
+git merge --no-ff feature/sante -m &quot;merge: PR #1 endpoint de santé&quot; &gt;/dev/null
+
+git log --oneline --graph | head -4</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le graphe montre la <strong>fusion</strong> : <code>merge: PR #1 endpoint de santé</code> au sommet, reliant <code>feat: endpoint de santé</code> (branche) et <code>chore: échafaudage</code> (main). La fusion <code>--no-ff</code> <strong>garde la trace</strong> de la pull request — précieux pour l&#39;audit. Ton dépôt contient l&#39;<strong>app</strong>, ses <strong>tests</strong> et l&#39;<strong>IaC</strong> : la matière première de toute la chaîne. On la <strong>sécurise</strong> dès l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the graph shows the <strong>merge</strong>: <code>merge: PR #1 endpoint de santé</code> on top, joining <code>feat: endpoint de santé</code> (branch) and <code>chore: échafaudage</code> (main). The <code>--no-ff</code> merge <strong>keeps the trace</strong> of the pull request — valuable for audit. Your repo holds the <strong>app</strong>, its <strong>tests</strong> and the <strong>IaC</strong>: the raw material of the whole chain. We <strong>secure</strong> it next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser la <strong>porte de sécurité</strong> : hook <code>detect-secrets</code> <strong>fail-closed</strong> + scan <code>checkov</code>.</p>
+<p><strong>🤔 La sécurité d&#39;abord.</strong> On installe un <strong>hook pre-commit</strong> qui <strong>bloque</strong> tout secret (et <strong>échoue fermé</strong> si l&#39;outil manque), et on <strong>scanne l&#39;IaC</strong> avec <code>checkov</code>. Rien n&#39;avance sans ces gardes.</p>
+<p>Installe le hook, teste-le, scanne l&#39;IaC :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set the <strong>security gate</strong>: fail-closed <code>detect-secrets</code> hook + <code>checkov</code> scan.</p>
+<p><strong>🤔 Security first.</strong> We install a <strong>pre-commit hook</strong> that <strong>blocks</strong> any secret (and <strong>fails closed</strong> if the tool is missing), and we <strong>scan the IaC</strong> with <code>checkov</code>. Nothing moves without these guards.</p>
+<p>Install the hook, test it, scan the IaC:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; .git/hooks/pre-commit &lt;&lt;&#39;HOOK&#39;
+#!/bin/sh
+# Contrôle de sécurité : ÉCHOUER FERMÉ / security control: FAIL CLOSED
+if ! command -v detect-secrets &gt;/dev/null 2&gt;&amp;1; then
+  echo &quot;⛔ detect-secrets introuvable — commit bloqué par sécurité.&quot;
+  exit 1
+fi
+for f in $(git diff --cached --name-only); do
+  [ -f &quot;$f&quot; ] || continue
+  N=$(detect-secrets scan &quot;$f&quot; 2&gt;/dev/null | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(sum(len(v) for v in d[&#39;results&#39;].values()))&quot; 2&gt;/dev/null)
+  [ -z &quot;$N&quot; ] &amp;&amp; N=-1
+  if [ &quot;$N&quot; -ne 0 ]; then
+    echo &quot;❌ SECRET détecté (ou scan impossible) dans $f — commit bloqué.&quot;
+    exit 1
+  fi
+done
+echo &quot;✅ Aucun secret détecté.&quot;
+HOOK
+chmod +x .git/hooks/pre-commit
+
+# Test : un secret en dur doit être REFUSÉ / a hardcoded secret must be REJECTED
+echo &#39;const TOKEN = &quot;ghp_1234567890abcdefghijklmnopqrstuvwxyzAB&quot;;&#39; &gt; src/secret.js
+git add src/secret.js
+git commit -m &quot;test secret&quot; ; echo &quot;commit fautif / offending commit: $?&quot;
+rm src/secret.js ; git reset -q
+
+# Scan de l&#39;IaC / IaC scan
+checkov -d infra --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot; | head -1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le commit du secret est <strong>refusé</strong> (<code>❌ SECRET détecté … commit bloqué</code> puis <code>commit fautif: 1</code>) — le hook <strong>fail-closed</strong> protège le dépôt. Le scan <code>checkov</code> sur l&#39;<code>infra</code> affiche <code>Passed checks: 4, Failed checks: 0</code> : le groupe de sécurité réseau durci (HTTPS entrant uniquement) <strong>passe</strong> les règles applicables. La <strong>porte de sécurité</strong> est en place : secrets bloqués <strong>avant</strong> commit, IaC scannée et <strong>verte</strong>. On peut construire en confiance.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the secret commit is <strong>refused</strong> (<code>❌ SECRET détecté … commit bloqué</code> then <code>commit fautif: 1</code>) — the <strong>fail-closed</strong> hook protects the repo. The <code>checkov</code> scan on <code>infra</code> prints <code>Passed checks: 4, Failed checks: 0</code>: the hardened network security group (HTTPS inbound only) <strong>passes</strong> the applicable rules. The <strong>security gate</strong> is in place: secrets blocked <strong>before</strong> commit, IaC scanned and <strong>green</strong>. We can build with confidence.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire la <strong>CI</strong> : installe reproductible (<code>npm ci</code>) + tests (<code>node --test</code>).</p>
+<p><strong>🤔 Vert avant de déployer.</strong> La CI <strong>installe à l&#39;identique</strong> puis <strong>teste</strong>. Un code de sortie <code>0</code> = feu vert. On génère le verrou, on lance les tests.</p>
+<p>Rends le build reproductible et teste :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>CI</strong>: reproducible install (<code>npm ci</code>) + tests (<code>node --test</code>).</p>
+<p><strong>🤔 Green before deploying.</strong> CI <strong>installs identically</strong> then <strong>tests</strong>. An exit code <code>0</code> = green light. We generate the lock, run the tests.</p>
+<p>Make the build reproducible and test:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>npm install --package-lock-only &gt;/dev/null 2&gt;&amp;1   # fichier de verrou / lockfile
+git add package-lock.json &amp;&amp; git commit -qm &quot;chore: fichier de verrou npm&quot;
+
+npm ci &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo &quot;npm ci: build reproductible OK (code $?)&quot;
+node --test 2&gt;&amp;1 | grep -E &quot;^# (pass|fail)&quot;
+echo &quot;code de sortie des tests / tests exit code: ${PIPESTATUS[0]}&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>npm ci</code> réussit (<code>build reproductible OK</code>) et <code>node --test</code> affiche <code># pass 1</code>, <code># fail 0</code> avec <strong>code de sortie <code>0</code></strong>. La CI est <strong>verte</strong> : install figé + tests passants. Dans la pipeline, ce job tournera sur une <strong>matrice</strong> (Node 20 et 22) — on l&#39;assemble à l&#39;étape 6. Le feu est vert pour <strong>déployer</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>npm ci</code> succeeds (<code>build reproductible OK</code>) and <code>node --test</code> shows <code># pass 1</code>, <code># fail 0</code> with <strong>exit code <code>0</code></strong>. CI is <strong>green</strong>: frozen install + passing tests. In the pipeline, this job will run on a <strong>matrix</strong> (Node 20 and 22) — we assemble it in step 6. The light is green to <strong>deploy</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> La <strong>CD</strong> : déployer l&#39;IaC sur l&#39;émulateur (<code>plan</code> → <code>apply</code> <strong>live</strong>) + <strong>secret au coffre</strong>.</p>
+<p><strong>🤔 Déployer pour de vrai, sans secret en dur.</strong> On <strong>planifie</strong> l&#39;IaC (artefact), on <strong>applique</strong> sur miniblue, et on range le <strong>secret</strong> de l&#39;app au <strong>Key Vault</strong> (jamais dans le code).</p>
+<p>Prépare le lab, déploie, range le secret :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> The <strong>CD</strong>: deploy the IaC to the emulator (<code>plan</code> → <code>apply</code> <strong>live</strong>) + <strong>secret in the vault</strong>.</p>
+<p><strong>🤔 Deploy for real, with no hardcoded secret.</strong> We <strong>plan</strong> the IaC (artifact), <strong>apply</strong> on miniblue, and store the app&#39;s <strong>secret</strong> in <strong>Key Vault</strong> (never in code).</p>
+<p>Prepare the lab, deploy, store the secret:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem
+export ARM_ENVIRONMENT=public
+
+cat &gt; infra/providers.tf &lt;&lt;&#39;TF&#39;
+terraform {
+  required_providers { azurerm = { source = &quot;hashicorp/azurerm&quot;, version = &quot;~&gt; 3.0&quot; } }
+}
+provider &quot;azurerm&quot; {
+  features {}
+  metadata_host              = &quot;localhost:4567&quot;
+  skip_provider_registration = true
+  subscription_id            = &quot;00000000-0000-0000-0000-000000000000&quot;
+  tenant_id                  = &quot;00000000-0000-0000-0000-000000000001&quot;
+  client_id                  = &quot;miniblue&quot;
+  client_secret              = &quot;miniblue&quot; # pragma: allowlist secret (identifiant factice de l&#39;émulateur)
+  environment                = &quot;public&quot;
+}
+TF
+
+cd infra
+terraform init -no-color &gt;/dev/null 2&gt;&amp;1
+terraform plan -out=tfplan -no-color 2&gt;&amp;1 | grep -E &quot;Plan:&quot;
+terraform apply -no-color tfplan 2&gt;&amp;1 | grep -E &quot;Apply complete&quot;
+cd ..
+
+# Le secret de l&#39;app va au coffre, pas dans le code / the app secret goes to the vault
+azlocal keyvault secret set --vault kv-jiha --name app-token --value &quot;tok_du_projet&quot; 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; print(&#39;secret au coffre / secret in vault:&#39;, json.load(sys.stdin)[&#39;id&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>plan</code> annonce <code>Plan: 2 to add</code>, <code>apply</code> confirme <code>Apply complete! Resources: 2 added</code> — le groupe de ressources <strong>et</strong> le groupe de sécurité réseau sont <strong>déployés pour de vrai</strong> sur miniblue. Le <strong>secret</strong> est rangé au <strong>coffre</strong> (<code>secret au coffre : https://kv-jiha.vault.azure.net/secrets/app-token</code>). La CD a fait son travail : infra <strong>appliquée</strong> (depuis un plan revu), secret <strong>hors du code</strong>. On <strong>vérifie la santé</strong> juste après.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>plan</code> announces <code>Plan: 2 to add</code>, <code>apply</code> confirms <code>Apply complete! Resources: 2 added</code> — the resource group <strong>and</strong> the network security group are <strong>deployed for real</strong> on miniblue. The <strong>secret</strong> is stored in the <strong>vault</strong> (<code>secret au coffre : https://kv-jiha.vault.azure.net/secrets/app-token</code>). CD did its job: infra <strong>applied</strong> (from a reviewed plan), secret <strong>out of code</strong>. We <strong>check health</strong> right after.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Le <strong>smoke test</strong> post-déploiement : la sonde <code>readiness</code> répond, et l&#39;infra existe.</p>
+<p><strong>🤔 Déployer ne suffit pas — vérifie.</strong> Après un déploiement, un <strong>smoke test</strong> confirme que le service <strong>répond</strong> (sonde <code>readiness == 200</code>) et que l&#39;infra est <strong>là</strong>. Sinon, on <strong>alerte</strong> (et on rebascule).</p>
+<p>Lance le smoke test (santé + infra) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> The post-deploy <strong>smoke test</strong>: the <code>readiness</code> probe answers, and the infra exists.</p>
+<p><strong>🤔 Deploying isn&#39;t enough — verify.</strong> After a deployment, a <strong>smoke test</strong> confirms the service <strong>answers</strong> (readiness probe <code>== 200</code>) and the infra is <strong>there</strong>. Otherwise, we <strong>alert</strong> (and roll back).</p>
+<p>Run the smoke test (health + infra):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Sonde readiness de l&#39;app (démarre puis répond 200) / app readiness probe
+cat &gt; smoke.js &lt;&lt;&#39;JS&#39;
+const http = require(&quot;http&quot;);
+const s = http.createServer((_, res) =&gt; res.writeHead(200).end(&quot;PRET&quot;));
+s.listen(8100, () =&gt; {
+  http.get(&quot;http://localhost:8100/health/ready&quot;, r =&gt; {
+    console.log(&quot;smoke test /health/ready -&gt;&quot;, r.statusCode, r.statusCode === 200 ? &quot;✅&quot; : &quot;❌&quot;);
+    s.close();
+  });
+});
+JS
+node smoke.js
+
+# L&#39;infra déployée est bien là / the deployed infra is really there
+azlocal group show --name rg-jiha-devops 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;infra:&#39;, d[&#39;name&#39;], &#39;-&gt;&#39;, d[&#39;properties&#39;][&#39;provisioningState&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le smoke test affiche <code>smoke test /health/ready -&gt; 200 ✅</code> (le service est <strong>prêt</strong>) et l&#39;infra répond <code>infra: rg-jiha-devops -&gt; Succeeded</code>. Déploiement <strong>vérifié</strong> : app en bonne santé, infra provisionnée. En pipeline, un smoke test <strong>rouge</strong> <strong>échoue</strong> le déploiement (et déclenche un rollback). C&#39;est la dernière garde avant de déclarer « livré ».</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the smoke test shows <code>smoke test /health/ready -&gt; 200 ✅</code> (the service is <strong>ready</strong>) and the infra answers <code>infra: rg-jiha-devops -&gt; Succeeded</code>. Deployment <strong>verified</strong>: healthy app, provisioned infra. In a pipeline, a <strong>red</strong> smoke test <strong>fails</strong> the deployment (and triggers a rollback). It&#39;s the last guard before declaring &quot;shipped&quot;.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Assembler</strong> la pipeline complète et la <strong>valider</strong> — sécurité → build → plan → deploy.</p>
+<p><strong>🤔 Tout, en un seul fichier.</strong> On écrit la pipeline <strong>de bout en bout</strong> : job <strong>sécurité</strong> (secrets + IaC), job <strong>build/test</strong> (matrice), job <strong>plan</strong> (artefact), job <strong>deploy</strong> (derrière la <strong>porte</strong> <code>production</code>). Au <strong>moindre privilège</strong> et avec des actions <strong>épinglées SHA</strong>. On <strong>valide</strong> la structure.</p>
+<p>Écris la pipeline complète et valide-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Assemble</strong> the complete pipeline and <strong>validate</strong> it — security → build → plan → deploy.</p>
+<p><strong>🤔 Everything, in one file.</strong> We write the pipeline <strong>end-to-end</strong>: <strong>security</strong> job (secrets + IaC), <strong>build/test</strong> job (matrix), <strong>plan</strong> job (artifact), <strong>deploy</strong> job (behind the <code>production</code> <strong>gate</strong>). With <strong>least privilege</strong> and <strong>SHA-pinned</strong> actions. We <strong>validate</strong> the structure.</p>
+<p>Write the complete pipeline and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p .github/workflows
+cat &gt; .github/workflows/livraison.yml &lt;&lt;&#39;YAML&#39;
+name: Livraison
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+permissions:
+  contents: read
+jobs:
+  securite:
+    name: Sécurité (secrets + IaC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - run: pip install detect-secrets checkov
+      - run: detect-secrets scan --all-files
+      - run: checkov -d infra
+  build_test:
+    name: Build &amp; Test
+    runs-on: ubuntu-latest
+    needs: securite
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-node@1a4442cacd436585916779262731d5b162bc6ec7  # v3.9.1
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm test
+  plan:
+    name: IaC Plan
+    runs-on: ubuntu-latest
+    needs: build_test
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - run: cd infra &amp;&amp; terraform init &amp;&amp; terraform plan -out=tfplan
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874  # v4.4.0
+        with:
+          name: tfplan
+          path: infra/tfplan
+  deploy:
+    name: Déploiement (porte)
+    runs-on: ubuntu-latest
+    needs: plan
+    environment: production
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
+        with:
+          name: tfplan
+          path: infra
+      - run: cd infra &amp;&amp; terraform init &amp;&amp; terraform apply tfplan
+      - run: echo &quot;Smoke test health/ready == 200&quot;
+YAML
+
+python3 -c &quot;
+import yaml, re
+d = yaml.safe_load(open(&#39;.github/workflows/livraison.yml&#39;))
+print(&#39;jobs:&#39;, list(d[&#39;jobs&#39;].keys()))
+print(&#39;graphe / graph:&#39;, {k: v.get(&#39;needs&#39;) for k,v in d[&#39;jobs&#39;].items()})
+print(&#39;porte / gate:&#39;, d[&#39;jobs&#39;][&#39;deploy&#39;][&#39;environment&#39;])
+print(&#39;moindre privilège / least privilege:&#39;, d[&#39;permissions&#39;])
+pins = [s[&#39;uses&#39;].split(&#39;@&#39;)[1] for j in d[&#39;jobs&#39;].values() for s in j[&#39;steps&#39;] if &#39;uses&#39; in s]
+print(&#39;actions épinglées SHA / SHA-pinned:&#39;, all(re.fullmatch(r&#39;[0-9a-f]{40}&#39;, p) for p in pins))
+&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>jobs: [&#39;securite&#39;, &#39;build_test&#39;, &#39;plan&#39;, &#39;deploy&#39;]</code>, le <strong>graphe</strong> chaîné (<code>build_test</code>←<code>securite</code>, <code>plan</code>←<code>build_test</code>, <code>deploy</code>←<code>plan</code>), <code>porte / gate: production</code>, <code>moindre privilège: {&#39;contents&#39;: &#39;read&#39;}</code> et <code>actions épinglées SHA: True</code>. C&#39;est <strong>toute la chaîne</strong> en un fichier : sécurité d&#39;abord, tests, plan revu, déploiement derrière une porte — durcie (SHA, moindre privilège). Voilà ta <strong>pipeline de livraison complète</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>jobs: [&#39;securite&#39;, &#39;build_test&#39;, &#39;plan&#39;, &#39;deploy&#39;]</code>, the chained <strong>graph</strong> (<code>build_test</code>←<code>securite</code>, <code>plan</code>←<code>build_test</code>, <code>deploy</code>←<code>plan</code>), <code>porte / gate: production</code>, <code>moindre privilège: {&#39;contents&#39;: &#39;read&#39;}</code> and <code>actions épinglées SHA: True</code>. That&#39;s <strong>the whole chain</strong> in one file: security first, tests, reviewed plan, deployment behind a gate — hardened (SHA, least privilege). There&#39;s your <strong>complete delivery pipeline</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Mesurer</strong> (DORA), <strong>nettoyer</strong>, et <strong>emballer</strong> le projet pour le CV.</p>
+<p><strong>🤔 Preuves et pitch.</strong> On <strong>tague</strong> le déploiement (matière à DORA), on calcule une métrique, on <strong>détruit</strong> proprement le lab, puis on rédige la <strong>fiche CV</strong>.</p>
+<p>Mesure, nettoie, emballe :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Measure</strong> (DORA), <strong>clean up</strong>, and <strong>package</strong> the project for the CV.</p>
+<p><strong>🤔 Evidence and pitch.</strong> We <strong>tag</strong> the deployment (DORA material), compute a metric, <strong>destroy</strong> the lab cleanly, then write the <strong>CV sheet</strong>.</p>
+<p>Measure, clean up, package:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Taguer le déploiement et mesurer (fréquence) / tag the deploy and measure
+git tag deploy-1
+python3 -c &quot;print(&#39;DORA — déploiements taggés / tagged deployments:&#39;, $(git tag | grep -c deploy))&quot;
+
+# Nettoyer le lab / clean up the lab
+cd infra &amp;&amp; terraform destroy -auto-approve -no-color 2&gt;&amp;1 | grep -E &quot;Destroy complete&quot; ; cd ..
+
+# La fiche CV / the CV sheet
+cat &gt; CV.md &lt;&lt;&#39;MD&#39;
+# Projet : chaîne de livraison DevOps (Azure / AZ-400)
+Pipeline CI/CD complète, sécurisée et supervisée — 100% local (émulateur).
+
+- **Source** : Git, branches de fonctionnalité, fusion par pull request (--no-ff).
+- **Sécurité** : hook pre-commit fail-closed (detect-secrets), scan IaC (checkov),
+  secrets au coffre (Key Vault), actions épinglées par SHA, moindre privilège.
+- **CI** : installe reproductible (npm ci), tests (node --test) en matrice 20/22.
+- **CD** : IaC Terraform planifiée (artefact) puis appliquée derrière une porte
+  d&#39;approbation d&#39;environnement ; déploiement live vérifié.
+- **Supervision** : smoke test (sonde readiness), métriques DORA.
+
+Stack : Git, GitHub Actions / Azure Pipelines, Terraform, Bicep, Key Vault,
+detect-secrets, checkov, Node.js. Aligné AZ-400.
+MD
+echo &quot;--- fiche CV créée / CV sheet created ---&quot;; head -3 CV.md
+git add -A &amp;&amp; git commit -qm &quot;docs: fiche CV du projet DevOps&quot; &amp;&amp; git log --oneline | head -1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu vois <code>DORA — déploiements taggés: 1</code>, <code>Destroy complete!</code> (lab nettoyé), et la <strong>fiche CV</strong> créée puis commitée — le hook affiche <code>✅ Aucun secret détecté</code> : la porte de sécurité <strong>re-vérifie</strong> ce commit et <strong>passe</strong>, car le <code>.gitignore</code> (step-01) exclut les artefacts Terraform et le <code># pragma: allowlist secret</code> marque l&#39;identifiant <strong>factice</strong> de l&#39;émulateur. La boucle est <strong>cohérente</strong> : même le dernier commit respecte la porte. <strong>Félicitations — tu as terminé le track AZ-400 !</strong> Tu tiens un <strong>projet complet</strong> : dépôt versionné, chaîne de livraison <strong>sécurisée</strong> (secrets, IaC), <strong>automatisée</strong> (CI/CD), <strong>déployée pour de vrai</strong> (émulateur) derrière une <strong>porte</strong>, et <strong>supervisée</strong> (smoke test, DORA). Mets <code>CV.md</code> en avant, publie le dépôt, et parle de <strong>chaque maillon</strong> en entretien. Toute la partie <strong>AZ-400</strong> de ton parcours Azure est bouclée — cap sur l&#39;<strong>AZ-500</strong> (sécurité) et l&#39;<strong>AZ-700</strong> (réseau).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you see <code>DORA — déploiements taggés: 1</code>, <code>Destroy complete!</code> (lab cleaned), and the <strong>CV sheet</strong> created then committed — the hook prints <code>✅ Aucun secret détecté</code>: the security gate <strong>re-checks</strong> this commit and <strong>passes</strong>, because the <code>.gitignore</code> (step-01) excludes the Terraform artifacts and the <code># pragma: allowlist secret</code> marks the emulator&#39;s <strong>dummy</strong> credential. The loop is <strong>consistent</strong>: even the last commit respects the gate. <strong>Congratulations — you finished the AZ-400 track!</strong> You hold a <strong>complete project</strong>: versioned repo, a <strong>secured</strong> delivery chain (secrets, IaC), <strong>automated</strong> (CI/CD), <strong>deployed for real</strong> (emulator) behind a <strong>gate</strong>, and <strong>monitored</strong> (smoke test, DORA). Feature <code>CV.md</code>, publish the repo, and speak to <strong>every link</strong> in an interview. The whole <strong>AZ-400</strong> part of your Azure path is complete — onward to <strong>AZ-500</strong> (security) and <strong>AZ-700</strong> (networking).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Sauter la source.</strong> Sans branche/PR propre, pas de revue ni de traçabilité. La collaboration Git est le <strong>socle</strong>, pas un détail.</p>
+<p><strong>2. Sécurité « à la fin ».</strong> Scanner <strong>après</strong> le déploiement, c&#39;est trop tard. La porte de sécurité est <strong>avant</strong> la CI (shift-left).</p>
+<p><strong>3. Hook fail-open.</strong> Un hook qui laisse passer si l&#39;outil manque <strong>n&#39;protège pas</strong>. Fais-le <strong>échouer fermé</strong> (bloquer par défaut).</p>
+<p><strong>4. <code>npm install</code> en CD.</strong> Non reproductible. La chaîne utilise <code>npm ci</code> + fichier de verrou versionné.</p>
+<p><strong>5. Appliquer sans plan revu.</strong> Le <code>deploy</code> doit consommer un <strong>plan-artefact</strong> approuvé derrière une <strong>porte</strong>, pas replanifier à l&#39;aveugle.</p>
+<p><strong>6. Secret dans le dépôt.</strong> Même « juste pour tester ». Le secret vit au <strong>coffre</strong> ; le code n&#39;a qu&#39;une <strong>référence</strong>.</p>
+<p><strong>7. « Livré » sans smoke test.</strong> Un <code>apply</code> réussi ne prouve pas que l&#39;app <strong>répond</strong>. Vérifie la <strong>santé</strong> avant de déclarer livré.</p>
+</div>
+<div data-lang="en"><p><strong>1. Skipping source.</strong> Without a clean branch/PR, no review or traceability. Git collaboration is the <strong>foundation</strong>, not a detail.</p>
+<p><strong>2. Security &quot;at the end&quot;.</strong> Scanning <strong>after</strong> deployment is too late. The security gate is <strong>before</strong> CI (shift-left).</p>
+<p><strong>3. Fail-open hook.</strong> A hook that lets things through if the tool is missing <strong>protects nothing</strong>. Make it <strong>fail closed</strong> (block by default).</p>
+<p><strong>4. <code>npm install</code> in CD.</strong> Not reproducible. The chain uses <code>npm ci</code> + a versioned lockfile.</p>
+<p><strong>5. Applying without a reviewed plan.</strong> <code>deploy</code> must consume an approved <strong>plan-artifact</strong> behind a <strong>gate</strong>, not blindly re-plan.</p>
+<p><strong>6. Secret in the repo.</strong> Even &quot;just for testing&quot;. The secret lives in the <strong>vault</strong>; code holds only a <strong>reference</strong>.</p>
+<p><strong>7. &quot;Shipped&quot; without a smoke test.</strong> A successful <code>apply</code> doesn&#39;t prove the app <strong>answers</strong>. Check <strong>health</strong> before declaring it shipped.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si ton dépôt contient :</p>
+<ul><li>Une <strong>source</strong> propre : branche de fonctionnalité + fusion par PR (<code>--no-ff</code>).</li><li>Une <strong>porte de sécurité</strong> : hook <code>detect-secrets</code> <strong>fail-closed</strong> + scan <code>checkov</code>.</li><li>Une <strong>CI reproductible</strong> : <code>npm ci</code> + <code>node --test</code> (matrice).</li><li>Une <strong>CD live</strong> : <code>terraform plan</code>→<code>apply</code> sur l&#39;émulateur + <strong>secret au Key Vault</strong>.</li><li>Un <strong>smoke test</strong> : sonde <code>readiness == 200</code> + vérification de l&#39;infra.</li><li>Une <strong>pipeline complète validée</strong> (sécurité → build → plan → deploy, porte, SHA, moindre privilège).</li><li>Une <strong>mesure DORA</strong> et une <strong>fiche CV</strong> qui résume le tout.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if your repo contains:</p>
+<ul><li>A clean <strong>source</strong>: feature branch + PR merge (<code>--no-ff</code>).</li><li>A <strong>security gate</strong>: <strong>fail-closed</strong> <code>detect-secrets</code> hook + <code>checkov</code> scan.</li><li>A <strong>reproducible CI</strong>: <code>npm ci</code> + <code>node --test</code> (matrix).</li><li>A <strong>live CD</strong>: <code>terraform plan</code>→<code>apply</code> on the emulator + <strong>secret in Key Vault</strong>.</li><li>A <strong>smoke test</strong>: <code>readiness == 200</code> probe + infra verification.</li><li>A <strong>complete validated pipeline</strong> (security → build → plan → deploy, gate, SHA, least privilege).</li><li>A <strong>DORA measurement</strong> and a <strong>CV sheet</strong> summarizing it all.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> cap sur l&#39;<strong>AZ-500</strong> (sécurité Azure) et l&#39;<strong>AZ-700</strong> (réseau Azure) pour compléter le parcours.</li><li><strong>Réviser :</strong> n&#39;importe quel guide AZ-400 dont un maillon t&#39;a paru fragile.</li><li><strong>Aller plus loin :</strong> branche la pipeline sur un <strong>vrai</strong> dépôt GitHub (gratuit) et fais-la <strong>tourner</strong> pour de vrai ; ajoute un environnement <code>dev</code> automatique avant <code>production</code>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> onward to <strong>AZ-500</strong> (Azure security) and <strong>AZ-700</strong> (Azure networking) to complete the path.</li><li><strong>Review:</strong> any AZ-400 guide whose link felt shaky.</li><li><strong>Go further:</strong> wire the pipeline to a <strong>real</strong> GitHub repo (free) and <strong>run</strong> it for real; add an automatic <code>dev</code> environment before <code>production</code>.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Les cinq maillons de la chaîne</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. SOURCE      git branch feature/x ; ... ; git merge --no-ff feature/x
+2. SÉCURITÉ    hook pre-commit (detect-secrets, FAIL CLOSED) + checkov -d infra
+3. CI          npm ci ; node --test         (matrice node: [20, 22])
+4. CD          terraform plan -out=tfplan → [PORTE] → terraform apply tfplan
+               secret -&gt; azlocal keyvault secret set (jamais dans le code)
+5. SUPERVISION smoke test /health/ready==200 ; métriques DORA (tags deploy)</code></pre>
+<p><strong>Durcissement de la pipeline</strong></p>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>permissions:
+  contents: read                              # moindre privilège
+# ...
+- uses: actions/checkout@&lt;40 hex&gt;             # action épinglée par SHA
+# job deploy :
+  environment: production                     # porte (approbation)</code></pre>
+<p><strong>Valider la pipeline sans l&#39;exécuter</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;.github/workflows/livraison.yml&#39;)); print(list(d[&#39;jobs&#39;]))&quot;</code></pre>
+</div>
+<div data-lang="en"><p><strong>The chain&#39;s five links</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>1. SOURCE      git branch feature/x ; ... ; git merge --no-ff feature/x
+2. SECURITY    pre-commit hook (detect-secrets, FAIL CLOSED) + checkov -d infra
+3. CI          npm ci ; node --test          (matrix node: [20, 22])
+4. CD          terraform plan -out=tfplan → [GATE] → terraform apply tfplan
+               secret -&gt; azlocal keyvault secret set (never in code)
+5. MONITORING  smoke test /health/ready==200 ; DORA metrics (deploy tags)</code></pre>
+<p><strong>Pipeline hardening</strong></p>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>permissions:
+  contents: read                              # least privilege
+# ...
+- uses: actions/checkout@&lt;40 hex&gt;             # SHA-pinned action
+# deploy job:
+  environment: production                     # gate (approval)</code></pre>
+<p><strong>Validate the pipeline without running it</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>python3 -c &quot;import yaml; d=yaml.safe_load(open(&#39;.github/workflows/livraison.yml&#39;)); print(list(d[&#39;jobs&#39;]))&quot;</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>AZ-400</strong> : Designing and Implementing Microsoft DevOps Solutions — objectifs officiels, Microsoft Learn.</li><li><strong>GitHub Actions</strong> : workflows multi-jobs, environnements, artefacts, sécurité — docs GitHub.</li><li><strong>Terraform + Azure</strong> : <code>plan -out</code>, <code>apply</code>, backends distants — HashiCorp / Microsoft Learn.</li><li><strong>detect-secrets / checkov</strong> : sécurité shift-left (secrets, IaC) — dépôts GitHub officiels.</li><li><strong>DORA</strong> : les 4 métriques et le rapport <em>Accelerate</em> — dora.dev.</li><li><strong>miniblue</strong> : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>AZ-400</strong>: Designing and Implementing Microsoft DevOps Solutions — official objectives, Microsoft Learn.</li><li><strong>GitHub Actions</strong>: multi-job workflows, environments, artifacts, security — GitHub docs.</li><li><strong>Terraform + Azure</strong>: <code>plan -out</code>, <code>apply</code>, remote backends — HashiCorp / Microsoft Learn.</li><li><strong>detect-secrets / checkov</strong>: shift-left security (secrets, IaC) — official GitHub repos.</li><li><strong>DORA</strong>: the 4 metrics and the <em>Accelerate</em> report — dora.dev.</li><li><strong>miniblue</strong>: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Le hook ne bloque pas le secret.</strong> Vérifie qu&#39;il est <strong>exécutable</strong> (<code>chmod +x .git/hooks/pre-commit</code>) et que <code>detect-secrets</code> est <strong>installé</strong> (sinon le hook <strong>fail-closed</strong> bloque avec <code>⛔ detect-secrets introuvable</code>, ce qui est le comportement voulu).</p>
+<p><strong><code>terraform</code> : erreur TLS / certificat.</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> et vérifie que miniblue tourne (port 4567).</p>
+<p><strong><code>azlocal : commande introuvable</code>.</strong> Ajoute son dossier au <code>PATH</code> (ex. <code>/usr/local/bin</code>) ou appelle-le par chemin complet. Sans lui, le pipe vers <code>python3</code> masque l&#39;erreur en <code>JSONDecodeError</code>.</p>
+<p><strong><code>npm ci</code> échoue : verrou manquant.</strong> Lance <code>npm install --package-lock-only</code> puis versionne <code>package-lock.json</code> (fait au step-03).</p>
+<p><strong>La pipeline YAML ne parse pas.</strong> Vérifie l&#39;indentation (pas de tabulations), et que chaque <code>with:</code> est en <strong>bloc</strong> (clés sur des lignes séparées). Valide avec le one-liner Python du cheatsheet.</p>
+<p><strong>Le commit du step-07 est bloqué par le hook.</strong> C&#39;est la porte qui fait son travail : <code>git add -A</code> a tenté d&#39;ajouter un <strong>artefact</strong> Terraform (<code>.terraform.lock.hcl</code> — hachages à forte entropie) ou l&#39;identifiant <strong>factice</strong> de l&#39;émulateur (<code>client_secret = &quot;miniblue&quot;</code>). La parade est <strong>dans le guide</strong> : le <code>.gitignore</code> du step-01 exclut les artefacts, et le <code># pragma: allowlist secret</code> du step-04 marque l&#39;identifiant factice. Vérifie que ces deux éléments sont bien en place.</p>
+<p><strong><code>terraform destroy</code> laisse des ressources.</strong> Relance-le depuis <code>infra/</code> avec le bon <code>SSL_CERT_FILE</code>. En dernier recours, <code>azlocal reset</code> remet l&#39;émulateur à zéro.</p>
+</div>
+<div data-lang="en"><p><strong>The hook doesn&#39;t block the secret.</strong> Check it&#39;s <strong>executable</strong> (<code>chmod +x .git/hooks/pre-commit</code>) and that <code>detect-secrets</code> is <strong>installed</strong> (otherwise the <strong>fail-closed</strong> hook blocks with <code>⛔ detect-secrets introuvable</code>, which is the intended behavior).</p>
+<p><strong><code>terraform</code>: TLS / certificate error.</strong> <code>export SSL_CERT_FILE=$HOME/.miniblue/cert.pem</code> and check miniblue is running (port 4567).</p>
+<p><strong><code>azlocal: command not found</code>.</strong> Add its folder to <code>PATH</code> (e.g. <code>/usr/local/bin</code>) or call it by full path. Without it, the pipe to <code>python3</code> hides the error as a <code>JSONDecodeError</code>.</p>
+<p><strong><code>npm ci</code> fails: missing lock.</strong> Run <code>npm install --package-lock-only</code> then version <code>package-lock.json</code> (done in step-03).</p>
+<p><strong>The pipeline YAML doesn&#39;t parse.</strong> Check indentation (no tabs), and that each <code>with:</code> is in <strong>block</strong> style (keys on separate lines). Validate with the Python one-liner from the cheatsheet.</p>
+<p><strong><code>terraform destroy</code> leaves resources.</strong> Re-run it from <code>infra/</code> with the right <code>SSL_CERT_FILE</code>. As a last resort, <code>azlocal reset</code> resets the emulator.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

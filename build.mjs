@@ -395,6 +395,18 @@ const SCHEMAS = {
 `
 };
 
+/* Charge aussi les schémas déposés en fichiers dans schemas/<nom>.svg
+   (nom de fichier = nom de figure). Permet d'ajouter des diagrammes sans
+   toucher à ce fichier. Un fichier prime sur un schéma inline de même nom. */
+try {
+  const dir = join(ROOT, 'schemas');
+  for (const f of readdirSync(dir)) {
+    if (f.endsWith('.svg')) {
+      SCHEMAS[f.slice(0, -4)] = readFileSync(join(dir, f), 'utf8');
+    }
+  }
+} catch { /* pas de dossier schemas/ : on garde les schémas inline */ }
+
 /* -------------------- Render body -------------------- */
 function renderBody(sections, fm, manifest) {
   // ordre canonique des sections de page (alignement BUILD-SPEC §3.1 / template)

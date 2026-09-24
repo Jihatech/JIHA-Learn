@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker — images &amp; Dockerfile avancés — jiha.tech</title>
+  <title data-lang="en">Docker — advanced images &amp; Dockerfile — jiha.tech</title>
+  <meta name="description" content="La maîtrise des images Docker au niveau DCA : les couches et le cache de build, ENTRYPOINT vs CMD, ARG/ENV/HEALTHCHECK, les builds multi-stage (image finale minuscule), la gestion des images (history, inspect, prune), et un registre local (push/pull, save/load)." data-lang="fr">
+  <meta name="description" content="Docker image mastery at DCA level: layers and the build cache, ENTRYPOINT vs CMD, ARG/ENV/HEALTHCHECK, multi-stage builds (tiny final image), image management (history, inspect, prune), and a local registry (push/pull, save/load)." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker — images &amp; Dockerfile avancés">
+  <meta property="og:description" content="La maîtrise des images Docker au niveau DCA : les couches et le cache de build, ENTRYPOINT vs CMD, ARG/ENV/HEALTHCHECK, les builds multi-stage (image finale minuscule), la gestion des images (history, inspect, prune), et un registre local (push/pull, save/load).">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-images-dockerfile/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-images-dockerfile/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-images-dockerfile">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-images-dockerfile</div>
+    <div class="prompt" data-lang="en">~/guides/docker-images-dockerfile</div>
+    <h1 data-lang="fr">Docker — images &amp; Dockerfile avancés</h1>
+    <h1 data-lang="en">Docker — advanced images &amp; Dockerfile</h1>
+    <p class="tagline" data-lang="fr">Cache de couches, multi-stage, ENTRYPOINT, registre.</p>
+    <p class="tagline" data-lang="en">Layer cache, multi-stage, ENTRYPOINT, registry.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 175 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 175 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Savoir écrire un <code>Dockerfile</code> qui marche, c&#39;est le niveau débutant. L&#39;examen <strong>Docker Certified Associate (DCA)</strong> attend le niveau au-dessus : <em>pourquoi mon build est-il lent ? comment le rendre reproductible et cachable ? quelle différence entre <code>ENTRYPOINT</code> et <code>CMD</code> ? comment obtenir une image de 10 Mo au lieu de 800 ? d&#39;où viennent les images, et comment héberger les miennes ?</em></p>
+<p>Ce guide couvre le domaine <strong>création &amp; gestion d&#39;images</strong> en profondeur : les <strong>couches</strong> et le <strong>cache de build</strong>, <strong><code>ENTRYPOINT</code> vs <code>CMD</code></strong>, <strong><code>ARG</code>/<code>ENV</code>/<code>HEALTHCHECK</code></strong>, les builds <strong>multi-stage</strong> (image finale minuscule), la <strong>gestion des images</strong> (<code>history</code>, <code>inspect</code>, <code>prune</code>), et un <strong>registre local</strong> pour distribuer tes images.</p>
+<p>On travaille en <strong>local avec Docker</strong> (natif, Docker Desktop, ou WSL2) — les guides fondamentaux et Compose t&#39;ont posé les bases. Tout est buildé sur ta machine, sans cloud.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides <strong>Docker fondamentaux</strong> et <strong>Compose</strong>, et tu vises le <strong>DCA</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas ce qu&#39;est une image ou un conteneur → reviens aux fondamentaux.</li><li>Tu veux le réseau, le stockage ou Swarm → ce sont les guides suivants de la track.</li></ul>
+</div>
+<div data-lang="en"><p>Writing a <code>Dockerfile</code> that works is the beginner level. The <strong>Docker Certified Associate (DCA)</strong> exam expects the level above: <em>why is my build slow? how do you make it reproducible and cacheable? what&#39;s the difference between <code>ENTRYPOINT</code> and <code>CMD</code>? how do you get a 10 MB image instead of 800? where do images come from, and how do you host your own?</em></p>
+<p>This guide covers the <strong>image creation &amp; management</strong> domain in depth: <strong>layers</strong> and the <strong>build cache</strong>, <strong><code>ENTRYPOINT</code> vs <code>CMD</code></strong>, <strong><code>ARG</code>/<code>ENV</code>/<code>HEALTHCHECK</code></strong>, <strong>multi-stage</strong> builds (tiny final image), <strong>image management</strong> (<code>history</code>, <code>inspect</code>, <code>prune</code>), and a <strong>local registry</strong> to distribute your images.</p>
+<p>We work <strong>locally with Docker</strong> (native, Docker Desktop, or WSL2) — the fundamentals and Compose guides laid the groundwork. Everything is built on your machine, no cloud.</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>Docker fundamentals</strong> and <strong>Compose</strong> guides, and you&#39;re aiming for the <strong>DCA</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know what an image or a container is → go back to the fundamentals.</li><li>You want networking, storage or Swarm → those are the next guides in the track.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Expliquer les <strong>couches</strong> d&#39;une image et exploiter le <strong>cache de build</strong> (ordre des instructions).</li><li>Distinguer <strong><code>ENTRYPOINT</code></strong> et <strong><code>CMD</code></strong>, et choisir la bonne combinaison.</li><li>Utiliser <strong><code>ARG</code></strong>, <strong><code>ENV</code></strong> et <strong><code>HEALTHCHECK</code></strong> à bon escient.</li><li>Écrire un build <strong>multi-stage</strong> pour une image finale <strong>minimale</strong>.</li><li>Gérer les images : <strong><code>history</code></strong>, <strong><code>inspect</code></strong>, <strong><code>tag</code></strong>, <strong><code>prune</code></strong>, <code>.dockerignore</code>.</li><li>Distribuer une image via un <strong>registre local</strong> (<code>push</code>/<code>pull</code>) et <strong><code>save</code>/<code>load</code></strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Explain an image&#39;s <strong>layers</strong> and exploit the <strong>build cache</strong> (instruction order).</li><li>Distinguish <strong><code>ENTRYPOINT</code></strong> from <strong><code>CMD</code></strong>, and pick the right combination.</li><li>Use <strong><code>ARG</code></strong>, <strong><code>ENV</code></strong> and <strong><code>HEALTHCHECK</code></strong> appropriately.</li><li>Write a <strong>multi-stage</strong> build for a <strong>minimal</strong> final image.</li><li>Manage images: <strong><code>history</code></strong>, <strong><code>inspect</code></strong>, <strong><code>tag</code></strong>, <strong><code>prune</code></strong>, <code>.dockerignore</code>.</li><li>Distribute an image via a <strong>local registry</strong> (<code>push</code>/<code>pull</code>) and <strong><code>save</code>/<code>load</code></strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>Docker fondamentaux</strong> et <strong>Docker Compose</strong> acquis.</li><li><strong>Docker</strong> installé et lancé (<code>docker version</code> répond).</li><li>Un dossier de travail vierge :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Docker fundamentals</strong> and <strong>Docker Compose</strong> guides under your belt.</li><li><strong>Docker</strong> installed and running (<code>docker version</code> answers).</li><li>A blank working directory:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir docker-images &amp;&amp; cd docker-images</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-compose/">
+    <span class="num">12</span>
+    <span class="title-line" data-lang="fr">Docker Compose</span>
+    <span class="title-line" data-lang="en">Docker Compose</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Une image est un empilement de couches.</strong> Chaque instruction du <code>Dockerfile</code> (<code>FROM</code>, <code>RUN</code>, <code>COPY</code>…) crée une <strong>couche</strong> en lecture seule, empilée sur la précédente. Le conteneur ajoute par-dessus une fine couche <strong>écriture</strong>. Comprendre ça explique <strong>tout</strong> : la taille, le cache, la performance.</p>
+<p><strong>Le cache de build.</strong> Au build, Docker <strong>réutilise</strong> une couche si l&#39;instruction <strong>et</strong> son contexte n&#39;ont pas changé. Dès qu&#39;une couche change, <strong>toutes les suivantes</strong> sont reconstruites. D&#39;où la règle d&#39;or : <strong>place ce qui change rarement en haut</strong> (installer les dépendances) et <strong>ce qui change souvent en bas</strong> (copier ton code). Sinon chaque modif de code réinstalle tout.</p>
+<p><strong><code>ENTRYPOINT</code> vs <code>CMD</code>.</strong> Les deux définissent ce qui s&#39;exécute au démarrage, mais :</p>
+<ul><li><strong><code>ENTRYPOINT</code></strong> = la commande <strong>fixe</strong> (le programme). Difficile à écraser.</li><li><strong><code>CMD</code></strong> = les <strong>arguments par défaut</strong>, facilement remplacés à l&#39;exécution (<code>docker run img autre-arg</code>).</li></ul>
+<p>Le combo idéal : <code>ENTRYPOINT [&quot;monprog&quot;]</code> + <code>CMD [&quot;--defaut&quot;]</code> → l&#39;image <strong>est</strong> <code>monprog</code>, avec des arguments par défaut surchargeables.</p>
+<p><strong><code>ARG</code> vs <code>ENV</code>.</strong> <strong><code>ARG</code></strong> est une variable <strong>du build uniquement</strong> (<code>docker build --build-arg</code>), absente de l&#39;image finale. <strong><code>ENV</code></strong> est une variable <strong>d&#39;environnement</strong> persistée <strong>dans</strong> l&#39;image et vue par le conteneur. <strong><code>HEALTHCHECK</code></strong> définit une commande que Docker exécute pour juger si le conteneur est <strong>sain</strong> (statut <code>healthy</code>/<code>unhealthy</code>).</p>
+<p><strong>Le build multi-stage</strong>, l&#39;arme anti-obésité. On utilise <strong>plusieurs <code>FROM</code></strong> : une première étape <strong>lourde</strong> (compilateur, outils) qui <strong>construit</strong> l&#39;artefact, puis une étape finale <strong>minimale</strong> qui ne <strong>copie que le résultat</strong> (<code>COPY --from=…</code>). L&#39;image livrée ne contient <strong>ni le compilateur, ni les sources</strong> — juste le binaire. On passe de centaines de Mo à quelques Mo.</p>
+<p><strong>La distribution.</strong> Une image se <strong>pousse</strong> vers un <strong>registre</strong> (Docker Hub, ou le tien) sous un <strong>tag</strong> (<code>registre/nom:version</code>), et se <strong>tire</strong> ailleurs. Sans réseau, <code>docker save</code>/<code>load</code> exporte/importe une image en archive <code>.tar</code>.</p>
+</div>
+<div data-lang="en"><p><strong>An image is a stack of layers.</strong> Each <code>Dockerfile</code> instruction (<code>FROM</code>, <code>RUN</code>, <code>COPY</code>…) creates a read-only <strong>layer</strong>, stacked on the previous. The container adds a thin <strong>write</strong> layer on top. Understanding this explains <strong>everything</strong>: size, cache, performance.</p>
+<p><strong>The build cache.</strong> At build time, Docker <strong>reuses</strong> a layer if the instruction <strong>and</strong> its context haven&#39;t changed. As soon as one layer changes, <strong>all the following ones</strong> are rebuilt. Hence the golden rule: <strong>put what rarely changes at the top</strong> (installing dependencies) and <strong>what changes often at the bottom</strong> (copying your code). Otherwise every code change reinstalls everything.</p>
+<p><strong><code>ENTRYPOINT</code> vs <code>CMD</code>.</strong> Both define what runs at startup, but:</p>
+<ul><li><strong><code>ENTRYPOINT</code></strong> = the <strong>fixed</strong> command (the program). Hard to override.</li><li><strong><code>CMD</code></strong> = the <strong>default arguments</strong>, easily replaced at runtime (<code>docker run img other-arg</code>).</li></ul>
+<p>The ideal combo: <code>ENTRYPOINT [&quot;myprog&quot;]</code> + <code>CMD [&quot;--default&quot;]</code> → the image <strong>is</strong> <code>myprog</code>, with overridable default arguments.</p>
+<p><strong><code>ARG</code> vs <code>ENV</code>.</strong> <strong><code>ARG</code></strong> is a <strong>build-only</strong> variable (<code>docker build --build-arg</code>), absent from the final image. <strong><code>ENV</code></strong> is an <strong>environment</strong> variable persisted <strong>in</strong> the image and seen by the container. <strong><code>HEALTHCHECK</code></strong> defines a command Docker runs to judge whether the container is <strong>healthy</strong> (status <code>healthy</code>/<code>unhealthy</code>).</p>
+<p><strong>The multi-stage build</strong>, the anti-obesity weapon. You use <strong>several <code>FROM</code>s</strong>: a first <strong>heavy</strong> stage (compiler, tools) that <strong>builds</strong> the artifact, then a final <strong>minimal</strong> stage that <strong>copies only the result</strong> (<code>COPY --from=…</code>). The shipped image contains <strong>neither the compiler nor the sources</strong> — just the binary. You go from hundreds of MB to a few MB.</p>
+<p><strong>Distribution.</strong> An image is <strong>pushed</strong> to a <strong>registry</strong> (Docker Hub, or yours) under a <strong>tag</strong> (<code>registry/name:version</code>), and <strong>pulled</strong> elsewhere. Without a network, <code>docker save</code>/<code>load</code> exports/imports an image as a <code>.tar</code> archive.</p>
+</div>
+
+<figure class="schema" id="figure-docker-multistage">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-docker-multistage">
+  <title id="s-docker-multistage">Build multi-stage</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Build multi-stage</text><rect class="box-soft" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="98" y="70.5" text-anchor="middle">Étape build</text><text class="sub sub-blue" x="98" y="83.5" text-anchor="middle">compilateur + sources</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="77" text-anchor="middle">binaire</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-accent" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="474" y="70.5" text-anchor="middle">Étape finale</text><text class="sub sub-fill" x="474" y="83.5" text-anchor="middle">copie le binaire seul</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="77" text-anchor="middle">image minuscule</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Multi-stage : l&#39;étape build (compilateur + sources) produit un binaire ; l&#39;étape finale ne copie que le binaire → image minuscule.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Multi-stage: the build stage (compiler + sources) produces a binary; the final stage copies only the binary → tiny image.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : couches &amp; cache → ENTRYPOINT/CMD → ARG/ENV/HEALTHCHECK → multi-stage → gestion des images → registre local &amp; save/load.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: layers &amp; cache → ENTRYPOINT/CMD → ARG/ENV/HEALTHCHECK → multi-stage → image management → local registry &amp; save/load.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Voir le <strong>cache de couches</strong> en action, et l&#39;importance de <strong>l&#39;ordre</strong> des instructions.</p>
+<p>Crée un petit projet et un <code>Dockerfile</code> <strong>mal ordonné</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> See the <strong>layer cache</strong> in action, and the importance of instruction <strong>order</strong>.</p>
+<p>Create a small project and a <strong>badly-ordered</strong> <code>Dockerfile</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;print(&#39;bonjour&#39;)&quot; &gt; app.py
+cat &gt; Dockerfile &lt;&lt;&#39;EOF&#39;
+FROM python:3.12-slim
+WORKDIR /app
+COPY app.py .                 # &lt;- le code (change souvent) AVANT / code (changes often) BEFORE
+RUN pip install --no-cache-dir requests   # &lt;- les deps (changent rarement) APRÈS / deps AFTER
+CMD [&quot;python&quot;, &quot;app.py&quot;]
+EOF
+
+docker build -t demo:v1 .            # premier build : tout s&#39;exécute / first build: everything runs
+echo &quot;print(&#39;encore&#39;)&quot; &gt;&gt; app.py     # on MODIFIE LE CONTENU du code / we CHANGE the code CONTENT
+docker build -t demo:v2 .            # rebuild</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au <strong>second</strong> build, comme <code>COPY app.py</code> est <strong>avant</strong> le <code>RUN pip install</code>, <strong>modifier le contenu</strong> de <code>app.py</code> <strong>invalide</strong> le cache de la couche <code>COPY</code> <strong>et</strong> de tout ce qui suit → <code>pip install</code> <strong>se réexécute</strong> (tu vois <code>RUN pip install…</code> tourner, pas <code>CACHED</code>). <em>(Important : Docker (BuildKit) met <code>COPY</code> en cache sur le <strong>contenu</strong> du fichier — un simple <code>touch</code> sans changement ne casse rien ; il faut vraiment modifier le contenu, comme le <code>echo &gt;&gt;</code> ci-dessus.)</em> Inverse l&#39;ordre (<code>RUN pip install</code> <strong>avant</strong> <code>COPY app.py</code>), rebuild après une nouvelle modif de <code>app.py</code> : cette fois <code>pip install</code> affiche <strong><code>CACHED</code></strong> et seul le <code>COPY</code> re-tourne. <strong>L&#39;ordre des instructions = la vitesse de tes builds.</strong> Règle : dépendances <strong>en haut</strong>, code <strong>en bas</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the <strong>second</strong> build, since <code>COPY app.py</code> is <strong>before</strong> the <code>RUN pip install</code>, <strong>changing the content</strong> of <code>app.py</code> <strong>invalidates</strong> the <code>COPY</code> layer cache <strong>and</strong> everything after → <code>pip install</code> <strong>re-runs</strong> (you see <code>RUN pip install…</code> running, not <code>CACHED</code>). <em>(Important: Docker (BuildKit) caches <code>COPY</code> on the file&#39;s <strong>content</strong> — a plain <code>touch</code> with no change busts nothing; you must actually change the content, like the <code>echo &gt;&gt;</code> above.)</em> Reverse the order (<code>RUN pip install</code> <strong>before</strong> <code>COPY app.py</code>), rebuild after another edit to <code>app.py</code>: this time <code>pip install</code> shows <strong><code>CACHED</code></strong> and only the <code>COPY</code> re-runs. <strong>Instruction order = your build speed.</strong> Rule: dependencies <strong>at the top</strong>, code <strong>at the bottom</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre <strong><code>ENTRYPOINT</code> vs <code>CMD</code></strong> par l&#39;expérience.</p>
+<p><strong>🤔 Fixe vs surchargeable.</strong> Crée deux images pour comparer :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand <strong><code>ENTRYPOINT</code> vs <code>CMD</code></strong> by experiment.</p>
+<p><strong>🤔 Fixed vs overridable.</strong> Create two images to compare:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># CMD seul : entièrement remplaçable / CMD only: fully replaceable
+printf &#39;FROM alpine:3.20\nCMD [&quot;echo&quot;, &quot;défaut CMD&quot;]\n&#39; &gt; Dockerfile.cmd
+docker build -t t-cmd -f Dockerfile.cmd .
+docker run t-cmd                 # -&gt; &quot;défaut CMD&quot;
+docker run t-cmd echo autre      # -&gt; &quot;autre&quot; (CMD entièrement écrasé) / CMD fully overridden
+
+# ENTRYPOINT + CMD : programme fixe + args par défaut / fixed program + default args
+printf &#39;FROM alpine:3.20\nENTRYPOINT [&quot;echo&quot;]\nCMD [&quot;défaut arg&quot;]\n&#39; &gt; Dockerfile.ep
+docker build -t t-ep -f Dockerfile.ep .
+docker run t-ep                  # -&gt; &quot;défaut arg&quot;
+docker run t-ep bonjour          # -&gt; &quot;bonjour&quot; (seul l&#39;ARGUMENT change) / only the ARGUMENT changes</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avec <strong><code>CMD</code> seul</strong>, <code>docker run t-cmd echo autre</code> <strong>remplace tout</strong> (la commande devient <code>echo autre</code>). Avec <strong><code>ENTRYPOINT [&quot;echo&quot;]</code> + <code>CMD</code></strong>, <code>docker run t-ep bonjour</code> garde le programme <code>echo</code> <strong>fixe</strong> et ne remplace que l&#39;<strong>argument</strong> → <code>bonjour</code>. C&#39;est <strong>la</strong> distinction d&#39;examen : <code>ENTRYPOINT</code> = <strong>le programme</strong> (l&#39;image <em>est</em> cet outil), <code>CMD</code> = <strong>les arguments par défaut</strong>, surchargés par ce qu&#39;on passe à <code>docker run</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> with <strong><code>CMD</code> only</strong>, <code>docker run t-cmd echo autre</code> <strong>replaces everything</strong> (the command becomes <code>echo autre</code>). With <strong><code>ENTRYPOINT [&quot;echo&quot;]</code> + <code>CMD</code></strong>, <code>docker run t-ep bonjour</code> keeps the <code>echo</code> program <strong>fixed</strong> and only replaces the <strong>argument</strong> → <code>bonjour</code>. That&#39;s <strong>the</strong> exam distinction: <code>ENTRYPOINT</code> = <strong>the program</strong> (the image <em>is</em> that tool), <code>CMD</code> = <strong>the default arguments</strong>, overridden by what you pass to <code>docker run</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Utiliser <strong><code>ARG</code></strong>, <strong><code>ENV</code></strong> et <strong><code>HEALTHCHECK</code></strong>.</p>
+<p><strong>🤔 Build-time vs run-time vs santé.</strong> Crée une image qui les combine :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Use <strong><code>ARG</code></strong>, <strong><code>ENV</code></strong> and <strong><code>HEALTHCHECK</code></strong>.</p>
+<p><strong>🤔 Build-time vs run-time vs health.</strong> Create an image that combines them:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; Dockerfile.vars &lt;&lt;&#39;EOF&#39;
+FROM nginx:1.27-alpine
+ARG VERSION=dev                 # variable de BUILD (absente de l&#39;image finale) / BUILD var
+ENV APP_VERSION=$VERSION         # persistée DANS l&#39;image / persisted IN the image
+RUN echo &quot;build de la version $VERSION&quot; &gt; /usr/share/nginx/html/index.html
+HEALTHCHECK --interval=5s --timeout=3s CMD wget -qO- localhost/ || exit 1
+EOF
+docker build --build-arg VERSION=1.4 -t t-vars -f Dockerfile.vars .
+
+docker run -d --name web t-vars
+docker exec web printenv APP_VERSION      # -&gt; 1.4 (ENV persistée) / ENV persisted
+sleep 8 ; docker ps --filter name=web --format &#39;{{.Status}}&#39;   # -&gt; Up ... (healthy)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker exec web printenv APP_VERSION</code> renvoie <strong><code>1.4</code></strong> — la valeur passée en <strong><code>ARG</code></strong> au build a été copiée dans une <strong><code>ENV</code></strong> persistée (mais <code>VERSION</code>, l&#39;<code>ARG</code>, n&#39;existe <strong>pas</strong> dans le conteneur : c&#39;était build-time). Après quelques secondes, <code>docker ps</code> affiche <strong><code>Up … (healthy)</code></strong> : le <strong><code>HEALTHCHECK</code></strong> a exécuté sa commande et jugé le conteneur <strong>sain</strong>. Retiens : <strong><code>ARG</code></strong> = build seulement, <strong><code>ENV</code></strong> = dans l&#39;image/le conteneur, <strong><code>HEALTHCHECK</code></strong> = supervision intégrée. <em>(Nettoyage : <code>docker rm -f web</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker exec web printenv APP_VERSION</code> returns <strong><code>1.4</code></strong> — the value passed as <strong><code>ARG</code></strong> at build was copied into a persisted <strong><code>ENV</code></strong> (but <code>VERSION</code>, the <code>ARG</code>, does <strong>not</strong> exist in the container: it was build-time). After a few seconds, <code>docker ps</code> shows <strong><code>Up … (healthy)</code></strong>: the <strong><code>HEALTHCHECK</code></strong> ran its command and judged the container <strong>healthy</strong>. Remember: <strong><code>ARG</code></strong> = build only, <strong><code>ENV</code></strong> = in the image/container, <strong><code>HEALTHCHECK</code></strong> = built-in supervision. <em>(Cleanup: <code>docker rm -f web</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire un build <strong>multi-stage</strong> et mesurer la <strong>réduction de taille</strong>.</p>
+<p><strong>🤔 Compiler dans une image, livrer dans une autre.</strong> On compile un binaire Go dans une image lourde, puis on ne copie que le binaire dans une image minuscule. Crée les fichiers :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>multi-stage</strong> build and measure the <strong>size reduction</strong>.</p>
+<p><strong>🤔 Compile in one image, ship in another.</strong> We compile a Go binary in a heavy image, then copy only the binary into a tiny image. Create the files:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; main.go &lt;&lt;&#39;EOF&#39;
+package main
+import (&quot;fmt&quot;; &quot;net/http&quot;)
+func main() {
+	http.HandleFunc(&quot;/&quot;, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, &quot;Hello depuis un binaire Go statique&quot;)
+	})
+	http.ListenAndServe(&quot;:8080&quot;, nil)
+}
+EOF
+
+cat &gt; Dockerfile.multi &lt;&lt;&#39;EOF&#39;
+# --- étape 1 : build (lourde) / stage 1: build (heavy) ---
+FROM golang:1.22-alpine AS build
+WORKDIR /src
+COPY main.go .
+RUN go mod init app &amp;&amp; CGO_ENABLED=0 go build -o /app .
+
+# --- étape 2 : finale (minimale) / stage 2: final (minimal) ---
+FROM alpine:3.20
+COPY --from=build /app /app          # ne copie QUE le binaire / copies ONLY the binary
+EXPOSE 8080
+ENTRYPOINT [&quot;/app&quot;]
+EOF
+docker build -t t-multi -f Dockerfile.multi .
+
+docker images | grep -E &#39;golang|t-multi&#39;    # compare les tailles / compare the sizes</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker images</code> montre que <strong><code>golang:1.22-alpine</code></strong> pèse plusieurs centaines de Mo, tandis que <strong><code>t-multi</code></strong> ne fait que <strong>~15-20 Mo</strong> (Alpine + le binaire). L&#39;image finale <strong>ne contient ni Go, ni les sources</strong> — le <code>COPY --from=build</code> n&#39;a repris <strong>que</strong> le binaire compilé. Lance-la (<code>docker run -d -p 8080:8080 t-multi</code> puis <code>curl localhost:8080</code>) : elle sert la page. <strong>Le multi-stage</strong> est la technique n°1 pour des images de prod légères, rapides à distribuer et à faible surface d&#39;attaque. <em>(Nettoyage : <code>docker rm -f $(docker ps -aq --filter ancestor=t-multi) 2&gt;/dev/null</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker images</code> shows that <strong><code>golang:1.22-alpine</code></strong> weighs several hundred MB, while <strong><code>t-multi</code></strong> is only <strong>~15-20 MB</strong> (Alpine + the binary). The final image contains <strong>neither Go nor the sources</strong> — the <code>COPY --from=build</code> took <strong>only</strong> the compiled binary. Run it (<code>docker run -d -p 8080:8080 t-multi</code> then <code>curl localhost:8080</code>): it serves the page. <strong>Multi-stage</strong> is the #1 technique for lightweight production images, fast to distribute and low attack surface. <em>(Cleanup: <code>docker rm -f $(docker ps -aq --filter ancestor=t-multi) 2&gt;/dev/null</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer les images : <strong>couches</strong> (<code>history</code>), <strong>métadonnées</strong> (<code>inspect</code>), <strong>nettoyage</strong> (<code>prune</code>).</p>
+<p><strong>🤔 Regarder sous le capot.</strong> Inspecte l&#39;image multi-stage :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage images: <strong>layers</strong> (<code>history</code>), <strong>metadata</strong> (<code>inspect</code>), <strong>cleanup</strong> (<code>prune</code>).</p>
+<p><strong>🤔 Look under the hood.</strong> Inspect the multi-stage image:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker history t-multi                       # les couches et leur taille / the layers and their sizes
+docker inspect t-multi --format &#39;{{.Config.Entrypoint}} / {{.Config.ExposedPorts}}&#39;
+docker image ls                              # toutes les images / all images
+
+# nettoyage / cleanup
+docker image prune -f                        # supprime les images &quot;dangling&quot; (sans tag) / dangling images
+docker builder prune -f                      # vide le cache de build / clears the build cache</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker history t-multi</code> liste les <strong>couches</strong> de l&#39;image (chaque <code>COPY</code>/<code>ENTRYPOINT</code>…) avec leur <strong>taille</strong> — tu vois concrètement de quoi l&#39;image est faite. <code>docker inspect --format …</code> extrait ses <strong>métadonnées</strong> (ici <code>ENTRYPOINT</code> = <code>[/app]</code> et le port exposé). <code>docker image prune</code> supprime les images <strong>dangling</strong> (couches orphelines des rebuilds, qui s&#39;accumulent), et <code>builder prune</code> vide le <strong>cache de build</strong> — l&#39;hygiène disque indispensable quand on builde souvent. <em>(<code>docker system df</code> montre l&#39;espace pris par images/conteneurs/cache.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker history t-multi</code> lists the image&#39;s <strong>layers</strong> (each <code>COPY</code>/<code>ENTRYPOINT</code>…) with their <strong>size</strong> — you see concretely what the image is made of. <code>docker inspect --format …</code> extracts its <strong>metadata</strong> (here <code>ENTRYPOINT</code> = <code>[/app]</code> and the exposed port). <code>docker image prune</code> deletes <strong>dangling</strong> images (orphan layers from rebuilds, which pile up), and <code>builder prune</code> clears the <strong>build cache</strong> — the disk hygiene you need when building often. <em>(<code>docker system df</code> shows the space taken by images/containers/cache.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Distribuer une image : un <strong>registre local</strong>, et l&#39;export <strong><code>save</code>/<code>load</code></strong>.</p>
+<p><strong>🤔 Ton propre Docker Hub.</strong> L&#39;image <code>registry:2</code> est un registre complet. On la lance, on <strong>tague</strong> notre image pour ce registre, on la <strong>pousse</strong>, et on la <strong>retire</strong>. Puis l&#39;alternative hors-ligne <code>save</code>/<code>load</code>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Distribute an image: a <strong>local registry</strong>, and the <strong><code>save</code>/<code>load</code></strong> export.</p>
+<p><strong>🤔 Your own Docker Hub.</strong> The <code>registry:2</code> image is a full registry. We run it, <strong>tag</strong> our image for it, <strong>push</strong> it, and <strong>pull</strong> it. Then the offline <code>save</code>/<code>load</code> alternative.</p>
+</div>
+<h1>NB : port hôte 5001 (sur macOS, 5000 est pris par AirPlay Receiver)</h1>
+<p>docker tag t-multi localhost:5001/monapp:1.0               # tag = registre/nom:version / registry/name:version docker push localhost:5001/monapp:1.0                       # POUSSE vers le registre / PUSH docker rmi localhost:5001/monapp:1.0                        # retire le TAG local / drop the local tag docker pull localhost:5001/monapp:1.0                       # le restaure depuis le registre / restore it from the registry</p>
+<h1>alternative hors-ligne : archive .tar / offline alternative: .tar archive</h1>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Copier le code avant d&#39;installer les dépendances.</strong> Chaque modif de code invalide le cache et <strong>réinstalle tout</strong>. Ordre correct : dépendances (rarement changées) <strong>en haut</strong>, code <strong>en bas</strong>.</p>
+<p><strong>2. Confondre <code>ENTRYPOINT</code> et <code>CMD</code>.</strong> <code>CMD</code> est <strong>entièrement</strong> remplacé par les arguments de <code>docker run</code> ; <code>ENTRYPOINT</code> reste. Pour un outil, <code>ENTRYPOINT</code> ; pour un défaut surchargeable, <code>CMD</code>.</p>
+<p><strong>3. Mettre un secret dans un <code>ENV</code> (ou l&#39;écrire dans une couche).</strong> Une valeur <code>ENV</code> est <strong>persistée dans les métadonnées</strong> de l&#39;image (visible via <code>docker inspect</code>/<code>history</code>) ; un <code>ARG</code> qui finit dans un <code>ENV</code>, un <code>RUN echo</code>, ou un fichier <strong>fuite</strong> aussi dans les couches. Ne jamais y mettre de mot de passe/clé — utilise les <strong>secrets de build</strong> (<code>RUN --mount=type=secret</code>) ou les secrets d&#39;exécution (guide sécurité).</p>
+<p><strong>4. <code>ADD</code> au lieu de <code>COPY</code>.</strong> <code>ADD</code> a des comportements magiques (décompression, URL) sources de surprises. Préfère <strong><code>COPY</code></strong> ; réserve <code>ADD</code> à ses cas précis.</p>
+<p><strong>5. Oublier <code>.dockerignore</code>.</strong> Sans lui, <code>COPY . .</code> embarque <code>.git</code>, <code>node_modules</code>, des artefacts — build lent et image lourde. Ajoute un <code>.dockerignore</code> (comme <code>.gitignore</code>).</p>
+<p><strong>6. Ne pas nettoyer.</strong> Les images <strong>dangling</strong> et le <strong>cache de build</strong> grossissent sans fin. <code>docker image prune</code>, <code>docker builder prune</code>, <code>docker system df</code> régulièrement.</p>
+<p><strong>7. Oublier le multi-stage.</strong> Livrer l&#39;image de build (avec compilateur + sources) = image énorme et exposée. Sépare <strong>build</strong> et <strong>runtime</strong> avec un multi-stage.</p>
+</div>
+<div data-lang="en"><p><strong>1. Copying code before installing dependencies.</strong> Every code change invalidates the cache and <strong>reinstalls everything</strong>. Correct order: dependencies (rarely changed) <strong>at the top</strong>, code <strong>at the bottom</strong>.</p>
+<p><strong>2. Confusing <code>ENTRYPOINT</code> and <code>CMD</code>.</strong> <code>CMD</code> is <strong>entirely</strong> replaced by <code>docker run</code>&#39;s arguments; <code>ENTRYPOINT</code> stays. For a tool, <code>ENTRYPOINT</code>; for an overridable default, <code>CMD</code>.</p>
+<p><strong>3. Putting a secret in an <code>ENV</code> (or writing it into a layer).</strong> An <code>ENV</code> value is <strong>persisted in the image metadata</strong> (visible via <code>docker inspect</code>/<code>history</code>); an <code>ARG</code> that ends up in an <code>ENV</code>, a <code>RUN echo</code>, or a file also <strong>leaks</strong> into the layers. Never put a password/key there — use <strong>build secrets</strong> (<code>RUN --mount=type=secret</code>) or runtime secrets (security guide).</p>
+<p><strong>4. <code>ADD</code> instead of <code>COPY</code>.</strong> <code>ADD</code> has magic behaviors (unpacking, URLs) that cause surprises. Prefer <strong><code>COPY</code></strong>; reserve <code>ADD</code> for its specific cases.</p>
+<p><strong>5. Forgetting <code>.dockerignore</code>.</strong> Without it, <code>COPY . .</code> bundles <code>.git</code>, <code>node_modules</code>, artifacts — slow build and heavy image. Add a <code>.dockerignore</code> (like <code>.gitignore</code>).</p>
+<p><strong>6. Not cleaning up.</strong> <strong>Dangling</strong> images and the <strong>build cache</strong> grow endlessly. <code>docker image prune</code>, <code>docker builder prune</code>, <code>docker system df</code> regularly.</p>
+<p><strong>7. Skipping multi-stage.</strong> Shipping the build image (with compiler + sources) = a huge, exposed image. Separate <strong>build</strong> and <strong>runtime</strong> with a multi-stage.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques les <strong>couches</strong> et tu ordonnes un <code>Dockerfile</code> pour le <strong>cache</strong>.</li><li>Tu distingues <strong><code>ENTRYPOINT</code></strong> et <strong><code>CMD</code></strong> et tu choisis la bonne combinaison.</li><li>Tu utilises <strong><code>ARG</code></strong>/<strong><code>ENV</code></strong>/<strong><code>HEALTHCHECK</code></strong> à bon escient.</li><li>Tu écris un build <strong>multi-stage</strong> et tu obtiens une image <strong>minimale</strong>.</li><li>Tu lis <code>history</code>/<code>inspect</code> et tu <strong>nettoies</strong> (<code>prune</code>).</li><li>Tu <strong>pousses/tires</strong> via un registre local et tu utilises <strong><code>save</code>/<code>load</code></strong>.</li></ul>
+<p>Six cases cochées = tu tiens <strong>création &amp; gestion d&#39;images</strong> du DCA.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You explain <strong>layers</strong> and order a <code>Dockerfile</code> for the <strong>cache</strong>.</li><li>You distinguish <strong><code>ENTRYPOINT</code></strong> from <strong><code>CMD</code></strong> and pick the right combination.</li><li>You use <strong><code>ARG</code></strong>/<strong><code>ENV</code></strong>/<strong><code>HEALTHCHECK</code></strong> appropriately.</li><li>You write a <strong>multi-stage</strong> build and get a <strong>minimal</strong> image.</li><li>You read <code>history</code>/<code>inspect</code> and <strong>clean up</strong> (<code>prune</code>).</li><li>You <strong>push/pull</strong> via a local registry and use <strong><code>save</code>/<code>load</code></strong>.</li></ul>
+<p>Six boxes ticked = you hold DCA <strong>image creation &amp; management</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Docker → DCA :</p>
+<ol><li><strong>Réseau Docker</strong> — bridge, host, réseaux définis par l&#39;utilisateur, DNS, publication de ports.</li><li><strong>Stockage &amp; volumes</strong> — volumes, bind mounts, tmpfs, sauvegarde de données.</li><li><strong>Sécurité</strong> — utilisateur non-root, capabilities, read-only, limites, secrets, scan.</li><li><strong>Orchestration Swarm</strong> — services, stacks, secrets, réseau overlay.</li><li><strong>Projet d&#39;entreprise</strong> — image multi-stage → registre → stack Swarm.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Docker → DCA track:</p>
+<ol><li><strong>Docker networking</strong> — bridge, host, user-defined networks, DNS, port publishing.</li><li><strong>Storage &amp; volumes</strong> — volumes, bind mounts, tmpfs, data backup.</li><li><strong>Security</strong> — non-root user, capabilities, read-only, limits, secrets, scanning.</li><li><strong>Swarm orchestration</strong> — services, stacks, secrets, overlay network.</li><li><strong>Enterprise project</strong> — multi-stage image → registry → Swarm stack.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../cicd-github-actions/">
+    <span class="num">19</span>
+    <span class="title-line" data-lang="fr">CI/CD avec GitHub Actions</span>
+    <span class="title-line" data-lang="en">CI/CD with GitHub Actions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire images &amp; Dockerfile.</p>
+</div>
+<div data-lang="en"><p>Images &amp; Dockerfile cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Build &amp; cache
+docker build -t nom:tag .        # deps EN HAUT, code EN BAS pour le cache / deps top, code bottom
+docker build --build-arg K=V -t nom .      # passer un ARG / pass an ARG
+
+# Dockerfile clés / key instructions
+# FROM ; WORKDIR ; COPY (pas ADD) ; RUN ; ENV k=v ; ARG k=v (build) ; EXPOSE
+# ENTRYPOINT [&quot;prog&quot;]  (fixe/fixed)  +  CMD [&quot;arg&quot;]  (défaut surchargeable/overridable)
+# HEALTHCHECK --interval=5s CMD cmd || exit 1
+
+# Multi-stage
+# FROM img AS build ; ... ; FROM slim ; COPY --from=build /bin /bin
+
+# Gestion / management
+docker images ; docker history IMG ; docker inspect IMG ; docker system df
+docker image prune -f ; docker builder prune -f
+
+# Distribution
+docker tag IMG registre/nom:tag ; docker push registre/nom:tag ; docker pull ...
+docker run -d -p 5001:5000 registry:2      # registre local (5001 : macOS AirPlay tient :5000) / local registry
+docker save IMG -o img.tar ; docker load -i img.tar   # hors-ligne / offline</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com/reference/dockerfile/">Référence du Dockerfile</a> — toutes les instructions.</li><li><a href="https://docs.docker.com/build/building/multi-stage/">Builds multi-stage</a> et <a href="https://docs.docker.com/build/building/best-practices/">bonnes pratiques d&#39;image</a>.</li><li><a href="https://hub.docker.com/_/registry">Le registre <code>registry:2</code></a> et <a href="https://docs.docker.com/reference/cli/docker/image/save/"><code>docker save</code>/<code>load</code></a>.</li><li>Domaine <strong>DCA « Image Creation, Management, and Registry »</strong> (~20 %).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com/reference/dockerfile/">Dockerfile reference</a> — all instructions.</li><li><a href="https://docs.docker.com/build/building/multi-stage/">Multi-stage builds</a> and <a href="https://docs.docker.com/build/building/best-practices/">image best practices</a>.</li><li><a href="https://hub.docker.com/_/registry">The <code>registry:2</code> registry</a> and <a href="https://docs.docker.com/reference/cli/docker/image/save/"><code>docker save</code>/<code>load</code></a>.</li><li><strong>DCA &quot;Image Creation, Management, and Registry&quot;</strong> domain (~20%).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Mon build est lent à chaque petite modif.</strong> Le cache est cassé par l&#39;ordre : mets <code>RUN</code> d&#39;installation des dépendances <strong>avant</strong> le <code>COPY</code> du code. Vérifie avec <code>docker build</code> (les lignes <code>CACHED</code>).</p>
+<p><strong><code>docker run img arg</code> ignore mon <code>arg</code>.</strong> L&#39;image a un <code>ENTRYPOINT</code> : <code>arg</code> devient un <strong>argument</strong> de l&#39;entrypoint, pas une nouvelle commande. Pour tout remplacer : <code>docker run --entrypoint autre img</code>.</p>
+<p><strong><code>go build</code> échoue avec « go.mod not found ».</strong> Ajoute <code>go mod init app</code> avant <code>go build</code> (mode module de Go). C&#39;est fait dans l&#39;étape build du guide.</p>
+<p><strong>L&#39;image finale est énorme.</strong> Tu livres l&#39;étape de build. Utilise un <strong>multi-stage</strong> et une base <strong>slim/alpine</strong>, et un <code>.dockerignore</code>.</p>
+<p><strong><code>docker push localhost:5001/...</code> échoue (« http: server gave HTTP response to HTTPS client »).</strong> Pour un registre <strong>non-<code>localhost</code></strong>, Docker exige HTTPS. Sur <code>localhost</code> c&#39;est toléré ; sinon configure le registre en <code>insecure-registries</code> dans <code>/etc/docker/daemon.json</code>.</p>
+<p><strong>« no space left on device » en buildant.</strong> Cache et images dangling saturent le disque. <code>docker system prune -af</code> (attention : supprime tout ce qui n&#39;est pas utilisé) et <code>docker system df</code> pour surveiller.</p>
+</div>
+<div data-lang="en"><p><strong>My build is slow on every small change.</strong> The cache is broken by order: put the dependency-install <code>RUN</code> <strong>before</strong> the code <code>COPY</code>. Check with <code>docker build</code> (the <code>CACHED</code> lines).</p>
+<p><strong><code>docker run img arg</code> ignores my <code>arg</code>.</strong> The image has an <code>ENTRYPOINT</code>: <code>arg</code> becomes an <strong>argument</strong> to the entrypoint, not a new command. To replace everything: <code>docker run --entrypoint other img</code>.</p>
+<p><strong><code>go build</code> fails with &quot;go.mod not found&quot;.</strong> Add <code>go mod init app</code> before <code>go build</code> (Go&#39;s module mode). It&#39;s done in the guide&#39;s build stage.</p>
+<p><strong>The final image is huge.</strong> You&#39;re shipping the build stage. Use a <strong>multi-stage</strong> and a <strong>slim/alpine</strong> base, and a <code>.dockerignore</code>.</p>
+<p><strong><code>docker push localhost:5001/...</code> fails (&quot;http: server gave HTTP response to HTTPS client&quot;).</strong> For a <strong>non-<code>localhost</code></strong> registry, Docker requires HTTPS. On <code>localhost</code> it&#39;s tolerated; otherwise configure the registry in <code>insecure-registries</code> in <code>/etc/docker/daemon.json</code>.</p>
+<p><strong>&quot;no space left on device&quot; while building.</strong> Cache and dangling images fill the disk. <code>docker system prune -af</code> (careful: removes everything unused) and <code>docker system df</code> to monitor.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

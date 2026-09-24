@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — administration système par modules — jiha.tech</title>
+  <title data-lang="en">Ansible — system administration via modules — jiha.tech</title>
+  <meta name="description" content="Le gros bloc « gérer le contenu système » de l&#39;EX294 : créer utilisateurs et groupes (user/group), gérer les mots de passe hachés et leur expiration, installer/retirer des paquets (apt/dnf/package), piloter les services au boot (service/systemd), planifier des tâches (cron), configurer le pare-feu (firewalld / ufw), et gérer le stockage LVM (lvg/lvol/filesystem/mount). Cœur testable en local, services/pare-feu/LVM sur ta VM de parc." data-lang="fr">
+  <meta name="description" content="The big &#39;manage system content&#39; block of EX294: create users and groups (user/group), manage hashed passwords and their expiry, install/remove packages (apt/dnf/package), drive services at boot (service/systemd), schedule tasks (cron), configure the firewall (firewalld / ufw), and manage LVM storage (lvg/lvol/filesystem/mount). Testable core locally, services/firewall/LVM on your fleet VM." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — administration système par modules">
+  <meta property="og:description" content="Le gros bloc « gérer le contenu système » de l&#39;EX294 : créer utilisateurs et groupes (user/group), gérer les mots de passe hachés et leur expiration, installer/retirer des paquets (apt/dnf/package), piloter les services au boot (service/systemd), planifier des tâches (cron), configurer le pare-feu (firewalld / ufw), et gérer le stockage LVM (lvg/lvol/filesystem/mount). Cœur testable en local, services/pare-feu/LVM sur ta VM de parc.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-administration-systeme/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-administration-systeme/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-administration-systeme">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-administration-systeme</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-administration-systeme</div>
+    <h1 data-lang="fr">Ansible — administration système par modules</h1>
+    <h1 data-lang="en">Ansible — system administration via modules</h1>
+    <p class="tagline" data-lang="fr">user, group, package, service, cron, firewalld, lvol.</p>
+    <p class="tagline" data-lang="en">user, group, package, service, cron, firewalld, lvol.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 230 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 230 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Jusqu&#39;ici tu as appris la <strong>grammaire</strong> d&#39;Ansible : inventaire, contrôle de flux, variables, rôles, secrets. Ce guide-ci porte sur le <strong>vocabulaire métier</strong> — les modules qui font le vrai travail d&#39;un administrateur : créer des utilisateurs, poser des mots de passe, installer des paquets, activer des services au démarrage, planifier des tâches, ouvrir un pare-feu, étendre un volume LVM. C&#39;est <strong>le plus gros bloc de l&#39;examen RHCE/EX294</strong> (« gérer le contenu système »), et c&#39;est ce qui rend Ansible utile au quotidien.</p>
+<p>La règle d&#39;or ici : <strong>toujours le module dédié, jamais <code>command</code>/<code>shell</code></strong>. <code>ansible.builtin.user</code> sait si l&#39;utilisateur existe déjà (idempotence) ; <code>useradd</code> via <code>shell</code> ne le sait pas. Chaque section te donne le bon module, ses paramètres qui tombent à l&#39;examen, et le piège classique.</p>
+<p>Ce que tu peux tester <strong>en local</strong> (sur <code>localhost</code>, en root) : utilisateurs, groupes, mots de passe, paquets, tâches cron. Ce qui exige une <strong>vraie machine gérée</strong> avec systemd/pare-feu/disque (ta VM de parc <code>web1</code> des guides précédents) : les services, <code>firewalld</code>, et LVM — on te le signale à chaque fois, avec la sortie attendue.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises toute la mécanique Ansible (guides précédents) et tu veux le catalogue des modules d&#39;administration système.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas encore écrire un playbook idempotent → reviens en arrière dans le track.</li><li>Tu veux apprendre ces tâches <strong>à la main</strong> (sans Ansible) → c&#39;est le track <strong>Linux/LPIC-1</strong> ; ici on les <strong>automatise</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>So far you&#39;ve learned Ansible&#39;s <strong>grammar</strong>: inventory, flow control, variables, roles, secrets. This guide is about the <strong>domain vocabulary</strong> — the modules that do a sysadmin&#39;s real work: create users, set passwords, install packages, enable services at boot, schedule tasks, open a firewall, extend an LVM volume. It&#39;s <strong>the biggest block of the RHCE/EX294 exam</strong> (&quot;manage system content&quot;), and it&#39;s what makes Ansible useful day to day.</p>
+<p>The golden rule here: <strong>always the dedicated module, never <code>command</code>/<code>shell</code></strong>. <code>ansible.builtin.user</code> knows whether the user already exists (idempotence); <code>useradd</code> via <code>shell</code> doesn&#39;t. Each section gives you the right module, its exam-relevant parameters, and the classic trap.</p>
+<p>What you can test <strong>locally</strong> (on <code>localhost</code>, as root): users, groups, passwords, packages, cron tasks. What needs a <strong>real managed machine</strong> with systemd/firewall/disk (your <code>web1</code> fleet VM from earlier guides): services, <code>firewalld</code>, and LVM — we flag it each time, with the expected output.</p>
+<p><strong>Who it&#39;s for:</strong> you master all of Ansible&#39;s mechanics (previous guides) and you want the system-administration module catalog.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t yet write an idempotent playbook → go back in the track.</li><li>You want to learn these tasks <strong>by hand</strong> (without Ansible) → that&#39;s the <strong>Linux/LPIC-1</strong> track; here we <strong>automate</strong> them.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Créer groupes et utilisateurs (<strong><code>group</code></strong>, <strong><code>user</code></strong>) : système, shell, groupes secondaires, suppression.</li><li>Poser un <strong>mot de passe haché</strong> (<code>password_hash</code>) et gérer l&#39;<strong>expiration</strong> et le verrouillage.</li><li>Installer/retirer/mettre à jour des <strong>paquets</strong> (<strong><code>apt</code></strong>, <strong><code>dnf</code></strong>, <strong><code>package</code></strong>).</li><li>Piloter un <strong>service</strong> au démarrage (<strong><code>service</code></strong>/<strong><code>systemd_service</code></strong> : started, enabled, restarted).</li><li>Planifier une <strong>tâche cron</strong> (<strong><code>cron</code></strong> : <code>special_time</code>, <code>cron_file</code>, variables d&#39;env).</li><li>Configurer le <strong>pare-feu</strong> (<strong><code>firewalld</code></strong> RHEL / <strong><code>ufw</code></strong> Debian).</li><li>Gérer le <strong>stockage LVM</strong> (<strong><code>lvg</code></strong>, <strong><code>lvol</code></strong>, <strong><code>filesystem</code></strong>, <strong><code>mount</code></strong>).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Create groups and users (<strong><code>group</code></strong>, <strong><code>user</code></strong>): system, shell, secondary groups, removal.</li><li>Set a <strong>hashed password</strong> (<code>password_hash</code>) and manage <strong>expiry</strong> and locking.</li><li>Install/remove/upgrade <strong>packages</strong> (<strong><code>apt</code></strong>, <strong><code>dnf</code></strong>, <strong><code>package</code></strong>).</li><li>Drive a <strong>service</strong> at boot (<strong><code>service</code></strong>/<strong><code>systemd_service</code></strong>: started, enabled, restarted).</li><li>Schedule a <strong>cron task</strong> (<strong><code>cron</code></strong>: <code>special_time</code>, <code>cron_file</code>, env variables).</li><li>Configure the <strong>firewall</strong> (<strong><code>firewalld</code></strong> RHEL / <strong><code>ufw</code></strong> Debian).</li><li>Manage <strong>LVM storage</strong> (<strong><code>lvg</code></strong>, <strong><code>lvol</code></strong>, <strong><code>filesystem</code></strong>, <strong><code>mount</code></strong>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Tous les guides Ansible précédents du track (jusqu&#39;à <em>Vault</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>Un dossier de travail et les droits <strong>root</strong> (via <code>become</code>). Les étapes 1-2-3-5 sont <strong>testables sur <code>localhost</code></strong> en <code>connection: local</code>.</li><li>Pour l&#39;étape 2 (mot de passe haché), le filtre <code>password_hash</code> requiert <strong>passlib</strong> sur ansible-core récent : <code>pip install passlib</code> (ou <code>apt install python3-passlib</code> ; déjà présent sur un paquet <code>ansible</code> packagé). Et le module <code>cron</code> (étape 5) a besoin du paquet <strong><code>cron</code></strong> installé (on l&#39;installe dans le playbook).</li><li>Pour les étapes 4 (services), 6 (pare-feu) et 7 (LVM) : une <strong>VM gérée</strong> avec systemd (ta VM <code>web1</code> du guide <em>inventaire</em>), car un conteneur n&#39;a ni systemd, ni firewalld, ni disque à partitionner. Certains modules vivent dans des <strong>collections</strong> (<code>ansible.posix.firewalld</code>, <code>community.general.lvol</code>) préinstallées sur un paquet <code>ansible</code>, à installer sinon (<code>ansible-galaxy collection install ...</code>).</li></ul>
+</div>
+<div data-lang="en"><ul><li>All previous Ansible track guides (through <em>Vault</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>).</li><li>A working folder and <strong>root</strong> rights (via <code>become</code>). Steps 1-2-3-5 are <strong>testable on <code>localhost</code></strong> with <code>connection: local</code>.</li><li>For step 2 (hashed password), the <code>password_hash</code> filter requires <strong>passlib</strong> on recent ansible-core: <code>pip install passlib</code> (or <code>apt install python3-passlib</code>; already present on a packaged <code>ansible</code> package). And the <code>cron</code> module (step 5) needs the <strong><code>cron</code></strong> package installed (we install it in the playbook).</li><li>For steps 4 (services), 6 (firewall) and 7 (LVM): a <strong>managed VM</strong> with systemd (your <code>web1</code> VM from the <em>inventory</em> guide), because a container has neither systemd, nor firewalld, nor a disk to partition. Some modules live in <strong>collections</strong> (<code>ansible.posix.firewalld</code>, <code>community.general.lvol</code>) preinstalled on an <code>ansible</code> package, otherwise installable (<code>ansible-galaxy collection install ...</code>).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-vault/">
+    <span class="num">25</span>
+    <span class="title-line" data-lang="fr">Ansible — Vault : chiffrer les secrets</span>
+    <span class="title-line" data-lang="en">Ansible — Vault: encrypting secrets</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong><code>group</code> &amp; <code>user</code>.</strong> Les modules d&#39;identité. <code>group</code> gère un groupe (<code>name</code>, <code>gid</code>, <code>system</code>). <code>user</code> gère un compte : <code>name</code>, <code>groups</code> (secondaires) + <code>append: true</code> (ajouter sans écraser), <code>shell</code>, <code>home</code>, <code>system: true</code> (compte de service), <code>password</code> (haché), <code>state: absent</code> (supprimer). ⚠️ <code>append: false</code> (le défaut) <strong>remplace</strong> la liste des groupes secondaires.</p>
+<p><strong>Mot de passe haché.</strong> Le module <code>user</code> attend un mot de passe <strong>déjà haché</strong> (jamais en clair). On le génère avec le filtre <code>password_hash(&#39;sha512&#39;)</code>. On gère l&#39;expiration avec <code>password_expire_max</code>/<code>password_expire_min</code>, et le verrouillage avec <code>password_lock</code>.</p>
+<p><strong><code>apt</code>/<code>dnf</code>/<code>package</code>.</strong> Gestion des paquets. <code>apt</code> (Debian/Ubuntu), <code>dnf</code> (Fedora/RHEL), ou <code>package</code> (générique, choisit le bon). Paramètres clés : <code>name</code> (une liste possible), <code>state: present|absent|latest</code>, <code>update_cache: true</code>, <code>autoremove: true</code>.</p>
+<p><strong><code>service</code>/<code>systemd_service</code>.</strong> Pilote un service. <code>service</code> est générique ; <code>systemd_service</code> est spécifique systemd (avec <code>daemon_reload</code>). Paramètres : <code>state: started|stopped|restarted|reloaded</code>, <code>enabled: true</code> (démarrage au boot). <strong>Besoin de systemd</strong> → une vraie VM.</p>
+<p><strong><code>cron</code>.</strong> Gère une entrée de crontab. <code>name</code> (identifiant unique du job), <code>job</code> (la commande), <code>minute/hour/day/…</code> ou <code>special_time: daily|reboot|…</code>, <code>cron_file</code> (poser le job dans <code>/etc/cron.d/</code>), <code>user</code>, <code>env: true</code> (poser une variable d&#39;env comme <code>PATH</code>).</p>
+<p><strong>Pare-feu.</strong> <code>ansible.posix.firewalld</code> (RHEL : zones, services, ports, <code>permanent: true</code> + <code>immediate: true</code>, <code>state: enabled</code>) est le module d&#39;examen RHCE. Sur Debian/Ubuntu, l&#39;équivalent communautaire est <code>community.general.ufw</code>.</p>
+<p><strong>Stockage LVM.</strong> <code>community.general.lvg</code> (volume group sur un ou plusieurs disques), <code>community.general.lvol</code> (logical volume, <code>size</code>, <code>resizefs</code>), <code>community.general.filesystem</code> (formater), <code>ansible.posix.mount</code> (monter + <code>/etc/fstab</code>). C&#39;est la chaîne pour provisionner et étendre un volume.</p>
+</div>
+<div data-lang="en"><p><strong><code>group</code> &amp; <code>user</code>.</strong> The identity modules. <code>group</code> manages a group (<code>name</code>, <code>gid</code>, <code>system</code>). <code>user</code> manages an account: <code>name</code>, <code>groups</code> (secondary) + <code>append: true</code> (add without overwriting), <code>shell</code>, <code>home</code>, <code>system: true</code> (service account), <code>password</code> (hashed), <code>state: absent</code> (remove). ⚠️ <code>append: false</code> (the default) <strong>replaces</strong> the secondary group list.</p>
+<p><strong>Hashed password.</strong> The <code>user</code> module expects an <strong>already-hashed</strong> password (never clear). Generate it with the <code>password_hash(&#39;sha512&#39;)</code> filter. Manage expiry with <code>password_expire_max</code>/<code>password_expire_min</code>, and locking with <code>password_lock</code>.</p>
+<p><strong><code>apt</code>/<code>dnf</code>/<code>package</code>.</strong> Package management. <code>apt</code> (Debian/Ubuntu), <code>dnf</code> (Fedora/RHEL), or <code>package</code> (generic, picks the right one). Key params: <code>name</code> (a list is possible), <code>state: present|absent|latest</code>, <code>update_cache: true</code>, <code>autoremove: true</code>.</p>
+<p><strong><code>service</code>/<code>systemd_service</code>.</strong> Drives a service. <code>service</code> is generic; <code>systemd_service</code> is systemd-specific (with <code>daemon_reload</code>). Params: <code>state: started|stopped|restarted|reloaded</code>, <code>enabled: true</code> (start at boot). <strong>Needs systemd</strong> → a real VM.</p>
+<p><strong><code>cron</code>.</strong> Manages a crontab entry. <code>name</code> (the job&#39;s unique id), <code>job</code> (the command), <code>minute/hour/day/…</code> or <code>special_time: daily|reboot|…</code>, <code>cron_file</code> (place the job in <code>/etc/cron.d/</code>), <code>user</code>, <code>env: true</code> (set an env variable like <code>PATH</code>).</p>
+<p><strong>Firewall.</strong> <code>ansible.posix.firewalld</code> (RHEL: zones, services, ports, <code>permanent: true</code> + <code>immediate: true</code>, <code>state: enabled</code>) is the RHCE exam module. On Debian/Ubuntu, the community equivalent is <code>community.general.ufw</code>.</p>
+<p><strong>LVM storage.</strong> <code>community.general.lvg</code> (volume group over one or more disks), <code>community.general.lvol</code> (logical volume, <code>size</code>, <code>resizefs</code>), <code>community.general.filesystem</code> (format), <code>ansible.posix.mount</code> (mount + <code>/etc/fstab</code>). That&#39;s the chain to provision and extend a volume.</p>
+</div>
+
+<figure class="schema" id="figure-ansible-sysadmin-modules">
+  <svg viewBox="0 0 760 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-ansible-sysadmin-modules">
+  <title id="s-ansible-sysadmin-modules">Catalogue des modules (toujours &gt; command/shell)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Catalogue des modules (toujours &gt; command/shell)</text><rect class="box" x="16" y="40" width="230" height="62" rx="3"/><text class="lbl" x="131" y="68.5" text-anchor="middle">Identité</text><text class="sub" x="131" y="81.5" text-anchor="middle">group · user</text><rect class="box" x="264" y="40" width="230" height="62" rx="3"/><text class="lbl" x="379" y="68.5" text-anchor="middle">Logiciels</text><text class="sub" x="379" y="81.5" text-anchor="middle">apt · dnf</text><rect class="box" x="512" y="40" width="230" height="62" rx="3"/><text class="lbl" x="627" y="68.5" text-anchor="middle">Exécution</text><text class="sub" x="627" y="81.5" text-anchor="middle">service · cron</text><rect class="box" x="16" y="118" width="230" height="62" rx="3"/><text class="lbl" x="131" y="146.5" text-anchor="middle">Sécurité réseau</text><text class="sub" x="131" y="159.5" text-anchor="middle">firewalld · ufw</text><rect class="box" x="264" y="118" width="230" height="62" rx="3"/><text class="lbl" x="379" y="146.5" text-anchor="middle">Stockage</text><text class="sub" x="379" y="159.5" text-anchor="middle">lvg · lvol · mount</text><rect class="box-accent" x="512" y="118" width="230" height="62" rx="3"/><text class="lbl lbl-fill" x="627" y="146.5" text-anchor="middle">Idempotent</text><text class="sub sub-fill" x="627" y="159.5" text-anchor="middle">chaque module</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le catalogue des modules d&#39;administration système : identité (group/user), logiciels (apt/dnf), exécution (service/cron), sécurité réseau (firewalld/ufw) et stockage (lvg/lvol/mount) — chacun idempotent, à préférer toujours à command/shell.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The system-administration module catalog: identity (group/user), software (apt/dnf), execution (service/cron), network security (firewalld/ufw) and storage (lvg/lvol/mount) — each idempotent, always preferred over command/shell.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>groupe</strong> et un <strong>utilisateur</strong> proprement, avec groupes secondaires — testable en local.</p>
+<p><strong>🤔 Le piège <code>append</code>.</strong> <code>groups:</code> sans <code>append: true</code> <strong>écrase</strong> les groupes secondaires existants de l&#39;utilisateur. Pour <em>ajouter</em> un groupe sans virer les autres, il faut <strong><code>append: true</code></strong>. C&#39;est l&#39;erreur qui coûte des points à l&#39;examen (et casse des comptes en prod).</p>
+<p>Crée <code>admin.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>group</strong> and a <strong>user</strong> cleanly, with secondary groups — testable locally.</p>
+<p><strong>🤔 The <code>append</code> trap.</strong> <code>groups:</code> without <code>append: true</code> <strong>overwrites</strong> the user&#39;s existing secondary groups. To <em>add</em> a group without removing the others, you need <strong><code>append: true</code></strong>. It&#39;s the mistake that costs points on the exam (and breaks accounts in prod).</p>
+<p>Create <code>admin.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Administration système — atelier
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Un groupe applicatif
+      ansible.builtin.group:
+        name: atelier
+        state: present
+
+    - name: Un utilisateur de service
+      ansible.builtin.user:
+        name: deploy
+        comment: &quot;Compte de déploiement&quot;
+        groups: [atelier]
+        append: true            # AJOUTE au lieu d&#39;écraser / ADDS instead of overwriting
+        shell: /bin/bash
+        create_home: true
+        state: present
+      register: u
+
+    - name: Confirmer l&#39;appartenance
+      ansible.builtin.command: id deploy
+      register: idout
+      changed_when: false
+
+    - name: Montrer le résultat
+      ansible.builtin.debug:
+        msg: &quot;{{ idout.stdout }}&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook admin.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la tâche <code>group</code> puis <code>user</code> sont <code>changed</code> au 1er passage. La dernière tâche affiche une ligne <code>uid=1001(deploy) gid=1001(deploy) groups=1001(deploy),1002(atelier)</code> (les UID/GID exacts varient) : <code>deploy</code> est bien membre d&#39;<code>atelier</code>. <strong>Relance</strong> : tout passe <code>ok</code> (idempotence). Nettoie ensuite avec un <code>state: absent</code> sur <code>user</code> (+ <code>remove: true</code> pour le home) si tu veux.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>group</code> then <code>user</code> tasks are <code>changed</code> on the 1st pass. The last task prints a line <code>uid=1001(deploy) gid=1001(deploy) groups=1001(deploy),1002(atelier)</code> (exact UID/GIDs vary): <code>deploy</code> is indeed a member of <code>atelier</code>. <strong>Rerun</strong>: everything goes <code>ok</code> (idempotence). Then clean up with <code>state: absent</code> on <code>user</code> (+ <code>remove: true</code> for the home) if you like.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser un <strong>mot de passe haché</strong> et gérer l&#39;<strong>expiration</strong> — sans jamais écrire le mot de passe en clair.</p>
+<p><strong>🤔 Pourquoi le hash ?</strong> Le module <code>user</code> écrit directement dans <code>/etc/shadow</code>, qui attend un <strong>hash</strong>, pas un mot de passe. Passer du clair ne marcherait pas (ou stockerait le clair). On génère le hash avec <code>password_hash(&#39;sha512&#39;)</code>, idéalement à partir d&#39;une variable <strong>Vault</strong> (guide précédent). Ici, pour la démo, on part d&#39;une variable simple.</p>
+<p>Ajoute à <code>admin.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set a <strong>hashed password</strong> and manage <strong>expiry</strong> — without ever writing the password in clear.</p>
+<p><strong>🤔 Why the hash?</strong> The <code>user</code> module writes directly into <code>/etc/shadow</code>, which expects a <strong>hash</strong>, not a password. Passing clear text wouldn&#39;t work (or would store the clear text). We generate the hash with <code>password_hash(&#39;sha512&#39;)</code>, ideally from a <strong>Vault</strong> variable (previous guide). Here, for the demo, we start from a simple variable.</p>
+<p>Add to <code>admin.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Créer un compte AVEC son mot de passe haché (en une seule tâche)
+      ansible.builtin.user:
+        name: webadmin
+        password: &quot;{{ &#39;MotDePasseDemo2026&#39; | password_hash(&#39;sha512&#39;) }}&quot;
+        password_expire_max: 90        # expire dans 90 jours / expires in 90 days
+        update_password: on_create     # pose le hash à la CRÉATION, ne le rejoue jamais / set at CREATION only
+        shell: /bin/bash
+        state: present
+
+    - name: Vérifier l&#39;entrée shadow (préfixe du hash)
+      ansible.builtin.shell: &quot;getent shadow webadmin | cut -d: -f2 | cut -c1-3&quot;
+      register: shadow3
+      changed_when: false
+
+    - name: Montrer le préfixe du hash
+      ansible.builtin.debug:
+        msg: &quot;préfixe du hash = {{ shadow3.stdout }} (doit être $6$ = SHA512)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la dernière tâche affiche <code>préfixe du hash = $6$</code> — le <code>$6$</code> prouve un hash <strong>SHA512</strong> dans <code>/etc/shadow</code>. Comme <code>webadmin</code> est créé <strong>avec</strong> son mot de passe dans la <strong>même</strong> tâche, <code>on_create</code> le pose bien à la création. <strong>Relance</strong> le playbook : le compte existe déjà, le hash n&#39;est <strong>pas</strong> rejoué → la tâche passe <code>ok</code> et le hash reste <code>$6$</code> (idempotence prouvée). ⚠️ <strong><code>update_password: on_create</code> est crucial</strong> : sans lui, <code>password_hash</code> regénère un sel différent à <strong>chaque</strong> exécution → la tâche serait toujours <code>changed</code>. ⚠️ Le filtre <code>password_hash</code> exige <strong>passlib</strong> sur ansible-core récent : <code>pip install passlib</code> (ou <code>apt install python3-passlib</code>) si tu obtiens <code>passlib must be installed</code>. En prod, le mot de passe vient d&#39;une variable <strong>Vault</strong>, jamais en clair dans le playbook.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the last task prints <code>préfixe du hash = $6$</code> — the <code>$6$</code> proves a <strong>SHA512</strong> hash in <code>/etc/shadow</code>. Since <code>webadmin</code> is created <strong>with</strong> its password in the <strong>same</strong> task, <code>on_create</code> does set it at creation. <strong>Rerun</strong> the playbook: the account already exists, the hash is <strong>not</strong> replayed → the task goes <code>ok</code> and the hash stays <code>$6$</code> (idempotence proven). ⚠️ <strong><code>update_password: on_create</code> is crucial</strong>: without it, <code>password_hash</code> regenerates a different salt on <strong>every</strong> run → the task would always be <code>changed</code>. ⚠️ The <code>password_hash</code> filter requires <strong>passlib</strong> on recent ansible-core: <code>pip install passlib</code> (or <code>apt install python3-passlib</code>) if you get <code>passlib must be installed</code>. In prod, the password comes from a <strong>Vault</strong> variable, never clear in the playbook.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer, mettre à jour et retirer des <strong>paquets</strong> — testable en local.</p>
+<p><strong>🤔 <code>present</code> vs <code>latest</code>.</strong> <code>state: present</code> installe si absent, mais <strong>ne met pas à jour</strong> un paquet déjà là. <code>state: latest</code> force la dernière version (donc peut être <code>changed</code> quand une mise à jour existe). Choisis selon l&#39;intention : « au moins présent » vs « toujours à jour ».</p>
+<p>Ajoute à <code>admin.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install, upgrade and remove <strong>packages</strong> — testable locally.</p>
+<p><strong>🤔 <code>present</code> vs <code>latest</code>.</strong> <code>state: present</code> installs if absent, but <strong>does not upgrade</strong> an already-present package. <code>state: latest</code> forces the latest version (so may be <code>changed</code> when an update exists). Choose by intent: &quot;at least present&quot; vs &quot;always up to date&quot;.</p>
+<p>Add to <code>admin.yml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Installer des paquets (liste)
+      ansible.builtin.apt:
+        name: [tree, jq]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600     # ne rafraîchit pas si &lt; 1h / skip refresh if &lt; 1h
+
+    - name: Vérifier qu&#39;ils répondent
+      ansible.builtin.command: &quot;{{ item }} --version&quot;
+      loop: [tree, jq]
+      changed_when: false</code></pre>
+<div data-lang="fr"><p>Sur RHEL/Fedora, la même chose s&#39;écrit avec <code>dnf</code> ; ou le module générique <code>package</code> :</p>
+</div>
+<div data-lang="en"><p>On RHEL/Fedora, the same is written with <code>dnf</code>; or the generic <code>package</code> module:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    # Version portable Debian ↔ RHEL / portable version
+    - name: Installer avec le module générique
+      ansible.builtin.package:
+        name: tree
+        state: present</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook admin.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> au 1er passage, <code>apt</code> installe <code>tree</code> et <code>jq</code> (<code>changed</code>), puis les <code>--version</code> s&#39;exécutent. <strong>Relance</strong> : <code>apt</code> passe <code>ok</code> (déjà présents, idempotence). Pour retirer : <code>state: absent</code> (+ <code>autoremove: true</code> pour les dépendances orphelines). Le module <code>package</code> fait pareil sans que tu précises apt/dnf — utile pour un rôle multi-distro.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> on the 1st pass, <code>apt</code> installs <code>tree</code> and <code>jq</code> (<code>changed</code>), then the <code>--version</code> commands run. <strong>Rerun</strong>: <code>apt</code> goes <code>ok</code> (already present, idempotence). To remove: <code>state: absent</code> (+ <code>autoremove: true</code> for orphaned deps). The <code>package</code> module does the same without you specifying apt/dnf — useful for a multi-distro role.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Piloter un <strong>service</strong> : le démarrer, l&#39;activer au boot, le redémarrer. ⚠️ <strong>Nécessite systemd → ta VM de parc.</strong></p>
+<p><strong>🤔 <code>started</code> vs <code>enabled</code>.</strong> Deux axes indépendants : <code>state: started</code> = tourne <strong>maintenant</strong> ; <code>enabled: true</code> = démarrera <strong>au prochain boot</strong>. On veut presque toujours <strong>les deux</strong> pour un service de prod. <code>restarted</code>/<code>reloaded</code> forcent l&#39;action (souvent via un handler après un changement de config).</p>
+<p>Sur ta VM <code>web1</code> (inventaire du guide 1), joue :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Drive a <strong>service</strong>: start it, enable it at boot, restart it. ⚠️ <strong>Needs systemd → your fleet VM.</strong></p>
+<p><strong>🤔 <code>started</code> vs <code>enabled</code>.</strong> Two independent axes: <code>state: started</code> = running <strong>now</strong>; <code>enabled: true</code> = will start <strong>at next boot</strong>. You almost always want <strong>both</strong> for a prod service. <code>restarted</code>/<code>reloaded</code> force the action (often via a handler after a config change).</p>
+<p>On your <code>web1</code> VM (inventory from guide 1), run:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Gérer un service (sur une VM avec systemd)
+  hosts: web            # ta VM de parc / your fleet VM
+  become: true
+  tasks:
+    - name: nginx installé
+      ansible.builtin.apt: { name: nginx, state: present, update_cache: true }
+
+    - name: nginx démarré ET activé au boot
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Vérifier l&#39;état
+      ansible.builtin.command: systemctl is-enabled nginx
+      register: en
+      changed_when: false
+
+    - name: Montrer
+      ansible.builtin.debug:
+        msg: &quot;nginx enabled = {{ en.stdout }}&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification (sur la VM) :</strong> la tâche <code>service</code> est <code>changed</code> au 1er passage, et <code>systemctl is-enabled nginx</code> renvoie <code>enabled</code>. <code>systemctl is-active nginx</code> (à la main) renvoie <code>active</code>. Relance : <code>ok</code>. ⚠️ <strong>Sur <code>localhost</code> dans un conteneur, cette étape échoue</strong> avec <code>System has not been booted with systemd</code> — c&#39;est normal, un conteneur n&#39;a pas systemd. Utilise ta VM Multipass. Pour redémarrer après un changement de config, on met <code>state: restarted</code> dans un <strong>handler</strong> (guide <em>tâches avancées</em>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check (on the VM):</strong> the <code>service</code> task is <code>changed</code> on the 1st pass, and <code>systemctl is-enabled nginx</code> returns <code>enabled</code>. <code>systemctl is-active nginx</code> (by hand) returns <code>active</code>. Rerun: <code>ok</code>. ⚠️ <strong>On <code>localhost</code> in a container, this step fails</strong> with <code>System has not been booted with systemd</code> — that&#39;s normal, a container has no systemd. Use your Multipass VM. To restart after a config change, put <code>state: restarted</code> in a <strong>handler</strong> (<em>advanced tasks</em> guide).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Planifier une <strong>tâche cron</strong> — testable en local.</p>
+<p><strong>🤔 Le <code>name</code> est une clé.</strong> Le paramètre <code>name</code> du module <code>cron</code> n&#39;est pas décoratif : c&#39;est <strong>l&#39;identifiant unique</strong> du job (écrit en commentaire <code>#Ansible: &lt;name&gt;</code> dans la crontab). Rejouer avec le même <code>name</code> <strong>met à jour</strong> le job existant au lieu d&#39;en créer un doublon. C&#39;est ça, l&#39;idempotence de cron.</p>
+<p>Ajoute à <code>admin.yml</code> (ou un playbook dédié) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Schedule a <strong>cron task</strong> — testable locally.</p>
+<p><strong>🤔 <code>name</code> is a key.</strong> The <code>cron</code> module&#39;s <code>name</code> parameter isn&#39;t decorative: it&#39;s the job&#39;s <strong>unique identifier</strong> (written as a <code>#Ansible: &lt;name&gt;</code> comment in the crontab). Rerunning with the same <code>name</code> <strong>updates</strong> the existing job instead of creating a duplicate. That&#39;s cron idempotence.</p>
+<p>Add to <code>admin.yml</code> (or a dedicated playbook):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: S&#39;assurer que cron est installé (le module cron a besoin du binaire crontab)
+      ansible.builtin.apt:
+        name: cron
+        state: present
+        update_cache: true
+
+    - name: Une sauvegarde quotidienne à 3h du matin
+      ansible.builtin.cron:
+        name: &quot;sauvegarde atelier&quot;
+        minute: &quot;0&quot;
+        hour: &quot;3&quot;
+        job: &quot;/usr/local/bin/backup.sh&quot;
+        user: root
+        state: present
+
+    - name: Un job au reboot avec special_time
+      ansible.builtin.cron:
+        name: &quot;nettoyage au demarrage&quot;
+        special_time: reboot
+        job: &quot;/usr/local/bin/cleanup.sh&quot;
+
+    - name: Poser un PATH dans la crontab
+      ansible.builtin.cron:
+        name: PATH
+        env: true
+        value: /usr/local/bin:/usr/bin:/bin</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ansible-playbook admin.yml
+crontab -l -u root       # ou sudo crontab -l / or sudo crontab -l</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>crontab -l -u root</code> (ou <code>sudo crontab -l</code>) montre les deux jobs avec leur commentaire <code>#Ansible: sauvegarde atelier</code> et <code>#Ansible: nettoyage au demarrage</code>, plus la ligne <code>PATH=&quot;/usr/local/bin:...&quot;</code> (le module met la valeur entre guillemets). La ligne horaire est <code>0 3 <em> </em> *</code> pour la sauvegarde et <code>@reboot</code> pour le nettoyage. <strong>Relance</strong> le playbook : <code>ok</code> partout, <strong>aucun doublon</strong> — la clé <code>name</code> fait l&#39;idempotence. Retire un job avec <code>state: absent</code> (+ le même <code>name</code>).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>crontab -l -u root</code> (or <code>sudo crontab -l</code>) shows both jobs with their <code>#Ansible: sauvegarde atelier</code> and <code>#Ansible: nettoyage au demarrage</code> comments, plus the <code>PATH=&quot;/usr/local/bin:...&quot;</code> line (the module quotes the value). The time line is <code>0 3 <em> </em> *</code> for the backup and <code>@reboot</code> for the cleanup. <strong>Rerun</strong> the playbook: <code>ok</code> everywhere, <strong>no duplicate</strong> — the <code>name</code> key does the idempotence. Remove a job with <code>state: absent</code> (+ the same <code>name</code>).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ouvrir un <strong>pare-feu</strong>. ⚠️ <strong>Nécessite firewalld (RHEL) ou ufw (Debian) → ta VM.</strong></p>
+<p><strong>🤔 Le geste RHCE.</strong> <code>firewalld</code> est le pare-feu de RHEL, et le module <code>ansible.posix.firewalld</code> est un objectif d&#39;examen direct. Deux paramètres essentiels vont <strong>ensemble</strong> : <code>permanent: true</code> (persiste au reboot) <strong>et</strong> <code>immediate: true</code> (applique tout de suite). Oublier <code>immediate</code> = la règle n&#39;est active qu&#39;après un <code>reload</code>. Oublier <code>permanent</code> = elle disparaît au reboot.</p>
+<p>Sur une VM <strong>RHEL/Fedora</strong> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Open a <strong>firewall</strong>. ⚠️ <strong>Needs firewalld (RHEL) or ufw (Debian) → your VM.</strong></p>
+<p><strong>🤔 The RHCE move.</strong> <code>firewalld</code> is RHEL&#39;s firewall, and the <code>ansible.posix.firewalld</code> module is a direct exam objective. Two essential parameters go <strong>together</strong>: <code>permanent: true</code> (persists across reboot) <strong>and</strong> <code>immediate: true</code> (applies right away). Forgetting <code>immediate</code> = the rule is active only after a <code>reload</code>. Forgetting <code>permanent</code> = it disappears at reboot.</p>
+<p>On a <strong>RHEL/Fedora</strong> VM:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Ouvrir le pare-feu (RHEL/firewalld)
+  hosts: web
+  become: true
+  tasks:
+    - name: Autoriser le service http
+      ansible.posix.firewalld:
+        service: http
+        state: enabled
+        permanent: true
+        immediate: true       # applique sans reload / applies without reload
+
+    - name: Autoriser un port précis (8080/tcp)
+      ansible.posix.firewalld:
+        port: 8080/tcp
+        state: enabled
+        permanent: true
+        immediate: true</code></pre>
+<div data-lang="fr"><p>Sur ta VM <strong>Ubuntu</strong> de parc, l&#39;équivalent avec <code>community.general.ufw</code> :</p>
+</div>
+<div data-lang="en"><p>On your <strong>Ubuntu</strong> fleet VM, the equivalent with <code>community.general.ufw</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>    - name: Autoriser un port (Ubuntu/ufw)
+      community.general.ufw:
+        rule: allow
+        port: &quot;8080&quot;
+        proto: tcp</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification (sur la VM) :</strong> avec firewalld, <code>firewall-cmd --list-services</code> inclut <code>http</code> et <code>firewall-cmd --list-ports</code> inclut <code>8080/tcp</code>. Avec ufw, <code>ufw status</code> montre <code>8080/tcp ALLOW</code>. Relance : <code>ok</code> (idempotence). ⚠️ Le module <code>ansible.posix.firewalld</code> vit dans la <strong>collection</strong> <code>ansible.posix</code> (préinstallée sur un paquet <code>ansible</code>, sinon <code>ansible-galaxy collection install ansible.posix</code>). Sur <code>localhost</code> sans firewalld, l&#39;étape échoue — c&#39;est attendu.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check (on the VM):</strong> with firewalld, <code>firewall-cmd --list-services</code> includes <code>http</code> and <code>firewall-cmd --list-ports</code> includes <code>8080/tcp</code>. With ufw, <code>ufw status</code> shows <code>8080/tcp ALLOW</code>. Rerun: <code>ok</code> (idempotence). ⚠️ The <code>ansible.posix.firewalld</code> module lives in the <code>ansible.posix</code> <strong>collection</strong> (preinstalled on an <code>ansible</code> package, otherwise <code>ansible-galaxy collection install ansible.posix</code>). On <code>localhost</code> without firewalld, the step fails — that&#39;s expected.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Provisionner un <strong>volume LVM</strong> puis l&#39;étendre. ⚠️ <strong>Nécessite un disque → ta VM (fichier loopback).</strong></p>
+<p><strong>🤔 La chaîne complète.</strong> LVM se fait en quatre modules : <code>lvg</code> (créer le <em>volume group</em> sur un disque physique), <code>lvol</code> (créer/étendre le <em>logical volume</em>), <code>filesystem</code> (le formater), <code>mount</code> (le monter + l&#39;écrire dans <code>/etc/fstab</code>). L&#39;étape « étendre » (<code>size: +100%FREE</code> ou une taille cible, avec <code>resizefs: true</code>) est celle qui tombe le plus souvent : agrandir un volume sans perdre les données.</p>
+<p>Sur ta VM, avec un disque de test loopback (comme au track Linux) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Provision an <strong>LVM volume</strong> then extend it. ⚠️ <strong>Needs a disk → your VM (loopback file).</strong></p>
+<p><strong>🤔 The full chain.</strong> LVM is done in four modules: <code>lvg</code> (create the <em>volume group</em> on a physical disk), <code>lvol</code> (create/extend the <em>logical volume</em>), <code>filesystem</code> (format it), <code>mount</code> (mount it + write to <code>/etc/fstab</code>). The &quot;extend&quot; step (<code>size: +100%FREE</code> or a target size, with <code>resizefs: true</code>) is the one that comes up most often: grow a volume without losing data.</p>
+<p>On your VM, with a loopback test disk (like in the Linux track):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>- name: Provisionner un volume LVM (sur une VM avec un disque)
+  hosts: web
+  become: true
+  vars:
+    disque: /dev/loop-atelier      # remplace par un vrai disque/loop / real disk or loop
+  tasks:
+    - name: Créer le volume group
+      community.general.lvg:
+        vg: vg_atelier
+        pvs: &quot;{{ disque }}&quot;
+
+    - name: Créer un logical volume de 200 Mo
+      community.general.lvol:
+        vg: vg_atelier
+        lv: lv_data
+        size: 200m
+
+    - name: Formater en ext4
+      community.general.filesystem:
+        fstype: ext4
+        dev: /dev/vg_atelier/lv_data
+
+    - name: Monter et persister dans fstab
+      ansible.posix.mount:
+        path: /srv/data
+        src: /dev/vg_atelier/lv_data
+        fstype: ext4
+        state: mounted
+
+    - name: L&#39;ÉTENDRE à 400 Mo (avec resize du filesystem)
+      community.general.lvol:
+        vg: vg_atelier
+        lv: lv_data
+        size: 400m
+        resizefs: true       # agrandit aussi le système de fichiers / grows the FS too</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification (sur la VM) :</strong> après le play, <code>lsblk</code> et <code>vgs</code>/<code>lvs</code> montrent <code>vg_atelier</code> et <code>lv_data</code> ; <code>df -h /srv/data</code> montre le point de montage. Après la tâche d&#39;extension, <code>df -h /srv/data</code> affiche <strong>~400 Mo</strong> — le volume <strong>et</strong> le système de fichiers ont grandi, sans démontage ni perte de données. <code>mount: state: mounted</code> a aussi ajouté la ligne dans <code>/etc/fstab</code> (persistance au reboot). ⚠️ Ces modules vivent dans <code>community.general</code> et <code>ansible.posix</code> ; il faut un vrai disque (un fichier loopback attaché convient, cf. track Linux).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check (on the VM):</strong> after the play, <code>lsblk</code> and <code>vgs</code>/<code>lvs</code> show <code>vg_atelier</code> and <code>lv_data</code>; <code>df -h /srv/data</code> shows the mount point. After the extend task, <code>df -h /srv/data</code> shows <strong>~400 MB</strong> — the volume <strong>and</strong> the filesystem grew, with no unmount or data loss. <code>mount: state: mounted</code> also added the line to <code>/etc/fstab</code> (reboot persistence). ⚠️ These modules live in <code>community.general</code> and <code>ansible.posix</code>; you need a real disk (an attached loopback file works, see Linux track).</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. <code>groups:</code> sans <code>append: true</code>.</strong> Tu <strong>écrases</strong> les groupes secondaires existants de l&#39;utilisateur. Pour ajouter sans casser, <strong>toujours</strong> <code>append: true</code>.</p>
+<p><strong>2. Mot de passe en clair dans <code>user: password:</code>.</strong> Le champ attend un <strong>hash</strong>. Passe par <code>password_hash(&#39;sha512&#39;)</code>, et idéalement une variable <strong>Vault</strong>. Un clair y serait stocké tel quel (cassé).</p>
+<p><strong>3. Mot de passe toujours <code>changed</code>.</strong> Sans <code>update_password: on_create</code>, <code>password_hash</code> regénère un sel à chaque run → fausse non-idempotence. Ajoute <code>on_create</code> (ou un sel fixe explicite).</p>
+<p><strong>4. <code>command</code>/<code>shell</code> au lieu du module.</strong> <code>useradd</code>, <code>systemctl enable</code>, <code>crontab -e</code> via <code>shell</code> cassent l&#39;idempotence. Utilise <code>user</code>, <code>service</code>, <code>cron</code>. Règle absolue de l&#39;examen.</p>
+<p><strong>5. <code>firewalld</code> sans <code>immediate</code> OU sans <code>permanent</code>.</strong> <code>permanent: true</code> seul = règle absente jusqu&#39;au prochain <code>reload</code>. <code>immediate: true</code> seul = règle perdue au reboot. Il faut <strong>les deux</strong> pour une règle durable et active.</p>
+<p><strong>6. <code>state: started</code> en croyant activer au boot.</strong> <code>started</code> = tourne maintenant, pas au boot. Pour le boot, c&#39;est <code>enabled: true</code>. Les deux sont indépendants — mets les deux pour un service de prod.</p>
+<p><strong>7. Étendre un LV en oubliant <code>resizefs</code>.</strong> <code>lvol</code> agrandit le <strong>volume</strong> mais pas le <strong>système de fichiers</strong> dessus. Sans <code>resizefs: true</code>, <code>df</code> ne voit pas la place ajoutée. (Équivaut à <code>lvextend</code> + <code>resize2fs</code> à la main.)</p>
+<p><strong>8. Tester services/pare-feu/LVM sur <code>localhost</code> en conteneur.</strong> Pas de systemd, pas de firewalld, pas de disque → ça échoue. Ces trois blocs se testent sur une <strong>vraie VM</strong> (ton parc Multipass).</p>
+</div>
+<div data-lang="en"><p><strong>1. <code>groups:</code> without <code>append: true</code>.</strong> You <strong>overwrite</strong> the user&#39;s existing secondary groups. To add without breaking, <strong>always</strong> <code>append: true</code>.</p>
+<p><strong>2. Clear password in <code>user: password:</code>.</strong> The field expects a <strong>hash</strong>. Go through <code>password_hash(&#39;sha512&#39;)</code>, ideally a <strong>Vault</strong> variable. Clear text would be stored as-is (broken).</p>
+<p><strong>3. Password always <code>changed</code>.</strong> Without <code>update_password: on_create</code>, <code>password_hash</code> regenerates a salt each run → false non-idempotence. Add <code>on_create</code> (or an explicit fixed salt).</p>
+<p><strong>4. <code>command</code>/<code>shell</code> instead of the module.</strong> <code>useradd</code>, <code>systemctl enable</code>, <code>crontab -e</code> via <code>shell</code> break idempotence. Use <code>user</code>, <code>service</code>, <code>cron</code>. Absolute exam rule.</p>
+<p><strong>5. <code>firewalld</code> without <code>immediate</code> OR without <code>permanent</code>.</strong> <code>permanent: true</code> alone = rule absent until the next <code>reload</code>. <code>immediate: true</code> alone = rule lost at reboot. You need <strong>both</strong> for a durable, active rule.</p>
+<p><strong>6. <code>state: started</code> thinking it enables at boot.</strong> <code>started</code> = running now, not at boot. For boot, it&#39;s <code>enabled: true</code>. Both are independent — set both for a prod service.</p>
+<p><strong>7. Extending an LV forgetting <code>resizefs</code>.</strong> <code>lvol</code> grows the <strong>volume</strong> but not the <strong>filesystem</strong> on it. Without <code>resizefs: true</code>, <code>df</code> doesn&#39;t see the added space. (Equivalent to <code>lvextend</code> + <code>resize2fs</code> by hand.)</p>
+<p><strong>8. Testing services/firewall/LVM on <code>localhost</code> in a container.</strong> No systemd, no firewalld, no disk → it fails. These three blocks are tested on a <strong>real VM</strong> (your Multipass fleet).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un groupe + un utilisateur avec <code>append: true</code> et tu vérifies avec <code>id</code>.</li><li>Tu poses un mot de passe <strong>haché</strong> (<code>$6$</code>) idempotent (<code>update_password: on_create</code>).</li><li>Tu installes une liste de paquets (<code>present</code> vs <code>latest</code>) idempotente.</li><li>Tu démarres <strong>et</strong> actives un service (<code>started</code> + <code>enabled</code>) sur ta VM.</li><li>Tu planifies une tâche <code>cron</code> (clé <code>name</code>, <code>special_time</code>) sans doublon.</li><li>Tu ouvres un port avec <code>firewalld</code> (<code>permanent</code> + <code>immediate</code>) sur ta VM.</li><li>Tu crées puis <strong>étends</strong> un LV avec <code>resizefs: true</code> sur ta VM.</li></ul>
+<p>Sept cases = tu administres un système entièrement par Ansible. La suite : le <strong>projet d&#39;entreprise</strong> RHCE.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a group + a user with <code>append: true</code> and verify with <code>id</code>.</li><li>You set a <strong>hashed</strong> (<code>$6$</code>) idempotent password (<code>update_password: on_create</code>).</li><li>You install a package list (<code>present</code> vs <code>latest</code>) idempotently.</li><li>You start <strong>and</strong> enable a service (<code>started</code> + <code>enabled</code>) on your VM.</li><li>You schedule a <code>cron</code> task (<code>name</code> key, <code>special_time</code>) with no duplicate.</li><li>You open a port with <code>firewalld</code> (<code>permanent</code> + <code>immediate</code>) on your VM.</li><li>You create then <strong>extend</strong> an LV with <code>resizefs: true</code> on your VM.</li></ul>
+<p>Seven boxes = you administer a system entirely via Ansible. Next up: the RHCE <strong>enterprise project</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La fin du track RHCE :</p>
+<ol><li><strong>Ansible — projet d&#39;entreprise</strong> : le capstone qui assemble <strong>tout</strong> — inventaire à groupes, rôles réutilisables, templates Jinja2, secrets Vault, et ces modules d&#39;administration système — dans un <code>site.yml</code> complet qui provisionne un parc web + db + load-balancer. Ton livrable de CV.</li></ol>
+</div>
+<div data-lang="en"><p>The end of the RHCE track:</p>
+<ol><li><strong>Ansible — enterprise project</strong>: the capstone assembling <strong>everything</strong> — grouped inventory, reusable roles, Jinja2 templates, Vault secrets, and these system-administration modules — into a complete <code>site.yml</code> provisioning a web + db + load-balancer fleet. Your CV deliverable.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-projet-entreprise/">
+    <span class="num">27</span>
+    <span class="title-line" data-lang="fr">Ansible — projet d&#39;entreprise : plateforme web 3-tiers</span>
+    <span class="title-line" data-lang="en">Ansible — enterprise project: 3-tier web platform</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire modules d&#39;administration.</p>
+</div>
+<div data-lang="en"><p>Administration modules cheat sheet.</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># Identité / Identity
+- ansible.builtin.group: { name: atelier, state: present }
+- ansible.builtin.user:
+    name: deploy
+    groups: [atelier]
+    append: true                 # AJOUTE (sinon écrase) / ADD (else overwrite)
+    shell: /bin/bash
+    password: &quot;{{ &#39;x&#39; | password_hash(&#39;sha512&#39;) }}&quot;
+    update_password: on_create   # idempotence du hash / hash idempotence
+    state: present               # absent + remove: true pour supprimer / to delete
+
+# Paquets / Packages
+- ansible.builtin.apt: { name: [tree, jq], state: present, update_cache: true }
+- ansible.builtin.package: { name: tree, state: present }   # générique / generic
+
+# Services (systemd → VM)
+- ansible.builtin.service: { name: nginx, state: started, enabled: true }
+
+# Cron
+- ansible.builtin.cron:
+    name: &quot;sauvegarde&quot;           # clé unique / unique key
+    minute: &quot;0&quot; ; hour: &quot;3&quot;
+    job: &quot;/usr/local/bin/backup.sh&quot;
+    # special_time: reboot|daily|weekly   |   env: true + value: pour une var
+
+# Pare-feu (VM) / Firewall (VM)
+- ansible.posix.firewalld: { service: http, state: enabled, permanent: true, immediate: true }
+- community.general.ufw:  { rule: allow, port: &quot;8080&quot;, proto: tcp }   # Debian
+
+# LVM (VM)
+- community.general.lvg:  { vg: vg1, pvs: /dev/sdb }
+- community.general.lvol: { vg: vg1, lv: data, size: 400m, resizefs: true }
+- ansible.posix.mount:    { path: /srv/data, src: /dev/vg1/data, fstype: ext4, state: mounted }</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html">Module <code>user</code></a> — comptes, groupes, mots de passe.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html">Module <code>service</code> / <code>systemd_service</code></a> — services au boot.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/cron_module.html">Module <code>cron</code></a> — tâches planifiées.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/posix/firewalld_module.html">Module <code>ansible.posix.firewalld</code></a> — pare-feu RHEL.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/community/general/lvol_module.html">Modules LVM <code>community.general</code></a> — <code>lvg</code>, <code>lvol</code>, <code>filesystem</code>.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html"><code>user</code> module</a> — accounts, groups, passwords.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html"><code>service</code> / <code>systemd_service</code> module</a> — services at boot.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/cron_module.html"><code>cron</code> module</a> — scheduled tasks.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/ansible/posix/firewalld_module.html"><code>ansible.posix.firewalld</code> module</a> — RHEL firewall.</li><li><a href="https://docs.ansible.com/ansible/latest/collections/community/general/lvol_module.html">LVM <code>community.general</code> modules</a> — <code>lvg</code>, <code>lvol</code>, <code>filesystem</code>.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>System has not been booted with systemd</code>.</strong> Tu joues une tâche <code>service</code> sur un conteneur sans systemd (<code>localhost</code>). Utilise une vraie VM (ta VM Multipass de parc).</p>
+<p><strong>Ma tâche <code>user</code> est toujours <code>changed</code>.</strong> Le mot de passe est rehashé à chaque run. Ajoute <code>update_password: on_create</code>.</p>
+<p><strong>L&#39;utilisateur a perdu ses autres groupes.</strong> Tu as oublié <code>append: true</code> — <code>groups:</code> a écrasé la liste. Rejoue avec <code>append: true</code>.</p>
+<p><strong><code>firewalld</code> : ma règle disparaît au reboot / n&#39;est pas active.</strong> Il manque <code>permanent: true</code> (persistance) ou <code>immediate: true</code> (application immédiate). Mets les deux.</p>
+<p><strong><code>ModuleNotFoundError</code> / <code>couldn&#39;t resolve module ansible.posix.firewalld</code>.</strong> La collection n&#39;est pas installée. <code>ansible-galaxy collection install ansible.posix</code> (ou <code>community.general</code> pour LVM/ufw).</p>
+<p><strong><code>df</code> ne montre pas la place après <code>lvol</code>.</strong> Tu as agrandi le volume mais pas le système de fichiers. Ajoute <code>resizefs: true</code> à la tâche <code>lvol</code>.</p>
+<p><strong><code>cron</code> crée un doublon à chaque run.</strong> Tu as changé (ou oublié) le paramètre <code>name</code>. Le <code>name</code> est la clé d&#39;idempotence : garde-le stable.</p>
+<p><strong><code>password_hash ... passlib must be installed</code>.</strong> Le filtre de hachage a besoin de passlib sur ansible-core récent (le repli <code>crypt</code> a été retiré). Installe-le : <code>pip install passlib</code> (ou <code>apt install python3-passlib</code>).</p>
+<p><strong><code>Could not import the python3-apt module</code>.</strong> Ansible a choisi un interpréteur Python sans les bindings apt (fréquent sur une machine à plusieurs Python). Installe <code>python3-apt</code>, ou force le bon interpréteur : <code>-e ansible_python_interpreter=/usr/bin/python3</code> (celui qui a <code>python3-apt</code>).</p>
+<p><strong><code>Failed to find required executable &quot;crontab&quot;</code>.</strong> Le paquet <code>cron</code> n&#39;est pas installé. Le module <code>cron</code> a besoin du binaire <code>crontab</code> : ajoute une tâche <code>ansible.builtin.apt: { name: cron, state: present }</code> avant tes tâches <code>cron</code> (c&#39;est fait à l&#39;étape 5).</p>
+</div>
+<div data-lang="en"><p><strong><code>System has not been booted with systemd</code>.</strong> You&#39;re running a <code>service</code> task on a container without systemd (<code>localhost</code>). Use a real VM (your Multipass fleet VM).</p>
+<p><strong>My <code>user</code> task is always <code>changed</code>.</strong> The password is rehashed each run. Add <code>update_password: on_create</code>.</p>
+<p><strong>The user lost their other groups.</strong> You forgot <code>append: true</code> — <code>groups:</code> overwrote the list. Rerun with <code>append: true</code>.</p>
+<p><strong><code>firewalld</code>: my rule disappears at reboot / isn&#39;t active.</strong> Missing <code>permanent: true</code> (persistence) or <code>immediate: true</code> (immediate apply). Set both.</p>
+<p><strong><code>ModuleNotFoundError</code> / <code>couldn&#39;t resolve module ansible.posix.firewalld</code>.</strong> The collection isn&#39;t installed. <code>ansible-galaxy collection install ansible.posix</code> (or <code>community.general</code> for LVM/ufw).</p>
+<p><strong><code>df</code> doesn&#39;t show the space after <code>lvol</code>.</strong> You grew the volume but not the filesystem. Add <code>resizefs: true</code> to the <code>lvol</code> task.</p>
+<p><strong><code>cron</code> creates a duplicate each run.</strong> You changed (or omitted) the <code>name</code> parameter. <code>name</code> is the idempotence key: keep it stable.</p>
+<p><strong><code>password_hash ... passlib must be installed</code>.</strong> The hashing filter needs passlib on recent ansible-core (the <code>crypt</code> fallback was dropped). Install it: <code>pip install passlib</code> (or <code>apt install python3-passlib</code>).</p>
+<p><strong><code>Could not import the python3-apt module</code>.</strong> Ansible picked a Python interpreter without apt bindings (common on a multi-Python machine). Install <code>python3-apt</code>, or force the right interpreter: <code>-e ansible_python_interpreter=/usr/bin/python3</code> (the one with <code>python3-apt</code>).</p>
+<p><strong><code>Failed to find required executable &quot;crontab&quot;</code>.</strong> The <code>cron</code> package isn&#39;t installed. The <code>cron</code> module needs the <code>crontab</code> binary: add an <code>ansible.builtin.apt: { name: cron, state: present }</code> task before your <code>cron</code> tasks (done in step 5).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

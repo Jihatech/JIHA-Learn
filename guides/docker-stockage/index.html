@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker — stockage &amp; volumes — jiha.tech</title>
+  <title data-lang="en">Docker — storage &amp; volumes — jiha.tech</title>
+  <meta name="description" content="Le stockage Docker au niveau DCA : les volumes nommés (persistance gérée par Docker), les bind mounts (dossier de l&#39;hôte), tmpfs (en mémoire), la syntaxe -v vs --mount et le read-only, le partage d&#39;un volume entre conteneurs, et la sauvegarde/restauration d&#39;un volume." data-lang="fr">
+  <meta name="description" content="Docker storage at DCA level: named volumes (Docker-managed persistence), bind mounts (host directory), tmpfs (in memory), the -v vs --mount syntax and read-only, sharing a volume between containers, and backing up/restoring a volume." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker — stockage &amp; volumes">
+  <meta property="og:description" content="Le stockage Docker au niveau DCA : les volumes nommés (persistance gérée par Docker), les bind mounts (dossier de l&#39;hôte), tmpfs (en mémoire), la syntaxe -v vs --mount et le read-only, le partage d&#39;un volume entre conteneurs, et la sauvegarde/restauration d&#39;un volume.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-stockage/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-stockage/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-stockage">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-stockage</div>
+    <div class="prompt" data-lang="en">~/guides/docker-stockage</div>
+    <h1 data-lang="fr">Docker — stockage &amp; volumes</h1>
+    <h1 data-lang="en">Docker — storage &amp; volumes</h1>
+    <p class="tagline" data-lang="fr">Volumes, bind mounts, tmpfs, partage, sauvegarde.</p>
+    <p class="tagline" data-lang="en">Volumes, bind mounts, tmpfs, sharing, backup.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 160 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 160 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un conteneur est <strong>jetable</strong> : à sa suppression, sa couche d&#39;écriture disparaît — et ta base de données avec, si tu n&#39;as rien prévu. Docker sépare donc <strong>la donnée</strong> du conteneur, et l&#39;examen <strong>DCA</strong> attend que tu maîtrises <strong>comment</strong> : <em>quelle différence entre un volume et un bind mount ? où Docker range-t-il les volumes ? comment partager des données entre conteneurs ? comment sauvegarder un volume ? quand utiliser <code>tmpfs</code> ?</em></p>
+<p>Ce guide couvre le domaine <strong>stockage &amp; volumes</strong> : les <strong>volumes nommés</strong> (persistance gérée par Docker), les <strong>bind mounts</strong> (un dossier de l&#39;hôte), <strong><code>tmpfs</code></strong> (en mémoire), la syntaxe <strong><code>-v</code> vs <code>--mount</code></strong> et le <strong>read-only</strong>, le <strong>partage</strong> d&#39;un volume entre conteneurs, et la <strong>sauvegarde/restauration</strong>.</p>
+<p>On travaille en <strong>local avec Docker</strong>, avec de petites images (<code>alpine</code>, <code>nginx</code>). Toutes les manœuvres sont refaisables sur ta machine.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides Docker précédents et tu vises le <strong>DCA</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas lancer un conteneur → reviens aux fondamentaux.</li><li>Tu veux la sécurité ou Swarm → ce sont les guides suivants.</li></ul>
+</div>
+<div data-lang="en"><p>A container is <strong>disposable</strong>: when it&#39;s removed, its write layer vanishes — and your database with it, if you planned nothing. So Docker separates <strong>the data</strong> from the container, and the <strong>DCA</strong> exam expects you to master <strong>how</strong>: <em>what&#39;s the difference between a volume and a bind mount? where does Docker store volumes? how do you share data between containers? how do you back up a volume? when do you use <code>tmpfs</code>?</em></p>
+<p>This guide covers the <strong>storage &amp; volumes</strong> domain: <strong>named volumes</strong> (Docker-managed persistence), <strong>bind mounts</strong> (a host directory), <strong><code>tmpfs</code></strong> (in memory), the <strong><code>-v</code> vs <code>--mount</code></strong> syntax and <strong>read-only</strong>, <strong>sharing</strong> a volume between containers, and <strong>backup/restore</strong>.</p>
+<p>We work <strong>locally with Docker</strong>, with small images (<code>alpine</code>, <code>nginx</code>). Every maneuver is reproducible on your machine.</p>
+<p><strong>Who it&#39;s for:</strong> you have the earlier Docker guides and you&#39;re aiming for the <strong>DCA</strong>.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You can&#39;t launch a container → go back to the fundamentals.</li><li>You want security or Swarm → those are the next guides.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Distinguer <strong>volume nommé</strong>, <strong>bind mount</strong> et <strong><code>tmpfs</code></strong> — et quand choisir chacun.</li><li>Créer un <strong>volume</strong>, y persister des données <strong>au-delà</strong> du conteneur.</li><li>Monter un <strong>bind mount</strong> (dossier de l&#39;hôte) et éditer en direct.</li><li>Utiliser <strong><code>tmpfs</code></strong> pour des données éphémères en mémoire.</li><li>Écrire les deux syntaxes <strong><code>-v</code></strong> et <strong><code>--mount</code></strong>, et le <strong>read-only</strong> (<code>:ro</code>).</li><li><strong>Partager</strong> un volume entre conteneurs et <strong>sauvegarder/restaurer</strong> un volume.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Distinguish <strong>named volume</strong>, <strong>bind mount</strong> and <strong><code>tmpfs</code></strong> — and when to choose each.</li><li>Create a <strong>volume</strong> and persist data <strong>beyond</strong> the container.</li><li>Mount a <strong>bind mount</strong> (host directory) and edit live.</li><li>Use <strong><code>tmpfs</code></strong> for ephemeral in-memory data.</li><li>Write both <strong><code>-v</code></strong> and <strong><code>--mount</code></strong> syntaxes, and <strong>read-only</strong> (<code>:ro</code>).</li><li><strong>Share</strong> a volume between containers and <strong>back up/restore</strong> a volume.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides Docker précédents acquis.</li><li><strong>Docker</strong> installé et lancé.</li><li>Un dossier de travail vierge :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The earlier Docker guides under your belt.</li><li><strong>Docker</strong> installed and running.</li><li>A blank working directory:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir docker-stockage &amp;&amp; cd docker-stockage</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-reseau/">
+    <span class="num">14</span>
+    <span class="title-line" data-lang="fr">Docker — réseau</span>
+    <span class="title-line" data-lang="en">Docker — networking</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>La <strong>couche d&#39;écriture</strong> d&#39;un conteneur meurt avec lui. Pour <strong>persister</strong> ou <strong>partager</strong> des données, Docker propose trois mécanismes de montage :</p>
+<ul><li><strong>Le volume nommé</strong> — un espace de stockage <strong>géré par Docker</strong> (rangé dans <code>/var/lib/docker/volumes/</code>). Tu le crées, le nommes, le montes ; Docker s&#39;occupe du reste. <strong>C&#39;est le choix par défaut</strong> pour les données d&#39;application (bases, uploads). Portable, sauvegardable, indépendant de l&#39;arborescence de l&#39;hôte.</li><li><strong>Le bind mount</strong> — tu montes <strong>un dossier précis de l&#39;hôte</strong> dans le conteneur. Le conteneur voit <strong>directement</strong> tes fichiers, et inversement (édition en direct). Idéal en <strong>développement</strong> (monter ton code) ou pour un fichier de config. Mais <strong>dépendant du chemin de l&#39;hôte</strong> — moins portable.</li><li><strong><code>tmpfs</code></strong> — un montage <strong>en mémoire vive</strong> (RAM). Rapide, mais <strong>volatil</strong> : effacé à l&#39;arrêt du conteneur. Pour des données sensibles ou temporaires qu&#39;on ne veut <strong>pas</strong> écrire sur disque.</li></ul>
+<p><strong>Deux syntaxes</strong> pour monter :</p>
+<ul><li><strong><code>-v</code> / <code>--volume</code></strong> — compacte : <code>-v source:cible[:options]</code>. Historique, très courante.</li><li><strong><code>--mount</code></strong> — explicite : <code>--mount type=volume,source=…,target=…</code>. Verbeuse mais claire (obligatoire pour certaines options, préférée en scripts). <strong>Différence de comportement clé :</strong> avec <code>-v</code>, si le volume nommé n&#39;existe pas, Docker le <strong>crée</strong> ; avec <code>--mount type=bind</code>, si le chemin hôte n&#39;existe pas, Docker <strong>échoue</strong> (au lieu de créer un dossier vide comme <code>-v</code>).</li></ul>
+<p><strong>Le read-only.</strong> Un montage peut être <strong>en lecture seule</strong> (<code>:ro</code> ou <code>readonly</code>) — le conteneur lit mais <strong>ne peut pas écrire</strong>. Bonne pratique pour de la config ou du contenu statique : le conteneur ne peut pas corrompre la source.</p>
+<p><strong>Le partage.</strong> Plusieurs conteneurs peuvent monter <strong>le même</strong> volume → ils partagent les données. Et un volume <strong>survit</strong> à la suppression de tous ses conteneurs, tant qu&#39;on ne le supprime pas explicitement.</p>
+<p><strong>Sous le capot (storage driver).</strong> Les couches d&#39;image sont empilées par un <strong>storage driver</strong> (<strong><code>overlay2</code></strong> par défaut) en <strong>copy-on-write</strong> : le conteneur ne recopie un fichier que s&#39;il le modifie. Les volumes/bind mounts, eux, <strong>court-circuitent</strong> ce système de couches — c&#39;est pour ça qu&#39;ils persistent et sont rapides.</p>
+</div>
+<div data-lang="en"><p>A container&#39;s <strong>write layer</strong> dies with it. To <strong>persist</strong> or <strong>share</strong> data, Docker offers three mount mechanisms:</p>
+<ul><li><strong>The named volume</strong> — a storage space <strong>managed by Docker</strong> (kept in <code>/var/lib/docker/volumes/</code>). You create it, name it, mount it; Docker handles the rest. <strong>It&#39;s the default choice</strong> for application data (databases, uploads). Portable, backup-able, independent of the host&#39;s tree.</li><li><strong>The bind mount</strong> — you mount <strong>a specific host directory</strong> into the container. The container sees <strong>your files directly</strong>, and vice versa (live editing). Ideal in <strong>development</strong> (mount your code) or for a config file. But <strong>dependent on the host path</strong> — less portable.</li><li><strong><code>tmpfs</code></strong> — a mount <strong>in RAM</strong>. Fast, but <strong>volatile</strong>: wiped when the container stops. For sensitive or temporary data you <strong>don&#39;t</strong> want written to disk.</li></ul>
+<p><strong>Two syntaxes</strong> to mount:</p>
+<ul><li><strong><code>-v</code> / <code>--volume</code></strong> — compact: <code>-v source:target[:options]</code>. Historical, very common.</li><li><strong><code>--mount</code></strong> — explicit: <code>--mount type=volume,source=…,target=…</code>. Verbose but clear (required for some options, preferred in scripts). <strong>Key behavioral difference:</strong> with <code>-v</code>, if the named volume doesn&#39;t exist, Docker <strong>creates</strong> it; with <code>--mount type=bind</code>, if the host path doesn&#39;t exist, Docker <strong>fails</strong> (instead of creating an empty folder like <code>-v</code>).</li></ul>
+<p><strong>Read-only.</strong> A mount can be <strong>read-only</strong> (<code>:ro</code> or <code>readonly</code>) — the container reads but <strong>can&#39;t write</strong>. Good practice for config or static content: the container can&#39;t corrupt the source.</p>
+<p><strong>Sharing.</strong> Several containers can mount <strong>the same</strong> volume → they share the data. And a volume <strong>survives</strong> the removal of all its containers, as long as you don&#39;t explicitly delete it.</p>
+<p><strong>Under the hood (storage driver).</strong> Image layers are stacked by a <strong>storage driver</strong> (<strong><code>overlay2</code></strong> by default) in <strong>copy-on-write</strong>: the container only copies a file when it modifies it. Volumes/bind mounts, by contrast, <strong>bypass</strong> this layer system — that&#39;s why they persist and are fast.</p>
+</div>
+
+<figure class="schema" id="figure-docker-storage">
+  <svg viewBox="0 0 760 144" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-docker-storage">
+  <title id="s-docker-storage">Stockage Docker</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Stockage Docker</text><rect class="box-accent" x="16" y="40" width="230" height="62" rx="3"/><text class="lbl lbl-fill" x="131" y="68.5" text-anchor="middle">Volume nommé</text><text class="sub sub-fill" x="131" y="81.5" text-anchor="middle">géré /var/lib/docker</text><rect class="box" x="264" y="40" width="230" height="62" rx="3"/><text class="lbl" x="379" y="68.5" text-anchor="middle">Bind mount</text><text class="sub" x="379" y="81.5" text-anchor="middle">dossier de l’hôte</text><rect class="box" x="512" y="40" width="230" height="62" rx="3"/><text class="lbl" x="627" y="68.5" text-anchor="middle">tmpfs</text><text class="sub" x="627" y="81.5" text-anchor="middle">RAM, volatil</text><text class="sub" x="380" y="136" text-anchor="middle">volume &amp; bind survivent au conteneur ; tmpfs disparaît</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Volume nommé (géré par Docker, /var/lib/docker) ; bind mount (dossier de l&#39;hôte) ; tmpfs (RAM, volatil). Tous montés dans le conteneur ; volume &amp; bind survivent au conteneur.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Named volume (Docker-managed, /var/lib/docker); bind mount (host dir); tmpfs (RAM, volatile). All mounted in the container; volume &amp; bind outlive the container.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : volume nommé &amp; persistance → bind mount → tmpfs → <code>-v</code> vs <code>--mount</code> &amp; read-only → partage entre conteneurs → sauvegarde/restauration.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: named volume &amp; persistence → bind mount → tmpfs → <code>-v</code> vs <code>--mount</code> &amp; read-only → sharing between containers → backup/restore.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>volume nommé</strong> et prouver que la donnée <strong>survit</strong> au conteneur.</p>
+<p>Crée le volume, écris dedans depuis un conteneur, <strong>supprime</strong> le conteneur, relis avec un autre :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>named volume</strong> and prove the data <strong>survives</strong> the container.</p>
+<p>Create the volume, write into it from a container, <strong>delete</strong> the container, read back with another:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker volume create appdata
+docker run --rm -v appdata:/data alpine sh -c &quot;echo &#39;donnée persistante&#39; &gt; /data/note.txt&quot;
+# le conteneur ci-dessus est déjà supprimé (--rm) ; la donnée, elle, reste
+# the container above is already gone (--rm); the data stays
+docker run --rm -v appdata:/data alpine cat /data/note.txt      # -&gt; &quot;donnée persistante&quot;
+docker volume inspect appdata --format &#39;{{.Mountpoint}}&#39;         # où Docker le range / where Docker stores it</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <strong>second</strong> conteneur (un process totalement différent, le premier ayant été supprimé par <code>--rm</code>) affiche <strong><code>donnée persistante</code></strong> — la donnée écrite dans le <strong>volume</strong> a <strong>survécu</strong> à la disparition du conteneur qui l&#39;avait créée. <code>docker volume inspect</code> montre le <strong><code>Mountpoint</code></strong> (sous <code>/var/lib/docker/volumes/appdata/_data</code>) : Docker gère le stockage pour toi. C&#39;est <strong>le</strong> mécanisme de persistance : le cycle de vie de la <strong>donnée</strong> est découplé de celui du <strong>conteneur</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <strong>second</strong> container (a completely different process, the first having been removed by <code>--rm</code>) prints <strong><code>donnée persistante</code></strong> — the data written to the <strong>volume survived</strong> the disappearance of the container that created it. <code>docker volume inspect</code> shows the <strong><code>Mountpoint</code></strong> (under <code>/var/lib/docker/volumes/appdata/_data</code>): Docker manages the storage for you. That&#39;s <strong>the</strong> persistence mechanism: the <strong>data</strong>&#39;s lifecycle is decoupled from the <strong>container</strong>&#39;s.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Monter un <strong>bind mount</strong> : un dossier de l&#39;hôte, vu en direct dans le conteneur.</p>
+<p><strong>🤔 Tes fichiers, directement.</strong> Crée un dossier de contenu sur l&#39;hôte et sers-le avec nginx :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Mount a <strong>bind mount</strong>: a host directory, seen live in the container.</p>
+<p><strong>🤔 Your files, directly.</strong> Create a content folder on the host and serve it with nginx:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir site &amp;&amp; echo &quot;&lt;h1&gt;Bind mount v1&lt;/h1&gt;&quot; &gt; site/index.html
+docker run -d --name web -p 8080:80 -v &quot;$(pwd)/site&quot;:/usr/share/nginx/html:ro nginx:1.27-alpine
+curl -s localhost:8080                       # -&gt; &quot;Bind mount v1&quot;
+
+echo &quot;&lt;h1&gt;Bind mount v2&lt;/h1&gt;&quot; &gt; site/index.html   # on édite sur l&#39;HÔTE / edit on the HOST
+curl -s localhost:8080                       # -&gt; &quot;Bind mount v2&quot; (reflété en DIRECT) / reflected LIVE</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl localhost:8080</code> sert le fichier <strong>de ton dossier hôte</strong> <code>site/</code>. Après l&#39;avoir édité <strong>sur l&#39;hôte</strong>, un nouveau <code>curl</code> renvoie la <strong>v2</strong> — <strong>sans</strong> reconstruire ni redémarrer le conteneur : le <strong>bind mount</strong> fait voir <strong>en direct</strong> le dossier de l&#39;hôte dans le conteneur. C&#39;est le motif du <strong>développement</strong> (monter son code source) et de la config. Le <strong><code>:ro</code></strong> rend le montage <strong>lecture seule</strong> : nginx sert les fichiers mais ne peut pas les modifier. <em>(Nettoyage : <code>docker rm -f web</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl localhost:8080</code> serves the file <strong>from your host folder</strong> <code>site/</code>. After editing it <strong>on the host</strong>, a new <code>curl</code> returns <strong>v2</strong> — <strong>without</strong> rebuilding or restarting the container: the <strong>bind mount</strong> shows the host folder <strong>live</strong> inside the container. That&#39;s the <strong>development</strong> pattern (mount your source) and config. The <strong><code>:ro</code></strong> makes the mount <strong>read-only</strong>: nginx serves the files but can&#39;t modify them. <em>(Cleanup: <code>docker rm -f web</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Utiliser <strong><code>tmpfs</code></strong> : un montage en mémoire, <strong>volatil</strong>.</p>
+<p><strong>🤔 En RAM, jamais sur disque.</strong> Monte un <code>tmpfs</code> et écris dedans :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Use <strong><code>tmpfs</code></strong>: an in-memory, <strong>volatile</strong> mount.</p>
+<p><strong>🤔 In RAM, never on disk.</strong> Mount a <code>tmpfs</code> and write into it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name cache --tmpfs /scratch alpine sleep 600
+docker exec cache sh -c &quot;echo secret &gt; /scratch/token ; ls -l /scratch&quot;   # écrit en RAM / writes in RAM
+docker exec cache df -h /scratch                     # type tmpfs / filesystem tmpfs
+docker restart cache
+docker exec cache ls /scratch                        # VIDE : effacé au redémarrage / EMPTY: wiped on restart</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après avoir écrit <code>token</code> dans <code>/scratch</code> (un montage <strong><code>tmpfs</code></strong>, confirmé par <code>df -h</code> qui affiche le type <strong><code>tmpfs</code></strong>), un <code>docker restart</code> <strong>efface</strong> le contenu : <code>ls /scratch</code> est <strong>vide</strong>. Le <code>tmpfs</code> vit <strong>en mémoire vive</strong>, jamais sur le disque, et disparaît à l&#39;arrêt du conteneur. Usage : des <strong>secrets</strong> ou des fichiers temporaires qu&#39;on ne veut <strong>pas</strong> laisser de traces sur disque, ou un cache rapide. <em>(Nettoyage : <code>docker rm -f cache</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after writing <code>token</code> into <code>/scratch</code> (a <strong><code>tmpfs</code></strong> mount, confirmed by <code>df -h</code> showing type <strong><code>tmpfs</code></strong>), a <code>docker restart</code> <strong>wipes</strong> the content: <code>ls /scratch</code> is <strong>empty</strong>. The <code>tmpfs</code> lives <strong>in RAM</strong>, never on disk, and disappears when the container stops. Use: <strong>secrets</strong> or temporary files you <strong>don&#39;t</strong> want to leave traces of on disk, or a fast cache. <em>(Cleanup: <code>docker rm -f cache</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire les deux syntaxes <strong><code>-v</code></strong> et <strong><code>--mount</code></strong>, et voir leur <strong>différence</strong> sur les bind mounts.</p>
+<p><strong>🤔 Compacte vs explicite.</strong> Les deux montent la même chose ; <code>--mount</code> est plus lisible et <strong>plus strict</strong>. Compare :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write both <strong><code>-v</code></strong> and <strong><code>--mount</code></strong> syntaxes, and see their <strong>difference</strong> on bind mounts.</p>
+<p><strong>🤔 Compact vs explicit.</strong> Both mount the same thing; <code>--mount</code> is more readable and <strong>stricter</strong>. Compare:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># même volume, deux écritures / same volume, two spellings
+docker run --rm -v appdata:/data alpine ls /data
+docker run --rm --mount type=volume,source=appdata,target=/data alpine ls /data
+
+# LA différence sur un bind mount vers un chemin INEXISTANT / THE difference on a MISSING host path
+docker run --rm -v &quot;$(pwd)/inexistant&quot;:/x alpine ls /x         # -v CRÉE un dossier vide / -v CREATES an empty dir
+docker run --rm --mount type=bind,source=&quot;$(pwd)/inexistant2&quot;,target=/x alpine ls /x || \
+  echo &quot;--mount ÉCHOUE si la source n&#39;existe pas / --mount FAILS if the source doesn&#39;t exist&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> les deux premières commandes listent le <strong>même</strong> volume <code>appdata</code> (syntaxes équivalentes). La différence apparaît sur le <strong>bind mount vers un chemin inexistant</strong> : <strong><code>-v</code></strong> <strong>crée silencieusement</strong> un dossier vide (<code>inexistant/</code>) sur l&#39;hôte — source classique de bugs (« pourquoi mon montage est vide ? ») ; <strong><code>--mount type=bind</code></strong> <strong>refuse</strong> et affiche une erreur. C&#39;est pourquoi <strong><code>--mount</code> est recommandé</strong> en production/scripts : il est <strong>explicite</strong> et <strong>échoue proprement</strong> au lieu de masquer une faute de chemin. <em>(Nettoyage : <code>rmdir inexistant 2&gt;/dev/null</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the first two commands list the <strong>same</strong> <code>appdata</code> volume (equivalent syntaxes). The difference shows on the <strong>bind mount to a missing path</strong>: <strong><code>-v</code></strong> <strong>silently creates</strong> an empty folder (<code>inexistant/</code>) on the host — a classic bug source (&quot;why is my mount empty?&quot;); <strong><code>--mount type=bind</code></strong> <strong>refuses</strong> and prints an error. That&#39;s why <strong><code>--mount</code> is recommended</strong> in production/scripts: it&#39;s <strong>explicit</strong> and <strong>fails cleanly</strong> instead of hiding a path typo. <em>(Cleanup: <code>rmdir inexistant 2&gt;/dev/null</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Partager</strong> un volume entre deux conteneurs.</p>
+<p><strong>🤔 Un espace commun.</strong> Deux conteneurs qui montent <strong>le même</strong> volume voient les <strong>mêmes</strong> fichiers. Un écrit, l&#39;autre lit :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Share</strong> a volume between two containers.</p>
+<p><strong>🤔 A common space.</strong> Two containers mounting <strong>the same</strong> volume see the <strong>same</strong> files. One writes, the other reads:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name producteur -v shared:/out alpine \
+  sh -c &quot;while true; do date &gt; /out/heure.txt; sleep 2; done&quot;
+sleep 1                                                    # laisse le producteur écrire une 1re fois / let the producer write once
+docker run --rm -v shared:/in alpine cat /in/heure.txt     # lit ce que l&#39;autre écrit / reads what the other writes
+sleep 3
+docker run --rm -v shared:/in alpine cat /in/heure.txt     # valeur mise à jour / updated value</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le conteneur <code>producteur</code> écrit l&#39;heure dans <code>shared:/out</code> toutes les 2 s ; un <strong>autre</strong> conteneur, montant le <strong>même</strong> volume <code>shared</code> sur <code>/in</code>, <strong>lit</strong> cette valeur — et après quelques secondes, la relit <strong>mise à jour</strong>. Les deux partagent <strong>le même</strong> espace de stockage. C&#39;est le motif d&#39;un <strong>pipeline</strong> (un conteneur produit, un autre consomme) ou de données communes. Rappelle-toi : le volume <code>shared</code> <strong>existe</strong> indépendamment ; supprimer les conteneurs ne le supprime <strong>pas</strong>. <em>(Nettoyage : <code>docker rm -f producteur</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <code>producteur</code> container writes the time to <code>shared:/out</code> every 2 s; <strong>another</strong> container, mounting the <strong>same</strong> <code>shared</code> volume on <code>/in</code>, <strong>reads</strong> that value — and after a few seconds, reads it <strong>updated</strong>. Both share <strong>the same</strong> storage space. That&#39;s the <strong>pipeline</strong> pattern (one container produces, another consumes) or shared data. Remember: the <code>shared</code> volume <strong>exists</strong> independently; deleting the containers does <strong>not</strong> delete it. <em>(Cleanup: <code>docker rm -f producteur</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Sauvegarder</strong> puis <strong>restaurer</strong> un volume — via un conteneur utilitaire.</p>
+<p><strong>🤔 Un volume ne se copie pas directement.</strong> On monte le volume <strong>et</strong> un dossier de l&#39;hôte dans un conteneur jetable, et on <code>tar</code> de l&#39;un vers l&#39;autre :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Back up</strong> then <strong>restore</strong> a volume — via a helper container.</p>
+<p><strong>🤔 A volume isn&#39;t copied directly.</strong> We mount the volume <strong>and</strong> a host folder in a throwaway container, and <code>tar</code> from one to the other:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># SAUVEGARDE : volume -&gt; archive .tar.gz sur l&#39;hôte / BACKUP: volume -&gt; .tar.gz on the host
+docker run --rm -v appdata:/data -v &quot;$(pwd)&quot;:/backup alpine \
+  tar czf /backup/appdata.tar.gz -C /data .
+ls -lh appdata.tar.gz
+
+# RESTAURATION dans un nouveau volume / RESTORE into a new volume
+docker volume create appdata-restore
+docker run --rm -v appdata-restore:/data -v &quot;$(pwd)&quot;:/backup alpine \
+  tar xzf /backup/appdata.tar.gz -C /data
+docker run --rm -v appdata-restore:/data alpine cat /data/note.txt   # -&gt; &quot;donnée persistante&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sauvegarde produit <code>appdata.tar.gz</code> sur l&#39;hôte (l&#39;archive du contenu du volume <code>appdata</code>, monté en lecture dans un conteneur <code>alpine</code> jetable + le dossier hôte monté en <code>/backup</code>). La restauration extrait cette archive dans un <strong>nouveau</strong> volume <code>appdata-restore</code>, et le <code>cat</code> final y retrouve <strong><code>donnée persistante</code></strong> — la donnée a voyagé <strong>volume → archive → nouveau volume</strong>. C&#39;est <strong>le</strong> motif de sauvegarde des volumes Docker (il n&#39;existe pas de <code>docker volume backup</code> natif). <code>docker volume prune</code> supprime enfin les volumes <strong>inutilisés</strong>. <em>(Nettoyage — le conteneur AVANT son volume : <code>docker rm -f producteur 2&gt;/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the backup produces <code>appdata.tar.gz</code> on the host (the archive of the <code>appdata</code> volume&#39;s content, mounted read into a throwaway <code>alpine</code> container + the host folder mounted at <code>/backup</code>). The restore extracts that archive into a <strong>new</strong> <code>appdata-restore</code> volume, and the final <code>cat</code> finds <strong><code>donnée persistante</code></strong> there — the data traveled <strong>volume → archive → new volume</strong>. That&#39;s <strong>the</strong> Docker volume backup pattern (there&#39;s no native <code>docker volume backup</code>). <code>docker volume prune</code> finally removes <strong>unused</strong> volumes. <em>(Cleanup — the container BEFORE its volume: <code>docker rm -f producteur 2&gt;/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz</code>.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Croire que la donnée d&#39;un conteneur persiste.</strong> La couche d&#39;écriture <strong>meurt</strong> avec le conteneur. Pour persister → <strong>volume</strong> (ou bind mount). Une base de données <strong>sans</strong> volume perd tout à la suppression.</p>
+<p><strong>2. Confondre volume et bind mount.</strong> <strong>Volume</strong> = géré par Docker (portable, défaut prod) ; <strong>bind mount</strong> = un chemin de l&#39;hôte (dev, config, moins portable). Ne mets pas des données de prod dans un bind mount fragile.</p>
+<p><strong>3. Piège <code>-v</code> sur un chemin hôte absent.</strong> <code>-v /chemin/faux:/x</code> <strong>crée</strong> un dossier vide au lieu d&#39;échouer → montage vide et confusion. Préfère <strong><code>--mount</code></strong> (qui échoue clairement).</p>
+<p><strong>4. Oublier <code>:ro</code> pour de la config.</strong> Un montage en écriture laisse le conteneur <strong>modifier</strong> ta source. Pour de la config/du statique, ajoute <strong><code>:ro</code></strong>.</p>
+<p><strong>5. Attendre que <code>tmpfs</code> persiste.</strong> Il est <strong>volatil</strong> (RAM) : perdu à l&#39;arrêt. Ne t&#39;en sers <strong>pas</strong> pour des données à conserver.</p>
+<p><strong>6. Supprimer un conteneur en pensant supprimer son volume.</strong> Le volume <strong>survit</strong> (<code>docker rm</code> ne le touche pas ; <code>docker rm -v</code> supprime les volumes <strong>anonymes</strong> seulement). Nettoie avec <code>docker volume prune</code>/<code>rm</code>.</p>
+<p><strong>7. Croire à un chemin hôte identique partout.</strong> Un bind mount <code>$(pwd)/site</code> dépend de <strong>ta</strong> machine — non reproductible ailleurs. Pour du portable → volume nommé.</p>
+</div>
+<div data-lang="en"><p><strong>1. Believing a container&#39;s data persists.</strong> The write layer <strong>dies</strong> with the container. To persist → <strong>volume</strong> (or bind mount). A database <strong>without</strong> a volume loses everything on removal.</p>
+<p><strong>2. Confusing volume and bind mount.</strong> <strong>Volume</strong> = Docker-managed (portable, prod default); <strong>bind mount</strong> = a host path (dev, config, less portable). Don&#39;t put prod data in a fragile bind mount.</p>
+<p><strong>3. The <code>-v</code> trap on a missing host path.</strong> <code>-v /wrong/path:/x</code> <strong>creates</strong> an empty folder instead of failing → empty mount and confusion. Prefer <strong><code>--mount</code></strong> (which fails clearly).</p>
+<p><strong>4. Forgetting <code>:ro</code> for config.</strong> A writable mount lets the container <strong>modify</strong> your source. For config/static, add <strong><code>:ro</code></strong>.</p>
+<p><strong>5. Expecting <code>tmpfs</code> to persist.</strong> It&#39;s <strong>volatile</strong> (RAM): lost on stop. Do <strong>not</strong> use it for data to keep.</p>
+<p><strong>6. Deleting a container thinking it deletes its volume.</strong> The volume <strong>survives</strong> (<code>docker rm</code> doesn&#39;t touch it; <code>docker rm -v</code> removes <strong>anonymous</strong> volumes only). Clean up with <code>docker volume prune</code>/<code>rm</code>.</p>
+<p><strong>7. Assuming an identical host path everywhere.</strong> A bind mount <code>$(pwd)/site</code> depends on <strong>your</strong> machine — not reproducible elsewhere. For portability → named volume.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu distingues <strong>volume</strong>, <strong>bind mount</strong> et <strong><code>tmpfs</code></strong> et leur usage.</li><li>Tu crées un <strong>volume</strong> et la donnée <strong>survit</strong> au conteneur.</li><li>Tu montes un <strong>bind mount</strong> et tu édites en direct depuis l&#39;hôte.</li><li>Tu utilises un <strong><code>tmpfs</code></strong> et tu constates sa volatilité.</li><li>Tu écris <strong><code>-v</code></strong> et <strong><code>--mount</code></strong> et tu connais leur différence.</li><li>Tu <strong>partages</strong> un volume et tu <strong>sauvegardes/restaures</strong> un volume.</li></ul>
+<p>Six cases cochées = tu tiens <strong>stockage &amp; volumes</strong> du DCA.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You distinguish <strong>volume</strong>, <strong>bind mount</strong> and <strong><code>tmpfs</code></strong> and their use.</li><li>You create a <strong>volume</strong> and the data <strong>survives</strong> the container.</li><li>You mount a <strong>bind mount</strong> and edit live from the host.</li><li>You use a <strong><code>tmpfs</code></strong> and observe its volatility.</li><li>You write <strong><code>-v</code></strong> and <strong><code>--mount</code></strong> and know their difference.</li><li>You <strong>share</strong> a volume and <strong>back up/restore</strong> a volume.</li></ul>
+<p>Six boxes ticked = you hold DCA <strong>storage &amp; volumes</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Docker → DCA :</p>
+<ol><li><strong>Sécurité</strong> — non-root, capabilities, read-only rootfs, limites, secrets, scan.</li><li><strong>Orchestration Swarm</strong> — services, stacks, secrets, réseau overlay.</li><li><strong>Projet d&#39;entreprise</strong> — image multi-stage → registre → stack Swarm.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Docker → DCA track:</p>
+<ol><li><strong>Security</strong> — non-root, capabilities, read-only rootfs, limits, secrets, scanning.</li><li><strong>Swarm orchestration</strong> — services, stacks, secrets, overlay network.</li><li><strong>Enterprise project</strong> — multi-stage image → registry → Swarm stack.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../cicd-github-actions/">
+    <span class="num">19</span>
+    <span class="title-line" data-lang="fr">CI/CD avec GitHub Actions</span>
+    <span class="title-line" data-lang="en">CI/CD with GitHub Actions</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire stockage &amp; volumes.</p>
+</div>
+<div data-lang="en"><p>Storage &amp; volumes cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Volumes nommés / named volumes  (persistance gérée / managed persistence)
+docker volume create NOM ; docker volume ls ; docker volume inspect NOM
+docker run -v NOM:/chemin img          # ou --mount type=volume,source=NOM,target=/chemin
+
+# Bind mount (dossier hôte / host dir)  -- :ro pour lecture seule / for read-only
+docker run -v &quot;$(pwd)/dir&quot;:/chemin:ro img
+docker run --mount type=bind,source=&quot;$(pwd)/dir&quot;,target=/chemin,readonly img   # échoue si source absente / fails if source missing
+
+# tmpfs (RAM, volatil / volatile)
+docker run --tmpfs /chemin img
+
+# Partage / sharing : deux conteneurs, même volume / two containers, same volume
+docker run -v shared:/a img1 ; docker run -v shared:/b img2
+
+# Sauvegarde / backup  (pas de commande native / no native command)
+docker run --rm -v NOM:/data -v &quot;$(pwd)&quot;:/backup alpine tar czf /backup/vol.tar.gz -C /data .
+docker run --rm -v NOM2:/data -v &quot;$(pwd)&quot;:/backup alpine tar xzf /backup/vol.tar.gz -C /data
+
+docker volume prune                    # supprime les volumes inutilisés / remove unused</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com/engine/storage/volumes/">Volumes</a>, <a href="https://docs.docker.com/engine/storage/bind-mounts/">bind mounts</a>, <a href="https://docs.docker.com/engine/storage/tmpfs/">tmpfs</a>.</li><li><a href="https://docs.docker.com/engine/storage/#choose-the-right-type-of-mount"><code>-v</code> vs <code>--mount</code></a>.</li><li><a href="https://docs.docker.com/engine/storage/drivers/">Storage drivers (<code>overlay2</code>)</a>.</li><li>Domaine <strong>DCA « Storage and Volumes »</strong> (~10 %).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com/engine/storage/volumes/">Volumes</a>, <a href="https://docs.docker.com/engine/storage/bind-mounts/">bind mounts</a>, <a href="https://docs.docker.com/engine/storage/tmpfs/">tmpfs</a>.</li><li><a href="https://docs.docker.com/engine/storage/#choose-the-right-type-of-mount"><code>-v</code> vs <code>--mount</code></a>.</li><li><a href="https://docs.docker.com/engine/storage/drivers/">Storage drivers (<code>overlay2</code>)</a>.</li><li><strong>DCA &quot;Storage and Volumes&quot;</strong> domain (~10%).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Ma donnée disparaît à la suppression du conteneur.</strong> Tu n&#39;as pas de volume : monte un <strong>volume nommé</strong> (<code>-v nom:/chemin</code>) pour la persistance.</p>
+<p><strong>Mon bind mount est vide.</strong> Le chemin hôte est faux : avec <code>-v</code>, Docker a <strong>créé</strong> un dossier vide. Vérifie le chemin ; utilise <strong><code>--mount type=bind</code></strong> pour être alerté d&#39;un chemin absent.</p>
+<p><strong>« invalid mount config » / la source n&#39;existe pas.</strong> Avec <code>--mount type=bind</code>, le dossier hôte doit <strong>exister</strong> au préalable. Crée-le, ou utilise un volume nommé.</p>
+<p><strong>Le conteneur ne peut pas écrire dans le montage.</strong> Tu l&#39;as monté en <strong><code>:ro</code></strong> (lecture seule). Retire <code>:ro</code> si l&#39;écriture est voulue — ou garde-le si c&#39;est de la config.</p>
+<p><strong><code>docker volume rm</code> : « volume is in use ».</strong> Un conteneur (même arrêté) l&#39;utilise encore. Supprime d&#39;abord les conteneurs concernés (<code>docker rm</code>), puis le volume.</p>
+<p><strong>tmpfs : mes données ont disparu.</strong> C&#39;est normal : <code>tmpfs</code> est en <strong>RAM</strong>, effacé à l&#39;arrêt du conteneur. Pour persister, utilise un volume.</p>
+</div>
+<div data-lang="en"><p><strong>My data vanishes when the container is removed.</strong> You have no volume: mount a <strong>named volume</strong> (<code>-v name:/path</code>) for persistence.</p>
+<p><strong>My bind mount is empty.</strong> The host path is wrong: with <code>-v</code>, Docker <strong>created</strong> an empty folder. Check the path; use <strong><code>--mount type=bind</code></strong> to be warned of a missing path.</p>
+<p><strong>&quot;invalid mount config&quot; / the source doesn&#39;t exist.</strong> With <code>--mount type=bind</code>, the host folder must <strong>exist</strong> beforehand. Create it, or use a named volume.</p>
+<p><strong>The container can&#39;t write to the mount.</strong> You mounted it <strong><code>:ro</code></strong> (read-only). Remove <code>:ro</code> if writing is intended — or keep it if it&#39;s config.</p>
+<p><strong><code>docker volume rm</code>: &quot;volume is in use&quot;.</strong> A container (even stopped) still uses it. Remove the relevant containers first (<code>docker rm</code>), then the volume.</p>
+<p><strong>tmpfs: my data is gone.</strong> That&#39;s normal: <code>tmpfs</code> is in <strong>RAM</strong>, wiped when the container stops. To persist, use a volume.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

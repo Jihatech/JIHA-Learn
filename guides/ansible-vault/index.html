@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Ansible — Vault : chiffrer les secrets — jiha.tech</title>
+  <title data-lang="en">Ansible — Vault: encrypting secrets — jiha.tech</title>
+  <meta name="description" content="Chiffre tes secrets Ansible au niveau RHCE/EX294 : ansible-vault encrypt/view/edit/rekey/decrypt, fichier de mot de passe (--vault-password-file), variables chiffrées inline avec encrypt_string, utilisation de vars chiffrées dans un playbook, et vault-id pour plusieurs coffres (dev/prod). 100% local, non-interactif, testable sans réseau." data-lang="fr">
+  <meta name="description" content="Encrypt your Ansible secrets at RHCE/EX294 level: ansible-vault encrypt/view/edit/rekey/decrypt, password file (--vault-password-file), inline encrypted variables with encrypt_string, using vaulted vars in a playbook, and vault-id for multiple vaults (dev/prod). 100% local, non-interactive, testable offline." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Ansible — Vault : chiffrer les secrets">
+  <meta property="og:description" content="Chiffre tes secrets Ansible au niveau RHCE/EX294 : ansible-vault encrypt/view/edit/rekey/decrypt, fichier de mot de passe (--vault-password-file), variables chiffrées inline avec encrypt_string, utilisation de vars chiffrées dans un playbook, et vault-id pour plusieurs coffres (dev/prod). 100% local, non-interactif, testable sans réseau.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/ansible-vault/">
+  <link rel="canonical" href="https://jiha.tech/guides/ansible-vault/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="ansible-vault">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/ansible-vault</div>
+    <div class="prompt" data-lang="en">~/guides/ansible-vault</div>
+    <h1 data-lang="fr">Ansible — Vault : chiffrer les secrets</h1>
+    <h1 data-lang="en">Ansible — Vault: encrypting secrets</h1>
+    <p class="tagline" data-lang="fr">encrypt, view, rekey, encrypt_string, vault-id, password file.</p>
+    <p class="tagline" data-lang="en">encrypt, view, rekey, encrypt_string, vault-id, password file.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 180 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 180 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un secret dans un playbook — mot de passe de base, clé d&#39;API, jeton — n&#39;a rien à faire <strong>en clair</strong>, surtout dans un dépôt Git. Le jour où le repo fuite (ou devient public par erreur), tous tes secrets partent avec. La réponse d&#39;Ansible, c&#39;est <strong>Vault</strong> : chiffrer les données sensibles <strong>au repos</strong>, dans le fichier lui-même, avec de l&#39;AES256. Le fichier reste versionnable dans Git — illisible sans le mot de passe — et Ansible le déchiffre <strong>à la volée</strong> au moment de jouer le playbook.</p>
+<p>C&#39;est un objectif explicite du RHCE/EX294 (« chiffrer du contenu avec Ansible Vault ») et une compétence de terrain non négociable. Ce guide te fait manipuler <strong>toute</strong> la chaîne : chiffrer un fichier, le lire, l&#39;éditer, l&#39;utiliser dans un playbook, chiffrer <strong>une seule variable</strong> inline (<code>encrypt_string</code>), automatiser avec un <strong>fichier de mot de passe</strong>, changer la clé (<code>rekey</code>), et gérer <strong>plusieurs coffres</strong> (dev/prod) avec les vault-id.</p>
+<p>Tout est <strong>100% local et non-interactif</strong> : on travaille avec un fichier de mot de passe dès le départ (c&#39;est aussi la bonne pratique d&#39;automatisation), donc chaque commande est reproductible sans rien taper au clavier. Aucun réseau, aucune VM.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu structures déjà ton code en rôles (guide précédent) et tu veux y ranger des secrets sans les exposer.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes sur les playbooks → reviens au début du track.</li><li>Tu cherches un <strong>gestionnaire de secrets centralisé</strong> (HashiCorp Vault, AWS Secrets Manager) : c&#39;est un autre outil ; Ansible Vault chiffre des fichiers <strong>au repos</strong>, il ne remplace pas un coffre d&#39;entreprise dynamique.</li></ul>
+</div>
+<div data-lang="en"><p>A secret in a playbook — a database password, an API key, a token — has no business being <strong>in clear text</strong>, especially in a Git repo. The day the repo leaks (or goes public by mistake), all your secrets go with it. Ansible&#39;s answer is <strong>Vault</strong>: encrypt sensitive data <strong>at rest</strong>, inside the file itself, with AES256. The file stays versionable in Git — unreadable without the password — and Ansible decrypts it <strong>on the fly</strong> when playing the playbook.</p>
+<p>It&#39;s an explicit RHCE/EX294 objective (&quot;encrypt content with Ansible Vault&quot;) and a non-negotiable field skill. This guide has you handle the <strong>whole</strong> chain: encrypt a file, read it, edit it, use it in a playbook, encrypt <strong>a single variable</strong> inline (<code>encrypt_string</code>), automate with a <strong>password file</strong>, change the key (<code>rekey</code>), and manage <strong>multiple vaults</strong> (dev/prod) with vault-ids.</p>
+<p>Everything is <strong>100% local and non-interactive</strong>: we work with a password file from the start (also the automation best practice), so every command is reproducible without typing anything. No network, no VM.</p>
+<p><strong>Who it&#39;s for:</strong> you already structure your code into roles (previous guide) and you want to store secrets in it without exposing them.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re new to playbooks → go back to the start of the track.</li><li>You&#39;re looking for a <strong>centralized secrets manager</strong> (HashiCorp Vault, AWS Secrets Manager): that&#39;s another tool; Ansible Vault encrypts files <strong>at rest</strong>, it doesn&#39;t replace a dynamic enterprise vault.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Chiffrer/déchiffrer un fichier avec <strong><code>ansible-vault encrypt</code>/<code>decrypt</code></strong> et le lire avec <strong><code>view</code></strong>.</li><li>Créer et éditer un fichier chiffré (<strong><code>create</code></strong>, <strong><code>edit</code></strong>).</li><li>Automatiser avec un <strong>fichier de mot de passe</strong> (<code>--vault-password-file</code>, <code>vault_password_file</code> dans <code>ansible.cfg</code>).</li><li>Utiliser des <strong>variables chiffrées</strong> dans un playbook (<code>vars_files</code>).</li><li>Chiffrer <strong>une seule variable inline</strong> avec <strong><code>encrypt_string</code></strong>.</li><li>Changer la clé d&#39;un coffre avec <strong><code>rekey</code></strong>.</li><li>Gérer <strong>plusieurs coffres</strong> avec les <strong>vault-id</strong> (<code>dev@…</code>, <code>prod@…</code>).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Encrypt/decrypt a file with <strong><code>ansible-vault encrypt</code>/<code>decrypt</code></strong> and read it with <strong><code>view</code></strong>.</li><li>Create and edit an encrypted file (<strong><code>create</code></strong>, <strong><code>edit</code></strong>).</li><li>Automate with a <strong>password file</strong> (<code>--vault-password-file</code>, <code>vault_password_file</code> in <code>ansible.cfg</code>).</li><li>Use <strong>encrypted variables</strong> in a playbook (<code>vars_files</code>).</li><li>Encrypt <strong>a single inline variable</strong> with <strong><code>encrypt_string</code></strong>.</li><li>Change a vault&#39;s key with <strong><code>rekey</code></strong>.</li><li>Manage <strong>multiple vaults</strong> with <strong>vault-ids</strong> (<code>dev@…</code>, <code>prod@…</code>).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Les guides Ansible précédents du track (jusqu&#39;aux <em>rôles &amp; collections</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>) — <code>ansible-vault</code> est fourni avec.</li><li>Un dossier de travail. <strong>Tout est local, non-interactif et sans réseau</strong> : on utilise un fichier de mot de passe pour éviter toute saisie.</li><li>⚠️ Le fichier de mot de passe (<code>.vault_pass</code>) ne doit <strong>jamais</strong> être commité. On ajoute une règle <code>.gitignore</code> à l&#39;étape 3.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The previous Ansible track guides (through <em>roles &amp; collections</em>).</li><li><strong>Ansible ≥ 2.16</strong> (<code>ansible --version</code>) — <code>ansible-vault</code> is bundled.</li><li>A working folder. <strong>Everything is local, non-interactive and offline</strong>: we use a password file to avoid any typing.</li><li>⚠️ The password file (<code>.vault_pass</code>) must <strong>never</strong> be committed. We add a <code>.gitignore</code> rule in step 3.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-roles-collections/">
+    <span class="num">24</span>
+    <span class="title-line" data-lang="fr">Ansible — rôles &amp; collections</span>
+    <span class="title-line" data-lang="en">Ansible — roles &amp; collections</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Ansible Vault.</strong> Un mécanisme de chiffrement <strong>symétrique</strong> (AES256) intégré à Ansible. Il chiffre des fichiers (ou des chaînes) avec un <strong>mot de passe</strong>. Le même mot de passe sert à chiffrer et déchiffrer. Ansible reconnaît un fichier chiffré à son en-tête <code>$ANSIBLE_VAULT;1.1;AES256</code>.</p>
+<p><strong>Fichier chiffré vs <code>encrypt_string</code>.</strong> Deux granularités : chiffrer <strong>un fichier entier</strong> (<code>ansible-vault encrypt secrets.yml</code> — pratique pour un fichier 100% secrets), ou chiffrer <strong>une seule valeur</strong> et la coller <strong>inline</strong> dans un fichier en clair (<code>encrypt_string</code> — pratique quand un fichier mélange variables publiques et un ou deux secrets, en gardant les noms lisibles).</p>
+<p><strong>Fichier de mot de passe.</strong> Un fichier texte contenant le mot de passe du coffre. <code>--vault-password-file .vault_pass</code> évite <code>--ask-vault-pass</code> (la saisie interactive). C&#39;est <strong>indispensable</strong> pour automatiser (CI, cron) — et ça se configure une fois pour toutes dans <code>ansible.cfg</code> (<code>vault_password_file</code>). Ce fichier ne doit <strong>jamais</strong> entrer dans Git.</p>
+<p><strong><code>view</code> / <code>edit</code> / <code>rekey</code> / <code>decrypt</code>.</strong> <code>view</code> affiche le contenu déchiffré sans modifier le fichier. <code>edit</code> ouvre le fichier déchiffré dans ton éditeur, le rechiffre à la sauvegarde. <code>rekey</code> change le <strong>mot de passe</strong> d&#39;un coffre existant. <code>decrypt</code> retire définitivement le chiffrement (rare, à éviter en prod).</p>
+<p><strong>Utilisation dans un playbook.</strong> Un fichier chiffré se référence comme n&#39;importe quel <code>vars_files:</code> — Ansible le déchiffre à l&#39;exécution si tu fournis le mot de passe (<code>--vault-password-file</code> ou <code>--ask-vault-pass</code>). Les variables sont alors utilisables normalement.</p>
+<p><strong>vault-id.</strong> Une <strong>étiquette</strong> de coffre (<code>dev</code>, <code>prod</code>) associée à un mot de passe. Elle permet d&#39;avoir <strong>plusieurs coffres</strong> dans un même projet (un secret dev chiffré avec la clé dev, un secret prod avec la clé prod) et de tous les fournir à Ansible en même temps (<code>--vault-id dev@.vault_dev --vault-id prod@.vault_prod</code>).</p>
+</div>
+<div data-lang="en"><p><strong>Ansible Vault.</strong> A <strong>symmetric</strong> encryption mechanism (AES256) built into Ansible. It encrypts files (or strings) with a <strong>password</strong>. The same password encrypts and decrypts. Ansible recognizes an encrypted file by its <code>$ANSIBLE_VAULT;1.1;AES256</code> header.</p>
+<p><strong>Encrypted file vs <code>encrypt_string</code>.</strong> Two granularities: encrypt <strong>a whole file</strong> (<code>ansible-vault encrypt secrets.yml</code> — handy for a 100%-secrets file), or encrypt <strong>a single value</strong> and paste it <strong>inline</strong> into a clear file (<code>encrypt_string</code> — handy when a file mixes public variables and one or two secrets, keeping names readable).</p>
+<p><strong>Password file.</strong> A text file holding the vault&#39;s password. <code>--vault-password-file .vault_pass</code> avoids <code>--ask-vault-pass</code> (interactive typing). It&#39;s <strong>essential</strong> for automation (CI, cron) — and it&#39;s configured once and for all in <code>ansible.cfg</code> (<code>vault_password_file</code>). This file must <strong>never</strong> enter Git.</p>
+<p><strong><code>view</code> / <code>edit</code> / <code>rekey</code> / <code>decrypt</code>.</strong> <code>view</code> shows the decrypted content without modifying the file. <code>edit</code> opens the decrypted file in your editor, re-encrypts on save. <code>rekey</code> changes an existing vault&#39;s <strong>password</strong>. <code>decrypt</code> permanently removes encryption (rare, avoid in prod).</p>
+<p><strong>Use in a playbook.</strong> An encrypted file is referenced like any <code>vars_files:</code> — Ansible decrypts it at run time if you supply the password (<code>--vault-password-file</code> or <code>--ask-vault-pass</code>). The variables are then usable normally.</p>
+<p><strong>vault-id.</strong> A vault <strong>label</strong> (<code>dev</code>, <code>prod</code>) tied to a password. It lets you have <strong>multiple vaults</strong> in one project (a dev secret encrypted with the dev key, a prod secret with the prod key) and supply them all to Ansible at once (<code>--vault-id dev@.vault_dev --vault-id prod@.vault_prod</code>).</p>
+</div>
+
+<figure class="schema" id="figure-ansible-vault-flow">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-ansible-vault-flow">
+  <title id="s-ansible-vault-flow">Cycle Ansible Vault</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Cycle Ansible Vault</text><rect class="box-soft" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="98" y="70.5" text-anchor="middle">secrets chiffrés</text><text class="sub sub-blue" x="98" y="83.5" text-anchor="middle">illisibles dans Git</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="70.5" text-anchor="middle">--vault-password-file</text><text class="sub" x="286" y="83.5" text-anchor="middle">mot de passe</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-accent" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="474" y="70.5" text-anchor="middle">déchiffré à la volée</text><text class="sub sub-fill" x="474" y="83.5" text-anchor="middle">au moment de jouer</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">playbook</text><text class="sub" x="662" y="83.5" text-anchor="middle">exécuté</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le cycle Vault : un fichier de secrets chiffré au repos (illisible dans Git), déchiffré à la volée par Ansible au moment de jouer le playbook, à l&#39;aide du mot de passe fourni par --vault-password-file.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The Vault cycle: a secrets file encrypted at rest (unreadable in Git), decrypted on the fly by Ansible when playing the playbook, using the password supplied by --vault-password-file.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Chiffrer un fichier de secrets existant, constater qu&#39;il est illisible, puis le <strong>lire</strong> avec <code>view</code>.</p>
+<p><strong>🤔 Le point de départ.</strong> On part d&#39;un fichier YAML de secrets en clair et on le chiffre <strong>sur place</strong>. Après ça, <code>cat</code> ne montre plus qu&#39;un blob ; seul <code>ansible-vault view</code> (avec le bon mot de passe) le rend lisible. On utilise un <strong>fichier de mot de passe</strong> dès maintenant pour rester non-interactif.</p>
+<p>Prépare le projet, le mot de passe et le fichier de secrets :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Encrypt an existing secrets file, see it&#39;s unreadable, then <strong>read</strong> it with <code>view</code>.</p>
+<p><strong>🤔 The starting point.</strong> We start from a clear-text YAML secrets file and encrypt it <strong>in place</strong>. After that, <code>cat</code> shows only a blob; only <code>ansible-vault view</code> (with the right password) makes it readable. We use a <strong>password file</strong> from now on to stay non-interactive.</p>
+<p>Prepare the project, the password and the secrets file:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/ansible-vault-lab &amp;&amp; cd ~/ansible-vault-lab
+
+# Le mot de passe du coffre (une seule fois) / the vault password (once)
+echo &quot;MonMotDePasseDeCoffre&quot; &gt; .vault_pass
+chmod 600 .vault_pass
+
+# Un fichier de secrets EN CLAIR / a CLEAR secrets file
+cat &gt; secrets.yml &lt;&lt;&#39;YML&#39;
+db_password: &quot;S3cr3t-DB-2026&quot;
+api_token: &quot;tok_live_abcdef123456&quot;
+YML
+
+# Chiffrer sur place / encrypt in place
+ansible-vault encrypt secrets.yml --vault-password-file .vault_pass
+
+echo &quot;--- cat (illisible) ---&quot;; head -c 120 secrets.yml; echo
+echo &quot;--- view (lisible) ---&quot;; ansible-vault view secrets.yml --vault-password-file .vault_pass</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>encrypt</code> réussit <strong>en silence</strong> (code de sortie 0, sans message sur les versions récentes) — la preuve est dans le fichier : <code>head -c 120 secrets.yml</code> montre un en-tête <code>$ANSIBLE_VAULT;1.1;AES256</code> suivi d&#39;un blob hexadécimal — <strong>plus aucun secret en clair</strong>. <code>ansible-vault view ... --vault-password-file .vault_pass</code> réaffiche <code>db_password: &quot;S3cr3t-DB-2026&quot;</code> et <code>api_token: ...</code>. Le fichier sur disque <strong>reste chiffré</strong> : <code>view</code> ne le modifie pas.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>encrypt</code> succeeds <strong>silently</strong> (exit code 0, no message on recent versions) — the proof is in the file: <code>head -c 120 secrets.yml</code> shows a <code>$ANSIBLE_VAULT;1.1;AES256</code> header followed by a hex blob — <strong>no more clear-text secret</strong>. <code>ansible-vault view ... --vault-password-file .vault_pass</code> re-displays <code>db_password: &quot;S3cr3t-DB-2026&quot;</code> and <code>api_token: ...</code>. The on-disk file <strong>stays encrypted</strong>: <code>view</code> doesn&#39;t modify it.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un fichier chiffré <strong>directement</strong> (<code>create</code>) et le modifier (<code>edit</code>).</p>
+<p><strong>🤔 create vs encrypt.</strong> <code>encrypt</code> chiffre un fichier <strong>existant</strong> ; <code>create</code> ouvre un <strong>nouveau</strong> fichier directement dans l&#39;éditeur et le chiffre à la sauvegarde — le contenu n&#39;existe <strong>jamais</strong> en clair sur le disque. <code>edit</code> fait pareil pour modifier un fichier déjà chiffré. Ces commandes ouvrent <code>$EDITOR</code> ; pour rester non-interactif ici, on force l&#39;éditeur.</p>
+<p><strong>Note pédagogique.</strong> En usage réel, tu lances simplement <code>ansible-vault create fichier.yml --vault-password-file .vault_pass</code> et ton éditeur (nano, vim) s&#39;ouvre. Pour un test <strong>reproductible sans clavier</strong>, on remplace l&#39;éditeur par une commande qui écrit le contenu :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create an encrypted file <strong>directly</strong> (<code>create</code>) and modify it (<code>edit</code>).</p>
+<p><strong>🤔 create vs encrypt.</strong> <code>encrypt</code> encrypts an <strong>existing</strong> file; <code>create</code> opens a <strong>new</strong> file directly in the editor and encrypts it on save — the content <strong>never</strong> exists in clear on disk. <code>edit</code> does the same to modify an already-encrypted file. These commands open <code>$EDITOR</code>; to stay non-interactive here, we force the editor.</p>
+<p><strong>Teaching note.</strong> In real use, you simply run <code>ansible-vault create file.yml --vault-password-file .vault_pass</code> and your editor (nano, vim) opens. For a <strong>keyboard-free reproducible</strong> test, we replace the editor with a command that writes the content:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># En vrai : ansible-vault create db.yml --vault-password-file .vault_pass  (ouvre TON éditeur)
+# Ici, éditeur scripté pour un test non-interactif / scripted editor for a non-interactive test
+printf &#39;%s\n&#39; &#39;#!/bin/bash&#39; &#39;cat &gt; &quot;$1&quot; &lt;&lt;&lt;&quot;admin_user: pgadmin&quot;&#39; &gt; /tmp/faux_editeur.sh
+chmod +x /tmp/faux_editeur.sh
+# --skip-tty-check : nécessaire UNIQUEMENT pour ce test sans terminal / needed ONLY for this headless test
+EDITOR=&#39;/tmp/faux_editeur.sh&#39; ansible-vault create db.yml --vault-password-file .vault_pass --skip-tty-check
+
+ansible-vault view db.yml --vault-password-file .vault_pass   # -&gt; admin_user: pgadmin
+head -c 40 db.yml; echo                                        # -&gt; $ANSIBLE_VAULT;1.1;AES256...</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>db.yml</code> est chiffré dès sa création (<code>head</code> montre l&#39;en-tête Vault). <code>ansible-vault view db.yml ...</code> affiche <code>admin_user: pgadmin</code> — le contenu que le « faux éditeur » a écrit, qui n&#39;a jamais existé en clair sur le disque. <strong>La ligne <code>#!/bin/bash</code> (shebang) et <code>--skip-tty-check</code> ne servent QUE pour ce test sans terminal</strong> : <code>ansible-vault</code> exécute l&#39;éditeur directement (d&#39;où le shebang obligatoire) et refuse par défaut de s&#39;ouvrir hors d&#39;un vrai terminal (d&#39;où <code>--skip-tty-check</code>). En usage réel, tu tapes juste <code>ansible-vault create db.yml --vault-password-file .vault_pass</code> et ton <code>$EDITOR</code> (nano, vim) s&#39;ouvre — pas de bidouille. <code>edit</code> fonctionne pareil pour rouvrir et modifier <code>db.yml</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>db.yml</code> is encrypted from creation (<code>head</code> shows the Vault header). <code>ansible-vault view db.yml ...</code> shows <code>admin_user: pgadmin</code> — the content the &quot;fake editor&quot; wrote, which never existed in clear on disk. <strong>The <code>#!/bin/bash</code> (shebang) line and <code>--skip-tty-check</code> are ONLY for this headless test</strong>: <code>ansible-vault</code> execs the editor directly (hence the mandatory shebang) and by default refuses to open outside a real terminal (hence <code>--skip-tty-check</code>). In real use you just type <code>ansible-vault create db.yml --vault-password-file .vault_pass</code> and your <code>$EDITOR</code> (nano, vim) opens — no trick. <code>edit</code> works the same way to reopen and modify <code>db.yml</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Utiliser</strong> les variables chiffrées dans un playbook, et configurer le mot de passe une fois pour toutes.</p>
+<p><strong>🤔 Le cœur pratique.</strong> Un fichier chiffré se déclare en <code>vars_files:</code> exactement comme un fichier clair. Ansible le déchiffre à l&#39;exécution — à condition qu&#39;on lui fournisse le mot de passe. Plutôt que de répéter <code>--vault-password-file</code>, on le pose dans <code>ansible.cfg</code>.</p>
+<p>Crée un <code>ansible.cfg</code>, un <code>.gitignore</code>, et un playbook :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Use</strong> the encrypted variables in a playbook, and configure the password once and for all.</p>
+<p><strong>🤔 The practical core.</strong> An encrypted file is declared in <code>vars_files:</code> exactly like a clear file. Ansible decrypts it at run time — provided you give it the password. Rather than repeating <code>--vault-password-file</code>, we put it in <code>ansible.cfg</code>.</p>
+<p>Create an <code>ansible.cfg</code>, a <code>.gitignore</code>, and a playbook:</p>
+</div>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-vault-lab/ansible.cfg
+[defaults]
+vault_password_file = .vault_pass</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># NE JAMAIS committer le mot de passe / NEVER commit the password
+printf &#39;.vault_pass\n&#39; &gt; .gitignore</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ~/ansible-vault-lab/utiliser-secrets.yml
+- name: Utiliser des secrets chiffrés
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - secrets.yml            # chiffré ! / encrypted!
+  tasks:
+    - name: Afficher (démo) que le secret est déchiffré à l&#39;exécution
+      ansible.builtin.debug:
+        msg: &quot;db_password commence par : {{ db_password[:4] }}*** (longueur {{ db_password | length }})&quot;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Plus besoin de --vault-password-file : c&#39;est dans ansible.cfg / no more flag needed
+ansible-playbook utiliser-secrets.yml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le playbook s&#39;exécute <strong>sans</strong> demander de mot de passe (il le lit depuis <code>ansible.cfg</code>), et la tâche affiche <code>db_password commence par : S3cr<em><strong>  (longueur 14)</code>. La variable <code>db_password</code> a bien été déchiffrée à la volée depuis <code>secrets.yml</code>, alors que le fichier reste chiffré sur le disque. ⚠️ En vrai, on n&#39;affiche jamais un secret : ici on ne montre que 4 caractères pour </strong>prouver</em>* le déchiffrement.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the playbook runs <strong>without</strong> asking for a password (it reads it from <code>ansible.cfg</code>), and the task prints <code>db_password commence par : S3cr<em><strong>  (longueur 14)</code>. The <code>db_password</code> variable was decrypted on the fly from <code>secrets.yml</code>, while the file stays encrypted on disk. ⚠️ In reality you never print a secret: here we show only 4 characters to </strong>prove</em>* decryption.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Chiffrer <strong>une seule variable inline</strong> avec <code>encrypt_string</code> — le pattern « fichier mixte ».</p>
+<p><strong>🤔 Quand l&#39;utiliser ?</strong> Quand un fichier de variables mélange du <strong>public</strong> (ports, chemins, versions) et <strong>un ou deux secrets</strong>. Chiffrer tout le fichier rendrait le public illisible en revue. <code>encrypt_string</code> chiffre <strong>juste la valeur</strong> : tu la colles dans un <code>group_vars/all.yml</code> en clair, avec un nom de variable <strong>parfaitement lisible</strong>.</p>
+<p>Génère une variable chiffrée et colle-la dans un fichier clair :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Encrypt <strong>a single inline variable</strong> with <code>encrypt_string</code> — the &quot;mixed file&quot; pattern.</p>
+<p><strong>🤔 When to use it?</strong> When a variables file mixes <strong>public</strong> data (ports, paths, versions) and <strong>one or two secrets</strong>. Encrypting the whole file would make the public part unreadable in review. <code>encrypt_string</code> encrypts <strong>just the value</strong>: you paste it into a clear <code>group_vars/all.yml</code>, with a <strong>perfectly readable</strong> variable name.</p>
+<p>Generate an encrypted variable and paste it into a clear file:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Produit un bloc YAML &quot;nom: !vault |...&quot; prêt à coller / produces a ready-to-paste YAML block
+ansible-vault encrypt_string &#39;R3dis-Prod-Pw!&#39; --name &#39;redis_password&#39; &gt; /tmp/bloc.txt
+cat /tmp/bloc.txt</code></pre>
+<div data-lang="fr"><p>Crée <code>group_vars_all.yml</code> en <strong>collant</strong> le bloc produit, à côté de variables en clair :</p>
+</div>
+<div data-lang="en"><p>Create <code>group_vars_all.yml</code> by <strong>pasting</strong> the produced block, next to clear variables:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># group_vars_all.yml — fichier MIXTE (public + un secret) / MIXED file
+app_name: boutique
+app_port: 8080
+redis_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          &lt;&lt;&lt; COLLE ICI LES LIGNES HEXADÉCIMALES DE /tmp/bloc.txt &gt;&gt;&gt;</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Vérifier que le secret se déchiffre bien dans un play / check it decrypts in a play
+ansible localhost -c local -m ansible.builtin.debug \
+  -a &quot;msg={{ redis_password }}&quot; -e &quot;@group_vars_all.yml&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>cat /tmp/bloc.txt</code> montre un bloc <code>redis_password: !vault |</code> suivi de lignes hexadécimales <strong>indentées</strong>. Une fois collé (en respectant l&#39;indentation !) dans <code>group_vars_all.yml</code>, la commande ad-hoc affiche <code>R3dis-Prod-Pw!</code> — la valeur déchiffrée. Le fichier reste <strong>lisible en revue</strong> : <code>app_name</code>, <code>app_port</code> en clair, seul <code>redis_password</code> est un blob. C&#39;est le meilleur des deux mondes. ⚠️ L&#39;indentation du bloc <code>!vault |</code> est <strong>critique</strong> : toutes les lignes hexadécimales doivent être alignées sous le <code>|</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>cat /tmp/bloc.txt</code> shows a <code>redis_password: !vault |</code> block followed by <strong>indented</strong> hex lines. Once pasted (respecting the indentation!) into <code>group_vars_all.yml</code>, the ad-hoc command prints <code>R3dis-Prod-Pw!</code> — the decrypted value. The file stays <strong>readable in review</strong>: <code>app_name</code>, <code>app_port</code> in clear, only <code>redis_password</code> is a blob. Best of both worlds. ⚠️ The indentation of the <code>!vault |</code> block is <strong>critical</strong>: all hex lines must align under the <code>|</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Changer le mot de passe d&#39;un coffre avec <strong><code>rekey</code></strong> (rotation de clé).</p>
+<p><strong>🤔 Pourquoi c&#39;est un vrai besoin.</strong> Un secret partagé finit par fuiter (départ d&#39;un collègue, mot de passe compromis). <code>rekey</code> <strong>rechiffre</strong> le fichier avec un <strong>nouveau</strong> mot de passe, sans jamais exposer le contenu en clair. Le fichier reste chiffré du début à la fin, seule la clé change.</p>
+<p>Fais tourner la clé de <code>secrets.yml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Change a vault&#39;s password with <strong><code>rekey</code></strong> (key rotation).</p>
+<p><strong>🤔 Why it&#39;s a real need.</strong> A shared secret eventually leaks (a colleague leaves, a password is compromised). <code>rekey</code> <strong>re-encrypts</strong> the file with a <strong>new</strong> password, without ever exposing the content in clear. The file stays encrypted throughout, only the key changes.</p>
+<p>Rotate <code>secrets.yml</code>&#39;s key:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Nouveau mot de passe / new password
+echo &quot;NouveauMotDePasse2026&quot; &gt; .vault_pass_new
+chmod 600 .vault_pass_new
+
+# Rechiffrer : ancienne clé -&gt; nouvelle clé / re-encrypt: old key -&gt; new key
+ansible-vault rekey secrets.yml \
+  --vault-password-file .vault_pass \
+  --new-vault-password-file .vault_pass_new
+
+# L&#39;ancienne clé ne marche plus, la nouvelle oui / old key fails, new one works
+ansible-vault view secrets.yml --vault-password-file .vault_pass_new   # -&gt; OK
+
+# Garder l&#39;environnement cohérent : ansible.cfg pointe sur .vault_pass / keep env consistent
+cp .vault_pass_new .vault_pass          # le coffre &quot;default&quot; utilise maintenant la nouvelle clé</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>rekey</code> affiche <code>Rekey successful</code>. <code>ansible-vault view secrets.yml --vault-password-file .vault_pass_new</code> (la <strong>nouvelle</strong> clé) affiche les secrets. Si tu réessaies avec l&#39;<strong>ancienne</strong> clé (avant le <code>cp</code>), tu obtiens <code>ERROR! Decryption failed</code> — la preuve que la rotation a bien eu lieu. Le <code>cp .vault_pass_new .vault_pass</code> final <strong>synchronise</strong> le fichier de mot de passe pointé par <code>ansible.cfg</code> : le coffre <code>default</code> utilise désormais la nouvelle clé, et les commandes suivantes (qui lisent <code>ansible.cfg</code>) continuent de marcher.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>rekey</code> prints <code>Rekey successful</code>. <code>ansible-vault view secrets.yml --vault-password-file .vault_pass_new</code> (the <strong>new</strong> key) shows the secrets. If you retry with the <strong>old</strong> key (before the <code>cp</code>), you get <code>ERROR! Decryption failed</code> — proof the rotation happened. The final <code>cp .vault_pass_new .vault_pass</code> <strong>syncs</strong> the password file pointed at by <code>ansible.cfg</code>: the <code>default</code> vault now uses the new key, and the following commands (which read <code>ansible.cfg</code>) keep working.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer <strong>plusieurs coffres</strong> avec les <strong>vault-id</strong> — un secret <code>dev</code>, un secret <code>prod</code>.</p>
+<p><strong>🤔 Le cas multi-environnement.</strong> Tu ne veux pas que la clé de prod déchiffre les secrets de dev, ni l&#39;inverse. Les <strong>vault-id</strong> attachent une <strong>étiquette</strong> (<code>dev</code>, <code>prod</code>) à chaque mot de passe. Tu chiffres chaque secret avec sa clé, et tu fournis les deux coffres à Ansible : il choisit automatiquement le bon selon l&#39;étiquette du fichier.</p>
+<p>Crée deux coffres et chiffre un secret dans chacun :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage <strong>multiple vaults</strong> with <strong>vault-ids</strong> — a <code>dev</code> secret, a <code>prod</code> secret.</p>
+<p><strong>🤔 The multi-environment case.</strong> You don&#39;t want the prod key to decrypt dev secrets, nor the reverse. <strong>vault-ids</strong> attach a <strong>label</strong> (<code>dev</code>, <code>prod</code>) to each password. You encrypt each secret with its key, and you supply both vaults to Ansible: it automatically picks the right one based on the file&#39;s label.</p>
+<p>Create two vaults and encrypt a secret in each:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;cle-dev-123&quot;  &gt; .vault_dev
+echo &quot;cle-prod-456&quot; &gt; .vault_prod
+chmod 600 .vault_dev .vault_prod
+
+# Chiffrer un secret AVEC l&#39;étiquette dev / encrypt a secret WITH the dev label
+# --encrypt-vault-id dev : lève l&#39;ambiguïté (le coffre &quot;default&quot; d&#39;ansible.cfg coexiste)
+#                          disambiguates (ansible.cfg&#39;s &quot;default&quot; vault also exists)
+ansible-vault encrypt_string &#39;dev-token&#39; --name &#39;token&#39; \
+  --vault-id dev@.vault_dev --encrypt-vault-id dev &gt; secret_dev.yml
+
+# Et un autre avec l&#39;étiquette prod / and another with the prod label
+ansible-vault encrypt_string &#39;prod-token&#39; --name &#39;token&#39; \
+  --vault-id prod@.vault_prod --encrypt-vault-id prod &gt; secret_prod.yml
+
+# Fournir LES DEUX coffres : Ansible choisit selon l&#39;étiquette / supply BOTH vaults
+ansible localhost -c local -m ansible.builtin.debug -a &quot;msg={{ token }}&quot; \
+  --vault-id dev@.vault_dev --vault-id prod@.vault_prod \
+  -e &quot;@secret_dev.yml&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la commande affiche <code>dev-token</code> — Ansible a reconnu l&#39;étiquette <code>dev</code> du fichier et utilisé <code>.vault_dev</code> pour le déchiffrer, <strong>parmi les deux</strong> coffres fournis. Remplace <code>-e &quot;@secret_dev.yml&quot;</code> par <code>-e &quot;@secret_prod.yml&quot;</code> : cette fois <code>prod-token</code> s&#39;affiche, déchiffré avec <code>.vault_prod</code>. Chaque coffre ne déchiffre que ce qui lui appartient — l&#39;isolation dev/prod est garantie. ⚠️ Le <code>--encrypt-vault-id</code> est indispensable au <strong>chiffrement</strong> ici : comme <code>ansible.cfg</code> (étape 3) fournit déjà un coffre <code>default</code>, plusieurs coffres peuvent chiffrer et Ansible <strong>refuse de deviner</strong> (<code>ERROR! The vault-ids dev,default are available to encrypt. Specify the vault-id to encrypt with --encrypt-vault-id</code>). Au <strong>déchiffrement</strong>, aucun souci : Ansible essaie tous les coffres fournis jusqu&#39;à trouver le bon.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the command prints <code>dev-token</code> — Ansible recognized the file&#39;s <code>dev</code> label and used <code>.vault_dev</code> to decrypt it, <strong>among the two</strong> supplied vaults. Replace <code>-e &quot;@secret_dev.yml&quot;</code> with <code>-e &quot;@secret_prod.yml&quot;</code>: this time <code>prod-token</code> shows, decrypted with <code>.vault_prod</code>. Each vault decrypts only what belongs to it — dev/prod isolation is guaranteed. ⚠️ <code>--encrypt-vault-id</code> is mandatory for <strong>encryption</strong> here: since <code>ansible.cfg</code> (step 3) already provides a <code>default</code> vault, several vaults can encrypt and Ansible <strong>refuses to guess</strong> (<code>ERROR! The vault-ids dev,default are available to encrypt. Specify the vault-id to encrypt with --encrypt-vault-id</code>). For <strong>decryption</strong>, no issue: Ansible tries all supplied vaults until it finds the right one.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Retirer le chiffrement avec <strong><code>decrypt</code></strong> — et comprendre pourquoi c&#39;est rare.</p>
+<p><strong>🤔 Quand (ne pas) l&#39;utiliser.</strong> <code>decrypt</code> transforme un fichier chiffré en fichier <strong>en clair</strong> sur le disque. Utile pour migrer ou déboguer <strong>hors production</strong>. En prod, tu ne décryptes quasiment jamais : tu utilises <code>view</code>/<code>edit</code> (qui gardent le fichier chiffré au repos) ou tu laisses Ansible déchiffrer à la volée. Décrypter, c&#39;est réexposer le secret.</p>
+<p>Fais un round-trip complet sur une copie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Remove encryption with <strong><code>decrypt</code></strong> — and understand why it&#39;s rare.</p>
+<p><strong>🤔 When (not) to use it.</strong> <code>decrypt</code> turns an encrypted file into a <strong>clear</strong> file on disk. Useful to migrate or debug <strong>outside production</strong>. In prod you almost never decrypt: you use <code>view</code>/<code>edit</code> (which keep the file encrypted at rest) or let Ansible decrypt on the fly. Decrypting means re-exposing the secret.</p>
+<p>Do a full round-trip on a copy:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cp secrets.yml secrets_copie.yml
+
+# Le mot de passe vient d&#39;ansible.cfg (coffre &quot;default&quot;, synchronisé à l&#39;étape 5).
+# On ne repasse PAS --vault-password-file : deux coffres &quot;default&quot; créeraient une ambiguïté au chiffrement.
+# Password comes from ansible.cfg (&quot;default&quot; vault, synced in step 5). Do NOT re-pass
+# --vault-password-file: two &quot;default&quot; vaults would clash on encryption.
+ansible-vault decrypt secrets_copie.yml
+
+cat secrets_copie.yml           # EN CLAIR maintenant / IN CLEAR now
+
+# Rechiffrer pour ne pas laisser traîner un secret en clair / re-encrypt
+ansible-vault encrypt secrets_copie.yml
+head -c 40 secrets_copie.yml; echo   # de nouveau chiffré / encrypted again</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>decrypt</code>, <code>cat secrets_copie.yml</code> montre <code>db_password: &quot;S3cr3t-DB-2026&quot;</code> <strong>en clair</strong> — l&#39;en-tête Vault a disparu. Après le <code>encrypt</code> de nettoyage, <code>head</code> remontre <code>$ANSIBLE_VAULT;1.1;AES256</code>. ⚠️ On ne repasse <strong>pas</strong> <code>--vault-password-file</code> ici : le coffre <code>default</code> d&#39;<code>ansible.cfg</code> suffit. Le repasser créerait <strong>deux</strong> coffres <code>default</code> et ferait échouer le rechiffrement (<code>ERROR! ... default,default are available to encrypt</code>) — laissant ton secret <strong>en clair</strong> sur le disque. Règle générale : dès qu&#39;<code>ansible.cfg</code> fixe un coffre <code>default</code>, ne fournis un mot de passe en ligne de commande que si tu lèves l&#39;ambiguïté avec <code>--encrypt-vault-id</code>. Tu maîtrises maintenant le cycle complet : chiffrer, lire, utiliser, tourner la clé, isoler par environnement, et (rarement) déchiffrer. Supprime la copie : <code>rm secrets_copie.yml</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>decrypt</code>, <code>cat secrets_copie.yml</code> shows <code>db_password: &quot;S3cr3t-DB-2026&quot;</code> <strong>in clear</strong> — the Vault header is gone. After the cleanup <code>encrypt</code>, <code>head</code> shows <code>$ANSIBLE_VAULT;1.1;AES256</code> again. ⚠️ We do <strong>not</strong> re-pass <code>--vault-password-file</code> here: <code>ansible.cfg</code>&#39;s <code>default</code> vault is enough. Re-passing it would create <strong>two</strong> <code>default</code> vaults and fail the re-encrypt (<code>ERROR! ... default,default are available to encrypt</code>) — leaving your secret <strong>in clear</strong> on disk. General rule: once <code>ansible.cfg</code> sets a <code>default</code> vault, only supply a command-line password if you disambiguate with <code>--encrypt-vault-id</code>. You now master the full cycle: encrypt, read, use, rotate the key, isolate per environment, and (rarely) decrypt. Delete the copy: <code>rm secrets_copie.yml</code>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Committer <code>.vault_pass</code>.</strong> Le fichier de mot de passe dans Git réduit Vault à néant : quiconque a le repo a la clé. Mets-le en <code>.gitignore</code> <strong>avant</strong> le premier commit, et fais-en une règle d&#39;équipe.</p>
+<p><strong>2. Mauvaise indentation d&#39;un bloc <code>!vault |</code>.</strong> Avec <code>encrypt_string</code>, toutes les lignes hexadécimales doivent être alignées sous le <code>|</code>. Une indentation cassée donne <code>found unknown escape character</code> ou un secret illisible. Copie le bloc <strong>tel quel</strong>.</p>
+<p><strong>3. Oublier de fournir le mot de passe.</strong> Sans <code>--vault-password-file</code> ni <code>vault_password_file</code> dans <code>ansible.cfg</code> ni <code>--ask-vault-pass</code>, un playbook qui charge un fichier chiffré échoue avec <code>Attempting to decrypt but no vault secrets found</code>.</p>
+<p><strong>4. Chiffrer un fichier entier alors qu&#39;une seule valeur est secrète.</strong> Tu rends illisibles en revue des variables publiques. Pour un fichier mixte, <code>encrypt_string</code> par secret est plus lisible et plus maintenable.</p>
+<p><strong>5. <code>decrypt</code> en production.</strong> Ça réexpose le secret en clair sur le disque. Préfère <code>view</code>/<code>edit</code>, ou laisse Ansible déchiffrer à l&#39;exécution. <code>decrypt</code> est réservé aux migrations hors prod.</p>
+<p><strong>6. Un seul mot de passe pour dev et prod.</strong> Si la même clé chiffre tout, une fuite dev compromet la prod. Utilise des <strong>vault-id</strong> distincts (<code>dev@</code>, <code>prod@</code>) pour isoler les environnements.</p>
+<p><strong>7. Éditer un fichier chiffré avec un éditeur normal.</strong> Ouvrir <code>secrets.yml</code> chiffré avec <code>nano</code> puis sauver <strong>corrompt</strong> le fichier (tu édites le blob). Utilise <strong>toujours</strong> <code>ansible-vault edit</code>, qui déchiffre/rechiffre proprement.</p>
+<p><strong>8. Collision avec le coffre <code>default</code> d&#39;<code>ansible.cfg</code>.</strong> Dès que <code>vault_password_file</code> figure dans <code>ansible.cfg</code>, un coffre <code>default</code> existe en permanence. Si tu ajoutes <strong>en plus</strong> un mot de passe en ligne de commande (<code>--vault-password-file</code> ou <code>--vault-id</code>), plusieurs coffres peuvent chiffrer et Ansible <strong>refuse de deviner</strong> : <code>The vault-ids X,default are available to encrypt</code>. Le chiffrement échoue (et peut laisser un fichier en clair). Solution : précise <code>--encrypt-vault-id &lt;id&gt;</code>, ou ne rajoute pas de second coffre quand celui d&#39;<code>ansible.cfg</code> suffit.</p>
+</div>
+<div data-lang="en"><p><strong>1. Committing <code>.vault_pass</code>.</strong> The password file in Git reduces Vault to nothing: whoever has the repo has the key. Put it in <code>.gitignore</code> <strong>before</strong> the first commit, and make it a team rule.</p>
+<p><strong>2. Wrong indentation of a <code>!vault |</code> block.</strong> With <code>encrypt_string</code>, all hex lines must align under the <code>|</code>. Broken indentation yields <code>found unknown escape character</code> or an unreadable secret. Copy the block <strong>as-is</strong>.</p>
+<p><strong>3. Forgetting to supply the password.</strong> Without <code>--vault-password-file</code>, nor <code>vault_password_file</code> in <code>ansible.cfg</code>, nor <code>--ask-vault-pass</code>, a playbook loading an encrypted file fails with <code>Attempting to decrypt but no vault secrets found</code>.</p>
+<p><strong>4. Encrypting a whole file when only one value is secret.</strong> You make public variables unreadable in review. For a mixed file, <code>encrypt_string</code> per secret is more readable and maintainable.</p>
+<p><strong>5. <code>decrypt</code> in production.</strong> It re-exposes the secret in clear on disk. Prefer <code>view</code>/<code>edit</code>, or let Ansible decrypt at run time. <code>decrypt</code> is reserved for out-of-prod migrations.</p>
+<p><strong>6. One password for dev and prod.</strong> If the same key encrypts everything, a dev leak compromises prod. Use distinct <strong>vault-ids</strong> (<code>dev@</code>, <code>prod@</code>) to isolate environments.</p>
+<p><strong>7. Editing an encrypted file with a normal editor.</strong> Opening an encrypted <code>secrets.yml</code> with <code>nano</code> then saving <strong>corrupts</strong> the file (you edit the blob). <strong>Always</strong> use <code>ansible-vault edit</code>, which decrypts/re-encrypts cleanly.</p>
+<p><strong>8. Collision with <code>ansible.cfg</code>&#39;s <code>default</code> vault.</strong> Once <code>vault_password_file</code> is in <code>ansible.cfg</code>, a <code>default</code> vault exists permanently. If you <strong>also</strong> add a command-line password (<code>--vault-password-file</code> or <code>--vault-id</code>), several vaults can encrypt and Ansible <strong>refuses to guess</strong>: <code>The vault-ids X,default are available to encrypt</code>. Encryption fails (and may leave a file in clear). Fix: specify <code>--encrypt-vault-id &lt;id&gt;</code>, or don&#39;t add a second vault when <code>ansible.cfg</code>&#39;s is enough.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu chiffres un fichier (<code>encrypt</code>), tu vois le blob, tu le relis (<code>view</code>).</li><li>Tu crées un fichier chiffré (<code>create</code>) sans jamais l&#39;écrire en clair.</li><li>Un playbook charge un <code>vars_files:</code> chiffré grâce à <code>vault_password_file</code> dans <code>ansible.cfg</code>.</li><li>Tu chiffres une <strong>seule</strong> variable avec <code>encrypt_string</code> dans un fichier mixte lisible.</li><li>Tu tournes la clé d&#39;un coffre avec <code>rekey</code> (l&#39;ancienne clé ne marche plus).</li><li>Tu isoles <code>dev</code> et <code>prod</code> avec deux <strong>vault-id</strong> distincts.</li><li><code>.vault_pass</code> est dans <code>.gitignore</code> — jamais commité.</li></ul>
+<p>Sept cases = tu gères les secrets comme un ingénieur RHCE. La suite : administrer le système par modules.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You encrypt a file (<code>encrypt</code>), see the blob, read it back (<code>view</code>).</li><li>You create an encrypted file (<code>create</code>) without ever writing it in clear.</li><li>A playbook loads an encrypted <code>vars_files:</code> thanks to <code>vault_password_file</code> in <code>ansible.cfg</code>.</li><li>You encrypt a <strong>single</strong> variable with <code>encrypt_string</code> in a readable mixed file.</li><li>You rotate a vault&#39;s key with <code>rekey</code> (the old key no longer works).</li><li>You isolate <code>dev</code> and <code>prod</code> with two distinct <strong>vault-ids</strong>.</li><li><code>.vault_pass</code> is in <code>.gitignore</code> — never committed.</li></ul>
+<p>Seven boxes = you handle secrets like an RHCE engineer. Next up: administer the system via modules.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track RHCE :</p>
+<ol><li><strong>Ansible — administration système par modules</strong> : gérer utilisateurs, paquets, services, tâches planifiées, pare-feu et stockage avec les modules dédiés — le gros bloc « gérer le contenu système » de l&#39;EX294.</li><li>Enfin : le <strong>projet d&#39;entreprise</strong> RHCE, qui assemble inventaire, rôles, templates, <strong>Vault</strong> et administration système en un <code>site.yml</code> complet — ton livrable de CV.</li></ol>
+</div>
+<div data-lang="en"><p>The RHCE track continues:</p>
+<ol><li><strong>Ansible — system administration via modules</strong>: manage users, packages, services, scheduled tasks, firewall and storage with the dedicated modules — the big &quot;manage system content&quot; block of EX294.</li><li>Finally: the RHCE <strong>enterprise project</strong>, assembling inventory, roles, templates, <strong>Vault</strong> and system administration into a complete <code>site.yml</code> — your CV deliverable.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../ansible-administration-systeme/">
+    <span class="num">26</span>
+    <span class="title-line" data-lang="fr">Ansible — administration système par modules</span>
+    <span class="title-line" data-lang="en">Ansible — system administration via modules</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire Ansible Vault.</p>
+</div>
+<div data-lang="en"><p>Ansible Vault cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Fichier / File (avec --vault-password-file ou vault_password_file dans ansible.cfg)
+ansible-vault encrypt secrets.yml          # chiffrer un fichier existant / encrypt existing
+ansible-vault decrypt secrets.yml          # déchiffrer (rare) / decrypt (rare)
+ansible-vault view    secrets.yml          # lire sans modifier / read without modifying
+ansible-vault create  secrets.yml          # créer + chiffrer / create + encrypt
+ansible-vault edit    secrets.yml          # éditer proprement / edit cleanly
+ansible-vault rekey   secrets.yml          # changer la clé / change the key
+
+# Variable inline / Inline variable
+ansible-vault encrypt_string &#39;secret&#39; --name &#39;db_pw&#39;   # produit un bloc !vault | / produces a !vault | block
+
+# Fournir le mot de passe / Supply the password
+ansible-playbook site.yml --ask-vault-pass                 # interactif / interactive
+ansible-playbook site.yml --vault-password-file .vault_pass # fichier / file
+# ansible.cfg : [defaults] vault_password_file = .vault_pass  (une fois pour toutes / once)
+
+# Multi-coffres / Multi-vaults
+ansible-vault encrypt_string &#39;x&#39; --name &#39;k&#39; --vault-id prod@.vault_prod
+ansible-playbook site.yml --vault-id dev@.vault_dev --vault-id prod@.vault_prod</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.ansible.com/ansible/latest/vault_guide/index.html">Chiffrer avec Ansible Vault</a> — le guide officiel complet.</li><li><a href="https://docs.ansible.com/ansible/latest/vault_guide/vault_managing_passwords.html">Gérer les secrets Vault</a> — password files, vault-id.</li><li><a href="https://docs.ansible.com/ansible/latest/cli/ansible-vault.html#ansible-vault-encrypt-string"><code>encrypt_string</code></a> — variables chiffrées inline.</li><li><a href="https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html">Bonnes pratiques variables &amp; Vault</a> — organiser secrets et variables.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">Objectifs RHCE / EX294</a> — la certification visée.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.ansible.com/ansible/latest/vault_guide/index.html">Encrypt with Ansible Vault</a> — the full official guide.</li><li><a href="https://docs.ansible.com/ansible/latest/vault_guide/vault_managing_passwords.html">Managing Vault passwords</a> — password files, vault-id.</li><li><a href="https://docs.ansible.com/ansible/latest/cli/ansible-vault.html#ansible-vault-encrypt-string"><code>encrypt_string</code></a> — inline encrypted variables.</li><li><a href="https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html">Variables &amp; Vault best practices</a> — organizing secrets and variables.</li><li><a href="https://www.redhat.com/en/services/training/ex294-red-hat-certified-engineer-rhce-exam">RHCE / EX294 objectives</a> — the target certification.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>ERROR! Attempting to decrypt but no vault secrets found</code>.</strong> Tu n&#39;as pas fourni le mot de passe. Ajoute <code>--vault-password-file .vault_pass</code>, <code>--ask-vault-pass</code>, ou configure <code>vault_password_file</code> dans <code>ansible.cfg</code>.</p>
+<p><strong><code>ERROR! Decryption failed</code>.</strong> Mauvais mot de passe (ou mauvaise vault-id). Vérifie le contenu de <code>.vault_pass</code>, et pour un fichier multi-coffres, que tu fournis la bonne étiquette.</p>
+<p><strong><code>found unknown escape character</code> / erreur YAML sur un bloc <code>!vault</code>.</strong> L&#39;indentation du bloc <code>encrypt_string</code> est cassée. Toutes les lignes hexadécimales doivent être alignées sous le <code>|</code>. Recopie le bloc exactement.</p>
+<p><strong><code>ansible-vault create/edit</code> n&#39;ouvre pas d&#39;éditeur.</strong> La variable <code>$EDITOR</code> (ou <code>$VISUAL</code>) n&#39;est pas définie. Exporte-la : <code>export EDITOR=nano</code>, puis relance.</p>
+<p><strong>Mon secret s&#39;affiche en clair dans les logs.</strong> <code>debug</code> d&#39;un secret le journalise. Ajoute <code>no_log: true</code> sur la tâche pour masquer la sortie, ou n&#39;affiche jamais le secret entier.</p>
+<p><strong>Le fichier chiffré est corrompu après édition.</strong> Tu l&#39;as édité avec un éditeur normal au lieu de <code>ansible-vault edit</code>. Restaure depuis Git et réédite avec <code>ansible-vault edit</code>.</p>
+</div>
+<div data-lang="en"><p><strong><code>ERROR! Attempting to decrypt but no vault secrets found</code>.</strong> You didn&#39;t supply the password. Add <code>--vault-password-file .vault_pass</code>, <code>--ask-vault-pass</code>, or configure <code>vault_password_file</code> in <code>ansible.cfg</code>.</p>
+<p><strong><code>ERROR! Decryption failed</code>.</strong> Wrong password (or wrong vault-id). Check <code>.vault_pass</code>&#39;s content, and for a multi-vault file, that you supply the right label.</p>
+<p><strong><code>found unknown escape character</code> / YAML error on a <code>!vault</code> block.</strong> The <code>encrypt_string</code> block indentation is broken. All hex lines must align under the <code>|</code>. Recopy the block exactly.</p>
+<p><strong><code>ansible-vault create/edit</code> doesn&#39;t open an editor.</strong> The <code>$EDITOR</code> (or <code>$VISUAL</code>) variable isn&#39;t set. Export it: <code>export EDITOR=nano</code>, then retry.</p>
+<p><strong>My secret shows in clear in the logs.</strong> <code>debug</code>-ing a secret logs it. Add <code>no_log: true</code> on the task to mask the output, or never print the whole secret.</p>
+<p><strong>The encrypted file is corrupted after editing.</strong> You edited it with a normal editor instead of <code>ansible-vault edit</code>. Restore from Git and re-edit with <code>ansible-vault edit</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

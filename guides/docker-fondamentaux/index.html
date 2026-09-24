@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Docker fondamentaux — jiha.tech</title>
+  <title data-lang="en">Docker fundamentals — jiha.tech</title>
+  <meta name="description" content="Guide pas-à-pas pour comprendre Docker en profondeur : images, conteneurs, volumes, networks, Dockerfile et hygiène disque." data-lang="fr">
+  <meta name="description" content="Step-by-step guide to truly understanding Docker: images, containers, volumes, networks, Dockerfile, and disk hygiene." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Docker fondamentaux">
+  <meta property="og:description" content="Guide pas-à-pas pour comprendre Docker en profondeur : images, conteneurs, volumes, networks, Dockerfile et hygiène disque.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/docker-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/docker-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="docker-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/docker-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/docker-fondamentaux</div>
+    <h1 data-lang="fr">Docker fondamentaux</h1>
+    <h1 data-lang="en">Docker fundamentals</h1>
+    <p class="tagline" data-lang="fr">Images, conteneurs, volumes, networks.</p>
+    <p class="tagline" data-lang="en">Images, containers, volumes, networks.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 90 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-19</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 90 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-06-19</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Docker est <strong>la</strong> brique fondamentale de ton parcours self-hosting / DevOps / cloud. Sans Docker bien compris, tous les guides suivants (Traefik, Vaultwarden, Immich, monitoring) seront du copier-coller anxiogène.</p>
+<p>Le problème avec la plupart des tutos Docker : ils te font lancer un <code>nginx</code> en 30 secondes et te déclarent « expert ». Tu ne sais ni ce qu&#39;est une image, ni un volume, ni pourquoi ton conteneur perd ses données à chaque redémarrage.</p>
+<p>Ce guide construit le <strong>modèle mental d&#39;abord</strong>, le hands-on ensuite. L&#39;objectif : apprendre Docker à un niveau qui te permet de <strong>débugger</strong>, pas juste de copier des <code>docker run</code>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as vaguement entendu parler de Docker, peut-être lancé un conteneur, et tu veux solidifier les bases.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu connais déjà images vs conteneurs, volumes, networks, multi-stage builds → passe directement au guide Docker Compose.</li><li>Tu veux apprendre Kubernetes → reviens à Docker d&#39;abord. Docker est un prérequis dur.</li></ul>
+</div>
+<div data-lang="en"><p>Docker is <strong>the</strong> foundational building block of your self-hosting / DevOps / cloud journey. Without a solid grasp of Docker, every guide that follows (Traefik, Vaultwarden, Immich, monitoring) will be anxiety-inducing copy-paste.</p>
+<p>The problem with most Docker tutorials: they have you launch an <code>nginx</code> in 30 seconds and declare you an &quot;expert&quot;. You don&#39;t know what an image is, or a volume, or why your container loses its data on every restart.</p>
+<p>This guide builds the <strong>mental model first</strong>, hands-on second. The goal: learn Docker at a level where you can <strong>debug</strong>, not just copy <code>docker run</code> commands.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve vaguely heard of Docker, maybe launched a container, and you want to solidify the basics.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You already know images vs containers, volumes, networks, multi-stage builds → skip straight to the Docker Compose guide.</li><li>You want to learn Kubernetes → come back to Docker first. Docker is a hard prerequisite.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>La différence <strong>image vs conteneur</strong> (et pourquoi c&#39;est crucial).</li><li><strong>Volumes</strong> : faire persister les données entre redémarrages.</li><li><strong>Networks</strong> : comment des conteneurs se parlent.</li><li><strong>Variables d&#39;environnement</strong> : configurer un service sans modifier l&#39;image.</li><li><strong>Dockerfile</strong> : créer tes propres images.</li><li><strong>Logs et debug</strong> : <code>docker logs</code>, <code>docker exec</code>, <code>docker inspect</code>.</li><li>Hygiène : nettoyer, lister, comprendre ce qui consomme ton disque.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know:</p>
+<ul><li>The difference between <strong>image and container</strong> (and why it&#39;s crucial).</li><li><strong>Volumes</strong>: persisting data across restarts.</li><li><strong>Networks</strong>: how containers talk to each other.</li><li><strong>Environment variables</strong>: configuring a service without modifying the image.</li><li><strong>Dockerfile</strong>: building your own images.</li><li><strong>Logs and debugging</strong>: <code>docker logs</code>, <code>docker exec</code>, <code>docker inspect</code>.</li><li>Hygiene: cleaning up, listing, understanding what eats your disk.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Une aisance en <strong>ligne de commande Linux</strong> (<code>cd</code>, <code>ls</code>, éditer un fichier) — sinon, repasse par le guide sur la ligne de commande.</li><li>Une <strong>machine Linux</strong> (native ou VM), macOS, ou Windows avec WSL2 (installe Ubuntu via WSL2 si besoin).</li><li><strong>Docker Engine installé</strong> — suis le <a href="https://docs.docker.com/engine/install/">guide officiel d&#39;installation</a> pour ton OS.</li><li><code>docker --version</code> qui répond, et <code>docker run hello-world</code> qui fonctionne.</li></ul>
+<p>⚠️ <strong>Sur Linux</strong>, ajoute ton utilisateur au groupe <code>docker</code> pour éviter d&#39;utiliser <code>sudo</code> à chaque commande :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>Comfort with the <strong>Linux command line</strong> (<code>cd</code>, <code>ls</code>, editing a file) — if not, go back through the command-line guide.</li><li>A <strong>Linux machine</strong> (native or VM), macOS, or Windows with WSL2 (install Ubuntu via WSL2 if needed).</li><li><strong>Docker Engine installed</strong> — follow the <a href="https://docs.docker.com/engine/install/">official installation guide</a> for your OS.</li><li><code>docker --version</code> responding, and <code>docker run hello-world</code> working.</li></ul>
+<p>⚠️ <strong>On Linux</strong>, add your user to the <code>docker</code> group to avoid typing <code>sudo</code> before every command:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo usermod -aG docker $USER</code></pre>
+<div data-lang="fr"><p>Puis déconnexion/reconnexion. Sinon, tu mettras <code>sudo</code> devant chaque <code>docker ...</code> ci-dessous.</p>
+</div>
+<div data-lang="en"><p>Then log out and back in. Otherwise, prefix every <code>docker ...</code> command below with <code>sudo</code>.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../art-of-command-line/">
+    <span class="num">01</span>
+    <span class="title-line" data-lang="fr">L&#39;Art de la ligne de commande</span>
+    <span class="title-line" data-lang="en">The Art of the Command Line</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Le modèle mental Docker tient en une phrase : <strong>une image est une recette, un conteneur est le plat servi.</strong> Une image peut produire 1000 conteneurs. Détruire un conteneur ne détruit pas son image.</p>
+<p>Autour de ce duo gravitent trois briques : le <strong>client</strong> (<code>docker</code>, la commande que tu tapes), le <strong>daemon</strong> (<code>dockerd</code>, le service qui fait réellement le travail), et le <strong>registry</strong> (Docker Hub, d&#39;où viennent les images). Quand tu tapes <code>docker run</code>, le client demande au daemon de créer un conteneur à partir d&#39;une image — téléchargée du registry si elle n&#39;est pas déjà locale.</p>
+</div>
+<div data-lang="en"><p>The Docker mental model fits in one sentence: <strong>an image is a recipe, a container is the dish being served.</strong> One image can produce 1000 containers. Destroying a container does not destroy its image.</p>
+<p>Around this duo orbit three building blocks: the <strong>client</strong> (<code>docker</code>, the command you type), the <strong>daemon</strong> (<code>dockerd</code>, the service that actually does the work), and the <strong>registry</strong> (Docker Hub, where images come from). When you type <code>docker run</code>, the client asks the daemon to create a container from an image — downloaded from the registry if it isn&#39;t already local.</p>
+</div>
+
+<figure class="schema" id="figure-docker-architecture">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-docker-architecture">
+  <title id="s-docker-architecture">Architecture Docker</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Architecture Docker</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="70.5" text-anchor="middle">Client</text><text class="sub" x="98" y="83.5" text-anchor="middle">docker</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">Daemon</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">dockerd</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="77" text-anchor="middle">Images / Conteneurs</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="70.5" text-anchor="middle">Registry</text><text class="sub sub-blue" x="662" y="83.5" text-anchor="middle">pull / push</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Architecture Docker : client → daemon → images/conteneurs, et le registry.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Docker architecture: client → daemon → images/containers, and the registry.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li>L&#39;<strong>image</strong> est un template figé (la « classe ») ; le <strong>conteneur</strong> est une instance vivante. Un <code>docker build</code> produit une image à partir d&#39;un <code>Dockerfile</code> ; un <code>docker run</code> produit un conteneur à partir d&#39;une image.</li><li>Le <strong>volume</strong> contient les données persistantes : il survit à la destruction du conteneur. Sans volume, tout ce que le conteneur écrit meurt avec lui.</li><li>Le <strong>network</strong> définit comment un conteneur parle aux autres (résolution DNS par nom dans les networks nommés).</li><li>Les <strong>variables d&#39;environnement</strong> configurent un conteneur sans toucher à l&#39;image.</li></ul>
+<p>On va explorer chaque brique dans cet ordre : premiers conteneurs (run, ps, stop, rm) → logs &amp; exec (debug) → variables d&#39;env (configuration) → volumes (persistance) → networks (communication) → Dockerfile (créer ses images) → hygiène.</p>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li>The <strong>image</strong> is a frozen template (the &quot;class&quot;); the <strong>container</strong> is a living instance. <code>docker build</code> produces an image from a <code>Dockerfile</code>; <code>docker run</code> produces a container from an image.</li><li>The <strong>volume</strong> holds persistent data: it survives container destruction. Without a volume, everything the container writes dies with it.</li><li>The <strong>network</strong> defines how a container talks to others (DNS resolution by name inside named networks).</li><li><strong>Environment variables</strong> configure a container without touching the image.</li></ul>
+<p>We&#39;ll explore each block in this order: first containers (run, ps, stop, rm) → logs &amp; exec (debugging) → env variables (configuration) → volumes (persistence) → networks (communication) → Dockerfile (building images) → hygiene.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer ton premier conteneur, le voir tourner, l&#39;arrêter et le supprimer proprement.</p>
+<p><strong>🤔 Pourquoi ?</strong> C&#39;est le cycle de vie complet d&#39;un conteneur : créer → observer → arrêter → supprimer. Tout le reste du guide s&#39;appuie sur ces quatre gestes. Et on <strong>pinne</strong> la version de l&#39;image (<code>nginx:1.27</code>, jamais <code>:latest</code>) : avec un tag explicite, tu décides quand tu mets à jour, et tu sais quoi rollback si ça casse.</p>
+<p>Détail des flags :</p>
+<ul><li><code>-d</code> (detached) : tourne en arrière-plan, te rend la main.</li><li><code>--name web</code> : nomme le conteneur (sinon Docker invente un nom aléatoire).</li><li><code>nginx:1.27</code> : le nom de l&#39;image + son tag (téléchargée depuis Docker Hub si absente).</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch your first container, watch it run, stop it, and remove it cleanly.</p>
+<p><strong>🤔 Why?</strong> This is the full container lifecycle: create → observe → stop → remove. The rest of the guide builds on these four moves. And we <strong>pin</strong> the image version (<code>nginx:1.27</code>, never <code>:latest</code>): with an explicit tag, you decide when to update, and you know what to roll back if something breaks.</p>
+<p>Flag breakdown:</p>
+<ul><li><code>-d</code> (detached): runs in the background, gives your shell back.</li><li><code>--name web</code>: names the container (otherwise Docker invents a random name).</li><li><code>nginx:1.27</code>: the image name + its tag (downloaded from Docker Hub if absent).</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name web nginx:1.27
+docker ps</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker ps</code> doit lister <code>web</code> avec un status <code>Up</code>.</p>
+<p>Maintenant, arrête-le puis supprime-le :</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker ps</code> should list <code>web</code> with an <code>Up</code> status.</p>
+<p>Now stop it, then remove it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker stop web
+docker rm web</code></pre>
+<div data-lang="fr"><p><strong>🤔 Différence stop / rm ?</strong></p>
+<ul><li><code>stop</code> : éteint le conteneur, il est toujours là (en « Exited »), tu peux le redémarrer avec <code>docker start web</code>.</li><li><code>rm</code> : supprime le conteneur complètement (mais pas l&#39;image).</li></ul>
+<p><strong>✅ Vérification :</strong> <code>docker ps -a</code> ne montre plus <code>web</code>, mais <code>docker images</code> montre toujours l&#39;image <code>nginx:1.27</code>.</p>
+</div>
+<div data-lang="en"><p><strong>🤔 stop vs rm?</strong></p>
+<ul><li><code>stop</code>: shuts the container down; it still exists (in &quot;Exited&quot; state), and you can restart it with <code>docker start web</code>.</li><li><code>rm</code>: removes the container entirely (but not the image).</li></ul>
+<p><strong>✅ Check:</strong> <code>docker ps -a</code> no longer shows <code>web</code>, but <code>docker images</code> still shows the <code>nginx:1.27</code> image.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exposer un port du conteneur sur ta machine.</p>
+<p><strong>🤔 Pourquoi <code>8080:80</code> ?</strong> Syntaxe <code>HOTE:CONTENEUR</code>. Le conteneur expose le port 80 (nginx écoute là), on le mappe au port 8080 de ta machine. Tu pourrais mettre <code>80:80</code>, mais il faut être root pour les ports sous 1024 — d&#39;où la convention <code>8080</code>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Expose a container port on your machine.</p>
+<p><strong>🤔 Why <code>8080:80</code>?</strong> The syntax is <code>HOST:CONTAINER</code>. The container exposes port 80 (nginx listens there); we map it to port 8080 on your machine. You could use <code>80:80</code>, but ports below 1024 require root — hence the <code>8080</code> convention.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run -d --name web -p 8080:80 nginx:1.27</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ouvre <code>http://localhost:8080</code> dans ton navigateur — la page d&#39;accueil nginx doit s&#39;afficher.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> open <code>http://localhost:8080</code> in your browser — the nginx welcome page should appear.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Apprendre les deux réflexes de debug : lire les logs et entrer dans un conteneur.</p>
+<p><strong>🤔 Pourquoi <code>exec</code> ?</strong> Pour « entrer » dans un conteneur déjà lancé. Très utile pour débugger : « qu&#39;est-ce qu&#39;il y a dans /etc/nginx ? », « tail un fichier de log interne », etc.</p>
+<p><strong>🤔 Pourquoi <code>-it</code> ?</strong> <code>-i</code> (interactive) + <code>-t</code> (TTY) = pouvoir taper des commandes. Sans, tu lances <code>bash</code> mais tu ne peux pas interagir.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Learn the two debugging reflexes: reading logs and getting inside a container.</p>
+<p><strong>🤔 Why <code>exec</code>?</strong> To &quot;enter&quot; an already-running container. Very useful for debugging: &quot;what&#39;s inside /etc/nginx?&quot;, &quot;tail an internal log file&quot;, and so on.</p>
+<p><strong>🤔 Why <code>-it</code>?</strong> <code>-i</code> (interactive) + <code>-t</code> (TTY) = being able to type commands. Without them, you launch <code>bash</code> but can&#39;t interact.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker logs web                    # voir les logs / view logs
+docker logs -f web                 # suivre en temps réel, Ctrl-C pour sortir / follow live, Ctrl-C to exit
+docker exec -it web bash           # ouvrir un shell dans le conteneur / open a shell inside the container
+# (dans le conteneur / inside the container)
+ls /etc/nginx/
+exit</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker logs web</code> affiche les requêtes nginx (dont ta visite de l&#39;étape 2), et le <code>ls /etc/nginx/</code> depuis l&#39;intérieur du conteneur liste <code>nginx.conf</code>. <code>Ctrl-C</code> sur <code>logs -f</code> n&#39;arrête <strong>pas</strong> le conteneur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker logs web</code> shows nginx requests (including your visit from step 2), and <code>ls /etc/nginx/</code> from inside the container lists <code>nginx.conf</code>. <code>Ctrl-C</code> on <code>logs -f</code> does <strong>not</strong> stop the container.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Configurer un service via variables d&#39;environnement, avec une base PostgreSQL.</p>
+<p><strong>🤔 Pourquoi des variables d&#39;env et pas un fichier de config ?</strong> C&#39;est la <strong>convention Docker universelle</strong> pour configurer un conteneur sans modifier l&#39;image. Une image PostgreSQL peut servir 1000 contextes différents juste avec des env vars. C&#39;est le pattern « 12-factor app ».</p>
+<p>⚠️ <strong>Attention :</strong> on commence par <code>docker rm -f web</code> pour nettoyer. Le flag <code>-f</code> <strong>force la suppression d&#39;un conteneur en cours d&#39;exécution</strong> — pas de confirmation, pas de retour en arrière. Ici c&#39;est voulu (nginx est jetable), mais ne prends jamais ce réflexe sur un conteneur dont les données ne sont pas dans un volume.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Configure a service via environment variables, using a PostgreSQL database.</p>
+<p><strong>🤔 Why environment variables and not a config file?</strong> It&#39;s the <strong>universal Docker convention</strong> for configuring a container without modifying the image. One PostgreSQL image can serve 1000 different contexts with env vars alone. This is the &quot;12-factor app&quot; pattern.</p>
+<p>⚠️ <strong>Warning:</strong> we start with <code>docker rm -f web</code> to clean up. The <code>-f</code> flag <strong>force-removes a running container</strong> — no confirmation, no going back. Here it&#39;s deliberate (nginx is disposable), but never make it a reflex on a container whose data isn&#39;t in a volume.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f web   # nettoie le conteneur nginx / clean up the nginx container
+docker run -d --name db \
+  -e POSTGRES_PASSWORD=monsecret \
+  -e POSTGRES_USER=alice \
+  -e POSTGRES_DB=mabase \
+  postgres:16</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker exec -it db psql -U alice -d mabase -c &quot;\dt&quot;</code></pre>
+<div data-lang="fr"><p>Tu accèdes à ta base. Pas de tables encore (« Did not find any relations »), mais la connexion marche.</p>
+</div>
+<div data-lang="en"><p>You&#39;re in your database. No tables yet (&quot;Did not find any relations&quot;), but the connection works.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre les volumes en vivant le problème, puis en le résolvant. C&#39;est <strong>l&#39;étape la plus importante du guide.</strong></p>
+<p><strong>🤔 Pourquoi vivre le problème d&#39;abord ?</strong> Parce que « sans volume, les données meurent avec le conteneur » est une phrase qu&#39;on oublie — alors qu&#39;une table qui disparaît sous tes yeux, tu ne l&#39;oublies pas.</p>
+<p>⚠️ <strong>Attention :</strong> les commandes ci-dessous utilisent <code>docker rm -f db</code>, qui <strong>détruit le conteneur et toutes les données non montées dans un volume</strong>. Ici, la perte de données est le but de la démonstration — n&#39;exécute jamais ça sur une base qui compte.</p>
+<p>D&#39;abord, le test du problème :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand volumes by living the problem first, then fixing it. This is <strong>the most important step of the guide.</strong></p>
+<p><strong>🤔 Why live the problem first?</strong> Because &quot;without a volume, data dies with the container&quot; is a sentence you forget — but a table vanishing before your eyes, you don&#39;t.</p>
+<p>⚠️ <strong>Warning:</strong> the commands below use <code>docker rm -f db</code>, which <strong>destroys the container and all data not mounted in a volume</strong>. Here, losing data is the whole point of the demo — never run this on a database that matters.</p>
+<p>First, the problem test:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker exec -it db psql -U alice -d mabase -c &quot;CREATE TABLE test (id INT);&quot;
+docker rm -f db
+docker run -d --name db -e POSTGRES_PASSWORD=monsecret -e POSTGRES_USER=alice -e POSTGRES_DB=mabase postgres:16
+docker exec -it db psql -U alice -d mabase -c &quot;\dt&quot;</code></pre>
+<div data-lang="fr"><p><strong>Résultat :</strong> ta table <code>test</code> n&#39;existe plus. Sans volume, les données meurent avec le conteneur.</p>
+<p>La solution — un <strong>volume nommé</strong> :</p>
+<p><strong>🤔 Pourquoi <code>-v db-data:/var/lib/postgresql/data</code> ?</strong> Syntaxe <code>VOLUME:PATH_DANS_CONTENEUR</code>. Tout ce que Postgres écrit dans <code>/var/lib/postgresql/data</code> (sa base) va dans le volume <code>db-data</code>, géré par Docker, séparé du conteneur. Détruire le conteneur ne détruit pas le volume.</p>
+</div>
+<div data-lang="en"><p><strong>Result:</strong> your <code>test</code> table is gone. Without a volume, data dies with the container.</p>
+<p>The fix — a <strong>named volume</strong>:</p>
+<p><strong>🤔 Why <code>-v db-data:/var/lib/postgresql/data</code>?</strong> The syntax is <code>VOLUME:PATH_IN_CONTAINER</code>. Everything Postgres writes to <code>/var/lib/postgresql/data</code> (its database) goes into the <code>db-data</code> volume, managed by Docker, separate from the container. Destroying the container does not destroy the volume.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker rm -f db
+docker run -d --name db \
+  -e POSTGRES_PASSWORD=monsecret \
+  -e POSTGRES_USER=alice \
+  -e POSTGRES_DB=mabase \
+  -v db-data:/var/lib/postgresql/data \
+  postgres:16</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> on recommence le crash-test, cette fois avec le volume :</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> repeat the crash test, this time with the volume:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker exec -it db psql -U alice -d mabase -c &quot;CREATE TABLE persistant (id INT);&quot;
+docker rm -f db
+docker run -d --name db -e POSTGRES_PASSWORD=monsecret -e POSTGRES_USER=alice -e POSTGRES_DB=mabase -v db-data:/var/lib/postgresql/data postgres:16
+sleep 5
+docker exec -it db psql -U alice -d mabase -c &quot;\dt&quot;</code></pre>
+<div data-lang="fr"><p>La table <code>persistant</code> est toujours là. <strong>Voilà</strong> pourquoi les volumes sont critiques.</p>
+<p>⚠️ <strong>Deux types de volumes :</strong></p>
+<ul><li><strong>Nommé</strong> : <code>-v db-data:/path</code> → géré par Docker, idéal pour les bases de données.</li><li><strong>Bind mount</strong> : <code>-v ./mon-dossier:/path</code> → ton dossier hôte est monté direct, utile pour le dev (édition live).</li></ul>
+</div>
+<div data-lang="en"><p>The <code>persistant</code> table is still there. <strong>That&#39;s</strong> why volumes are critical.</p>
+<p>⚠️ <strong>Two kinds of volumes:</strong></p>
+<ul><li><strong>Named</strong>: <code>-v db-data:/path</code> → managed by Docker, ideal for databases.</li><li><strong>Bind mount</strong>: <code>-v ./my-folder:/path</code> → your host folder is mounted directly, useful for development (live editing).</li></ul>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire communiquer deux conteneurs par leur nom, via un network Docker.</p>
+<p><strong>🤔 Pourquoi un network custom ?</strong> Dans un network Docker nommé, les conteneurs se résolvent par leur <strong>nom</strong> (<code>api</code> est résolu en IP par le DNS interne Docker). C&#39;est le pattern utilisé dans <strong>tous</strong> les compose multi-services. <strong>Sans network custom</strong>, les conteneurs sont sur le <code>bridge</code> par défaut et ne peuvent communiquer <strong>que par IP</strong>, pas par nom — d&#39;où l&#39;obligation de créer un network nommé pour tes stacks.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Make two containers talk to each other by name, through a Docker network.</p>
+<p><strong>🤔 Why a custom network?</strong> Inside a named Docker network, containers resolve each other by <strong>name</strong> (<code>api</code> is resolved to an IP by Docker&#39;s internal DNS). This is the pattern used in <strong>every</strong> multi-service compose. <strong>Without a custom network</strong>, containers sit on the default <code>bridge</code> and can only communicate <strong>by IP</strong>, not by name — hence the need to create a named network for your stacks.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker network create mon-reseau
+
+docker run -d --name api --network mon-reseau nginx:1.27
+docker run -d --name client --network mon-reseau alpine:3.20 sleep infinity
+
+docker exec -it client wget -qO- http://api</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la dernière commande affiche le HTML de la page d&#39;accueil nginx — le conteneur <code>client</code> a joint <code>api</code> <strong>par son nom</strong>, sans aucune IP.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the last command prints the HTML of the nginx welcome page — the <code>client</code> container reached <code>api</code> <strong>by name</strong>, without any IP.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer ta propre image avec un <code>Dockerfile</code>.</p>
+<p><strong>🤔 Pourquoi chaque choix ?</strong></p>
+<ul><li><code>python:3.12-slim</code> plutôt que <code>python:3.12</code> : la variante <code>slim</code> fait ~150 Mo au lieu de ~1 Go. Toujours préférer slim/alpine pour des images plus légères.</li><li><code>:1.0</code> : c&#39;est le <strong>tag</strong> de l&#39;image. Sans tag, c&#39;est <code>latest</code> par défaut — et comme pour tout service en prod, <strong>toujours tagger explicitement</strong>.</li><li><code>--rm</code> : supprime le conteneur dès qu&#39;il termine. Utile pour les tests one-shot.</li></ul>
+<p>Crée <code>Dockerfile</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Build your own image with a <code>Dockerfile</code>.</p>
+<p><strong>🤔 Why each choice?</strong></p>
+<ul><li><code>python:3.12-slim</code> rather than <code>python:3.12</code>: the <code>slim</code> variant is ~150 MB instead of ~1 GB. Always prefer slim/alpine for lighter images.</li><li><code>:1.0</code>: that&#39;s the image <strong>tag</strong>. Without a tag it defaults to <code>latest</code> — and as with any production service, <strong>always tag explicitly</strong>.</li><li><code>--rm</code>: removes the container as soon as it exits. Handy for one-shot tests.</li></ul>
+<p>Create <code>Dockerfile</code>:</p>
+</div>
+<pre class="term lang-dockerfile"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">Dockerfile</span><button class="copy-btn" type="button">Copy</button></div><code>FROM python:3.12-slim
+WORKDIR /app
+COPY app.py .
+CMD [&quot;python&quot;, &quot;app.py&quot;]</code></pre>
+<div data-lang="fr"><p>Crée <code>app.py</code> :</p>
+</div>
+<div data-lang="en"><p>Create <code>app.py</code>:</p>
+</div>
+<pre class="term lang-python"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">python</span><button class="copy-btn" type="button">Copy</button></div><code>print(&quot;Hello from my custom image!&quot;)</code></pre>
+<div data-lang="fr"><p>Build et lance :</p>
+</div>
+<div data-lang="en"><p>Build and run:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker build -t mon-app:1.0 .
+docker run --rm mon-app:1.0</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>Hello from my custom image!</code>, et <code>docker images</code> liste <code>mon-app</code> avec le tag <code>1.0</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output prints <code>Hello from my custom image!</code>, and <code>docker images</code> lists <code>mon-app</code> with the <code>1.0</code> tag.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Faire l&#39;inventaire de ce que Docker consomme, et nettoyer sans casser.</p>
+<p><strong>🤔 Pourquoi ?</strong> Docker accumule images, conteneurs, volumes et layers de build. Sans nettoyage, ton disque sature. Mais nettoyer à l&#39;aveugle est dangereux — d&#39;où : <strong>inventorier d&#39;abord, supprimer ensuite</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Take stock of what Docker consumes, and clean up without breaking anything.</p>
+<p><strong>🤔 Why?</strong> Docker accumulates images, containers, volumes, and build layers. Without cleanup, your disk fills up. But cleaning blindly is dangerous — hence: <strong>inventory first, delete second</strong>.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker ps -a                  # tous les conteneurs, même arrêtés / all containers, even stopped
+docker images                 # toutes les images / all images
+docker volume ls              # tous les volumes / all volumes
+docker system df              # combien tout ça pèse / how much it all weighs</code></pre>
+<div data-lang="fr"><p>⚠️ <strong>Les deux commandes suivantes sont destructives.</strong> <code>docker system prune</code> supprime les conteneurs arrêtés et les images non taggées — irréversible. La variante <code>-a --volumes</code> supprime en plus <strong>toutes les images inutilisées et tous les volumes non rattachés à un conteneur</strong>. Si un volume contient des données précieuses non rattachées (ex. tu as fait <code>docker rm</code> sans relancer le conteneur), ces données <strong>disparaissent définitivement</strong>. Vérifie <code>docker volume ls</code> avant.</p>
+</div>
+<div data-lang="en"><p>⚠️ <strong>The next two commands are destructive.</strong> <code>docker system prune</code> removes stopped containers and untagged images — irreversibly. The <code>-a --volumes</code> variant additionally removes <strong>all unused images and all volumes not attached to a container</strong>. If a volume holds valuable data that isn&#39;t attached (e.g. you ran <code>docker rm</code> without restarting the container), that data is <strong>gone for good</strong>. Check <code>docker volume ls</code> first.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Nettoyage doux : conteneurs arrêtés + images non taggées / Gentle cleanup: stopped containers + untagged images
+docker system prune
+
+# Nettoyage agressif : + images inutilisées + volumes non utilisés / Aggressive cleanup: + unused images + unused volumes
+docker system prune -a --volumes</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker system df</code> montre un espace récupéré (colonne <code>RECLAIMABLE</code> en baisse), et ton volume <code>db-data</code> est toujours listé par <code>docker volume ls</code> <strong>si</strong> le conteneur <code>db</code> tournait encore au moment du prune.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker system df</code> shows reclaimed space (the <code>RECLAIMABLE</code> column went down), and your <code>db-data</code> volume is still listed by <code>docker volume ls</code> <strong>if</strong> the <code>db</code> container was still running when you pruned.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Tu lances un conteneur sans volume, tu ajoutes des données, puis tu fais <code>docker rm</code>. Données perdues.</strong> Règle : tout service avec état (base de données, app stateful) → volume obligatoire dès le départ. Pas « plus tard », pas « quand ce sera sérieux » : dès le premier <code>docker run</code>.</p>
+<p><strong>2. <code>latest</code> comme tag.</strong> <code>latest</code> casse silencieusement à chaque update : tu redéploies, l&#39;image a changé sous tes pieds, et rien ne te dit pourquoi ça ne marche plus. Pinne une version explicite (<code>nginx:1.27</code>, <code>postgres:16</code>) — tu décides quand mettre à jour, après lecture des release notes.</p>
+<p><strong>3. Tu copies un Dockerfile qui fait <code>COPY . .</code> en début.</strong> Chaque modif de code invalide tout le cache des couches suivantes (y compris <code>pip install</code>). Bonne pratique : copier d&#39;abord les fichiers de dépendances (<code>requirements.txt</code>), installer, <em>puis</em> copier le code.</p>
+<p><strong>4. Tu mets des secrets en clair dans le Dockerfile (<code>ENV API_KEY=...</code>).</strong> Ils sont <strong>embarqués dans l&#39;image</strong>, visibles par quiconque la pull (<code>docker history</code> les montre). Solution : passer les secrets au runtime (<code>-e</code>, ou un <code>.env</code> avec Compose).</p>
+<p><strong>5. Tu lances le conteneur en root sans réfléchir.</strong> Beaucoup d&#39;images officielles tournent root par défaut. En prod, ajoute <code>USER nonroot</code> dans ton Dockerfile, ou utilise les variantes d&#39;images <code>-rootless</code>.</p>
+<p><strong>6. Tu fais <code>docker exec ...</code> partout pour « configurer » ton conteneur.</strong> Tu vas perdre cette config à la prochaine recréation. La config doit vivre dans l&#39;image (Dockerfile), un volume, ou des variables d&#39;environnement — jamais dans des modifications manuelles à chaud.</p>
+</div>
+<div data-lang="en"><p><strong>1. You launch a container without a volume, add data, then run <code>docker rm</code>. Data gone.</strong> Rule: any stateful service (database, stateful app) → volume mandatory from day one. Not &quot;later&quot;, not &quot;when it gets serious&quot;: from the very first <code>docker run</code>.</p>
+<p><strong>2. <code>latest</code> as a tag.</strong> <code>latest</code> breaks silently on every update: you redeploy, the image changed under your feet, and nothing tells you why it stopped working. Pin an explicit version (<code>nginx:1.27</code>, <code>postgres:16</code>) — you decide when to update, after reading the release notes.</p>
+<p><strong>3. You copy a Dockerfile that does <code>COPY . .</code> at the top.</strong> Every code change invalidates the cache of all subsequent layers (including <code>pip install</code>). Best practice: copy dependency files first (<code>requirements.txt</code>), install, <em>then</em> copy the code.</p>
+<p><strong>4. You put clear-text secrets in the Dockerfile (<code>ENV API_KEY=...</code>).</strong> They are <strong>baked into the image</strong>, visible to anyone who pulls it (<code>docker history</code> shows them). Fix: pass secrets at runtime (<code>-e</code>, or a <code>.env</code> file with Compose).</p>
+<p><strong>5. You run the container as root without thinking.</strong> Many official images run as root by default. In production, add <code>USER nonroot</code> to your Dockerfile, or use <code>-rootless</code> image variants.</p>
+<p><strong>6. You <code>docker exec ...</code> everywhere to &quot;configure&quot; your container.</strong> You&#39;ll lose that config on the next recreation. Config must live in the image (Dockerfile), a volume, or environment variables — never in ad-hoc manual tweaks.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques <strong>sans hésiter</strong> la différence image / conteneur.</li><li>Tu sais quand un service a besoin d&#39;un volume et quand non.</li><li><code>docker logs</code>, <code>docker exec</code>, <code>docker inspect</code> sont des réflexes.</li><li>Tu sais lire un Dockerfile et expliquer chaque ligne.</li><li>Tu peux nettoyer ton système Docker sans paniquer (et sans perdre un volume précieux).</li><li>Tu comprends ce que tu vas lire dans <strong>n&#39;importe quel</strong> <code>docker-compose.yml</code>.</li></ul>
+<p>Si les 6 sont cochés, tu as le socle Docker qu&#39;exigent tous les guides suivants. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You can explain the image / container difference <strong>without hesitation</strong>.</li><li>You know when a service needs a volume and when it doesn&#39;t.</li><li><code>docker logs</code>, <code>docker exec</code>, <code>docker inspect</code> are reflexes.</li><li>You can read a Dockerfile and explain every line.</li><li>You can clean your Docker system without panicking (and without losing a precious volume).</li><li>You understand what you&#39;ll read in <strong>any</strong> <code>docker-compose.yml</code>.</li></ul>
+<p>If all 6 are ticked, you have the Docker foundation every following guide demands. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Trois prolongements naturels, dans l&#39;ordre du parcours :</p>
+<ol><li><strong>Docker Compose</strong> — orchestration locale propre : décrire toute ta stack dans un fichier au lieu d&#39;aligner des <code>docker run</code> de 8 lignes.</li><li><strong>Traefik</strong> — reverse proxy + HTTPS automatique, la porte d&#39;entrée de tous tes services.</li><li><strong>Vaultwarden</strong> — ton premier vrai service self-hosté, qui réutilise tout ce que tu viens d&#39;apprendre (image pinée, volume, network, env vars).</li></ol>
+</div>
+<div data-lang="en"><p>Three natural next steps, in path order:</p>
+<ol><li><strong>Docker Compose</strong> — clean local orchestration: describe your whole stack in one file instead of stacking 8-line <code>docker run</code> commands.</li><li><strong>Traefik</strong> — reverse proxy + automatic HTTPS, the front door for all your services.</li><li><strong>Vaultwarden</strong> — your first real self-hosted service, reusing everything you just learned (pinned image, volume, network, env vars).</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-compose/">
+    <span class="num">12</span>
+    <span class="title-line" data-lang="fr">Docker Compose</span>
+    <span class="title-line" data-lang="en">Docker Compose</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés pour le quotidien Docker.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet for day-to-day Docker.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+docker run -d --name web -p 8080:80 nginx:1.27   # lancer / run
+docker ps                          # conteneurs actifs / running containers
+docker ps -a                       # tous, même arrêtés / all, even stopped
+docker stop web &amp;&amp; docker start web # arrêter, redémarrer / stop, restart
+docker rm web                      # supprimer (conteneur arrêté) / remove (stopped container)
+
+# Debug
+docker logs -f web                 # suivre les logs / follow logs
+docker exec -it web bash           # shell dans le conteneur / shell inside container
+docker inspect web                 # tout l&#39;état JSON / full JSON state
+
+# Données &amp; réseau / Data &amp; network
+docker run -v db-data:/var/lib/postgresql/data ...   # volume nommé / named volume
+docker run -v ./dossier:/app ...                     # bind mount
+docker network create mon-reseau                     # network nommé / named network
+docker run --network mon-reseau ...                  # attacher / attach
+
+# Images
+docker build -t mon-app:1.0 .      # construire (tag explicite !) / build (explicit tag!)
+docker images                      # lister / list
+docker pull nginx:1.27             # télécharger / download
+
+# Hygiène / Hygiene — ⚠️ prune = destructif, inventorier avant / destructive, inventory first
+docker system df                   # qui pèse quoi / what weighs what
+docker volume ls                   # lister les volumes AVANT de nettoyer / list volumes BEFORE cleaning
+docker system prune                # doux / gentle
+docker system prune -a --volumes   # ⚠️ agressif : supprime volumes non utilisés / aggressive: removes unused volumes</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.docker.com">Documentation officielle Docker</a> — la référence absolue.</li><li><a href="https://labs.play-with-docker.com">Play with Docker</a> — sandbox gratuit en ligne pour tester sans rien installer.</li><li><a href="https://docs.docker.com/build/building/best-practices/">Best practices Dockerfile</a> — cache des layers, images légères, sécurité.</li><li><a href="https://hub.docker.com">Docker Hub</a> — le registry public, pour vérifier les tags disponibles d&#39;une image.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.docker.com">Official Docker documentation</a> — the absolute reference.</li><li><a href="https://labs.play-with-docker.com">Play with Docker</a> — free online sandbox to experiment without installing anything.</li><li><a href="https://docs.docker.com/build/building/best-practices/">Dockerfile best practices</a> — layer caching, lightweight images, security.</li><li><a href="https://hub.docker.com">Docker Hub</a> — the public registry, to check an image&#39;s available tags.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« Cannot connect to the Docker daemon ».</strong> Le démon Docker n&#39;est pas lancé, ou tu n&#39;as pas les permissions. Vérifie : <code>systemctl status docker</code>. Si tu n&#39;es pas dans le groupe : <code>sudo usermod -aG docker $USER</code> puis déconnexion/reconnexion.</p>
+<p><strong>« Port is already allocated ».</strong> Un autre process utilise déjà ce port. Trouve qui : <code>sudo ss -tlnp | grep :8080</code>. Soit tu changes ton port côté hôte (<code>-p 8081:80</code>), soit tu arrêtes l&#39;autre service.</p>
+<p><strong>Mon conteneur démarre puis s&#39;arrête immédiatement.</strong> Regarde les logs : <code>docker logs &lt;nom&gt;</code>. Soit une erreur de config, soit le conteneur n&#39;a « rien à faire » — un conteneur sans process au premier plan s&#39;arrête aussitôt.</p>
+<p><strong>« No space left on device ».</strong> Docker a saturé le disque. <code>docker system df</code> pour voir ce qui pèse, puis nettoie — ⚠️ en te rappelant que <code>docker system prune -a</code> est destructif (images inutilisées supprimées définitivement) : inventorie avant, cf. step-08.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;Cannot connect to the Docker daemon&quot;.</strong> The Docker daemon isn&#39;t running, or you lack permissions. Check: <code>systemctl status docker</code>. If you&#39;re not in the group: <code>sudo usermod -aG docker $USER</code> then log out/in.</p>
+<p><strong>&quot;Port is already allocated&quot;.</strong> Another process is already using that port. Find out who: <code>sudo ss -tlnp | grep :8080</code>. Either change your host-side port (<code>-p 8081:80</code>) or stop the other service.</p>
+<p><strong>My container starts then stops immediately.</strong> Check the logs: <code>docker logs &lt;name&gt;</code>. Either a config error, or the container has &quot;nothing to do&quot; — a container with no foreground process exits right away.</p>
+<p><strong>&quot;No space left on device&quot;.</strong> Docker filled the disk. <code>docker system df</code> to see what weighs what, then clean up — ⚠️ remembering that <code>docker system prune -a</code> is destructive (unused images permanently deleted): take inventory first, see step-08.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

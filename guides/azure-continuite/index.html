@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — continuité d&#39;activité (AZ-305) : HA, sauvegarde, reprise — jiha.tech</title>
+  <title data-lang="en">Azure — business continuity (AZ-305): HA, backup, disaster recovery — jiha.tech</title>
+  <meta name="description" content="La continuité d&#39;activité Azure pour l&#39;AZ-305 : concevoir la résilience. On définit RTO et RPO, on déploie un socle primaire (réseau + charges) sur miniblue, puis on conçoit les trois couches — haute disponibilité (zones vs groupes), sauvegarde (coffre Recovery Services + politique de rétention, en Bicep validé) et reprise après sinistre (stockage géo-redondant, géo-réplication SQL, Site Recovery multi-région). On grave la grille RTO/RPO → mécanisme. Sans compte ni facture." data-lang="fr">
+  <meta name="description" content="Azure business continuity for AZ-305: designing resilience. We define RTO and RPO, deploy a primary baseline (network + workloads) on miniblue, then design the three layers — high availability (zones vs sets), backup (Recovery Services Vault + retention policy, in validated Bicep) and disaster recovery (geo-redundant storage, SQL geo-replication, multi-region Site Recovery). We engrave the RTO/RPO → mechanism grid. No account or bill." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — continuité d&#39;activité (AZ-305) : HA, sauvegarde, reprise">
+  <meta property="og:description" content="La continuité d&#39;activité Azure pour l&#39;AZ-305 : concevoir la résilience. On définit RTO et RPO, on déploie un socle primaire (réseau + charges) sur miniblue, puis on conçoit les trois couches — haute disponibilité (zones vs groupes), sauvegarde (coffre Recovery Services + politique de rétention, en Bicep validé) et reprise après sinistre (stockage géo-redondant, géo-réplication SQL, Site Recovery multi-région). On grave la grille RTO/RPO → mécanisme. Sans compte ni facture.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-continuite/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-continuite/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-continuite">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-continuite</div>
+    <div class="prompt" data-lang="en">~/guides/azure-continuite</div>
+    <h1 data-lang="fr">Azure — continuité d&#39;activité (AZ-305) : HA, sauvegarde, reprise</h1>
+    <h1 data-lang="en">Azure — business continuity (AZ-305): HA, backup, disaster recovery</h1>
+    <p class="tagline" data-lang="fr">RTO/RPO, zones, sauvegarde, géo-réplication, reprise après sinistre.</p>
+    <p class="tagline" data-lang="en">RTO/RPO, zones, backup, geo-replication, disaster recovery.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 240 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-21</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 240 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-21</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>« Et si le datacenter brûle ? Et si quelqu&#39;un supprime la base par erreur ? Combien de temps pour se remettre, et combien de données perdues au pire ? » Ce sont les questions de la <strong>continuité d&#39;activité</strong> (Business Continuity / Disaster Recovery), un domaine central de l&#39;examen <strong>AZ-305</strong> et une responsabilité majeure de l&#39;architecte. Une architecture qui marche « quand tout va bien » ne suffit pas : il faut concevoir pour <strong>quand ça casse</strong>.</p>
+<p>Ce guide t&#39;apprend à concevoir la <strong>résilience</strong>. On pose d&#39;abord les deux mesures reines : <strong>RTO</strong> (Recovery Time Objective — en combien de temps on récupère) et <strong>RPO</strong> (Recovery Point Objective — combien de données on accepte de perdre). Puis on déploie un <strong>socle primaire</strong> (réseau + charges) sur miniblue, et on conçoit les <strong>trois couches</strong> de continuité : la <strong>haute disponibilité</strong> (zones de disponibilité vs groupes, dans une région), la <strong>sauvegarde</strong> (coffre <strong>Recovery Services</strong> + politique de rétention, décrits en <strong>Bicep</strong>), et la <strong>reprise après sinistre</strong> (stockage <strong>géo-redondant</strong>, <strong>géo-réplication</strong> SQL, <strong>Site Recovery</strong> multi-région). Enfin, on grave la grille <strong>RTO/RPO → mécanisme</strong>, cœur des questions d&#39;examen.</p>
+<p>C&#39;est le troisième guide du track <strong>AZ-305</strong>. La résilience n&#39;est pas une option qu&#39;on ajoute à la fin — c&#39;est une <strong>décision de conception</strong> qu&#39;on prend selon les besoins (et le budget) du métier.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>architecture (WAF)</em> et tu veux concevoir la continuité.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu débutes → fais l&#39;<em>AZ-104</em> puis le guide <em>WAF</em> d&#39;abord.</li><li>Tu veux tester un vrai basculement de région → ça se fait sur un <strong>vrai compte</strong> (impossible en local) ; ici on <strong>conçoit</strong> et on <strong>valide</strong> la config.</li></ul>
+</div>
+<div data-lang="en"><p>&quot;What if the datacenter burns down? What if someone deletes the database by mistake? How long to recover, and how much data lost at worst?&quot; These are the questions of <strong>business continuity</strong> (Business Continuity / Disaster Recovery), a core <strong>AZ-305</strong> exam domain and a major architect responsibility. An architecture that works &quot;when all is well&quot; isn&#39;t enough: you must design for <strong>when it breaks</strong>.</p>
+<p>This guide teaches you to design <strong>resilience</strong>. We first set the two ruling measures: <strong>RTO</strong> (Recovery Time Objective — how fast you recover) and <strong>RPO</strong> (Recovery Point Objective — how much data you accept losing). Then we deploy a <strong>primary baseline</strong> (network + workloads) on miniblue, and design the <strong>three layers</strong> of continuity: <strong>high availability</strong> (availability zones vs sets, within a region), <strong>backup</strong> (<strong>Recovery Services Vault</strong> + retention policy, described in <strong>Bicep</strong>), and <strong>disaster recovery</strong> (<strong>geo-redundant</strong> storage, SQL <strong>geo-replication</strong>, multi-region <strong>Site Recovery</strong>). Finally, we engrave the <strong>RTO/RPO → mechanism</strong> grid, the heart of the exam questions.</p>
+<p>This is the third guide of the <strong>AZ-305</strong> track. Resilience isn&#39;t an option you add at the end — it&#39;s a <strong>design decision</strong> you make by the business&#39;s needs (and budget).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>architecture (WAF)</em> and want to design continuity.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re a beginner → do <em>AZ-104</em> then the <em>WAF</em> guide first.</li><li>You want to test a real region failover → that&#39;s done on a <strong>real account</strong> (impossible locally); here we <strong>design</strong> and <strong>validate</strong> the config.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Définir et distinguer <strong>RTO</strong> et <strong>RPO</strong>.</li><li>Concevoir la <strong>haute disponibilité</strong> (zones vs groupes, services zone-redondants).</li><li>Concevoir la <strong>sauvegarde</strong> (coffre Recovery Services + rétention) en Bicep.</li><li>Choisir la <strong>redondance de stockage</strong> (LRS/ZRS/GRS/RA-GRS) selon la continuité.</li><li>Concevoir la <strong>reprise après sinistre</strong> (géo-réplication, Site Recovery, multi-région).</li><li>Assurer la <strong>continuité des bases</strong> (géo-réplication SQL, Cosmos multi-région).</li><li>Choisir le bon <strong>mécanisme</strong> selon RTO/RPO et le coût.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Define and distinguish <strong>RTO</strong> and <strong>RPO</strong>.</li><li>Design <strong>high availability</strong> (zones vs sets, zone-redundant services).</li><li>Design <strong>backup</strong> (Recovery Services Vault + retention) in Bicep.</li><li>Choose the <strong>storage redundancy</strong> (LRS/ZRS/GRS/RA-GRS) by continuity need.</li><li>Design <strong>disaster recovery</strong> (geo-replication, Site Recovery, multi-region).</li><li>Ensure <strong>database continuity</strong> (SQL geo-replication, Cosmos multi-region).</li><li>Choose the right <strong>mechanism</strong> by RTO/RPO and cost.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure architecture (WAF)</strong> terminé, et <strong>miniblue</strong> qui tourne.</li><li><strong>Terraform</strong> et <strong>Bicep</strong> installés ; <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Rappel : le socle se déploie en live ; les mécanismes de <strong>sauvegarde/DR</strong> se conçoivent et <strong>valident en Bicep</strong> (un vrai basculement se teste sur un compte).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure architecture (WAF)</strong> guide done, and <strong>miniblue</strong> running.</li><li><strong>Terraform</strong> and <strong>Bicep</strong> installed; <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code>.</li><li>Reminder: the baseline deploys live; the <strong>backup/DR</strong> mechanisms are designed and <strong>validated in Bicep</strong> (a real failover is tested on an account).</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-architecture-well-architected/">
+    <span class="num">65</span>
+    <span class="title-line" data-lang="fr">Azure — architecture (AZ-305) : le Well-Architected Framework en pratique</span>
+    <span class="title-line" data-lang="en">Azure — architecture (AZ-305): the Well-Architected Framework in practice</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>RTO &amp; RPO — les deux mesures reines.</strong> Toute stratégie de continuité se chiffre par deux objectifs. Le <strong>RTO (Recovery Time Objective)</strong> : le <strong>temps maximal</strong> acceptable pour rétablir le service après une panne (« on doit être de retour en &lt; 1 h »). Le <strong>RPO (Recovery Point Objective)</strong> : la <strong>quantité maximale de données</strong> qu&#39;on accepte de perdre, mesurée en temps (« au pire, 5 min de données perdues »). Un RTO/RPO <strong>bas</strong> (proche de zéro) coûte <strong>cher</strong> ; un RTO/RPO <strong>élevé</strong> est <strong>économique</strong>. L&#39;architecte fixe ces cibles <strong>avec le métier</strong>, puis choisit les mécanismes qui les tiennent.</p>
+<p><strong>Trois couches de continuité.</strong> On empile trois protections, du plus courant au plus grave :</p>
+<ul><li><strong>Haute disponibilité (HA).</strong> Survivre à une panne <strong>locale</strong> (matériel, maintenance) <strong>dans une région</strong>. Mécanismes : <strong>zones de disponibilité</strong> (datacenters séparés d&#39;une région — le standard moderne), <strong>groupes à haute disponibilité</strong> (fault/update domains), services <strong>zone-redondants</strong> (stockage ZRS, bases avec réplicas de zone). RTO/RPO ~ zéro, automatique.</li><li><strong>Sauvegarde (Backup).</strong> Se remettre d&#39;une <strong>erreur</strong> (suppression, corruption, rançongiciel) ou revenir dans le temps. Mécanisme : <strong>Azure Backup</strong> + un <strong>coffre Recovery Services</strong> avec une <strong>politique</strong> (fréquence, rétention). Le RPO = l&#39;intervalle entre sauvegardes ; le RTO = le temps de restauration.</li><li><strong>Reprise après sinistre (DR).</strong> Survivre à la perte d&#39;une <strong>région entière</strong>. Mécanismes : <strong>stockage géo-redondant</strong> (GRS/RA-GRS), <strong>géo-réplication</strong> des bases, <strong>Azure Site Recovery</strong> (répliquer et basculer des VM vers une région secondaire). RTO/RPO selon la config (de quelques minutes à quelques heures).</li></ul>
+<p><strong>Redondance de stockage &amp; continuité.</strong> Le choix de redondance d&#39;un compte de stockage <strong>est</strong> une décision de continuité : <strong>LRS</strong> (1 datacenter — pas de protection régionale), <strong>ZRS</strong> (3 zones — HA intra-région), <strong>GRS</strong> (région distante, async — DR), <strong>RA-GRS</strong> (GRS + lecture sur la copie distante — DR avec lecture). Plus on protège loin, plus ça coûte.</p>
+<p><strong>Continuité des bases.</strong> <strong>Azure SQL</strong> : <strong>géo-réplication active</strong> (réplicas lisibles dans d&#39;autres régions) et <strong>groupes de basculement</strong> (failover groups, bascule automatique). <strong>Cosmos DB</strong> : <strong>multi-région</strong> natif (ajouter une région = une case à cocher), écritures multi-maîtres possibles. Le RPO/RTO des bases est souvent <strong>meilleur</strong> que celui des VM.</p>
+<p><strong>Ce qui est live ici.</strong> Le <strong>socle primaire</strong> (réseau + charges) se déploie en live sur miniblue. Les <strong>mécanismes de sauvegarde/DR</strong> (coffre Recovery Services, politique, stockage RA-GRS) se <strong>décrivent et valident en Bicep</strong> — la forme exacte du vrai Azure. Un <strong>vrai basculement</strong> de région ne se teste que sur un compte (impossible sur l&#39;émulateur) — mais la <strong>conception</strong>, elle, s&#39;apprend et se valide ici.</p>
+</div>
+<div data-lang="en"><p><strong>RTO &amp; RPO — the two ruling measures.</strong> Every continuity strategy is quantified by two objectives. <strong>RTO (Recovery Time Objective)</strong>: the maximum acceptable <strong>time</strong> to restore service after an outage (&quot;we must be back in &lt; 1 h&quot;). <strong>RPO (Recovery Point Objective)</strong>: the maximum <strong>amount of data</strong> you accept losing, measured in time (&quot;at worst, 5 min of data lost&quot;). A <strong>low</strong> RTO/RPO (near zero) is <strong>expensive</strong>; a <strong>high</strong> RTO/RPO is <strong>economical</strong>. The architect sets these targets <strong>with the business</strong>, then chooses the mechanisms that meet them.</p>
+<p><strong>Three layers of continuity.</strong> You stack three protections, from most common to most severe:</p>
+<ul><li><strong>High availability (HA).</strong> Survive a <strong>local</strong> failure (hardware, maintenance) <strong>within a region</strong>. Mechanisms: <strong>availability zones</strong> (separate datacenters in a region — the modern standard), <strong>availability sets</strong> (fault/update domains), <strong>zone-redundant</strong> services (ZRS storage, databases with zone replicas). RTO/RPO ~ zero, automatic.</li><li><strong>Backup.</strong> Recover from an <strong>error</strong> (deletion, corruption, ransomware) or go back in time. Mechanism: <strong>Azure Backup</strong> + a <strong>Recovery Services Vault</strong> with a <strong>policy</strong> (frequency, retention). The RPO = the interval between backups; the RTO = the restore time.</li><li><strong>Disaster recovery (DR).</strong> Survive the loss of an <strong>entire region</strong>. Mechanisms: <strong>geo-redundant storage</strong> (GRS/RA-GRS), database <strong>geo-replication</strong>, <strong>Azure Site Recovery</strong> (replicate and fail over VMs to a secondary region). RTO/RPO by config (minutes to hours).</li></ul>
+<p><strong>Storage redundancy &amp; continuity.</strong> A storage account&#39;s redundancy choice <strong>is</strong> a continuity decision: <strong>LRS</strong> (1 datacenter — no regional protection), <strong>ZRS</strong> (3 zones — intra-region HA), <strong>GRS</strong> (distant region, async — DR), <strong>RA-GRS</strong> (GRS + read on the distant copy — DR with read). The farther you protect, the more it costs.</p>
+<p><strong>Database continuity.</strong> <strong>Azure SQL</strong>: <strong>active geo-replication</strong> (readable replicas in other regions) and <strong>failover groups</strong> (automatic failover). <strong>Cosmos DB</strong>: native <strong>multi-region</strong> (adding a region = a checkbox), possible multi-master writes. Databases&#39; RPO/RTO is often <strong>better</strong> than VMs&#39;.</p>
+<p><strong>What&#39;s live here.</strong> The <strong>primary baseline</strong> (network + workloads) deploys live on miniblue. The <strong>backup/DR mechanisms</strong> (Recovery Services Vault, policy, RA-GRS storage) are <strong>described and validated in Bicep</strong> — the exact shape of real Azure. A <strong>real</strong> region failover is only tested on an account (impossible on the emulator) — but the <strong>design</strong> is learned and validated here.</p>
+</div>
+
+<figure class="schema" id="figure-azure-continuite-couches">
+  <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-continuite-couches">
+  <title id="s-azure-continuite-couches">Trois couches de continuité (réglées par RTO/RPO)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Trois couches de continuité (réglées par RTO/RPO)</text><rect class="box-accent" x="90" y="40" width="580" height="40" rx="3"/><text class="lbl lbl-fill" x="380" y="57.5" text-anchor="middle">HAUTE DISPONIBILITÉ</text><text class="sub sub-fill" x="380" y="70.5" text-anchor="middle">zones/groupes · panne locale · RTO/RPO ~0</text><rect class="box" x="90" y="90" width="580" height="40" rx="3"/><text class="lbl" x="380" y="107.5" text-anchor="middle">SAUVEGARDE</text><text class="sub" x="380" y="120.5" text-anchor="middle">coffre Recovery Services + rétention · erreur/corruption</text><rect class="box" x="90" y="140" width="580" height="40" rx="3"/><text class="lbl" x="380" y="157.5" text-anchor="middle">REPRISE APRÈS SINISTRE</text><text class="sub" x="380" y="170.5" text-anchor="middle">géo-redondance · Site Recovery · perte d’une région</text><text class="sub" x="380" y="222" text-anchor="middle">plus la cible RTO/RPO est basse, plus le coût monte</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Les trois couches de continuité, réglées par RTO (temps de reprise) et RPO (données perdues) : HAUTE DISPONIBILITÉ (zones/groupes, panne locale, RTO/RPO~0) ; SAUVEGARDE (coffre Recovery Services + rétention, contre erreur/corruption) ; REPRISE APRÈS SINISTRE (géo-redondance, géo-réplication, Site Recovery, perte d&#39;une région). Plus la cible RTO/RPO est basse, plus le coût monte.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The three continuity layers, tuned by RTO (recovery time) and RPO (data lost): HIGH AVAILABILITY (zones/sets, local failure, RTO/RPO~0); BACKUP (Recovery Services Vault + retention, against error/corruption); DISASTER RECOVERY (geo-redundancy, geo-replication, Site Recovery, region loss). The lower the RTO/RPO target, the higher the cost.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser <strong>RTO</strong> et <strong>RPO</strong> — la boussole de la continuité.</p>
+<p><strong>🤔 Chiffrer le besoin.</strong> Avant tout mécanisme, l&#39;architecte demande au métier : « en cas de panne, combien de temps sans service tolérez-vous (<strong>RTO</strong>) ? Combien de données pouvez-vous perdre (<strong>RPO</strong>) ? ». Les réponses <strong>pilotent</strong> tous les choix (et le budget).</p>
+<p>Grave les définitions et l&#39;échelle coût :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set <strong>RTO</strong> and <strong>RPO</strong> — the compass of continuity.</p>
+<p><strong>🤔 Quantify the need.</strong> Before any mechanism, the architect asks the business: &quot;on an outage, how much downtime can you tolerate (<strong>RTO</strong>)? How much data can you lose (<strong>RPO</strong>)?&quot;. The answers <strong>drive</strong> all the choices (and the budget).</p>
+<p>Engrave the definitions and the cost scale:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>RTO (Recovery Time Objective)  = temps MAX pour rétablir le service (downtime)
+RPO (Recovery Point Objective) = données MAX perdues, en temps (dernier point sûr)
+
+Exemple : RTO 1 h / RPO 15 min  -&gt; de retour en 1 h, au pire 15 min de données perdues.
+
+  RTO/RPO proche de ZÉRO  -&gt; coûteux (redondance active, réplication synchrone)
+  RTO/RPO élevé (heures)  -&gt; économique (sauvegarde quotidienne, restauration)
+=&gt; l&#39;architecte équilibre coût &lt;-&gt; RTO/RPO selon la criticité métier</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais <strong>définir</strong> RTO (temps de reprise) et RPO (données perdues) et les <strong>placer</strong> sur un scénario. Réflexe : un <strong>panier e-commerce</strong> exige un RPO bas (ne pas perdre de commandes) ; un <strong>blog</strong> tolère un RPO d&#39;un jour. C&#39;est le métier qui fixe la cible ; l&#39;architecte choisit le <strong>mécanisme</strong> qui la tient au <strong>meilleur coût</strong>. ⚠️ Erreur classique : viser « zéro perte, reprise instantanée » <strong>partout</strong> — c&#39;est ruineux. On <strong>module</strong> par criticité : le critique en HA+DR, le reste en sauvegarde simple.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can <strong>define</strong> RTO (recovery time) and RPO (data lost) and <strong>place</strong> them on a scenario. Reflex: an <strong>e-commerce cart</strong> demands a low RPO (don&#39;t lose orders); a <strong>blog</strong> tolerates a one-day RPO. The business sets the target; the architect chooses the <strong>mechanism</strong> that meets it at the <strong>best cost</strong>. ⚠️ Classic mistake: aiming for &quot;zero loss, instant recovery&quot; <strong>everywhere</strong> — it&#39;s ruinous. You <strong>modulate</strong> by criticality: critical in HA+DR, the rest in simple backup.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer le <strong>socle primaire</strong> — ce qu&#39;on va protéger, en live.</p>
+<p><strong>🤔 D&#39;abord, la production.</strong> On déploie une région « primaire » : un réseau et un compte de stockage. C&#39;est le workload qu&#39;on rendra résilient dans les étapes suivantes.</p>
+<p>Déploie le socle (Terraform + azlocal) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>primary baseline</strong> — what we&#39;ll protect, live.</p>
+<p><strong>🤔 First, production.</strong> We deploy a &quot;primary&quot; region: a network and a storage account. It&#39;s the workload we&#39;ll make resilient in the next steps.</p>
+<p>Deploy the baseline (Terraform + azlocal):</p>
+</div>
+<p>D&#39;abord crée les fichiers <strong><code>infra/main.tf</code></strong> (ci-dessous) et <strong><code>infra/providers.tf</code></strong> (le bloc provider <code>azurerm</code> → miniblue, à reprendre du guide <em>réseau</em>). <strong>Ensuite</strong> lance Terraform (l&#39;apply crée le groupe, indispensable avant le compte de stockage).</p>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># infra/main.tf — socle primaire minimal
+resource &quot;azurerm_resource_group&quot; &quot;cont&quot; {
+  name     = &quot;rg-continuite&quot;
+  location = &quot;westeurope&quot;
+  tags     = { role = &quot;primaire&quot;, env = &quot;continuite&quot; }
+}
+resource &quot;azurerm_virtual_network&quot; &quot;primaire&quot; {
+  name                = &quot;vnet-primaire&quot;
+  address_space       = [&quot;10.0.0.0/16&quot;]
+  location            = azurerm_resource_group.cont.location
+  resource_group_name = azurerm_resource_group.cont.name
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># 1) Réseau primaire (Terraform crée d&#39;abord le groupe rg-continuite)
+cd infra &amp;&amp; export SSL_CERT_FILE=~/.miniblue/cert.pem &amp;&amp; terraform init &amp;&amp; terraform apply -auto-approve
+
+# 2) Une charge à protéger, DANS le groupe créé / a workload to protect, IN the created group
+azlocal storage account create --name stprimaire2026 --resource-group rg-continuite</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform apply</code> déploie le groupe <code>rg-continuite</code> et le VNet primaire (<code>Apply complete!</code>), et <code>storage account create</code> ajoute une charge (<code>stprimaire2026</code>, <code>StorageV2</code>). Tu as une <strong>région primaire</strong> fonctionnelle — le point de départ. Retiens : la continuité se <strong>conçoit sur</strong> un workload réel ; les trois couches (HA, sauvegarde, DR) viennent <strong>s&#39;ajouter</strong> dessus. ⚠️ En réel, on choisirait dès maintenant la <strong>région</strong> primaire (proximité, souveraineté) et sa <strong>paire de régions</strong> Azure (pour la DR — chaque région a une paire recommandée).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform apply</code> deploys the <code>rg-continuite</code> group and the primary VNet (<code>Apply complete!</code>), and <code>storage account create</code> adds a workload (<code>stprimaire2026</code>, <code>StorageV2</code>). You have a working <strong>primary region</strong> — the starting point. Remember: continuity is <strong>designed onto</strong> a real workload; the three layers (HA, backup, DR) come <strong>added</strong> on top. ⚠️ For real, you&#39;d choose the primary <strong>region</strong> now (proximity, sovereignty) and its Azure <strong>region pair</strong> (for DR — each region has a recommended pair).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir la <strong>haute disponibilité</strong> — survivre à une panne locale.</p>
+<p><strong>🤔 Ne pas dépendre d&#39;un datacenter.</strong> Dans une région, on répartit les ressources sur des <strong>zones de disponibilité</strong> (datacenters physiquement séparés) : si une zone tombe, les autres tiennent. C&#39;est le standard moderne (mieux que les anciens <em>groupes à haute disponibilité</em>, limités à un datacenter). Beaucoup de services sont <strong>zone-redondants</strong> en un réglage.</p>
+<p>Les mécanismes HA (concept + réglages) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design <strong>high availability</strong> — survive a local failure.</p>
+<p><strong>🤔 Don&#39;t depend on one datacenter.</strong> Within a region, you spread resources across <strong>availability zones</strong> (physically separate datacenters): if a zone falls, the others hold. It&#39;s the modern standard (better than the old <em>availability sets</em>, limited to one datacenter). Many services are <strong>zone-redundant</strong> with one setting.</p>
+<p>The HA mechanisms (concept + settings):</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>HAUTE DISPONIBILITÉ dans une région / HIGH AVAILABILITY within a region
+  Zones de disponibilité   VM/ressources réparties sur 3 datacenters séparés (moderne, recommandé)
+  Groupes à haute dispo    fault domains + update domains (1 datacenter ; legacy)
+  Services zone-redondants stockage ZRS ; SQL/Cosmos avec réplicas de zone ; IP/LB standard zone-redundant
+  Scale sets multi-zone    le troupeau de VM réparti sur les zones
+=&gt; HA = RTO/RPO proche de ZÉRO, automatique, dans UNE région (pas contre un sinistre régional)</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> tu sais concevoir la HA : répartir sur <strong>zones de disponibilité</strong> (le réflexe moderne), activer les variantes <strong>zone-redondantes</strong> des services (stockage ZRS, LB/IP Standard, réplicas de base). Retiens la limite : la HA protège d&#39;une panne <strong>locale</strong> (une zone), <strong>pas</strong> d&#39;un <strong>sinistre régional</strong> — pour ça, il faut la <strong>DR</strong> (étapes 4-5). ⚠️ Distinction d&#39;examen : <strong>zones</strong> (datacenters séparés, moderne) &gt; <strong>groupes à haute disponibilité</strong> (un seul datacenter, fault/update domains, ancien). Préfère les <strong>zones</strong> quand la région les propose.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> you can design HA: spread across <strong>availability zones</strong> (the modern reflex), enable the <strong>zone-redundant</strong> variants of services (ZRS storage, Standard LB/IP, database zone replicas). Remember the limit: HA protects from a <strong>local</strong> failure (one zone), <strong>not</strong> a <strong>regional disaster</strong> — for that you need <strong>DR</strong> (steps 4-5). ⚠️ Exam distinction: <strong>zones</strong> (separate datacenters, modern) &gt; <strong>availability sets</strong> (single datacenter, fault/update domains, legacy). Prefer <strong>zones</strong> when the region offers them.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir la <strong>sauvegarde</strong> — coffre Recovery Services + politique, en Bicep.</p>
+<p><strong>🤔 Revenir dans le temps.</strong> Contre une <strong>erreur</strong> (suppression, corruption, rançongiciel), la HA ne sert à rien (elle réplique l&#39;erreur !). Il faut des <strong>sauvegardes</strong> : un <strong>coffre Recovery Services</strong> stocke des points de restauration selon une <strong>politique</strong> (fréquence → RPO ; rétention → jusqu&#39;où revenir). On le décrit en Bicep.</p>
+<p>Crée <code>sauvegarde.bicep</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design <strong>backup</strong> — Recovery Services Vault + policy, in Bicep.</p>
+<p><strong>🤔 Go back in time.</strong> Against an <strong>error</strong> (deletion, corruption, ransomware), HA is useless (it replicates the error!). You need <strong>backups</strong>: a <strong>Recovery Services Vault</strong> stores restore points by a <strong>policy</strong> (frequency → RPO; retention → how far back). We describe it in Bicep.</p>
+<p>Create <code>sauvegarde.bicep</code>:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// sauvegarde.bicep — coffre Recovery Services + politique de sauvegarde
+param location string = resourceGroup().location
+
+resource coffre &#39;Microsoft.RecoveryServices/vaults@2023-06-01&#39; = {
+  name: &#39;rsv-continuite&#39;
+  location: location
+  sku: { name: &#39;RS0&#39;, tier: &#39;Standard&#39; }
+  properties: {}
+}
+
+resource politique &#39;Microsoft.RecoveryServices/vaults/backupPolicies@2023-06-01&#39; = {
+  parent: coffre
+  name: &#39;politique-quotidienne&#39;
+  properties: {
+    backupManagementType: &#39;AzureIaasVM&#39;
+    schedulePolicy: {
+      schedulePolicyType: &#39;SimpleSchedulePolicy&#39;
+      scheduleRunFrequency: &#39;Daily&#39;
+      scheduleRunTimes: [ &#39;2026-01-01T02:00:00Z&#39; ]      // sauvegarde quotidienne à 02:00
+    }
+    retentionPolicy: {
+      retentionPolicyType: &#39;LongTermRetentionPolicy&#39;
+      dailySchedule: {
+        retentionTimes: [ &#39;2026-01-01T02:00:00Z&#39; ]
+        retentionDuration: { count: 30, durationType: &#39;Days&#39; }   // rétention 30 jours
+      }
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build sauvegarde.bicep --stdout | head -n 20</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile <strong>deux</strong> ressources — <code>vaults</code> (le coffre) et <code>backupPolicies</code> (la politique) — sans erreur. Ta sauvegarde : <strong>quotidienne</strong> (RPO ≈ 24 h — on peut perdre au plus une journée), <strong>rétention 30 jours</strong> (on peut revenir un mois en arrière). Analyse : la <strong>fréquence</strong> fixe le RPO, la <strong>rétention</strong> la profondeur historique. ⚠️ La sauvegarde répond à un besoin <strong>différent</strong> de la HA : elle protège de l&#39;<strong>erreur</strong> et de la <strong>corruption</strong> (revenir en arrière), là où la HA protège de la <strong>panne matérielle</strong> (rester en ligne). Les deux sont <strong>complémentaires</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles <strong>two</strong> resources — <code>vaults</code> (the vault) and <code>backupPolicies</code> (the policy) — with no error. Your backup: <strong>daily</strong> (RPO ≈ 24 h — you can lose at most a day), <strong>30-day retention</strong> (you can go back a month). Analysis: the <strong>frequency</strong> sets the RPO, the <strong>retention</strong> the historical depth. ⚠️ Backup meets a <strong>different</strong> need than HA: it protects from <strong>error</strong> and <strong>corruption</strong> (going back), where HA protects from <strong>hardware failure</strong> (staying online). The two are <strong>complementary</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Concevoir la <strong>reprise après sinistre</strong> — survivre à la perte d&#39;une région.</p>
+<p><strong>🤔 Le pire cas.</strong> Si une <strong>région entière</strong> tombe (catastrophe), il faut basculer sur une <strong>région secondaire</strong>. Trois leviers : le <strong>stockage géo-redondant</strong> (GRS/RA-GRS, réplication vers la région paire), la <strong>géo-réplication</strong> des bases (SQL failover groups, Cosmos multi-région), et <strong>Azure Site Recovery</strong> (répliquer et basculer les VM). On décrit le stockage RA-GRS en Bicep.</p>
+<p>Ajoute le stockage géo-redondant :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Design <strong>disaster recovery</strong> — survive the loss of a region.</p>
+<p><strong>🤔 The worst case.</strong> If an <strong>entire region</strong> falls (catastrophe), you fail over to a <strong>secondary region</strong>. Three levers: <strong>geo-redundant storage</strong> (GRS/RA-GRS, replication to the paired region), database <strong>geo-replication</strong> (SQL failover groups, Cosmos multi-region), and <strong>Azure Site Recovery</strong> (replicate and fail over VMs). We describe RA-GRS storage in Bicep.</p>
+<p>Add the geo-redundant storage:</p>
+</div>
+<pre class="term lang-bicep"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">bicep</span><button class="copy-btn" type="button">Copy</button></div><code>// dr-stockage.bicep — stockage géo-redondant avec lecture (RA-GRS)
+param location string = resourceGroup().location
+
+resource stockageGeo &#39;Microsoft.Storage/storageAccounts@2023-01-01&#39; = {
+  name: &#39;stgeo${uniqueString(resourceGroup().id)}&#39;
+  location: location
+  sku: { name: &#39;Standard_RAGRS&#39; }   // géo-redondant + lecture sur la copie distante
+  kind: &#39;StorageV2&#39;
+  properties: {
+    minimumTlsVersion: &#39;TLS1_2&#39;
+    allowBlobPublicAccess: false
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>bicep build dr-stockage.bicep --stdout | head -n 15</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>bicep build</code> compile le compte <code>Standard_RAGRS</code> sans erreur — un stockage <strong>répliqué vers la région paire</strong> avec <strong>lecture</strong> sur la copie distante. Tu as les trois leviers de DR : <strong>stockage</strong> (GRS/RA-GRS, ici), <strong>bases</strong> (géo-réplication SQL / Cosmos multi-région — un réglage), <strong>VM</strong> (Site Recovery — réplique et bascule). Analyse RTO/RPO : RA-GRS et géo-réplication SQL offrent un <strong>RPO de quelques minutes</strong> ; Site Recovery, un <strong>RTO</strong> de minutes à heures selon la config. ⚠️ La DR <strong>coûte</strong> (une seconde copie, une région secondaire) — on la réserve aux workloads dont le RTO/RPO l&#39;exige. Un <strong>vrai basculement</strong> se <strong>teste</strong> régulièrement (un plan DR non testé n&#39;existe pas).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>bicep build</code> compiles the <code>Standard_RAGRS</code> account with no error — storage <strong>replicated to the paired region</strong> with <strong>read</strong> on the distant copy. You have the three DR levers: <strong>storage</strong> (GRS/RA-GRS, here), <strong>databases</strong> (SQL geo-replication / Cosmos multi-region — a setting), <strong>VMs</strong> (Site Recovery — replicate and fail over). RTO/RPO analysis: RA-GRS and SQL geo-replication offer an <strong>RPO of minutes</strong>; Site Recovery, an <strong>RTO</strong> of minutes to hours by config. ⚠️ DR <strong>costs</strong> (a second copy, a secondary region) — reserve it for workloads whose RTO/RPO demands it. A <strong>real failover</strong> is <strong>tested</strong> regularly (an untested DR plan doesn&#39;t exist).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Graver la grille <strong>RTO/RPO → mécanisme</strong> — le cœur de l&#39;AZ-305.</p>
+<p><strong>🤔 Du besoin au mécanisme.</strong> L&#39;examen te donne un RTO/RPO (et un budget) et attend le <strong>bon mécanisme</strong>. On mémorise la correspondance.</p>
+<p>La grille :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Engrave the <strong>RTO/RPO → mechanism</strong> grid — the AZ-305 core.</p>
+<p><strong>🤔 From need to mechanism.</strong> The exam gives you an RTO/RPO (and a budget) and expects the <strong>right mechanism</strong>. We memorize the mapping.</p>
+<p>The grid:</p>
+</div>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>BESOIN / NEED                                   -&gt; MÉCANISME / MECHANISM
+Panne locale, RTO/RPO~0, dans 1 région          -&gt; zones de disponibilité / zone-redundant services
+Erreur/corruption, revenir en arrière           -&gt; Azure Backup + coffre Recovery Services (rétention)
+Perte de région, RPO minutes                    -&gt; stockage GRS/RA-GRS + géo-réplication SQL/Cosmos
+Perte de région, basculer des VM                -&gt; Azure Site Recovery (réplication + failover)
+Base : lecture secondaire + bascule auto        -&gt; SQL failover group / Cosmos multi-région
+
+REDONDANCE STOCKAGE / STORAGE REDUNDANCY -&gt; continuité
+  LRS   1 datacenter            aucune protection régionale
+  ZRS   3 zones (1 région)      HA intra-région
+  GRS   région paire (async)    DR (sans lecture distante)
+  RA-GRS GRS + lecture distante DR + lecture sur la copie secondaire</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> face à un scénario, tu <strong>choisis</strong> : « base critique, perte &lt; 5 min tolérée, bascule auto » → <strong>SQL failover group</strong> (géo-réplication) ; « protéger des VM d&#39;un sinistre régional » → <strong>Site Recovery</strong> ; « pouvoir restaurer après une suppression » → <strong>Azure Backup</strong> ; « HA d&#39;un site web dans une région » → <strong>zones</strong> + stockage <strong>ZRS</strong>. C&#39;est <strong>exactement</strong> le format AZ-305. ⚠️ Justifie par le <strong>RTO/RPO cible</strong> et le <strong>coût</strong> — l&#39;examen (et un client) veulent le compromis, pas juste le nom du service. Et rappelle-toi : <strong>HA ≠ Backup ≠ DR</strong> (panne locale ≠ erreur ≠ sinistre régional).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> faced with a scenario, you <strong>choose</strong>: &quot;critical database, &lt; 5 min loss tolerated, auto failover&quot; → <strong>SQL failover group</strong> (geo-replication); &quot;protect VMs from a regional disaster&quot; → <strong>Site Recovery</strong>; &quot;be able to restore after a deletion&quot; → <strong>Azure Backup</strong>; &quot;HA of a website in one region&quot; → <strong>zones</strong> + <strong>ZRS</strong> storage. It&#39;s <strong>exactly</strong> the AZ-305 format. ⚠️ Justify by the <strong>target RTO/RPO</strong> and the <strong>cost</strong> — the exam (and a client) want the tradeoff, not just the service name. And remember: <strong>HA ≠ Backup ≠ DR</strong> (local failure ≠ error ≠ regional disaster).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Nettoyer.</p>
+<p><strong>🤔 L&#39;hygiène.</strong> On supprime le socle primaire déployé en live.</p>
+<p>Nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Clean up.</p>
+<p><strong>🤔 Hygiene.</strong> We delete the live-deployed primary baseline.</p>
+<p>Clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal storage account delete --name stprimaire2026 --resource-group rg-continuite
+cd infra &amp;&amp; terraform destroy -auto-approve</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>storage account delete</code> renvoie <code>Deleted</code> et <code>terraform destroy</code> retire le socle réseau. Ton labo est rangé. Tu maîtrises maintenant la <strong>continuité d&#39;activité</strong> au niveau AZ-305 : chiffrer avec <strong>RTO/RPO</strong>, empiler <strong>HA</strong> (zones), <strong>sauvegarde</strong> (coffre Recovery Services) et <strong>DR</strong> (géo-redondance, Site Recovery), et <strong>choisir le mécanisme</strong> par la grille. La suite du track : concevoir l&#39;<strong>infrastructure</strong> (compute et réseau avancé), puis le <strong>projet d&#39;architecte</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>storage account delete</code> returns <code>Deleted</code> and <code>terraform destroy</code> removes the network baseline. Your lab is tidy. You now master <strong>business continuity</strong> at AZ-305 level: quantify with <strong>RTO/RPO</strong>, stack <strong>HA</strong> (zones), <strong>backup</strong> (Recovery Services Vault) and <strong>DR</strong> (geo-redundancy, Site Recovery), and <strong>choose the mechanism</strong> by the grid. The track continues: designing <strong>infrastructure</strong> (compute and advanced networking), then the <strong>architect project</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Confondre HA, sauvegarde et DR.</strong> HA = panne locale (rester en ligne) ; sauvegarde = erreur/corruption (revenir en arrière) ; DR = sinistre régional (basculer ailleurs). Trois besoins, trois mécanismes.</p>
+<p><strong>2. Croire que la HA protège de la suppression.</strong> La HA <strong>réplique</strong> — y compris une suppression. Contre l&#39;erreur, il faut la <strong>sauvegarde</strong>.</p>
+<p><strong>3. Viser RTO/RPO zéro partout.</strong> C&#39;est ruineux. Module par <strong>criticité</strong> : le critique en HA+DR, le reste en sauvegarde.</p>
+<p><strong>4. Confondre GRS et ZRS.</strong> ZRS = zones d&#39;<strong>une</strong> région (HA) ; GRS = <strong>deux</strong> régions (DR). Objectifs différents.</p>
+<p><strong>5. Un plan DR non testé.</strong> Un basculement jamais répété échoue le jour J. <strong>Teste</strong> régulièrement.</p>
+<p><strong>6. Oublier la continuité des bases.</strong> SQL failover groups et Cosmos multi-région offrent souvent un meilleur RPO que les VM — conçois-la explicitement.</p>
+<p><strong>7. Choisir sans RTO/RPO.</strong> Sans cible chiffrée, on ne peut pas justifier un mécanisme ni un coût. Commence <strong>toujours</strong> par RTO/RPO.</p>
+</div>
+<div data-lang="en"><p><strong>1. Confusing HA, backup and DR.</strong> HA = local failure (stay online); backup = error/corruption (go back); DR = regional disaster (fail over elsewhere). Three needs, three mechanisms.</p>
+<p><strong>2. Thinking HA protects from deletion.</strong> HA <strong>replicates</strong> — including a deletion. Against error, you need <strong>backup</strong>.</p>
+<p><strong>3. Aiming for zero RTO/RPO everywhere.</strong> It&#39;s ruinous. Modulate by <strong>criticality</strong>: critical in HA+DR, the rest in backup.</p>
+<p><strong>4. Confusing GRS and ZRS.</strong> ZRS = zones of <strong>one</strong> region (HA); GRS = <strong>two</strong> regions (DR). Different goals.</p>
+<p><strong>5. An untested DR plan.</strong> A failover never rehearsed fails on the day. <strong>Test</strong> regularly.</p>
+<p><strong>6. Forgetting database continuity.</strong> SQL failover groups and Cosmos multi-region often offer a better RPO than VMs — design it explicitly.</p>
+<p><strong>7. Choosing without RTO/RPO.</strong> Without a quantified target, you can&#39;t justify a mechanism or a cost. <strong>Always</strong> start with RTO/RPO.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu définis <strong>RTO</strong> et <strong>RPO</strong> et les places sur un scénario.</li><li>Tu déploies un <strong>socle primaire</strong> (live).</li><li>Tu conçois la <strong>HA</strong> (zones vs groupes, services zone-redondants).</li><li>Tu <strong>valides</strong> un coffre Recovery Services + politique en Bicep.</li><li>Tu choisis la <strong>redondance de stockage</strong> (LRS/ZRS/GRS/RA-GRS) selon la continuité.</li><li>Tu conçois la <strong>DR</strong> (géo-réplication, Site Recovery).</li><li>Tu choisis le <strong>mécanisme</strong> par la grille RTO/RPO.</li></ul>
+<p>Sept cases = tu tiens la continuité d&#39;activité AZ-305. La suite : l&#39;<strong>infrastructure</strong>.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You define <strong>RTO</strong> and <strong>RPO</strong> and place them on a scenario.</li><li>You deploy a <strong>primary baseline</strong> (live).</li><li>You design <strong>HA</strong> (zones vs sets, zone-redundant services).</li><li>You <strong>validate</strong> a Recovery Services Vault + policy in Bicep.</li><li>You choose the <strong>storage redundancy</strong> (LRS/ZRS/GRS/RA-GRS) by continuity.</li><li>You design <strong>DR</strong> (geo-replication, Site Recovery).</li><li>You choose the <strong>mechanism</strong> by the RTO/RPO grid.</li></ul>
+<p>Seven boxes = you hold AZ-305 business continuity. Next up: <strong>infrastructure</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Le track AZ-305 continue :</p>
+<ol><li><strong>Azure — conception d&#39;infrastructure</strong> : compute (App Service, AKS, Functions), réseau avancé (Front Door, Application Gateway, équilibrage), migration.</li><li>Plus loin : le <strong>projet d&#39;architecte</strong> (une solution Well-Architected complète) et l&#39;examen AZ-305.</li></ol>
+</div>
+<div data-lang="en"><p>The AZ-305 track continues:</p>
+<ol><li><strong>Azure — infrastructure design</strong>: compute (App Service, AKS, Functions), advanced networking (Front Door, Application Gateway, load balancing), migration.</li><li>Further along: the <strong>architect project</strong> (a complete Well-Architected solution) and the AZ-305 exam.</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire continuité d&#39;activité Azure.</p>
+</div>
+<div data-lang="en"><p>Azure business continuity cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Socle primaire (live) / primary baseline
+cd infra &amp;&amp; export SSL_CERT_FILE=~/.miniblue/cert.pem &amp;&amp; terraform apply -auto-approve
+azlocal storage account create --name stprimaire2026 --resource-group rg-continuite
+
+# Sauvegarde &amp; DR (Bicep, validé) / backup &amp; DR
+bicep build sauvegarde.bicep --stdout     # coffre Recovery Services + politique
+bicep build dr-stockage.bicep --stdout    # stockage RA-GRS (géo-redondant + lecture)</code></pre>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>RTO = temps de reprise ; RPO = données perdues
+HA (zones) = panne locale ~0 | Backup (coffre+rétention) = erreur/corruption | DR (géo/Site Recovery) = région perdue
+Stockage : LRS(local) &lt; ZRS(zones/HA) &lt; GRS(région/DR) &lt; RA-GRS(DR+lecture)</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://learn.microsoft.com/azure/reliability/business-continuity-management-program">Continuité d&#39;activité &amp; reprise</a> — le programme BC/DR.</li><li><a href="https://learn.microsoft.com/azure/reliability/availability-zones-overview">Zones de disponibilité</a> — la HA régionale.</li><li><a href="https://learn.microsoft.com/azure/backup/backup-overview">Azure Backup</a> — coffres et politiques.</li><li><a href="https://learn.microsoft.com/azure/site-recovery/site-recovery-overview">Azure Site Recovery</a> — la reprise multi-région.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-redundancy">Redondance du stockage</a> — LRS/ZRS/GRS/RA-GRS.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://learn.microsoft.com/azure/reliability/business-continuity-management-program">Business continuity &amp; recovery</a> — the BC/DR program.</li><li><a href="https://learn.microsoft.com/azure/reliability/availability-zones-overview">Availability zones</a> — regional HA.</li><li><a href="https://learn.microsoft.com/azure/backup/backup-overview">Azure Backup</a> — vaults and policies.</li><li><a href="https://learn.microsoft.com/azure/site-recovery/site-recovery-overview">Azure Site Recovery</a> — multi-region recovery.</li><li><a href="https://learn.microsoft.com/azure/storage/common/storage-redundancy">Storage redundancy</a> — LRS/ZRS/GRS/RA-GRS.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>bicep build sauvegarde.bicep</code> : erreur de schéma.</strong> Vérifie la structure <code>schedulePolicy</code>/<code>retentionPolicy</code> et le <code>backupManagementType</code> (<code>AzureIaasVM</code> pour des VM) contre la doc <code>RecoveryServices/vaults/backupPolicies</code>.</p>
+<p><strong>Quelle redondance de stockage ?</strong> Pars du besoin : HA intra-région → <strong>ZRS</strong> ; survivre à un sinistre régional → <strong>GRS</strong> ; + lecture sur la copie distante → <strong>RA-GRS</strong> ; données jetables → <strong>LRS</strong>.</p>
+<p><strong>HA ou DR ?</strong> Panne d&#39;un datacenter dans la région → <strong>HA</strong> (zones). Perte de toute la région → <strong>DR</strong> (géo/Site Recovery). Ce sont deux problèmes distincts.</p>
+<p><strong>Mon RPO n&#39;est pas tenu.</strong> L&#39;intervalle de sauvegarde est trop grand. Augmente la fréquence (ou passe à une réplication continue pour un RPO de minutes).</p>
+<p><strong><code>terraform apply</code> : erreur de certificat.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> avant Terraform.</p>
+<p><strong>Puis-je tester un vrai basculement en local ?</strong> Non : l&#39;émulateur n&#39;a pas de « seconde région ». On <strong>conçoit</strong> et <strong>valide</strong> ici ; le basculement réel se teste sur un compte (guide <em>passer en réel</em>).</p>
+</div>
+<div data-lang="en"><p><strong><code>bicep build sauvegarde.bicep</code>: schema error.</strong> Check the <code>schedulePolicy</code>/<code>retentionPolicy</code> structure and the <code>backupManagementType</code> (<code>AzureIaasVM</code> for VMs) against the <code>RecoveryServices/vaults/backupPolicies</code> docs.</p>
+<p><strong>Which storage redundancy?</strong> Start from the need: intra-region HA → <strong>ZRS</strong>; survive a regional disaster → <strong>GRS</strong>; + read on the distant copy → <strong>RA-GRS</strong>; throwaway data → <strong>LRS</strong>.</p>
+<p><strong>HA or DR?</strong> A datacenter failure in the region → <strong>HA</strong> (zones). Loss of the whole region → <strong>DR</strong> (geo/Site Recovery). Two distinct problems.</p>
+<p><strong>My RPO isn&#39;t met.</strong> The backup interval is too large. Increase the frequency (or move to continuous replication for a minutes RPO).</p>
+<p><strong><code>terraform apply</code>: certificate error.</strong> <code>export SSL_CERT_FILE=~/.miniblue/cert.pem</code> before Terraform.</p>
+<p><strong>Can I test a real failover locally?</strong> No: the emulator has no &quot;second region&quot;. We <strong>design</strong> and <strong>validate</strong> here; the real failover is tested on an account (<em>going real</em> guide).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

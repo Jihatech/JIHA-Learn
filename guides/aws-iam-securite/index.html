@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">AWS — IAM &amp; sécurité — jiha.tech</title>
+  <title data-lang="en">AWS — IAM &amp; security — jiha.tech</title>
+  <meta name="description" content="Le socle sécurité du SAA-C03 : gère les identités AWS avec IAM — groupes pour les permissions à l&#39;échelle, politiques JSON personnalisées (Effect/Action/Resource, moindre privilège), rôles et assume-role (le concept clé), logique d&#39;évaluation (deny explicite &gt; allow &gt; deny implicite), politiques basées sur ressource (bucket S3), inline vs managed, et le modèle de responsabilité partagée. En LocalStack : tu construis et relis toute la config IAM." data-lang="fr">
+  <meta name="description" content="The SAA-C03 security foundation: manage AWS identities with IAM — groups for permissions at scale, custom JSON policies (Effect/Action/Resource, least privilege), roles and assume-role (the key concept), evaluation logic (explicit deny &gt; allow &gt; implicit deny), resource-based policies (S3 bucket), inline vs managed, and the shared responsibility model. On LocalStack: you build and read back the whole IAM config." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AWS — IAM &amp; sécurité">
+  <meta property="og:description" content="Le socle sécurité du SAA-C03 : gère les identités AWS avec IAM — groupes pour les permissions à l&#39;échelle, politiques JSON personnalisées (Effect/Action/Resource, moindre privilège), rôles et assume-role (le concept clé), logique d&#39;évaluation (deny explicite &gt; allow &gt; deny implicite), politiques basées sur ressource (bucket S3), inline vs managed, et le modèle de responsabilité partagée. En LocalStack : tu construis et relis toute la config IAM.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/aws-iam-securite/">
+  <link rel="canonical" href="https://jiha.tech/guides/aws-iam-securite/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="aws-iam-securite">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/aws-iam-securite</div>
+    <div class="prompt" data-lang="en">~/guides/aws-iam-securite</div>
+    <h1 data-lang="fr">AWS — IAM &amp; sécurité</h1>
+    <h1 data-lang="en">AWS — IAM &amp; security</h1>
+    <p class="tagline" data-lang="fr">utilisateurs, groupes, rôles, politiques JSON, assume-role.</p>
+    <p class="tagline" data-lang="en">users, groups, roles, JSON policies, assume-role.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>IAM (Identity and Access Management) est le service le plus important d&#39;AWS, et de loin le plus testé à l&#39;examen <strong>Solutions Architect Associate</strong>. La raison est simple : sur AWS, <strong>rien</strong> n&#39;est autorisé par défaut. Chaque action — lire un fichier S3, démarrer une machine, envoyer un message — passe par une autorisation IAM. Mal configuré, IAM ouvre ton compte à la terre entière ou, au contraire, bloque ton application. Bien configuré, il applique le <strong>moindre privilège</strong> : chaque identité n&#39;a <strong>que</strong> les permissions dont elle a besoin.</p>
+<p>Ce guide te fait construire toute la mécanique IAM : des <strong>groupes</strong> pour gérer les permissions à l&#39;échelle, des <strong>politiques JSON personnalisées</strong> (la grammaire <code>Effect</code>/<code>Action</code>/<code>Resource</code>), des <strong>rôles</strong> et le mécanisme d&#39;<strong>assume-role</strong> (le concept qui déroute le plus les débutants, et qui tombe à tous les examens), la <strong>logique d&#39;évaluation</strong> des permissions, et les <strong>politiques basées sur ressource</strong> (comme les bucket policies S3).</p>
+<p>Un point d&#39;honnêteté sur le labo : LocalStack te laisse <strong>créer et relire</strong> toute la configuration IAM (utilisateurs, groupes, rôles, politiques, rattachements) — exactement ce qu&#39;un architecte configure. En revanche il <strong>n&#39;applique pas</strong> l&#39;autorisation (il ne te bloquera pas si une politique interdit une action). On te le signale à chaque fois : tu <strong>construis</strong> et tu <strong>vérifies la structure</strong> ici ; la logique d&#39;autorisation, tu la <strong>raisonnes</strong> (et c&#39;est ce que l&#39;examen teste de toute façon).</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as fait <em>AWS fondamentaux</em> (LocalStack, premier bucket, premier utilisateur) et tu veux le socle de sécurité.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas de labo LocalStack qui tourne → refais <em>AWS fondamentaux</em> d&#39;abord.</li><li>Tu veux gérer des secrets applicatifs (mots de passe, clés d&#39;API) → c&#39;est plutôt Secrets Manager / Parameter Store ; IAM gère les <strong>identités et permissions</strong>, pas les secrets applicatifs.</li></ul>
+</div>
+<div data-lang="en"><p>IAM (Identity and Access Management) is AWS&#39;s most important service, and by far the most tested on the <strong>Solutions Architect Associate</strong> exam. The reason is simple: on AWS, <strong>nothing</strong> is allowed by default. Every action — reading an S3 file, starting a machine, sending a message — goes through IAM authorization. Misconfigured, IAM opens your account to the whole world or, conversely, blocks your application. Well-configured, it applies <strong>least privilege</strong>: each identity has <strong>only</strong> the permissions it needs.</p>
+<p>This guide has you build the whole IAM machinery: <strong>groups</strong> to manage permissions at scale, custom <strong>JSON policies</strong> (the <code>Effect</code>/<code>Action</code>/<code>Resource</code> grammar), <strong>roles</strong> and the <strong>assume-role</strong> mechanism (the concept that confuses beginners most, and that shows up on every exam), permission <strong>evaluation logic</strong>, and <strong>resource-based policies</strong> (like S3 bucket policies).</p>
+<p>An honesty note about the lab: LocalStack lets you <strong>create and read back</strong> the whole IAM configuration (users, groups, roles, policies, attachments) — exactly what an architect configures. However it does <strong>not</strong> enforce authorization (it won&#39;t block you if a policy forbids an action). We flag it each time: you <strong>build</strong> and <strong>verify the structure</strong> here; the authorization logic, you <strong>reason about</strong> (which is what the exam tests anyway).</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve done <em>AWS fundamentals</em> (LocalStack, first bucket, first user) and you want the security foundation.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t have a running LocalStack lab → do <em>AWS fundamentals</em> first.</li><li>You want to manage application secrets (passwords, API keys) → that&#39;s more Secrets Manager / Parameter Store; IAM manages <strong>identities and permissions</strong>, not application secrets.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li>Gérer les permissions <strong>à l&#39;échelle</strong> avec des <strong>groupes</strong> IAM.</li><li>Écrire une <strong>politique JSON personnalisée</strong> (<code>Effect</code>/<code>Action</code>/<code>Resource</code>/<code>Condition</code>) en <strong>moindre privilège</strong>.</li><li>Lire l&#39;<strong>anatomie</strong> d&#39;une politique et la <strong>logique d&#39;évaluation</strong> (deny explicite &gt; allow &gt; deny implicite).</li><li>Créer un <strong>rôle</strong> avec sa <strong>politique de confiance</strong> et l&#39;endosser via <strong>assume-role</strong>.</li><li>Distinguer politique <strong>basée sur l&#39;identité</strong> et <strong>basée sur la ressource</strong> (bucket policy S3).</li><li>Choisir entre politique <strong>inline</strong>, <strong>gérée par AWS</strong>, et <strong>gérée par le client</strong>.</li><li>Expliquer le <strong>modèle de responsabilité partagée</strong> et les bonnes pratiques (root, MFA, rotation).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li>Manage permissions <strong>at scale</strong> with IAM <strong>groups</strong>.</li><li>Write a <strong>custom JSON policy</strong> (<code>Effect</code>/<code>Action</code>/<code>Resource</code>/<code>Condition</code>) with <strong>least privilege</strong>.</li><li>Read a policy&#39;s <strong>anatomy</strong> and the <strong>evaluation logic</strong> (explicit deny &gt; allow &gt; implicit deny).</li><li>Create a <strong>role</strong> with its <strong>trust policy</strong> and assume it via <strong>assume-role</strong>.</li><li>Tell an <strong>identity-based</strong> from a <strong>resource-based</strong> policy (S3 bucket policy).</li><li>Choose between <strong>inline</strong>, <strong>AWS-managed</strong>, and <strong>customer-managed</strong> policies.</li><li>Explain the <strong>shared responsibility model</strong> and best practices (root, MFA, rotation).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>AWS fondamentaux</strong> terminé, et <strong>LocalStack qui tourne</strong> (<code>docker ps</code> → <code>localstack</code> healthy ; sinon <code>docker run -d --name localstack -p 4566:4566 localstack/localstack:3.8.1</code>).</li><li><strong><code>awslocal</code></strong> configuré (identifiants <code>test</code>, région <code>us-east-1</code>).</li><li>Un éditeur de texte pour les fichiers de politique JSON.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>AWS fundamentals</strong> guide done, and <strong>LocalStack running</strong> (<code>docker ps</code> → <code>localstack</code> healthy; otherwise <code>docker run -d --name localstack -p 4566:4566 localstack/localstack:3.8.1</code>).</li><li><strong><code>awslocal</code></strong> configured (creds <code>test</code>, region <code>us-east-1</code>).</li><li>A text editor for the JSON policy files.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-fondamentaux/">
+    <span class="num">44</span>
+    <span class="title-line" data-lang="fr">AWS — les fondamentaux, en 100% local</span>
+    <span class="title-line" data-lang="en">AWS — the fundamentals, 100% local</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>Les trois identités IAM.</strong> <strong>Utilisateur</strong> : une personne ou une application, avec des identifiants long terme. <strong>Groupe</strong> : un ensemble d&#39;utilisateurs qui partagent des permissions (on attache les politiques au groupe, pas à chaque utilisateur). <strong>Rôle</strong> : une identité <strong>sans identifiants permanents</strong>, qu&#39;on <strong>endosse temporairement</strong> — pour un service AWS (une machine EC2 qui doit lire S3), pour un accès inter-comptes, ou pour une fédération. Le rôle est le mécanisme de sécurité moderne : des identifiants <strong>temporaires</strong>, pas de clés qui traînent.</p>
+<p><strong>Politique.</strong> Un document <strong>JSON</strong> qui décrit des permissions. Sa grammaire : une liste de <code>Statement</code>, chacun avec <code>Effect</code> (<code>Allow</code>/<code>Deny</code>), <code>Action</code> (les opérations, ex. <code>s3:GetObject</code>), <code>Resource</code> (sur quoi, via des ARN), et optionnellement <code>Condition</code> (quand). Une politique <strong>basée sur l&#39;identité</strong> s&#39;attache à un utilisateur/groupe/rôle. Une politique <strong>basée sur la ressource</strong> s&#39;attache à la ressource elle-même (ex. une <strong>bucket policy</strong> S3).</p>
+<p><strong>Moindre privilège.</strong> Le principe directeur : n&#39;accorde <strong>que</strong> les actions et ressources strictement nécessaires. <code>s3:<em></code> sur <code></em></code> est presque toujours une faute ; <code>s3:GetObject</code> sur <code>arn:aws:s3:::mon-bucket/*</code> est précis.</p>
+<p><strong>Logique d&#39;évaluation.</strong> Quand AWS décide si une action est permise : (1) tout est <strong>refusé par défaut</strong> (deny implicite) ; (2) un <code>Allow</code> explicite l&#39;autorise ; (3) un <code>Deny</code> <strong>explicite</strong> l&#39;emporte sur <strong>tout</strong> (même un Allow). Résumé : <strong>Deny explicite &gt; Allow &gt; Deny implicite</strong>. C&#39;est LE mécanisme que l&#39;examen teste.</p>
+<p><strong>assume-role.</strong> Endosser un rôle produit des <strong>identifiants temporaires</strong> (via STS). Deux politiques encadrent un rôle : la <strong>politique de confiance</strong> (<code>AssumeRolePolicyDocument</code>) dit <strong>qui</strong> peut l&#39;endosser, et les <strong>politiques de permission</strong> disent <strong>ce que</strong> le rôle permet une fois endossé.</p>
+<p><strong>Types de politiques.</strong> <strong>Gérée par AWS</strong> : prête à l&#39;emploi, maintenue par AWS (<code>AmazonS3ReadOnlyAccess</code>). <strong>Gérée par le client</strong> : la tienne, réutilisable, versionnée. <strong>Inline</strong> : collée directement sur une seule identité, non réutilisable (à réserver aux cas très spécifiques).</p>
+<p><strong>Responsabilité partagée.</strong> AWS sécurise le cloud <strong>lui-même</strong> (matériel, datacenters, hyperviseur) ; <strong>toi</strong> tu sécurises ce que tu mets <strong>dedans</strong> (tes données, tes permissions IAM, tes groupes de sécurité). « Security <em>of</em> the cloud » (AWS) vs « security <em>in</em> the cloud » (toi).</p>
+</div>
+<div data-lang="en"><p><strong>The three IAM identities.</strong> <strong>User</strong>: a person or application, with long-term credentials. <strong>Group</strong>: a set of users sharing permissions (you attach policies to the group, not to each user). <strong>Role</strong>: an identity <strong>with no permanent credentials</strong>, that you <strong>assume temporarily</strong> — for an AWS service (an EC2 machine that must read S3), for cross-account access, or for federation. The role is the modern security mechanism: <strong>temporary</strong> credentials, no keys lying around.</p>
+<p><strong>Policy.</strong> A <strong>JSON</strong> document describing permissions. Its grammar: a list of <code>Statement</code>s, each with <code>Effect</code> (<code>Allow</code>/<code>Deny</code>), <code>Action</code> (the operations, e.g. <code>s3:GetObject</code>), <code>Resource</code> (on what, via ARNs), and optionally <code>Condition</code> (when). An <strong>identity-based</strong> policy attaches to a user/group/role. A <strong>resource-based</strong> policy attaches to the resource itself (e.g. an S3 <strong>bucket policy</strong>).</p>
+<p><strong>Least privilege.</strong> The guiding principle: grant <strong>only</strong> the actions and resources strictly needed. <code>s3:<em></code> on <code></em></code> is almost always a mistake; <code>s3:GetObject</code> on <code>arn:aws:s3:::my-bucket/*</code> is precise.</p>
+<p><strong>Evaluation logic.</strong> When AWS decides if an action is allowed: (1) everything is <strong>denied by default</strong> (implicit deny); (2) an explicit <code>Allow</code> allows it; (3) an <strong>explicit</strong> <code>Deny</code> overrides <strong>everything</strong> (even an Allow). Summary: <strong>explicit Deny &gt; Allow &gt; implicit Deny</strong>. This is THE mechanism the exam tests.</p>
+<p><strong>assume-role.</strong> Assuming a role yields <strong>temporary</strong> credentials (via STS). Two policies frame a role: the <strong>trust policy</strong> (<code>AssumeRolePolicyDocument</code>) says <strong>who</strong> can assume it, and the <strong>permission policies</strong> say <strong>what</strong> the role allows once assumed.</p>
+<p><strong>Policy types.</strong> <strong>AWS-managed</strong>: ready-made, maintained by AWS (<code>AmazonS3ReadOnlyAccess</code>). <strong>Customer-managed</strong>: yours, reusable, versioned. <strong>Inline</strong>: stuck directly onto a single identity, not reusable (reserve for very specific cases).</p>
+<p><strong>Shared responsibility.</strong> AWS secures the cloud <strong>itself</strong> (hardware, datacenters, hypervisor); <strong>you</strong> secure what you put <strong>in</strong> it (your data, your IAM permissions, your security groups). &quot;Security <em>of</em> the cloud&quot; (AWS) vs &quot;security <em>in</em> the cloud&quot; (you).</p>
+</div>
+
+<figure class="schema" id="figure-aws-iam-model">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-aws-iam-model">
+  <title id="s-aws-iam-model">Modèle IAM</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Modèle IAM</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Utilisateurs</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="77" text-anchor="middle">Groupes</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-accent" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="474" y="70.5" text-anchor="middle">Politiques</text><text class="sub sub-fill" x="474" y="83.5" text-anchor="middle">JSON</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="64" text-anchor="middle">Rôle</text><text class="sub sub-blue" x="662" y="77" text-anchor="middle">assume-role → creds</text><text class="sub sub-blue" x="662" y="89" text-anchor="middle">temporaires</text><text class="sub" x="380" y="144" text-anchor="middle">évaluation : deny explicite &gt; allow &gt; deny implicite</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Le modèle IAM : des utilisateurs regroupés en groupes, des politiques (JSON) attachées aux groupes/rôles, et un rôle endossé via assume-role qui délivre des identifiants temporaires. L&#39;évaluation : deny explicite &gt; allow &gt; deny implicite.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The IAM model: users grouped into groups, policies (JSON) attached to groups/roles, and a role assumed via assume-role that issues temporary credentials. Evaluation: explicit deny &gt; allow &gt; implicit deny.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer les permissions <strong>à l&#39;échelle</strong> avec un <strong>groupe</strong> IAM.</p>
+<p><strong>🤔 Pourquoi des groupes.</strong> Attacher les mêmes politiques à 50 utilisateurs un par un est ingérable. On crée un <strong>groupe</strong> (<code>developpeurs</code>), on lui attache les permissions <strong>une fois</strong>, et on y <strong>ajoute</strong> les utilisateurs. Ajouter/retirer un droit à toute l&#39;équipe = une seule opération. C&#39;est la bonne pratique de base.</p>
+<p>Crée un groupe, attache-lui une politique, ajoute des utilisateurs :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage permissions <strong>at scale</strong> with an IAM <strong>group</strong>.</p>
+<p><strong>🤔 Why groups.</strong> Attaching the same policies to 50 users one by one is unmanageable. You create a <strong>group</strong> (<code>developers</code>), attach the permissions to it <strong>once</strong>, and <strong>add</strong> users to it. Adding/removing a right for the whole team = one operation. It&#39;s the basic best practice.</p>
+<p>Create a group, attach a policy, add users:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Créer un groupe et lui donner une permission gérée par AWS / create a group + AWS-managed permission
+awslocal iam create-group --group-name developpeurs
+awslocal iam attach-group-policy --group-name developpeurs \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# Créer deux utilisateurs et les ajouter au groupe / create two users and add them
+awslocal iam create-user --user-name alice
+awslocal iam create-user --user-name bob
+awslocal iam add-user-to-group --user-name alice --group-name developpeurs
+awslocal iam add-user-to-group --user-name bob   --group-name developpeurs
+
+# Vérifier / verify
+awslocal iam get-group --group-name developpeurs --query &#39;Users[].UserName&#39; --output text
+awslocal iam list-attached-group-policies --group-name developpeurs --query &#39;AttachedPolicies[].PolicyName&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>get-group</code> liste <code>alice bob</code> (les membres). <code>list-attached-group-policies</code> montre <code>AmazonS3ReadOnlyAccess</code>. Alice et Bob <strong>héritent</strong> de cette permission via le groupe — tu n&#39;as rien attaché à chacun. Ajoute une permission au groupe, et les deux l&#39;obtiennent instantanément : c&#39;est toute la valeur des groupes.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>get-group</code> lists <code>alice bob</code> (the members). <code>list-attached-group-policies</code> shows <code>AmazonS3ReadOnlyAccess</code>. Alice and Bob <strong>inherit</strong> that permission via the group — you attached nothing to each. Add a permission to the group, and both get it instantly: that&#39;s the whole value of groups.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong>politique personnalisée</strong> (gérée par le client) en <strong>moindre privilège</strong>.</p>
+<p><strong>🤔 Pourquoi personnalisée.</strong> Les politiques AWS toutes faites sont larges. En prod, tu écris des politiques <strong>précises</strong> : « lire ET écrire, mais <strong>uniquement</strong> dans ce bucket, ce préfixe ». La grammaire est toujours la même : <code>Effect</code> + <code>Action</code> + <code>Resource</code>.</p>
+<p>Écris la politique et crée-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong>custom policy</strong> (customer-managed) with <strong>least privilege</strong>.</p>
+<p><strong>🤔 Why custom.</strong> Ready-made AWS policies are broad. In prod, you write <strong>precise</strong> policies: &quot;read AND write, but <strong>only</strong> in this bucket, this prefix&quot;. The grammar is always the same: <code>Effect</code> + <code>Action</code> + <code>Resource</code>.</p>
+<p>Write the policy and create it:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Sid&quot;: &quot;LectureEcritureBucketApp&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;s3:GetObject&quot;, &quot;s3:PutObject&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:s3:::donnees-app/*&quot;
+    }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Enregistre le JSON ci-dessus dans app-rw.json, puis : / save the JSON above as app-rw.json, then:
+awslocal iam create-policy --policy-name AppDataRW --policy-document file://app-rw.json \
+  --query &#39;Policy.Arn&#39; --output text
+
+# Relire la politique (sa version par défaut) / read the policy back (its default version)
+awslocal iam get-policy-version \
+  --policy-arn arn:aws:iam::000000000000:policy/AppDataRW \
+  --version-id v1 --query &#39;PolicyVersion.Document&#39;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>create-policy</code> renvoie l&#39;ARN <code>arn:aws:iam::000000000000:policy/AppDataRW</code>. <code>get-policy-version</code> te réaffiche ton document JSON. Note la précision : <code>s3:GetObject</code>/<code>s3:PutObject</code> (pas <code>s3:<em></code>) sur <code>arn:aws:s3:::donnees-app/</em></code> (pas <code><em></code>). Le <code>/</em></code> cible les <strong>objets</strong> du bucket ; l&#39;ARN du bucket lui-même (sans <code>/*</code>) serait <code>arn:aws:s3:::donnees-app</code>. Cette distinction bucket/objets est un piège classique d&#39;examen.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>create-policy</code> returns the ARN <code>arn:aws:iam::000000000000:policy/AppDataRW</code>. <code>get-policy-version</code> shows you back your JSON document. Note the precision: <code>s3:GetObject</code>/<code>s3:PutObject</code> (not <code>s3:<em></code>) on <code>arn:aws:s3:::donnees-app/</em></code> (not <code><em></code>). The <code>/</em></code> targets the bucket&#39;s <strong>objects</strong>; the bucket ARN itself (without <code>/*</code>) would be <code>arn:aws:s3:::donnees-app</code>. This bucket/objects distinction is a classic exam trap.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre l&#39;<strong>anatomie</strong> d&#39;une politique et la <strong>logique d&#39;évaluation</strong> — avec un <code>Deny</code> explicite.</p>
+<p><strong>🤔 LE mécanisme d&#39;examen.</strong> AWS évalue ainsi : tout est refusé par défaut ; un <code>Allow</code> explicite autorise ; un <code>Deny</code> <strong>explicite</strong> l&#39;emporte sur <strong>tout</strong>. On écrit une politique qui <strong>autorise large</strong> mais <strong>interdit</strong> une action précise, pour ancrer la règle « Deny explicite gagne ».</p>
+<p>⚠️ <strong>Honnêteté labo :</strong> LocalStack <strong>n&#39;applique pas</strong> l&#39;autorisation — il ne te bloquera pas. Ici tu <strong>écris et relis</strong> la politique ; la décision d&#39;autorisation, tu la <strong>raisonnes</strong> (c&#39;est ce que l&#39;examen teste). On te donne le raisonnement attendu.</p>
+<p>Écris une politique « allow large + deny ciblé » :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand a policy&#39;s <strong>anatomy</strong> and the <strong>evaluation logic</strong> — with an explicit <code>Deny</code>.</p>
+<p><strong>🤔 THE exam mechanism.</strong> AWS evaluates like this: everything denied by default; an explicit <code>Allow</code> allows; an <strong>explicit</strong> <code>Deny</code> overrides <strong>everything</strong>. We write a policy that <strong>allows broadly</strong> but <strong>forbids</strong> a precise action, to anchor the rule &quot;explicit Deny wins&quot;.</p>
+<p>⚠️ <strong>Lab honesty:</strong> LocalStack does <strong>not</strong> enforce authorization — it won&#39;t block you. Here you <strong>write and read back</strong> the policy; the authorization decision, you <strong>reason about</strong> (which is what the exam tests). We give the expected reasoning.</p>
+<p>Write an &quot;allow broad + deny targeted&quot; policy:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    { &quot;Sid&quot;: &quot;AutoriserToutS3&quot;, &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;s3:*&quot;, &quot;Resource&quot;: &quot;*&quot; },
+    { &quot;Sid&quot;: &quot;InterdireSuppression&quot;, &quot;Effect&quot;: &quot;Deny&quot;, &quot;Action&quot;: &quot;s3:DeleteBucket&quot;, &quot;Resource&quot;: &quot;*&quot; }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Enregistre dans garde-fou.json / save as garde-fou.json
+awslocal iam create-policy --policy-name S3SansSuppression --policy-document file://garde-fou.json \
+  --query &#39;Policy.Arn&#39; --output text
+awslocal iam get-policy-version --policy-arn arn:aws:iam::000000000000:policy/S3SansSuppression \
+  --version-id v1 --query &#39;PolicyVersion.Document.Statement[].Effect&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>get-policy-version</code> renvoie <code>Allow Deny</code> (les deux <code>Effect</code> de tes statements). <strong>Raisonnement d&#39;évaluation</strong> (ce qu&#39;AWS ferait) : un utilisateur avec cette politique <strong>peut</strong> tout faire sur S3 (<code>Allow s3:*</code>), <strong>sauf</strong> <code>s3:DeleteBucket</code> — car le <code>Deny</code> explicite <strong>l&#39;emporte</strong> sur l&#39;<code>Allow</code>. Même si tu ajoutais une autre politique autorisant <code>s3:DeleteBucket</code>, le <code>Deny</code> gagnerait toujours. C&#39;est le motif « garde-fou » : autoriser large, interdire les actions dangereuses. (En réel, la suppression serait refusée ; en LocalStack, non appliqué — mais la politique, elle, est correcte.)</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>get-policy-version</code> returns <code>Allow Deny</code> (your statements&#39; two <code>Effect</code>s). <strong>Evaluation reasoning</strong> (what AWS would do): a user with this policy <strong>can</strong> do anything on S3 (<code>Allow s3:*</code>), <strong>except</strong> <code>s3:DeleteBucket</code> — because the explicit <code>Deny</code> <strong>overrides</strong> the <code>Allow</code>. Even if you added another policy allowing <code>s3:DeleteBucket</code>, the <code>Deny</code> would still win. This is the &quot;guardrail&quot; pattern: allow broad, forbid dangerous actions. (In reality, the deletion would be refused; in LocalStack, not enforced — but the policy itself is correct.)</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>rôle</strong> avec sa <strong>politique de confiance</strong>, et l&#39;<strong>endosser</strong> via <code>assume-role</code> — le concept clé de l&#39;examen.</p>
+<p><strong>🤔 Pourquoi les rôles.</strong> Une machine EC2 qui doit lire S3 ne doit <strong>pas</strong> stocker des clés d&#39;accès (qui fuiteraient). À la place, elle <strong>endosse un rôle</strong> : AWS lui délivre des identifiants <strong>temporaires</strong>, renouvelés automatiquement. Deux politiques : la <strong>politique de confiance</strong> dit <strong>qui</strong> peut endosser (ici, le service EC2), la <strong>politique de permission</strong> dit <strong>ce que</strong> le rôle peut faire.</p>
+<p>Crée le rôle et endosse-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>role</strong> with its <strong>trust policy</strong>, and <strong>assume</strong> it via <code>assume-role</code> — the exam&#39;s key concept.</p>
+<p><strong>🤔 Why roles.</strong> An EC2 machine that must read S3 should <strong>not</strong> store access keys (which would leak). Instead, it <strong>assumes a role</strong>: AWS issues it <strong>temporary</strong> credentials, auto-renewed. Two policies: the <strong>trust policy</strong> says <strong>who</strong> can assume (here, the EC2 service), the <strong>permission policy</strong> says <strong>what</strong> the role can do.</p>
+<p>Create the role and assume it:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: { &quot;Service&quot;: &quot;ec2.amazonaws.com&quot; },
+      &quot;Action&quot;: &quot;sts:AssumeRole&quot;
+    }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Enregistre la politique de CONFIANCE ci-dessus dans trust.json / save the TRUST policy above as trust.json
+awslocal iam create-role --role-name role-lecture-s3 \
+  --assume-role-policy-document file://trust.json --query &#39;Role.Arn&#39; --output text
+
+# Attacher une politique de PERMISSION (ce que le rôle peut faire) / attach a PERMISSION policy
+awslocal iam attach-role-policy --role-name role-lecture-s3 \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# Endosser le rôle -&gt; identifiants TEMPORAIRES / assume the role -&gt; TEMPORARY credentials
+awslocal sts assume-role \
+  --role-arn arn:aws:iam::000000000000:role/role-lecture-s3 \
+  --role-session-name ma-session \
+  --query &#39;Credentials.[AccessKeyId,Expiration]&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>create-role</code> renvoie l&#39;ARN du rôle. <code>assume-role</code> renvoie des <strong>identifiants temporaires</strong> : un <code>AccessKeyId</code> (souvent préfixé, ex. <code>LSIA...</code> en LocalStack, <code>ASIA...</code> en réel) et une date d&#39;<strong>expiration</strong>. C&#39;est la différence clé avec un utilisateur : ces clés sont <strong>jetables et à durée limitée</strong>. La politique de confiance (<code>Principal: ec2.amazonaws.com</code>) dit que <strong>le service EC2</strong> peut endosser ce rôle — c&#39;est ainsi qu&#39;une instance obtient des droits sans clé stockée.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>create-role</code> returns the role&#39;s ARN. <code>assume-role</code> returns <strong>temporary</strong> credentials: an <code>AccessKeyId</code> (often prefixed, e.g. <code>LSIA...</code> in LocalStack, <code>ASIA...</code> in real AWS) and an <strong>expiration</strong> date. That&#39;s the key difference from a user: these keys are <strong>disposable and time-limited</strong>. The trust policy (<code>Principal: ec2.amazonaws.com</code>) says <strong>the EC2 service</strong> can assume this role — that&#39;s how an instance gets rights with no stored key.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Attacher une <strong>politique basée sur la ressource</strong> — une <strong>bucket policy</strong> S3.</p>
+<p><strong>🤔 Identité vs ressource.</strong> Jusqu&#39;ici, les politiques étaient <strong>basées sur l&#39;identité</strong> (attachées à un user/groupe/rôle : « cette identité peut faire X »). Une politique <strong>basée sur la ressource</strong> est attachée <strong>à la ressource</strong> et dit « ces identités-là peuvent m&#39;accéder ». Les <strong>bucket policies</strong> S3 en sont l&#39;exemple roi : indispensables pour l&#39;accès <strong>inter-comptes</strong> ou pour rendre des objets <strong>publics</strong>.</p>
+<p>Crée un bucket et attache-lui une politique :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Attach a <strong>resource-based policy</strong> — an S3 <strong>bucket policy</strong>.</p>
+<p><strong>🤔 Identity vs resource.</strong> So far, policies were <strong>identity-based</strong> (attached to a user/group/role: &quot;this identity can do X&quot;). A <strong>resource-based</strong> policy is attached <strong>to the resource</strong> and says &quot;these identities can access me&quot;. S3 <strong>bucket policies</strong> are the prime example: essential for <strong>cross-account</strong> access or for making objects <strong>public</strong>.</p>
+<p>Create a bucket and attach a policy to it:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Sid&quot;: &quot;LecturePubliqueDesObjets&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: &quot;*&quot;,
+      &quot;Action&quot;: &quot;s3:GetObject&quot;,
+      &quot;Resource&quot;: &quot;arn:aws:s3:::site-public/*&quot;
+    }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>awslocal s3 mb s3://site-public
+# Enregistre la bucket policy ci-dessus dans bucket-policy.json / save the bucket policy above
+awslocal s3api put-bucket-policy --bucket site-public --policy file://bucket-policy.json
+
+# Relire la politique attachée au bucket / read the policy attached to the bucket
+awslocal s3api get-bucket-policy --bucket site-public --query &#39;Policy&#39; --output text</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>put-bucket-policy</code> réussit (aucune erreur). <code>get-bucket-policy</code> te réaffiche la politique JSON attachée <strong>au bucket</strong>. Ici <code>Principal: &quot;*&quot;</code> signifie « n&#39;importe qui » — c&#39;est ce qu&#39;on met pour un <strong>site web statique public</strong>, mais <strong>jamais</strong> pour des données sensibles (c&#39;est la cause n°1 des fuites S3 dans l&#39;actualité). ⚠️ La politique vit <strong>sur la ressource</strong>, pas sur une identité : c&#39;est le point à retenir. En réel, il faut aussi désactiver le « Block Public Access » pour qu&#39;une politique publique prenne effet.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>put-bucket-policy</code> succeeds (no error). <code>get-bucket-policy</code> shows you back the JSON policy attached <strong>to the bucket</strong>. Here <code>Principal: &quot;*&quot;</code> means &quot;anyone&quot; — that&#39;s what you set for a <strong>public static website</strong>, but <strong>never</strong> for sensitive data (it&#39;s the #1 cause of S3 leaks in the news). ⚠️ The policy lives <strong>on the resource</strong>, not on an identity: that&#39;s the takeaway. In real AWS, you also need to disable &quot;Block Public Access&quot; for a public policy to take effect.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Distinguer politique <strong>inline</strong> et politique <strong>gérée</strong>, et savoir quand utiliser laquelle.</p>
+<p><strong>🤔 Trois types, trois usages.</strong> <strong>Gérée par AWS</strong> (<code>AmazonS3ReadOnlyAccess</code>) : rapide, maintenue par AWS, mais large. <strong>Gérée par le client</strong> (ta <code>AppDataRW</code> de l&#39;étape 2) : réutilisable sur plusieurs identités, versionnée — <strong>le choix par défaut</strong> en prod. <strong>Inline</strong> : collée sur <strong>une seule</strong> identité, disparaît avec elle, non réutilisable — à réserver aux permissions <strong>uniques</strong> à une identité.</p>
+<p>Ajoute une politique <strong>inline</strong> à un utilisateur :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tell an <strong>inline</strong> policy from a <strong>managed</strong> one, and know when to use which.</p>
+<p><strong>🤔 Three types, three uses.</strong> <strong>AWS-managed</strong> (<code>AmazonS3ReadOnlyAccess</code>): fast, maintained by AWS, but broad. <strong>Customer-managed</strong> (your <code>AppDataRW</code> from step 2): reusable across identities, versioned — <strong>the default choice</strong> in prod. <strong>Inline</strong>: stuck on <strong>one</strong> identity, vanishes with it, not reusable — reserve for permissions <strong>unique</strong> to an identity.</p>
+<p>Add an <strong>inline</strong> policy to a user:</p>
+</div>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;s3:ListAllMyBuckets&quot;, &quot;Resource&quot;: &quot;*&quot; }
+  ]
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Politique INLINE : collée directement sur alice (pas d&#39;ARN réutilisable) / INLINE: stuck on alice
+# Enregistre dans inline.json / save as inline.json
+awslocal iam put-user-policy --user-name alice --policy-name ListerBuckets --policy-document file://inline.json
+
+# Comparer : politiques inline vs politiques gérées attachées / compare inline vs attached managed
+awslocal iam list-user-policies --user-name alice --query &#39;PolicyNames&#39; --output text          # inline
+awslocal iam list-attached-user-policies --user-name alice --query &#39;AttachedPolicies[].PolicyName&#39; --output text  # gérées</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>list-user-policies</code> (les <strong>inline</strong>) montre <code>ListerBuckets</code>. <code>list-attached-user-policies</code> (les <strong>gérées</strong>) est vide pour alice directement (sa permission S3 vient du <strong>groupe</strong>, pas d&#39;un attachement direct). Deux commandes <strong>différentes</strong> pour deux types de politiques : c&#39;est un piège d&#39;examen (« pourquoi je ne vois pas ma politique inline dans list-attached ? » → parce qu&#39;elle est inline). Règle pro : préfère les politiques <strong>gérées par le client</strong> ; garde l&#39;inline pour l&#39;exceptionnel.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>list-user-policies</code> (the <strong>inline</strong> ones) shows <code>ListerBuckets</code>. <code>list-attached-user-policies</code> (the <strong>managed</strong> ones) is empty for alice directly (her S3 permission comes from the <strong>group</strong>, not a direct attachment). Two <strong>different</strong> commands for two policy types: it&#39;s an exam trap (&quot;why don&#39;t I see my inline policy in list-attached?&quot; → because it&#39;s inline). Pro rule: prefer <strong>customer-managed</strong> policies; keep inline for the exceptional.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Ancrer le <strong>modèle de responsabilité partagée</strong> et les <strong>bonnes pratiques</strong>, puis nettoyer.</p>
+<p><strong>🤔 Qui sécurise quoi.</strong> AWS sécurise le cloud <strong>lui-même</strong> (matériel, réseau physique, hyperviseur, services managés). <strong>Toi</strong> tu sécurises ce que tu mets <strong>dedans</strong> : tes données, <strong>tes</strong> permissions IAM, tes groupes de sécurité, le chiffrement. Une fuite S3 par bucket public, c&#39;est <strong>ta</strong> responsabilité, pas celle d&#39;AWS. Les bonnes pratiques IAM à retenir : n&#39;utilise <strong>jamais</strong> le root au quotidien, active la <strong>MFA</strong>, applique le <strong>moindre privilège</strong>, préfère les <strong>rôles</strong> aux clés long terme, et <strong>fais tourner</strong> (rotation) les clés.</p>
+<p>Récapitule et nettoie :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Anchor the <strong>shared responsibility model</strong> and <strong>best practices</strong>, then clean up.</p>
+<p><strong>🤔 Who secures what.</strong> AWS secures the cloud <strong>itself</strong> (hardware, physical network, hypervisor, managed services). <strong>You</strong> secure what you put <strong>in</strong> it: your data, <strong>your</strong> IAM permissions, your security groups, encryption. An S3 leak from a public bucket is <strong>your</strong> responsibility, not AWS&#39;s. The IAM best practices to remember: <strong>never</strong> use root day-to-day, enable <strong>MFA</strong>, apply <strong>least privilege</strong>, prefer <strong>roles</strong> to long-term keys, and <strong>rotate</strong> keys.</p>
+<p>Recap and clean up:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Panorama de ce que tu as construit / overview of what you built
+awslocal iam list-groups --query &#39;Groups[].GroupName&#39; --output text
+awslocal iam list-roles  --query &#39;Roles[].RoleName&#39;  --output text
+awslocal iam list-policies --scope Local --query &#39;Policies[].PolicyName&#39; --output text   # tes politiques clientes
+
+# Nettoyage (ordre important : détacher avant supprimer) / cleanup (order matters: detach before delete)
+awslocal iam remove-user-from-group --user-name alice --group-name developpeurs
+awslocal iam remove-user-from-group --user-name bob   --group-name developpeurs
+awslocal iam delete-user-policy --user-name alice --policy-name ListerBuckets
+awslocal iam delete-user --user-name alice ; awslocal iam delete-user --user-name bob
+awslocal iam detach-group-policy --group-name developpeurs --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+awslocal iam delete-group --group-name developpeurs
+awslocal iam detach-role-policy --role-name role-lecture-s3 --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+awslocal iam delete-role --role-name role-lecture-s3
+awslocal iam delete-policy --policy-arn arn:aws:iam::000000000000:policy/AppDataRW
+awslocal iam delete-policy --policy-arn arn:aws:iam::000000000000:policy/S3SansSuppression
+awslocal s3 rb s3://site-public --force</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> avant nettoyage, <code>list-policies --scope Local</code> liste <strong>tes</strong> politiques (<code>AppDataRW</code>, <code>S3SansSuppression</code>) — <code>Local</code> = gérées par le client, par opposition aux centaines de politiques <code>AWS</code>. Après nettoyage, <code>awslocal iam list-users</code>, <code>list-groups</code>, <code>list-roles</code> sont vides. Tu as construit <strong>toute</strong> la mécanique IAM — identités, politiques, rôles, ressources — et tu la nettoies proprement. <code>--scope Local</code> vs <code>AWS</code> est un filtre utile pour ne voir que <strong>tes</strong> créations.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> before cleanup, <code>list-policies --scope Local</code> lists <strong>your</strong> policies (<code>AppDataRW</code>, <code>S3SansSuppression</code>) — <code>Local</code> = customer-managed, as opposed to the hundreds of <code>AWS</code> policies. After cleanup, <code>awslocal iam list-users</code>, <code>list-groups</code>, <code>list-roles</code> are empty. You built <strong>all</strong> the IAM machinery — identities, policies, roles, resources — and cleaned it up properly. <code>--scope Local</code> vs <code>AWS</code> is a handy filter to see only <strong>your</strong> creations.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p>**1. <code>s3:<em></code> sur <code>Resource: </em></code>.<strong> La faute de moindre privilège par excellence. Cible des </strong>actions précises<strong> sur des </strong>ARN précis**. Une politique large est une porte ouverte.</p>
+<p><strong>2. Confondre ARN de bucket et ARN d&#39;objets.</strong> <code>arn:aws:s3:::mon-bucket</code> = le bucket (pour <code>s3:ListBucket</code>). <code>arn:aws:s3:::mon-bucket/*</code> = les objets (pour <code>s3:GetObject</code>). Beaucoup de politiques cassent parce qu&#39;elles mélangent les deux.</p>
+<p><strong>3. Croire qu&#39;un <code>Allow</code> bat un <code>Deny</code>.</strong> Non : un <strong>Deny explicite l&#39;emporte toujours</strong>, même sur mille <code>Allow</code>. C&#39;est la question piège récurrente de l&#39;examen.</p>
+<p><strong>4. Stocker des clés long terme sur une machine.</strong> Une instance EC2 (ou un conteneur) doit endosser un <strong>rôle</strong>, pas embarquer des clés d&#39;accès. Les clés fuient ; les identifiants temporaires expirent.</p>
+<p><strong>5. Confondre politique de confiance et politique de permission.</strong> La <strong>confiance</strong> (<code>AssumeRolePolicyDocument</code>) dit <strong>qui</strong> peut endosser le rôle. La <strong>permission</strong> dit <strong>ce que</strong> le rôle peut faire. Deux documents distincts, deux rôles distincts.</p>
+<p><strong>6. Rendre un bucket public sans le vouloir.</strong> <code>Principal: &quot;*&quot;</code> = tout Internet. À réserver aux sites statiques publics. En réel, le « Block Public Access » est activé par défaut — le désactiver est une décision explicite et risquée.</p>
+<p><strong>7. Chercher une politique inline dans <code>list-attached-user-policies</code>.</strong> Les politiques <strong>inline</strong> sont dans <code>list-user-policies</code> ; les <strong>gérées</strong> dans <code>list-attached-user-policies</code>. Deux commandes, deux mondes.</p>
+<p><strong>8. Oublier que LocalStack n&#39;applique pas IAM.</strong> En LocalStack, une action « interdite » par ta politique <strong>passera</strong> quand même. Tu valides la <strong>structure</strong> ici ; l&#39;autorisation, tu la raisonnes (et l&#39;examen aussi).</p>
+</div>
+<div data-lang="en"><p>**1. <code>s3:<em></code> on <code>Resource: </em></code>.<strong> The least-privilege mistake par excellence. Target </strong>precise actions<strong> on </strong>precise ARNs**. A broad policy is an open door.</p>
+<p><strong>2. Confusing bucket ARN and objects ARN.</strong> <code>arn:aws:s3:::my-bucket</code> = the bucket (for <code>s3:ListBucket</code>). <code>arn:aws:s3:::my-bucket/*</code> = the objects (for <code>s3:GetObject</code>). Many policies break because they mix the two.</p>
+<p><strong>3. Thinking an <code>Allow</code> beats a <code>Deny</code>.</strong> No: an <strong>explicit Deny always wins</strong>, even over a thousand <code>Allow</code>s. It&#39;s the exam&#39;s recurring trick question.</p>
+<p><strong>4. Storing long-term keys on a machine.</strong> An EC2 instance (or a container) should assume a <strong>role</strong>, not carry access keys. Keys leak; temporary credentials expire.</p>
+<p><strong>5. Confusing trust policy and permission policy.</strong> The <strong>trust</strong> (<code>AssumeRolePolicyDocument</code>) says <strong>who</strong> can assume the role. The <strong>permission</strong> says <strong>what</strong> the role can do. Two distinct documents, two distinct roles.</p>
+<p><strong>6. Making a bucket public unintentionally.</strong> <code>Principal: &quot;*&quot;</code> = the whole Internet. Reserve for public static sites. In real AWS, &quot;Block Public Access&quot; is on by default — disabling it is an explicit, risky decision.</p>
+<p><strong>7. Looking for an inline policy in <code>list-attached-user-policies</code>.</strong> <strong>Inline</strong> policies are in <code>list-user-policies</code>; <strong>managed</strong> ones in <code>list-attached-user-policies</code>. Two commands, two worlds.</p>
+<p><strong>8. Forgetting LocalStack doesn&#39;t enforce IAM.</strong> In LocalStack, an action &quot;forbidden&quot; by your policy will <strong>still</strong> go through. You validate the <strong>structure</strong> here; authorization you reason about (and so does the exam).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un groupe, lui attaches une politique, y ajoutes des utilisateurs qui <strong>héritent</strong> des droits.</li><li>Tu écris une politique JSON précise (<code>Effect</code>/<code>Action</code>/<code>Resource</code>) et tu la relis.</li><li>Tu expliques « Deny explicite &gt; Allow &gt; Deny implicite » sur un exemple.</li><li>Tu crées un rôle (confiance + permission) et tu l&#39;endosses via <code>assume-role</code> (identifiants temporaires).</li><li>Tu attaches une <strong>bucket policy</strong> et tu distingues identité vs ressource.</li><li>Tu sais où vivent les politiques <strong>inline</strong> vs <strong>gérées</strong>.</li><li>Tu expliques le modèle de responsabilité partagée.</li></ul>
+<p>Sept cases = tu tiens le socle de sécurité du SAA. La suite : S3 en profondeur.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a group, attach a policy, add users that <strong>inherit</strong> the rights.</li><li>You write a precise JSON policy (<code>Effect</code>/<code>Action</code>/<code>Resource</code>) and read it back.</li><li>You explain &quot;explicit Deny &gt; Allow &gt; implicit Deny&quot; on an example.</li><li>You create a role (trust + permission) and assume it via <code>assume-role</code> (temporary credentials).</li><li>You attach a <strong>bucket policy</strong> and tell identity from resource.</li><li>You know where <strong>inline</strong> vs <strong>managed</strong> policies live.</li><li>You explain the shared responsibility model.</li></ul>
+<p>Seven boxes = you hold the SAA security foundation. Next up: S3 in depth.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite du track AWS → SAA-C03 :</p>
+<ol><li><strong>AWS — stockage S3 en profondeur</strong> : versioning, classes de stockage, cycle de vie, chiffrement, hébergement de site statique, URL présignées — le service le plus utilisé, et le plus testé après IAM.</li><li>Plus loin : réseau VPC, compute (EC2/Lambda), découplage (SQS/SNS/DynamoDB), le <strong>projet d&#39;entreprise</strong> serverless, puis <strong>passer en réel</strong>.</li></ol>
+</div>
+<div data-lang="en"><p>The AWS → SAA-C03 track continues:</p>
+<ol><li><strong>AWS — S3 storage in depth</strong>: versioning, storage classes, lifecycle, encryption, static website hosting, presigned URLs — the most-used service, and the most tested after IAM.</li><li>Further along: VPC networking, compute (EC2/Lambda), decoupling (SQS/SNS/DynamoDB), the serverless <strong>enterprise project</strong>, then <strong>going real</strong>.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../aws-stockage-s3/">
+    <span class="num">46</span>
+    <span class="title-line" data-lang="fr">AWS — stockage S3 en profondeur</span>
+    <span class="title-line" data-lang="en">AWS — S3 storage in depth</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire IAM.</p>
+</div>
+<div data-lang="en"><p>IAM cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Groupes / Groups
+awslocal iam create-group --group-name G
+awslocal iam attach-group-policy --group-name G --policy-arn &lt;arn&gt;
+awslocal iam add-user-to-group --user-name U --group-name G
+
+# Politiques clientes / Customer-managed policies
+awslocal iam create-policy --policy-name P --policy-document file://p.json
+awslocal iam get-policy-version --policy-arn &lt;arn&gt; --version-id v1 --query &#39;PolicyVersion.Document&#39;
+awslocal iam list-policies --scope Local            # tes politiques / your policies
+
+# Rôles / Roles
+awslocal iam create-role --role-name R --assume-role-policy-document file://trust.json
+awslocal iam attach-role-policy --role-name R --policy-arn &lt;arn&gt;
+awslocal sts assume-role --role-arn &lt;arn&gt; --role-session-name s1   # identifiants temporaires
+
+# Politiques : inline vs gérées / inline vs managed
+awslocal iam put-user-policy --user-name U --policy-name P --policy-document file://i.json  # inline
+awslocal iam list-user-policies --user-name U            # inline
+awslocal iam list-attached-user-policies --user-name U   # gérées / managed
+
+# Ressource (bucket policy) / Resource policy
+awslocal s3api put-bucket-policy --bucket B --policy file://bp.json</code></pre>
+<pre class="term lang-json"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">JSON</span><button class="copy-btn" type="button">Copy</button></div><code>// Anatomie d&#39;une politique / Policy anatomy
+{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;s3:GetObject&quot;, &quot;Resource&quot;: &quot;arn:aws:s3:::b/*&quot; },
+    { &quot;Effect&quot;: &quot;Deny&quot;,  &quot;Action&quot;: &quot;s3:DeleteBucket&quot;, &quot;Resource&quot;: &quot;*&quot; }
+  ]
+}</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html">Politiques et permissions IAM</a> — la grammaire complète.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">Logique d&#39;évaluation des politiques</a> — deny explicite, ordre d&#39;évaluation.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html">Rôles IAM</a> — confiance, assume-role, cas d&#39;usage.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">Bonnes pratiques de sécurité IAM</a> — moindre privilège, MFA, rôles.</li><li><a href="https://aws.amazon.com/compliance/shared-responsibility-model/">Modèle de responsabilité partagée</a> — qui sécurise quoi.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html">IAM policies and permissions</a> — the full grammar.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">Policy evaluation logic</a> — explicit deny, evaluation order.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html">IAM roles</a> — trust, assume-role, use cases.</li><li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM security best practices</a> — least privilege, MFA, roles.</li><li><a href="https://aws.amazon.com/compliance/shared-responsibility-model/">Shared responsibility model</a> — who secures what.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>MalformedPolicyDocument</code>.</strong> Ton JSON est invalide : virgule en trop, <code>Version</code> manquante, <code>Action</code>/<code>Resource</code> mal orthographiés. Valide le JSON, et vérifie que <code>Version</code> vaut <code>&quot;2012-10-17&quot;</code>.</p>
+<p><strong><code>delete-user</code> / <code>delete-group</code> échoue (<code>DeleteConflict</code>).</strong> Il reste des attachements. Ordre : retirer les utilisateurs du groupe, détacher les politiques, supprimer les politiques inline, <strong>puis</strong> supprimer.</p>
+<p><strong><code>NoSuchEntity</code> sur un ARN de politique.</strong> L&#39;ARN est faux (numéro de compte, nom). En LocalStack le compte est <code>000000000000</code> ; tes politiques clientes sont <code>arn:aws:iam::000000000000:policy/&lt;nom&gt;</code>, les gérées AWS <code>arn:aws:iam::aws:policy/&lt;nom&gt;</code>.</p>
+<p><strong><code>assume-role</code> échoue.</strong> La politique de <strong>confiance</strong> ne permet pas au principal d&#39;endosser, ou l&#39;ARN du rôle est faux. Vérifie <code>AssumeRolePolicyDocument</code> et l&#39;ARN.</p>
+<p><strong>Ma politique « interdit » une action mais elle passe quand même.</strong> Normal en LocalStack : il <strong>n&#39;applique pas</strong> l&#39;autorisation IAM. Tu valides la structure ; le blocage réel n&#39;a lieu que sur le vrai AWS.</p>
+<p><strong><code>SimulatePrincipalPolicy</code> renvoie une erreur.</strong> Cette API n&#39;est pas (bien) supportée en LocalStack communautaire. Raisonne l&#39;évaluation à la main plutôt que de la simuler.</p>
+</div>
+<div data-lang="en"><p><strong><code>MalformedPolicyDocument</code>.</strong> Your JSON is invalid: trailing comma, missing <code>Version</code>, misspelled <code>Action</code>/<code>Resource</code>. Validate the JSON, and check <code>Version</code> is <code>&quot;2012-10-17&quot;</code>.</p>
+<p><strong><code>delete-user</code> / <code>delete-group</code> fails (<code>DeleteConflict</code>).</strong> Attachments remain. Order: remove users from the group, detach policies, delete inline policies, <strong>then</strong> delete.</p>
+<p><strong><code>NoSuchEntity</code> on a policy ARN.</strong> The ARN is wrong (account number, name). In LocalStack the account is <code>000000000000</code>; your customer policies are <code>arn:aws:iam::000000000000:policy/&lt;name&gt;</code>, AWS-managed ones <code>arn:aws:iam::aws:policy/&lt;name&gt;</code>.</p>
+<p><strong><code>assume-role</code> fails.</strong> The <strong>trust</strong> policy doesn&#39;t let the principal assume, or the role ARN is wrong. Check <code>AssumeRolePolicyDocument</code> and the ARN.</p>
+<p><strong>My policy &quot;forbids&quot; an action but it goes through anyway.</strong> Normal in LocalStack: it does <strong>not</strong> enforce IAM authorization. You validate the structure; real blocking only happens on real AWS.</p>
+<p><strong><code>SimulatePrincipalPolicy</code> returns an error.</strong> That API isn&#39;t (well) supported in community LocalStack. Reason about the evaluation by hand rather than simulating it.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

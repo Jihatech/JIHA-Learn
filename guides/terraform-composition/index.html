@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Terraform — composition &amp; expressions — jiha.tech</title>
+  <title data-lang="en">Terraform — composition &amp; expressions — jiha.tech</title>
+  <meta name="description" content="Génère de l&#39;infrastructure sans copier-coller : count et for_each, expressions et conditions, fonctions, data sources et blocs dynamic. Le niveau composition attendu par la certification Terraform Associate." data-lang="fr">
+  <meta name="description" content="Generate infrastructure without copy-paste: count and for_each, expressions and conditionals, functions, data sources and dynamic blocks. The composition level the Terraform Associate certification expects." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Terraform — composition &amp; expressions">
+  <meta property="og:description" content="Génère de l&#39;infrastructure sans copier-coller : count et for_each, expressions et conditions, fonctions, data sources et blocs dynamic. Le niveau composition attendu par la certification Terraform Associate.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/terraform-composition/">
+  <link rel="canonical" href="https://jiha.tech/guides/terraform-composition/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="terraform-composition">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/terraform-composition</div>
+    <div class="prompt" data-lang="en">~/guides/terraform-composition</div>
+    <h1 data-lang="fr">Terraform — composition &amp; expressions</h1>
+    <h1 data-lang="en">Terraform — composition &amp; expressions</h1>
+    <p class="tagline" data-lang="fr">count, for_each, expressions, fonctions, data, dynamic.</p>
+    <p class="tagline" data-lang="en">count, for_each, expressions, functions, data, dynamic.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 130 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 130 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Au niveau fondamentaux, tu écrivais <strong>un bloc <code>resource</code> par objet</strong>. Ça ne passe pas à l&#39;échelle : dix serveurs identiques, ce n&#39;est pas dix copier-coller. Terraform génère de l&#39;infrastructure <strong>à partir de données</strong> — un nombre, une liste, une map — via des <strong>méta-arguments</strong> (<code>count</code>, <code>for_each</code>) et des <strong>expressions</strong>.</p>
+<p>Ce guide te fait passer du « je décris chaque ressource » au « je décris un <strong>patron</strong> et je le décline ». C&#39;est le saut qui sépare un <code>main.tf</code> d&#39;amateur (répétitif, fragile) d&#39;un code <strong>DRY</strong>, paramétrable, lisible — et c&#39;est un gros bloc du programme <strong>Terraform Associate</strong>.</p>
+<p>On reste <strong>sur ta machine</strong> : le provider Docker fournit l&#39;infra à générer. Toutes les commandes tournent en local.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les fondamentaux Terraform (HCL, plan/apply, variables, modules) et tu veux arrêter de copier-coller des blocs.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne maîtrises pas encore providers/ressources/variables → reviens au guide fondamentaux.</li><li>Tu cherches à gérer le state en équipe → c&#39;est le guide précédent (state en profondeur).</li></ul>
+</div>
+<div data-lang="en"><p>At the fundamentals level, you wrote <strong>one <code>resource</code> block per object</strong>. That doesn&#39;t scale: ten identical servers isn&#39;t ten copy-pastes. Terraform generates infrastructure <strong>from data</strong> — a number, a list, a map — via <strong>meta-arguments</strong> (<code>count</code>, <code>for_each</code>) and <strong>expressions</strong>.</p>
+<p>This guide takes you from &quot;I describe each resource&quot; to &quot;I describe a <strong>pattern</strong> and instantiate it&quot;. That&#39;s the leap that separates an amateur <code>main.tf</code> (repetitive, fragile) from <strong>DRY</strong>, parameterizable, readable code — and it&#39;s a big chunk of the <strong>Terraform Associate</strong> exam.</p>
+<p>We stay <strong>on your machine</strong>: the Docker provider supplies the infra to generate. All commands run locally.</p>
+<p><strong>Who it&#39;s for:</strong> you have the Terraform fundamentals (HCL, plan/apply, variables, modules) and you want to stop copy-pasting blocks.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You&#39;re not comfortable with providers/resources/variables yet → go back to the fundamentals guide.</li><li>You&#39;re looking to manage state on a team → that&#39;s the previous guide (state in depth).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Structurer avec des <strong><code>locals</code></strong> et des variables <strong>typées</strong> (list, map, object).</li><li>Créer N ressources avec <strong><code>count</code></strong> — et connaître son piège d&#39;index.</li><li>Créer des ressources nommées avec <strong><code>for_each</code></strong> (map/set) — et pourquoi le préférer.</li><li>Écrire des <strong>expressions</strong> : conditions, boucles <code>for</code>, interpolation, splat.</li><li>Utiliser des <strong>fonctions</strong> intégrées et les tester avec <code>terraform console</code>.</li><li>Lire l&#39;existant avec une <strong>data source</strong>.</li><li>Générer des blocs imbriqués avec <strong><code>dynamic</code></strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Structure with <strong><code>locals</code></strong> and <strong>typed</strong> variables (list, map, object).</li><li>Create N resources with <strong><code>count</code></strong> — and know its index pitfall.</li><li>Create named resources with <strong><code>for_each</code></strong> (map/set) — and why to prefer it.</li><li>Write <strong>expressions</strong>: conditionals, <code>for</code> loops, interpolation, splat.</li><li>Use built-in <strong>functions</strong> and test them with <code>terraform console</code>.</li><li>Read existing infra with a <strong>data source</strong>.</li><li>Generate nested blocks with <strong><code>dynamic</code></strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Terraform fondamentaux</strong> acquis (prérequis dur).</li><li><strong>Terraform</strong> et <strong>Docker</strong> installés et fonctionnels.</li><li>Un projet vierge :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Terraform fundamentals</strong> guide under your belt (hard prerequisite).</li><li><strong>Terraform</strong> and <strong>Docker</strong> installed and working.</li><li>A blank project:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir tf-compo &amp;&amp; cd tf-compo</code></pre>
+<div data-lang="fr"><p>Crée <code>main.tf</code> avec le provider et une image partagée :</p>
+</div>
+<div data-lang="en"><p>Create <code>main.tf</code> with the provider and a shared image:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>terraform {
+  required_providers {
+    docker = {
+      source  = &quot;kreuzwerker/docker&quot;
+      version = &quot;~&gt; 3.0&quot;
+    }
+  }
+}
+provider &quot;docker&quot; {}
+
+resource &quot;docker_image&quot; &quot;nginx&quot; {
+  name = &quot;nginx:1.27&quot;
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform init</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../terraform-fondamentaux/">
+    <span class="num">28</span>
+    <span class="title-line" data-lang="fr">Terraform — l’infrastructure en code</span>
+    <span class="title-line" data-lang="en">Terraform — infrastructure as code</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Deux familles d&#39;outils permettent de <strong>générer</strong> au lieu de <strong>répéter</strong>.</p>
+<p><strong>Les méta-arguments</strong> créent plusieurs instances d&#39;une même ressource :</p>
+<ul><li><strong><code>count</code></strong> prend un <strong>nombre</strong> : Terraform crée N copies, indexées par <code>count.index</code> (0, 1, 2…). Simple, mais l&#39;index est <strong>positionnel</strong> — c&#39;est son talon d&#39;Achille (voir plus bas).</li><li><strong><code>for_each</code></strong> prend une <strong>map</strong> ou un <strong>set</strong> : Terraform crée une instance par clé, accessible via <code>each.key</code> et <code>each.value</code>. Chaque instance est identifiée par une <strong>clé stable</strong>, pas par une position.</li></ul>
+<p><strong>Les expressions</strong> transforment les données :</p>
+<ul><li><strong>conditions</strong> : <code>var.prod ? &quot;nginx:1.27&quot; : &quot;nginx:latest&quot;</code> ;</li><li><strong>boucles <code>for</code></strong> : <code>[for p in var.ports : p + 8000]</code> construit une nouvelle liste ;</li><li><strong>fonctions</strong> : <code>length()</code>, <code>merge()</code>, <code>lookup()</code>, <code>upper()</code>… (des dizaines) ;</li><li><strong>interpolation</strong> : <code>&quot;site-${each.key}&quot;</code>.</li></ul>
+<p>Enfin, une <strong>data source</strong> (<code>data &quot;...&quot;</code>) <strong>lit</strong> un objet existant (au lieu de le créer) pour le référencer, et un bloc <strong><code>dynamic</code></strong> génère des <strong>blocs imbriqués</strong> répétés (plusieurs <code>ports</code>, plusieurs règles…) à partir d&#39;une collection.</p>
+<p>La règle d&#39;or de ce guide : <strong><code>for_each</code> plutôt que <code>count</code> dès que les instances ont une identité</strong> (un nom, une clé). Pourquoi ? Avec <code>count</code>, supprimer l&#39;élément du milieu <strong>décale tous les suivants</strong> → Terraform détruit et recrée à la chaîne. Avec <code>for_each</code>, chaque instance a une clé stable : supprimer une clé ne touche pas les autres.</p>
+</div>
+<div data-lang="en"><p>Two families of tools let you <strong>generate</strong> instead of <strong>repeat</strong>.</p>
+<p><strong>Meta-arguments</strong> create multiple instances of one resource:</p>
+<ul><li><strong><code>count</code></strong> takes a <strong>number</strong>: Terraform creates N copies, indexed by <code>count.index</code> (0, 1, 2…). Simple, but the index is <strong>positional</strong> — its Achilles&#39; heel (see below).</li><li><strong><code>for_each</code></strong> takes a <strong>map</strong> or a <strong>set</strong>: Terraform creates one instance per key, accessed via <code>each.key</code> and <code>each.value</code>. Each instance is identified by a <strong>stable key</strong>, not a position.</li></ul>
+<p><strong>Expressions</strong> transform data:</p>
+<ul><li><strong>conditionals</strong>: <code>var.prod ? &quot;nginx:1.27&quot; : &quot;nginx:latest&quot;</code>;</li><li><strong><code>for</code> loops</strong>: <code>[for p in var.ports : p + 8000]</code> builds a new list;</li><li><strong>functions</strong>: <code>length()</code>, <code>merge()</code>, <code>lookup()</code>, <code>upper()</code>… (dozens);</li><li><strong>interpolation</strong>: <code>&quot;site-${each.key}&quot;</code>.</li></ul>
+<p>Finally, a <strong>data source</strong> (<code>data &quot;...&quot;</code>) <strong>reads</strong> an existing object (instead of creating it) to reference it, and a <strong><code>dynamic</code></strong> block generates repeated <strong>nested blocks</strong> (multiple <code>ports</code>, multiple rules…) from a collection.</p>
+<p>The golden rule of this guide: <strong><code>for_each</code> over <code>count</code> as soon as instances have an identity</strong> (a name, a key). Why? With <code>count</code>, deleting the middle element <strong>shifts all the following ones</strong> → Terraform destroys and recreates down the line. With <code>for_each</code>, each instance has a stable key: deleting one key doesn&#39;t touch the others.</p>
+</div>
+
+<figure class="schema" id="figure-terraform-count-foreach">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-terraform-count-foreach">
+  <title id="s-terraform-count-foreach">count vs for_each</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">count vs for_each</text><rect class="box" x="16" y="40" width="351" height="66" rx="3"/><text class="lbl" x="191.5" y="70.5" text-anchor="middle">count</text><text class="sub" x="191.5" y="83.5" text-anchor="middle">index par position — fragile au retrait</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-accent" x="393" y="40" width="351" height="66" rx="3"/><text class="lbl lbl-fill" x="568.5" y="70.5" text-anchor="middle">for_each</text><text class="sub sub-fill" x="568.5" y="83.5" text-anchor="middle">index par clé stable — sûr</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> count indexe par position (fragile au retrait) ; for_each indexe par clé stable (sûr).</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> count indexes by position (fragile on removal); for_each indexes by stable key (safe).</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : locals &amp; types → <code>count</code> → <code>for_each</code> (et son avantage) → expressions → fonctions → data source → <code>dynamic</code>.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: locals &amp; types → <code>count</code> → <code>for_each</code> (and its advantage) → expressions → functions → data source → <code>dynamic</code>.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Externaliser des valeurs avec des <strong><code>locals</code></strong> et une variable <strong>typée</strong>.</p>
+<p><strong>🤔 <code>locals</code> vs <code>variable</code> ?</strong> Une <strong>variable</strong> est une entrée (fournie de l&#39;extérieur : <code>.tfvars</code>, CLI). Un <strong>local</strong> est une valeur <strong>calculée en interne</strong>, réutilisable, pour ne pas répéter une expression. On introduit aussi une variable <strong>map</strong> — le type qu&#39;on va décliner avec <code>for_each</code>.</p>
+<p>Ajoute à <code>main.tf</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Externalize values with <strong><code>locals</code></strong> and a <strong>typed</strong> variable.</p>
+<p><strong>🤔 <code>locals</code> vs <code>variable</code>?</strong> A <strong>variable</strong> is an input (provided from outside: <code>.tfvars</code>, CLI). A <strong>local</strong> is a value <strong>computed internally</strong>, reusable, to avoid repeating an expression. We also introduce a <strong>map</strong> variable — the type we&#39;ll instantiate with <code>for_each</code>.</p>
+<p>Add to <code>main.tf</code>:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>variable &quot;sites&quot; {
+  type = map(number)   # nom du site =&gt; port externe / site name =&gt; external port
+  default = {
+    blog = 8081
+    shop = 8082
+  }
+}
+
+locals {
+  image = docker_image.nginx.image_id
+  count_of_sites = length(var.sites)
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform console &lt;&lt;&lt; &#39;local.count_of_sites&#39;   # évalue une expression sans appliquer / evaluate without applying</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform console</code> renvoie <code>2</code> (le nombre de sites). <code>terraform console</code> est ton bac à sable pour tester expressions et fonctions <strong>sans</strong> toucher à l&#39;infra.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform console</code> returns <code>2</code> (the number of sites). <code>terraform console</code> is your sandbox to test expressions and functions <strong>without</strong> touching infra.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer N conteneurs identiques avec <strong><code>count</code></strong>.</p>
+<p><strong>🤔 Quand <code>count</code> ?</strong> Quand les instances sont <strong>interchangeables</strong> et sans identité propre (des répliques anonymes). <code>count.index</code> donne le numéro (0..N-1) pour différencier nom et port.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create N identical containers with <strong><code>count</code></strong>.</p>
+<p><strong>🤔 When <code>count</code>?</strong> When instances are <strong>interchangeable</strong> with no identity of their own (anonymous replicas). <code>count.index</code> gives the number (0..N-1) to differentiate name and port.</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>resource &quot;docker_container&quot; &quot;worker&quot; {
+  count = 3
+  name  = &quot;worker-${count.index}&quot;
+  image = local.image
+  ports {
+    internal = 80
+    external = 9000 + count.index
+  }
+}
+
+output &quot;worker_names&quot; {
+  value = docker_container.worker[*].name   # splat : la liste des noms / splat: the list of names
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve
+terraform output worker_names         # [&quot;worker-0&quot;,&quot;worker-1&quot;,&quot;worker-2&quot;] (via splat)
+terraform state list | grep worker    # worker[0], worker[1], worker[2]</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> trois conteneurs <code>worker-0/1/2</code> tournent (ports 9000-9002), et <code>terraform output worker_names</code> renvoie <code>[&quot;worker-0&quot;,&quot;worker-1&quot;,&quot;worker-2&quot;]</code> grâce à l&#39;opérateur <strong>splat</strong> <code>[*]</code> (une liste construite depuis toutes les instances <code>count</code>). Dans le state, ils sont indexés <strong>par position</strong> : <code>docker_container.worker[0]</code>, <code>[1]</code>, <code>[2]</code>. Retiens ce détail — c&#39;est le piège de l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> three <code>worker-0/1/2</code> containers run (ports 9000-9002), and <code>terraform output worker_names</code> returns <code>[&quot;worker-0&quot;,&quot;worker-1&quot;,&quot;worker-2&quot;]</code> thanks to the <strong>splat</strong> operator <code>[*]</code> (a list built from all <code>count</code> instances). In state they&#39;re indexed <strong>by position</strong>: <code>docker_container.worker[0]</code>, <code>[1]</code>, <code>[2]</code>. Remember this — it&#39;s the pitfall in the next step.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer des ressources <strong>nommées</strong> avec <strong><code>for_each</code></strong>, et comprendre pourquoi il bat <code>count</code>.</p>
+<p><strong>🤔 Le problème de <code>count</code>.</strong> Avec <code>count = 3</code>, si tu passes à <code>count = 2</code>, Terraform supprime <code>worker[2]</code> — logique. Mais si tu voulais supprimer <strong>celui du milieu</strong>, <code>count</code> ne sait pas : il réindexe tout, et <code>worker[1]</code> puis <code>worker[2]</code> sont <strong>détruits et recréés</strong>. Sur des serveurs avec état, c&#39;est un désastre.</p>
+<p><strong>La solution <code>for_each</code>.</strong> Chaque instance a une <strong>clé stable</strong> (le nom du site). Retirer une clé ne touche <strong>que</strong> son instance. On décline notre map <code>var.sites</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create <strong>named</strong> resources with <strong><code>for_each</code></strong>, and understand why it beats <code>count</code>.</p>
+<p><strong>🤔 The <code>count</code> problem.</strong> With <code>count = 3</code>, if you drop to <code>count = 2</code>, Terraform removes <code>worker[2]</code> — fine. But if you wanted to remove <strong>the middle one</strong>, <code>count</code> can&#39;t: it reindexes everything, and <code>worker[1]</code> then <code>worker[2]</code> are <strong>destroyed and recreated</strong>. On stateful servers, that&#39;s a disaster.</p>
+<p><strong>The <code>for_each</code> fix.</strong> Each instance has a <strong>stable key</strong> (the site name). Removing a key touches <strong>only</strong> its instance. We instantiate our <code>var.sites</code> map:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>resource &quot;docker_container&quot; &quot;site&quot; {
+  for_each = var.sites
+  name     = &quot;site-${each.key}&quot;        # site-blog, site-shop
+  image    = local.image
+  ports {
+    internal = 80
+    external = each.value              # 8081, 8082
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve
+terraform state list | grep site      # site[&quot;blog&quot;], site[&quot;shop&quot;]</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> deux conteneurs <code>site-blog</code> (8081) et <code>site-shop</code> (8082) tournent, indexés <strong>par clé</strong> : <code>docker_container.site[&quot;blog&quot;]</code>. Preuve du gain : retire <code>shop</code> du <code>default</code> de <code>var.sites</code> (édite <code>main.tf</code>) puis <code>terraform plan</code> → <strong>seul</strong> <code>site[&quot;shop&quot;]</code> est détruit, <code>site[&quot;blog&quot;]</code> est intact. Refais l&#39;inverse pour t&#39;en convaincre. <em>(Remets <code>shop</code> avant de continuer.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> two containers <code>site-blog</code> (8081) and <code>site-shop</code> (8082) run, indexed <strong>by key</strong>: <code>docker_container.site[&quot;blog&quot;]</code>. Proof of the gain: remove <code>shop</code> from <code>var.sites</code>&#39;s <code>default</code> (edit <code>main.tf</code>) then <code>terraform plan</code> → <strong>only</strong> <code>site[&quot;shop&quot;]</code> is destroyed, <code>site[&quot;blog&quot;]</code> is untouched. Do the reverse to convince yourself. <em>(Put <code>shop</code> back before continuing.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Transformer des données avec des <strong>expressions</strong> : condition et boucle <code>for</code>.</p>
+<p><strong>🤔 Pourquoi ?</strong> Rarement les données arrivent dans la forme voulue. Une <strong>condition</strong> (<code>? :</code>) choisit une valeur ; une <strong>boucle <code>for</code></strong> produit une nouvelle collection à partir d&#39;une autre. Teste-les dans <code>terraform console</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Transform data with <strong>expressions</strong>: conditional and <code>for</code> loop.</p>
+<p><strong>🤔 Why?</strong> Data rarely arrives in the shape you want. A <strong>conditional</strong> (<code>? :</code>) picks a value; a <strong><code>for</code> loop</strong> produces a new collection from another. Test them in <code>terraform console</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform console
+# Dans la console / In the console:
+# &gt; var.sites
+# &gt; [for name, port in var.sites : &quot;${name}:${port}&quot;]      # boucle for / for loop
+# &gt; { for name, port in var.sites : name =&gt; port + 1000 }  # for -&gt; map
+# &gt; length(var.sites) &gt; 1 ? &quot;plusieurs&quot; : &quot;un seul&quot;         # condition
+# &gt; exit</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la boucle <code>for</code> sur la liste renvoie <code>[&quot;blog:8081&quot;, &quot;shop:8082&quot;]</code> ; la version map renvoie <code>{blog = 9081, shop = 9082}</code> ; la condition renvoie <code>&quot;plusieurs&quot;</code>. Tu viens de <strong>transformer</strong> des données sans écrire de boucle impérative.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the list <code>for</code> loop returns <code>[&quot;blog:8081&quot;, &quot;shop:8082&quot;]</code>; the map version returns <code>{blog = 9081, shop = 9082}</code>; the conditional returns <code>&quot;plusieurs&quot;</code>. You just <strong>transformed</strong> data without writing an imperative loop.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Découvrir les <strong>fonctions</strong> intégrées les plus utiles.</p>
+<p><strong>🤔 Pourquoi les connaître ?</strong> Terraform fournit des dizaines de fonctions (chaînes, collections, numériques, encodage…). Pas besoin de les mémoriser — mais reconnaître les indispensables (<code>merge</code>, <code>lookup</code>, <code>length</code>, <code>coalesce</code>, <code>join</code>, <code>toset</code>) t&#39;évite de réinventer la roue. <code>terraform console</code> reste ton terrain d&#39;essai :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Discover the most useful built-in <strong>functions</strong>.</p>
+<p><strong>🤔 Why know them?</strong> Terraform provides dozens of functions (string, collection, numeric, encoding…). No need to memorize them — but recognizing the essentials (<code>merge</code>, <code>lookup</code>, <code>length</code>, <code>coalesce</code>, <code>join</code>, <code>toset</code>) saves you reinventing the wheel. <code>terraform console</code> stays your testing ground:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform console
+# &gt; merge({a = 1}, {b = 2})            # fusionne deux maps / merge two maps
+# &gt; lookup(var.sites, &quot;blog&quot;, 0)       # valeur ou défaut / value or default
+# &gt; join(&quot;, &quot;, keys(var.sites))        # &quot;blog, shop&quot;
+# &gt; upper(&quot;prod&quot;)                      # &quot;PROD&quot;
+# &gt; coalesce(&quot;&quot;, null, &quot;défaut&quot;)       # première valeur non vide / first non-empty
+# &gt; exit</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>merge</code> renvoie <code>{a=1, b=2}</code>, <code>lookup</code> renvoie <code>8081</code>, <code>join(keys())</code> renvoie <code>&quot;blog, shop&quot;</code>. Garde le réflexe : un besoin de manipulation → il existe probablement une fonction (cf. doc « Functions »).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>merge</code> returns <code>{a=1, b=2}</code>, <code>lookup</code> returns <code>8081</code>, <code>join(keys())</code> returns <code>&quot;blog, shop&quot;</code>. Keep the reflex: a manipulation need → there&#39;s probably a function for it (see the &quot;Functions&quot; docs).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire un objet <strong>existant</strong> avec une <strong>data source</strong>.</p>
+<p><strong>🤔 Ressource vs data source ?</strong> Une <code>resource</code> <strong>crée et gère</strong> un objet. Une <code>data</code> <strong>lit</strong> un objet qui existe déjà (créé ailleurs, ou fourni par la plateforme) pour le <strong>référencer</strong>. Cas classique : récupérer l&#39;empreinte (digest) d&#39;une image dans le registre pour l&#39;épingler de façon immuable.</p>
+<p>Ajoute :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read an <strong>existing</strong> object with a <strong>data source</strong>.</p>
+<p><strong>🤔 Resource vs data source?</strong> A <code>resource</code> <strong>creates and manages</strong> an object. A <code>data</code> <strong>reads</strong> an object that already exists (created elsewhere, or supplied by the platform) to <strong>reference</strong> it. Classic case: fetch an image&#39;s digest from the registry to pin it immutably.</p>
+<p>Add:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>data &quot;docker_registry_image&quot; &quot;nginx&quot; {
+  name = &quot;nginx:1.27&quot;
+}
+
+output &quot;nginx_digest&quot; {
+  value = data.docker_registry_image.nginx.sha256_digest
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve
+terraform output nginx_digest</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>terraform output nginx_digest</code> affiche un <code>sha256:...</code> — l&#39;empreinte réelle de l&#39;image dans le registre, <strong>lue</strong> sans rien créer. On pourrait maintenant épingler l&#39;image par ce digest (immuable, plus sûr qu&#39;un tag).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>terraform output nginx_digest</code> shows a <code>sha256:...</code> — the image&#39;s real digest in the registry, <strong>read</strong> without creating anything. We could now pin the image by that digest (immutable, safer than a tag).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer des <strong>blocs imbriqués</strong> répétés avec <strong><code>dynamic</code></strong>.</p>
+<p><strong>🤔 Le besoin ?</strong> Certains blocs se répètent dans une ressource (plusieurs <code>ports</code>, plusieurs règles). Les écrire à la main = copier-coller. Un bloc <strong><code>dynamic</code></strong> les génère à partir d&#39;une collection : <code>for_each</code> sur la collection, et <code>content { … }</code> décrit le bloc à produire.</p>
+<p>Un conteneur qui expose <strong>plusieurs ports</strong> définis par une variable :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate repeated <strong>nested blocks</strong> with <strong><code>dynamic</code></strong>.</p>
+<p><strong>🤔 The need?</strong> Some blocks repeat inside a resource (multiple <code>ports</code>, multiple rules). Writing them by hand = copy-paste. A <strong><code>dynamic</code></strong> block generates them from a collection: <code>for_each</code> over the collection, and <code>content { … }</code> describes the block to produce.</p>
+<p>A container that exposes <strong>several ports</strong> defined by a variable:</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code>variable &quot;extra_ports&quot; {
+  type    = list(number)
+  default = [8091, 8092, 8093]
+}
+
+resource &quot;docker_container&quot; &quot;multi&quot; {
+  name  = &quot;multi-port&quot;
+  image = local.image
+  dynamic &quot;ports&quot; {
+    for_each = var.extra_ports
+    content {
+      internal = 80
+      external = ports.value
+    }
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform apply -auto-approve
+docker port multi-port          # trois mappings vers 80 / three mappings to 80</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>docker port multi-port</code> liste <strong>trois</strong> mappings (8091/8092/8093 → 80), générés par un seul bloc <code>dynamic</code>. Le nom du bloc (<code>ports</code>) sert d&#39;itérateur (<code>ports.value</code>).</p>
+<p><em>(Nettoyage : <code>terraform destroy -auto-approve</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>docker port multi-port</code> lists <strong>three</strong> mappings (8091/8092/8093 → 80), generated by a single <code>dynamic</code> block. The block name (<code>ports</code>) acts as the iterator (<code>ports.value</code>).</p>
+<p><em>(Cleanup: <code>terraform destroy -auto-approve</code>.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. <code>count</code> sur des ressources qui ont une identité.</strong> Le retrait d&#39;un élément du milieu réindexe et détruit/recrée les suivants. Dès qu&#39;il y a un nom/une clé → <strong><code>for_each</code></strong>.</p>
+<p><strong>2. <code>for_each</code> sur une liste.</strong> <code>for_each</code> attend une <strong>map</strong> ou un <strong>set</strong>, pas une liste (l&#39;ordre d&#39;une liste n&#39;est pas une identité stable). Convertis avec <code>toset(...)</code> si besoin.</p>
+<p><strong>3. Abuser des expressions/conditions imbriquées.</strong> Une expression illisible sur trois niveaux vaut moins qu&#39;un <code>local</code> bien nommé. Décompose dans <code>locals</code>.</p>
+<p><strong>4. Confondre <code>resource</code> et <code>data</code>.</strong> Une <code>data</code> ne crée rien ; si tu attends une création, c&#39;est une <code>resource</code>. Et une <code>data</code> est <strong>relue à chaque plan</strong> (elle peut changer).</p>
+<p><strong>5. Oublier que <code>count</code>/<code>for_each</code> changent l&#39;adresse.</strong> <code>web</code> devient <code>web[0]</code> ou <code>web[&quot;clé&quot;]</code>. Après avoir ajouté un <code>count</code>/<code>for_each</code> à une ressource existante, un <code>state mv</code> peut être nécessaire (cf. guide state).</p>
+<p><strong>6. Dépendances implicites avec <code>count = 0</code>.</strong> Une ressource conditionnée par <code>count = var.enabled ? 1 : 0</code> n&#39;existe pas toujours ; référence-la avec précaution (<code>one(...)</code> ou <code>[0]</code> protégé).</p>
+</div>
+<div data-lang="en"><p><strong>1. <code>count</code> on resources that have an identity.</strong> Removing a middle element reindexes and destroys/recreates the following ones. As soon as there&#39;s a name/key → <strong><code>for_each</code></strong>.</p>
+<p><strong>2. <code>for_each</code> on a list.</strong> <code>for_each</code> expects a <strong>map</strong> or a <strong>set</strong>, not a list (a list&#39;s order isn&#39;t a stable identity). Convert with <code>toset(...)</code> if needed.</p>
+<p><strong>3. Overusing nested expressions/conditionals.</strong> An unreadable three-level expression is worth less than a well-named <code>local</code>. Break it down in <code>locals</code>.</p>
+<p><strong>4. Confusing <code>resource</code> and <code>data</code>.</strong> A <code>data</code> creates nothing; if you expect a creation, it&#39;s a <code>resource</code>. And a <code>data</code> is <strong>re-read on every plan</strong> (it can change).</p>
+<p><strong>5. Forgetting that <code>count</code>/<code>for_each</code> change the address.</strong> <code>web</code> becomes <code>web[0]</code> or <code>web[&quot;key&quot;]</code>. After adding a <code>count</code>/<code>for_each</code> to an existing resource, a <code>state mv</code> may be needed (see the state guide).</p>
+<p><strong>6. Implicit dependencies with <code>count = 0</code>.</strong> A resource gated by <code>count = var.enabled ? 1 : 0</code> doesn&#39;t always exist; reference it carefully (<code>one(...)</code> or a guarded <code>[0]</code>).</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu choisis <code>count</code> <strong>ou</strong> <code>for_each</code> en connaissance de cause (identité = <code>for_each</code>).</li><li>Tu déclines une ressource depuis une <strong>map</strong> avec <code>each.key</code>/<code>each.value</code>.</li><li>Tu écris une condition et une boucle <code>for</code>, et tu les testes dans <code>terraform console</code>.</li><li>Tu pioches les bonnes <strong>fonctions</strong> au lieu de bricoler.</li><li>Tu lis l&#39;existant avec une <strong>data source</strong>.</li><li>Tu génères des blocs imbriqués avec <strong><code>dynamic</code></strong>.</li></ul>
+<p>Six cases cochées = tu génères de l&#39;infra proprement, au niveau composition attendu par l&#39;Associate.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You choose <code>count</code> <strong>or</strong> <code>for_each</code> deliberately (identity = <code>for_each</code>).</li><li>You instantiate a resource from a <strong>map</strong> with <code>each.key</code>/<code>each.value</code>.</li><li>You write a conditional and a <code>for</code> loop, and test them in <code>terraform console</code>.</li><li>You pick the right <strong>functions</strong> instead of hacking around.</li><li>You read existing infra with a <strong>data source</strong>.</li><li>You generate nested blocks with <strong><code>dynamic</code></strong>.</li></ul>
+<p>Six boxes ticked = you generate infra cleanly, at the composition level the Associate expects.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Terraform :</p>
+<ol><li><strong>Travail d&#39;équipe &amp; cloud réel</strong> — Terraform Cloud, workspaces, un vrai provider (AWS/Azure/GCP), modules réutilisables.</li><li><strong>Projet d&#39;entreprise</strong> — provisionner une infrastructure <strong>multi-environnement</strong> (dev/staging/prod), qui met en œuvre state distant, <code>for_each</code> et modules — le livrable de portfolio.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Terraform track:</p>
+<ol><li><strong>Teamwork &amp; real cloud</strong> — Terraform Cloud, workspaces, a real provider (AWS/Azure/GCP), reusable modules.</li><li><strong>Enterprise project</strong> — provision a <strong>multi-environment</strong> infrastructure (dev/staging/prod), putting remote state, <code>for_each</code> and modules into practice — the portfolio deliverable.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-fondamentaux/">
+    <span class="num">33</span>
+    <span class="title-line" data-lang="fr">Kubernetes — orchestrer des conteneurs</span>
+    <span class="title-line" data-lang="en">Kubernetes — orchestrate containers</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire composition &amp; expressions.</p>
+</div>
+<div data-lang="en"><p>Composition &amp; expressions cheat sheet.</p>
+</div>
+<pre class="term lang-hcl"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">hcl</span><button class="copy-btn" type="button">Copy</button></div><code># Méta-arguments / Meta-arguments
+count    = 3                 # -&gt; ressource[0..2], count.index
+for_each = var.map_ou_set    # -&gt; ressource[&quot;clé&quot;], each.key / each.value
+
+# Expressions
+var.prod ? &quot;a&quot; : &quot;b&quot;                       # condition / conditional
+[for x in liste : x + 1]                   # for -&gt; liste / list
+{ for k, v in map : k =&gt; upper(v) }        # for -&gt; map
+docker_container.worker[*].name            # splat (ressources count) -&gt; liste / splat (count) -&gt; list
+[for s in docker_container.site : s.name]  # équivalent pour for_each (map) / for_each equivalent
+
+# Fonctions utiles / Useful functions
+length()  merge()  lookup(m, k, defaut)  coalesce()  join()  keys()  values()  toset()
+
+# Data source (lit, ne crée pas / reads, doesn&#39;t create)
+data &quot;docker_registry_image&quot; &quot;x&quot; { name = &quot;nginx:1.27&quot; }
+
+# Bloc dynamic / dynamic block
+dynamic &quot;ports&quot; {
+  for_each = var.liste
+  content {
+    internal = 80
+    external = ports.value
+  }
+}</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>terraform console      # tester expressions &amp; fonctions / test expressions &amp; functions</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://developer.hashicorp.com/terraform/language/meta-arguments/count">Meta-arguments <code>count</code></a> et <a href="https://developer.hashicorp.com/terraform/language/meta-arguments/for_each"><code>for_each</code></a>.</li><li><a href="https://developer.hashicorp.com/terraform/language/expressions">Expressions</a> — conditions, <code>for</code>, splat.</li><li><a href="https://developer.hashicorp.com/terraform/language/functions">Fonctions intégrées</a> — la liste complète.</li><li><a href="https://developer.hashicorp.com/terraform/language/data-sources">Data sources</a> et <a href="https://developer.hashicorp.com/terraform/language/expressions/dynamic-blocks">blocs <code>dynamic</code></a>.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://developer.hashicorp.com/terraform/language/meta-arguments/count"><code>count</code></a> and <a href="https://developer.hashicorp.com/terraform/language/meta-arguments/for_each"><code>for_each</code></a> meta-arguments.</li><li><a href="https://developer.hashicorp.com/terraform/language/expressions">Expressions</a> — conditionals, <code>for</code>, splat.</li><li><a href="https://developer.hashicorp.com/terraform/language/functions">Built-in functions</a> — the full list.</li><li><a href="https://developer.hashicorp.com/terraform/language/data-sources">Data sources</a> and <a href="https://developer.hashicorp.com/terraform/language/expressions/dynamic-blocks"><code>dynamic</code> blocks</a>.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>for_each</code> : « argument must be a map, or set of strings ».</strong> Tu lui passes une liste. Convertis : <code>for_each = toset(var.ma_liste)</code>, ou restructure en map.</p>
+<p><strong>Un changement de <code>count</code>/<code>for_each</code> recrée des ressources non voulues.</strong> Tu es passé de blocs distincts à <code>count</code>/<code>for_each</code> (ou de <code>count</code> à <code>for_each</code>) : l&#39;adresse change. Utilise <code>terraform state mv</code> pour aligner (cf. guide state).</p>
+<p><strong><code>Error: Invalid index</code> sur une ressource <code>count</code>.</strong> Tu référence <code>res[0]</code> alors que <code>count</code> vaut 0. Protège : <code>length(res) &gt; 0 ? res[0].id : null</code>, ou <code>one(res[*].id)</code>.</p>
+<p><strong><code>terraform console</code> renvoie une erreur sur une data source.</strong> La data doit avoir été lue au moins une fois (<code>apply</code> ou <code>plan</code> récent). Sinon la valeur est « known after apply ».</p>
+<p><strong>Une expression <code>for</code> ne compile pas.</strong> Vérifie la forme : liste <code>[for x in c : expr]</code>, map <code>{ for k, v in c : k =&gt; v }</code>. Le <code>=&gt;</code> n&#39;existe que pour produire une map.</p>
+</div>
+<div data-lang="en"><p><strong><code>for_each</code>: &quot;argument must be a map, or set of strings&quot;.</strong> You&#39;re passing it a list. Convert: <code>for_each = toset(var.my_list)</code>, or restructure into a map.</p>
+<p><strong>A <code>count</code>/<code>for_each</code> change recreates unwanted resources.</strong> You went from distinct blocks to <code>count</code>/<code>for_each</code> (or from <code>count</code> to <code>for_each</code>): the address changes. Use <code>terraform state mv</code> to align (see the state guide).</p>
+<p><strong><code>Error: Invalid index</code> on a <code>count</code> resource.</strong> You reference <code>res[0]</code> while <code>count</code> is 0. Guard: <code>length(res) &gt; 0 ? res[0].id : null</code>, or <code>one(res[*].id)</code>.</p>
+<p><strong><code>terraform console</code> errors on a data source.</strong> The data must have been read at least once (recent <code>apply</code> or <code>plan</code>). Otherwise the value is &quot;known after apply&quot;.</p>
+<p><strong>A <code>for</code> expression won&#39;t compile.</strong> Check the form: list <code>[for x in c : expr]</code>, map <code>{ for k, v in c : k =&gt; v }</code>. The <code>=&gt;</code> only exists to produce a map.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

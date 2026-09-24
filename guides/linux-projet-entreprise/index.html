@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — projet d&#39;entreprise : serveur durci — jiha.tech</title>
+  <title data-lang="en">Linux — enterprise project: hardened server — jiha.tech</title>
+  <meta name="description" content="Le projet fil-rouge Linux LPIC-1 : provisionne et durcis un serveur Ubuntu multi-utilisateur de A à Z — équipe et sudo au moindre privilège, volume de données LVM, service systemd, sauvegarde planifiée, SSH par clés durci, pare-feu ufw, et un script d&#39;automatisation idempotent — le tout documenté en runbook. Un livrable d&#39;administration système pour ton CV." data-lang="fr">
+  <meta name="description" content="The Linux LPIC-1 capstone project: provision and harden a multi-user Ubuntu server end to end — a team with least-privilege sudo, an LVM data volume, a systemd service, a scheduled backup, hardened key-based SSH, a ufw firewall, and an idempotent automation script — all documented as a runbook. A sysadmin deliverable for your CV." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — projet d&#39;entreprise : serveur durci">
+  <meta property="og:description" content="Le projet fil-rouge Linux LPIC-1 : provisionne et durcis un serveur Ubuntu multi-utilisateur de A à Z — équipe et sudo au moindre privilège, volume de données LVM, service systemd, sauvegarde planifiée, SSH par clés durci, pare-feu ufw, et un script d&#39;automatisation idempotent — le tout documenté en runbook. Un livrable d&#39;administration système pour ton CV.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-projet-entreprise/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-projet-entreprise/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-projet-entreprise">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-projet-entreprise</div>
+    <div class="prompt" data-lang="en">~/guides/linux-projet-entreprise</div>
+    <h1 data-lang="fr">Linux — projet d&#39;entreprise : serveur durci</h1>
+    <h1 data-lang="en">Linux — enterprise project: hardened server</h1>
+    <p class="tagline" data-lang="fr">Users, LVM, service, backup, SSH, pare-feu, script.</p>
+    <p class="tagline" data-lang="en">Users, LVM, service, backup, SSH, firewall, script.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 300 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 300 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu as appris les briques de l&#39;admin Linux — paquets, users, disques, systemd, réseau, scripting. <strong>Un recruteur veut voir un serveur, pas des commandes isolées.</strong> Ce projet est ce serveur : une machine Ubuntu <strong>provisionnée et durcie de A à Z</strong>, comme en production, que tu construis toi-même et que tu mets sur ton CV et ton GitHub.</p>
+<p><strong>Le scénario.</strong> Tu es l&#39;administrateur système embauché pour mettre en service le <strong>serveur applicatif</strong> d&#39;une PME, <em>Atelier Média</em>. Ta mission : un serveur <strong>multi-utilisateur, sécurisé et exploitable</strong>, prêt pour une équipe. Tu vas livrer :</p>
+<ul><li>une <strong>équipe</strong> (groupe partagé, comptes) avec un <strong>sudo au moindre privilège</strong> ;</li><li>un <strong>volume de données LVM</strong> monté pour l&#39;application ;</li><li>un <strong>service systemd</strong> applicatif + une <strong>sauvegarde planifiée</strong> ;</li><li>un accès <strong>SSH par clés durci</strong> et un <strong>pare-feu ufw</strong> ;</li><li>un <strong>script de provisionnement</strong> idempotent + un <strong>health-check</strong>, et un <strong>runbook</strong> documenté.</li></ul>
+<p><strong>Tout tourne dans une VM Multipass</strong>, en local — mais c&#39;est <strong>exactement</strong> ce qu&#39;on fait sur un vrai VPS/serveur cloud. Ce projet réunit <strong>les six guides</strong> de la track.</p>
+<p><strong>Ce que ça prouve à un recruteur :</strong> que tu sais <strong>provisionner et sécuriser</strong> un serveur complet — pas juste taper des commandes — avec gestion d&#39;équipe, stockage, services, sauvegardes, durcissement réseau et <strong>automatisation</strong>, le tout <strong>documenté</strong>.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as terminé les six guides Linux de la track.</p>
+</div>
+<div data-lang="en"><p>You&#39;ve learned the bricks of Linux administration — packages, users, disks, systemd, networking, scripting. <strong>A recruiter wants to see a server, not isolated commands.</strong> This project is that server: an Ubuntu machine <strong>provisioned and hardened end to end</strong>, like in production, that you build yourself and put on your CV and GitHub.</p>
+<p><strong>The scenario.</strong> You&#39;re the sysadmin hired to bring an SME&#39;s <strong>application server</strong> online, <em>Atelier Média</em>. Your mission: a <strong>multi-user, secure, operable</strong> server, ready for a team. You&#39;ll deliver:</p>
+<ul><li>a <strong>team</strong> (shared group, accounts) with <strong>least-privilege sudo</strong>;</li><li>an <strong>LVM data volume</strong> mounted for the application;</li><li>a systemd <strong>application service</strong> + a <strong>scheduled backup</strong>;</li><li><strong>hardened key-based SSH</strong> access and a <strong>ufw firewall</strong>;</li><li>an idempotent <strong>provisioning script</strong> + a <strong>health-check</strong>, and a documented <strong>runbook</strong>.</li></ul>
+<p><strong>Everything runs in a Multipass VM</strong>, locally — but it&#39;s <strong>exactly</strong> what you do on a real VPS/cloud server. This project brings together <strong>all six guides</strong> of the track.</p>
+<p><strong>What it proves to a recruiter:</strong> that you can <strong>provision and secure</strong> a full server — not just type commands — with team management, storage, services, backups, network hardening and <strong>automation</strong>, all <strong>documented</strong>.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;ve finished the six Linux track guides.</p>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce projet, tu auras produit et su expliquer :</p>
+<ul><li>Une <strong>équipe</strong> (groupe + comptes) et une règle <strong>sudo</strong> ciblée.</li><li>Un <strong>volume LVM</strong> monté et persisté dans <code>fstab</code> par <strong>UUID</strong> (avec <code>nofail</code>) pour les données.</li><li>Un <strong>service systemd</strong> applicatif et sa <strong>sauvegarde planifiée</strong> (timer).</li><li>Un <strong>accès SSH par clés</strong> et un serveur <strong>durci</strong> (sshd + ufw).</li><li>Un <strong>script de provisionnement</strong> idempotent et un <strong>health-check</strong>.</li><li>Un <strong>runbook</strong> (README) de niveau professionnel.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this project, you&#39;ll have produced and be able to explain:</p>
+<ul><li>A <strong>team</strong> (group + accounts) and a targeted <strong>sudo</strong> rule.</li><li>An <strong>LVM volume</strong> mounted and persisted in <code>fstab</code> by <strong>UUID</strong> (with <code>nofail</code>) for data.</li><li>A systemd <strong>application service</strong> and its <strong>scheduled backup</strong> (timer).</li><li><strong>Key-based SSH</strong> access and a <strong>hardened</strong> server (sshd + ufw).</li><li>An idempotent <strong>provisioning script</strong> and a <strong>health-check</strong>.</li><li>A professional-grade <strong>runbook</strong> (README).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li><strong>Toute la track Linux</strong> terminée (fondamentaux → scripting).</li><li><strong>Multipass</strong> installé (une VM te donne un vrai serveur systemd, avec console de secours).</li><li><strong>Git</strong> installé.</li><li>~2-3 h.</li></ul>
+<p>Lance une VM propre et un dépôt :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li><strong>The whole Linux track</strong> finished (fundamentals → scripting).</li><li><strong>Multipass</strong> installed (a VM gives you a real systemd server, with a rescue console).</li><li><strong>Git</strong> installed.</li><li>~2-3 h.</li></ul>
+<p>Launch a fresh VM and a repo:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>multipass launch --name atelier --disk 5G
+multipass shell atelier          # tu es maintenant DANS le serveur / you&#39;re now INSIDE the server
+mkdir -p ~/atelier-runbook/scripts &amp;&amp; cd ~/atelier-runbook &amp;&amp; git init
+sudo apt update &amp;&amp; sudo apt install -y lvm2 ufw</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../linux-scripting-bash/">
+    <span class="num">08</span>
+    <span class="title-line" data-lang="fr">Linux — scripting shell (bash)</span>
+    <span class="title-line" data-lang="en">Linux — shell scripting (bash)</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p><strong>L&#39;architecture du serveur.</strong> On assemble, couche par couche, ce que chaque guide a enseigné :</p>
+<ul><li><strong>Identités</strong> (guide users) — un <strong>groupe d&#39;équipe</strong> <code>atelier</code>, des comptes, et une règle <strong><code>sudo</code></strong> qui n&#39;accorde que le <strong>redémarrage du service</strong> (moindre privilège).</li><li><strong>Stockage</strong> (guide disques) — un <strong>volume LVM</strong> dédié aux données de l&#39;app, monté sur <code>/srv/atelier</code> par <strong>UUID</strong> dans <code>fstab</code>, avec un <strong>SGID</strong> de groupe pour le partage d&#39;équipe.</li><li><strong>Service</strong> (guide systemd) — une <strong>unit <code>.service</code></strong> qui fait tourner l&#39;application (un serveur web simple sur le volume de données), démarrée au boot.</li><li><strong>Sauvegarde</strong> (guides systemd + scripting) — un <strong>script</strong> qui archive <code>/srv/atelier</code>, déclenché par un <strong>timer systemd</strong> quotidien.</li><li><strong>Accès &amp; réseau</strong> (guide réseau/sécurité) — <strong>SSH par clés</strong>, serveur <strong>durci</strong> (<code>PermitRootLogin no</code>, <code>PasswordAuthentication no</code>), et un <strong>pare-feu ufw</strong> (deny par défaut, SSH + le port de l&#39;app autorisés).</li><li><strong>Automatisation</strong> (guide scripting) — un <strong><code>provision.sh</code></strong> idempotent qui rejoue toute la configuration, et un <strong><code>healthcheck.sh</code></strong> qui audite l&#39;état.</li></ul>
+<p><strong>Le fil rouge : idempotence &amp; documentation.</strong> Un serviteur qu&#39;on doit reconstruire à l&#39;identique, un incident à diagnostiquer, un collègue à qui passer la main — tout cela exige que la config soit <strong>scriptée</strong> (rejouable) et <strong>documentée</strong> (un runbook). C&#39;est ce qui sépare le bricolage manuel de l&#39;<strong>administration professionnelle</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>The server architecture.</strong> We assemble, layer by layer, what each guide taught:</p>
+<ul><li><strong>Identities</strong> (users guide) — a <strong>team group</strong> <code>atelier</code>, accounts, and a <strong><code>sudo</code></strong> rule that only grants <strong>restarting the service</strong> (least privilege).</li><li><strong>Storage</strong> (disks guide) — an <strong>LVM volume</strong> dedicated to the app&#39;s data, mounted at <code>/srv/atelier</code> by <strong>UUID</strong> in <code>fstab</code>, with a group <strong>SGID</strong> for team sharing.</li><li><strong>Service</strong> (systemd guide) — a <strong><code>.service</code> unit</strong> running the application (a simple web server on the data volume), started at boot.</li><li><strong>Backup</strong> (systemd + scripting guides) — a <strong>script</strong> that archives <code>/srv/atelier</code>, triggered by a daily <strong>systemd timer</strong>.</li><li><strong>Access &amp; network</strong> (networking/security guide) — <strong>key-based SSH</strong>, a <strong>hardened</strong> server (<code>PermitRootLogin no</code>, <code>PasswordAuthentication no</code>), and a <strong>ufw firewall</strong> (default deny, SSH + the app port allowed).</li><li><strong>Automation</strong> (scripting guide) — an idempotent <strong><code>provision.sh</code></strong> that replays the whole configuration, and a <strong><code>healthcheck.sh</code></strong> that audits state.</li></ul>
+<p><strong>The through-line: idempotence &amp; documentation.</strong> A server you must rebuild identically, an incident to diagnose, a colleague to hand off to — all of it demands the config be <strong>scripted</strong> (replayable) and <strong>documented</strong> (a runbook). That&#39;s what separates manual tinkering from <strong>professional administration</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-linux-server-architecture">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-linux-server-architecture">
+  <title id="s-linux-server-architecture">Serveur Linux durci &amp; automatisé</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Serveur Linux durci &amp; automatisé</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">Équipe + sudo</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-soft" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="286" y="70.5" text-anchor="middle">volume LVM</text><text class="sub sub-blue" x="286" y="83.5" text-anchor="middle">/srv/atelier</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-accent" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="474" y="77" text-anchor="middle">service systemd</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">sauvegarde</text><text class="sub" x="662" y="83.5" text-anchor="middle">timer</text><text class="sub" x="380" y="144" text-anchor="middle">SSH durci + ufw filtrent · provision.sh &amp; healthcheck.sh automatisent</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Équipe+sudo → volume LVM (/srv/atelier) → service systemd → sauvegarde (timer) ; SSH durci + ufw filtrent l&#39;accès ; provision.sh &amp; healthcheck.sh automatisent.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Team+sudo → LVM volume (/srv/atelier) → systemd service → backup (timer); hardened SSH + ufw filter access; provision.sh &amp; healthcheck.sh automate.</figcaption>
+</figure>
+<div data-lang="fr"><p>Le plan : équipe &amp; sudo → volume LVM → service → sauvegarde planifiée → SSH &amp; pare-feu → automatisation → documentation &amp; démo.</p>
+</div>
+<div data-lang="en"><p>The plan: team &amp; sudo → LVM volume → service → scheduled backup → SSH &amp; firewall → automation → docs &amp; demo.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer l&#39;<strong>équipe</strong> : un groupe partagé, des comptes, et un <strong>sudo</strong> au moindre privilège.</p>
+<p>Crée le groupe et deux membres, puis une règle sudo ciblée :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <strong>team</strong>: a shared group, accounts, and <strong>least-privilege sudo</strong>.</p>
+<p>Create the group and two members, then a targeted sudo rule:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo groupadd atelier
+sudo useradd -m -s /bin/bash -G atelier marie
+sudo useradd -m -s /bin/bash -G atelier karim
+
+# sudo au moindre privilège : l&#39;équipe peut redémarrer le service, rien d&#39;autre
+# least-privilege sudo: the team may restart the service, nothing else
+echo &#39;%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier&#39; | sudo tee /etc/sudoers.d/atelier
+sudo chmod 0440 /etc/sudoers.d/atelier      # convention : non lisible par tous / convention: not world-readable
+sudo visudo -cf /etc/sudoers.d/atelier      # VALIDE la syntaxe / VALIDATE syntax</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>id marie</code> montre son appartenance au groupe <strong><code>atelier</code></strong> (secondaire). <code>visudo -cf /etc/sudoers.d/atelier</code> répond <strong><code>parsed OK</code></strong>. La règle <code>%atelier</code> (le <code>%</code> = un <strong>groupe</strong>) autorise <strong>tous</strong> les membres de l&#39;équipe à faire <strong>une seule</strong> action root — <code>systemctl restart atelier</code> — et <strong>rien d&#39;autre</strong>. C&#39;est le <strong>moindre privilège</strong> appliqué à une équipe : on délègue l&#39;exploitation du service sans donner les clés du serveur.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>id marie</code> shows her membership in the <strong><code>atelier</code></strong> group (secondary). <code>visudo -cf /etc/sudoers.d/atelier</code> answers <strong><code>parsed OK</code></strong>. The <code>%atelier</code> rule (the <code>%</code> = a <strong>group</strong>) allows <strong>all</strong> team members to perform <strong>one</strong> root action — <code>systemctl restart atelier</code> — and <strong>nothing else</strong>. That&#39;s <strong>least privilege</strong> applied to a team: you delegate operating the service without handing over the server&#39;s keys.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Provisionner le <strong>volume de données LVM</strong>, monté sur <code>/srv/atelier</code>, partagé par l&#39;équipe.</p>
+<p><strong>🤔 Disque virtuel sûr.</strong> Comme au guide disques, on utilise un <strong>fichier loopback</strong> comme disque — zéro risque. Crée le volume :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Provision the <strong>LVM data volume</strong>, mounted at <code>/srv/atelier</code>, shared by the team.</p>
+<p><strong>🤔 Safe virtual disk.</strong> Like the disks guide, we use a <strong>loopback file</strong> as a disk — zero risk. Create the volume:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo fallocate -l 1G /var/lib/atelier-disk.img
+LOOP=$(sudo losetup --show -f /var/lib/atelier-disk.img)
+sudo pvcreate &quot;$LOOP&quot; &amp;&amp; sudo vgcreate vg_atelier &quot;$LOOP&quot;
+sudo lvcreate -L 800M -n data vg_atelier
+sudo mkfs.ext4 /dev/vg_atelier/data
+
+sudo mkdir -p /srv/atelier
+UUID=$(sudo blkid -s UUID -o value /dev/vg_atelier/data)
+# nofail : un disque loopback n&#39;est PAS ré-attaché au boot -&gt; ne pas bloquer le démarrage
+# nofail: a loopback disk is NOT re-attached at boot -&gt; don&#39;t block startup
+echo &quot;UUID=$UUID  /srv/atelier  ext4  defaults,nofail  0  2&quot; | sudo tee -a /etc/fstab
+sudo mount -a                                   # monte via fstab / mount via fstab
+
+# partage d&#39;équipe : groupe atelier + SGID (héritage de groupe) / team sharing: group + SGID
+sudo chgrp atelier /srv/atelier &amp;&amp; sudo chmod 2775 /srv/atelier</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>df -h /srv/atelier</code> montre le volume LVM <strong>monté</strong> (~750 Mo). Un <code>sudo mount -a</code> <strong>sans erreur</strong> valide ta ligne <code>fstab</code> (par <strong>UUID</strong>, stable). <em>(Note : notre disque est un <strong>loopback</strong> — il n&#39;est pas ré-attaché automatiquement au redémarrage, d&#39;où le <strong><code>nofail</code></strong> qui évite de bloquer le boot ; sur un <strong>vrai</strong> disque, la ligne UUID remonterait toute seule. Pour persister le loopback, on l&#39;ajouterait au provisionnement.)</em> <code>ls -ld /srv/atelier</code> affiche <code>drwxrwsr-x … atelier</code> : le <strong>SGID</strong> (<code>s</code>) fait que tout fichier créé par un membre de l&#39;équipe <strong>appartient au groupe <code>atelier</code></strong> — le répertoire partagé collaboratif. Les données de l&#39;app vivront ici, <strong>séparées</strong> du système, sur un volume qu&#39;on pourra agrandir (LVM).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>df -h /srv/atelier</code> shows the LVM volume <strong>mounted</strong> (~750 MB). A <code>sudo mount -a</code> <strong>with no error</strong> validates your <code>fstab</code> line (by <strong>UUID</strong>, stable). <em>(Note: our disk is a <strong>loopback</strong> — it isn&#39;t re-attached automatically at reboot, hence the <strong><code>nofail</code></strong> that keeps boot from blocking; on a <strong>real</strong> disk, the UUID line would remount on its own. To persist the loopback, you&#39;d add it to provisioning.)</em> <code>ls -ld /srv/atelier</code> shows <code>drwxrwsr-x … atelier</code>: the <strong>SGID</strong> (<code>s</code>) makes every file created by a team member <strong>belong to the <code>atelier</code> group</strong> — the collaborative shared directory. The app&#39;s data will live here, <strong>separate</strong> from the system, on a volume you can grow (LVM).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer l&#39;<strong>application</strong> comme un <strong>service systemd</strong> qui sert le volume de données.</p>
+<p><strong>🤔 Une vraie unit.</strong> L&#39;app est un serveur web simple (Python) qui publie <code>/srv/atelier</code> sur le port 8080. Sème une page, puis crée le service :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy the <strong>application</strong> as a <strong>systemd service</strong> serving the data volume.</p>
+<p><strong>🤔 A real unit.</strong> The app is a simple web server (Python) publishing <code>/srv/atelier</code> on port 8080. Seed a page, then create the service:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &quot;&lt;h1&gt;Atelier Média — serveur applicatif&lt;/h1&gt;&quot; | sudo tee /srv/atelier/index.html
+
+sudo tee /etc/systemd/system/atelier.service &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+[Unit]
+Description=Application Atelier Média
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -m http.server 8080 --directory /srv/atelier
+Restart=on-failure
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now atelier              # démarre ET active au boot / start AND enable at boot
+systemctl status atelier --no-pager | head -5
+curl -s localhost:8080 | grep Atelier            # l&#39;app répond / the app answers</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>systemctl status atelier</code> est <strong><code>active (running)</code></strong>, et <code>curl localhost:8080</code> renvoie ta page <code>Atelier Média</code> — l&#39;app <strong>sert le volume de données</strong> (<code>/srv/atelier</code>) via un <strong>service systemd</strong> géré, démarré au boot (<code>enable --now</code>). Elle tourne sous l&#39;utilisateur <strong><code>www-data</code></strong> (pas root — principe de moindre privilège pour les services). Tu as transformé un simple programme en <strong>service exploitable</strong> : supervisé, redémarrable (<code>Restart=on-failure</code>), persistant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>systemctl status atelier</code> is <strong><code>active (running)</code></strong>, and <code>curl localhost:8080</code> returns your <code>Atelier Média</code> page — the app <strong>serves the data volume</strong> (<code>/srv/atelier</code>) via a managed <strong>systemd service</strong>, started at boot (<code>enable --now</code>). It runs as the <strong><code>www-data</code></strong> user (not root — least privilege for services). You&#39;ve turned a plain program into an <strong>operable service</strong>: supervised, restartable (<code>Restart=on-failure</code>), persistent.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Automatiser la <strong>sauvegarde</strong> : un script + un <strong>timer systemd</strong> quotidien.</p>
+<p>Crée le script de sauvegarde dans le dépôt, puis le couple service+timer :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Automate the <strong>backup</strong>: a script + a daily <strong>systemd timer</strong>.</p>
+<p>Create the backup script in the repo, then the service+timer pair:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>tee ~/atelier-runbook/scripts/backup.sh &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+set -euo pipefail
+src=&quot;/srv/atelier&quot;
+dest=&quot;/var/backups/atelier&quot;
+mkdir -p &quot;$dest&quot;
+horodatage=$(date +%Y%m%d-%H%M%S)
+tar czf &quot;$dest/atelier-$horodatage.tar.gz&quot; -C &quot;$src&quot; .
+# ne garde que les 7 dernières / keep only the last 7
+ls -1t &quot;$dest&quot;/atelier-*.tar.gz | tail -n +8 | xargs -r rm --
+echo &quot;sauvegarde OK: $dest/atelier-$horodatage.tar.gz&quot;
+EOF
+chmod +x ~/atelier-runbook/scripts/backup.sh
+
+sudo tee /etc/systemd/system/atelier-backup.service &gt;/dev/null &lt;&lt;EOF
+[Service]
+Type=oneshot
+ExecStart=$HOME/atelier-runbook/scripts/backup.sh
+EOF
+sudo tee /etc/systemd/system/atelier-backup.timer &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+[Timer]
+OnCalendar=daily
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now atelier-backup.timer
+sudo systemctl start atelier-backup.service      # lance une sauvegarde tout de suite / run one backup now
+ls -lh /var/backups/atelier/                      # l&#39;archive est là / the archive is there</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo systemctl start atelier-backup.service</code> produit immédiatement une archive <code>atelier-AAAAMMJJ-HHMMSS.tar.gz</code> dans <code>/var/backups/atelier/</code> (via <code>ls -lh</code>). <code>systemctl list-timers atelier-backup.timer</code> montre le <strong>prochain déclenchement</strong> quotidien (<code>OnCalendar=daily</code>), et <strong><code>Persistent=true</code></strong> garantit qu&#39;une sauvegarde manquée (serveur éteint) est <strong>rattrapée</strong> au démarrage. Le script tourne, <strong>rotationne</strong> (garde 7 archives), et est <strong>planifié</strong> — la sauvegarde n&#39;est plus « quand j&#39;y pense » mais <strong>automatique et fiable</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo systemctl start atelier-backup.service</code> immediately produces an <code>atelier-YYYYMMDD-HHMMSS.tar.gz</code> archive in <code>/var/backups/atelier/</code> (via <code>ls -lh</code>). <code>systemctl list-timers atelier-backup.timer</code> shows the daily <strong>next trigger</strong> (<code>OnCalendar=daily</code>), and <strong><code>Persistent=true</code></strong> guarantees a missed backup (server off) is <strong>caught up</strong> at startup. The script runs, <strong>rotates</strong> (keeps 7 archives), and is <strong>scheduled</strong> — backup is no longer &quot;when I remember&quot; but <strong>automatic and reliable</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Sécuriser l&#39;accès : <strong>SSH par clés</strong>, serveur <strong>durci</strong>, et <strong>pare-feu ufw</strong>.</p>
+<p>⚠️ <strong>Filet de sécurité.</strong> On est dans une VM : la console <code>multipass shell</code> reste accessible quoi qu&#39;il arrive. Génère une clé (pour la démo, sur la VM même), durcis <code>sshd</code>, puis ferme le pare-feu :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Secure access: <strong>key-based SSH</strong>, a <strong>hardened</strong> server, and the <strong>ufw firewall</strong>.</p>
+<p>⚠️ <strong>Safety net.</strong> We&#39;re in a VM: the <code>multipass shell</code> console stays accessible no matter what. Generate a key (for the demo, on the VM itself), harden <code>sshd</code>, then close the firewall:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># clé + auto-autorisation (démo) / key + self-authorization (demo)
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N &quot;&quot;
+cat ~/.ssh/id_ed25519.pub &gt;&gt; ~/.ssh/authorized_keys
+chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/authorized_keys
+
+# durcissement sshd / sshd hardening
+# nom en 00- : sshd applique la PREMIÈRE valeur trouvée ; on passe DEVANT le
+# drop-in cloud-init (ex. 50-cloud-init.conf) qui remet PasswordAuthentication yes
+# 00- name: sshd uses the FIRST value found; we sort BEFORE the cloud-init drop-in
+sudo tee /etc/ssh/sshd_config.d/00-durci.conf &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+PermitRootLogin no
+PasswordAuthentication no
+EOF
+sudo sshd -t &amp;&amp; sudo systemctl reload ssh        # VALIDE puis recharge / VALIDATE then reload
+
+# pare-feu : SSH d&#39;abord, puis l&#39;app, puis deny par défaut / firewall: SSH first, then app, then default deny
+sudo ufw allow OpenSSH
+sudo ufw allow 8080/tcp
+sudo ufw default deny incoming &amp;&amp; sudo ufw default allow outgoing
+sudo ufw --force enable
+sudo ufw status verbose</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauth&#39;</code> confirme <strong><code>no</code></strong>/<strong><code>no</code></strong> (root direct interdit, clés seulement). <code>sudo ufw status verbose</code> montre <strong><code>deny (incoming)</code></strong> par défaut avec <strong><code>OpenSSH</code></strong> et <strong><code>8080/tcp</code></strong> autorisés — <strong>seuls</strong> SSH et l&#39;app sont joignables, tout le reste est <strong>fermé</strong>. Le serveur est <strong>durci</strong> : accès par clés uniquement, surface réseau minimale. <em>(On a autorisé SSH <strong>avant</strong> d&#39;activer le pare-feu — le réflexe qui évite de se verrouiller dehors. Et le fichier <strong><code>00-durci.conf</code></strong> est lu <strong>en premier</strong> parmi les drop-ins : sshd retient la <strong>première</strong> valeur, donc notre durcissement l&#39;emporte sur un éventuel <code>50-cloud-init.conf</code> qui remettrait les mots de passe.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo sshd -T | grep -iE &#39;permitrootlogin|passwordauth&#39;</code> confirms <strong><code>no</code></strong>/<strong><code>no</code></strong> (direct root forbidden, keys only). <code>sudo ufw status verbose</code> shows default <strong><code>deny (incoming)</code></strong> with <strong><code>OpenSSH</code></strong> and <strong><code>8080/tcp</code></strong> allowed — <strong>only</strong> SSH and the app are reachable, everything else is <strong>closed</strong>. The server is <strong>hardened</strong>: key-only access, minimal network surface. <em>(We allowed SSH <strong>before</strong> enabling the firewall — the reflex that avoids locking yourself out. And the <strong><code>00-durci.conf</code></strong> file is read <strong>first</strong> among the drop-ins: sshd keeps the <strong>first</strong> value, so our hardening wins over any <code>50-cloud-init.conf</code> that would re-enable passwords.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le <strong>health-check</strong> qui audite le serveur en une commande.</p>
+<p>Adapte le script du guide scripting à ce serveur (dans le dépôt) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <strong>health-check</strong> that audits the server in one command.</p>
+<p>Adapt the scripting-guide script to this server (in the repo):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>tee ~/atelier-runbook/scripts/healthcheck.sh &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+set -euo pipefail
+probleme=0
+verifier() { # $1=libellé $2=commande de test / label + test command
+  if eval &quot;$2&quot; &gt;/dev/null 2&gt;&amp;1; then echo &quot;  [OK]   $1&quot;; else echo &quot;  [FAIL] $1&quot; &gt;&amp;2; probleme=1; fi
+}
+echo &quot;== Health-check Atelier ==&quot;
+verifier &quot;service atelier actif&quot;      &quot;systemctl is-active --quiet atelier&quot;
+verifier &quot;timer sauvegarde armé&quot;      &quot;systemctl is-active --quiet atelier-backup.timer&quot;
+verifier &quot;volume /srv/atelier monté&quot;  &quot;mountpoint -q /srv/atelier&quot;
+verifier &quot;app répond sur :8080&quot;       &quot;curl -sf localhost:8080&quot;
+verifier &quot;pare-feu actif&quot;             &quot;sudo ufw status | grep -q &#39;Status: active&#39;&quot;
+usage=$(df --output=pcent /srv/atelier | tail -1 | tr -dc &#39;0-9&#39;)
+verifier &quot;disque données &lt; 90%&quot;       &quot;[ $usage -lt 90 ]&quot;
+[[ $probleme -eq 0 ]] &amp;&amp; { echo &quot;== Serveur sain ==&quot;; exit 0; } || { echo &quot;== Problèmes ==&quot;; exit 1; }
+EOF
+chmod +x ~/atelier-runbook/scripts/healthcheck.sh
+
+sudo ~/atelier-runbook/scripts/healthcheck.sh ; echo &quot;verdict = $?&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>sudo ~/atelier-runbook/scripts/healthcheck.sh</code> affiche <strong>six <code>[OK]</code></strong> — service, timer, montage, réponse HTTP, pare-feu, disque — puis <code>Serveur sain</code> avec <strong><code>verdict = 0</code></strong>. En une commande, tu <strong>audites</strong> l&#39;ensemble du serveur : chaque brique des étapes précédentes est <strong>vérifiée automatiquement</strong>. Ce script (exit <code>0</code>/<code>1</code>) est exactement ce qu&#39;un système de supervision (cron, monitoring) lancerait pour <strong>surveiller</strong> le serveur en continu. <em>(On le lance avec <code>sudo</code> car il interroge <code>ufw</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>sudo ~/atelier-runbook/scripts/healthcheck.sh</code> prints <strong>six <code>[OK]</code></strong> — service, timer, mount, HTTP response, firewall, disk — then <code>Serveur sain</code> with <strong><code>verdict = 0</code></strong>. In one command, you <strong>audit</strong> the whole server: every brick from the previous steps is <strong>checked automatically</strong>. This script (exit <code>0</code>/<code>1</code>) is exactly what a supervision system (cron, monitoring) would run to <strong>watch</strong> the server continuously. <em>(We run it with <code>sudo</code> because it queries <code>ufw</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Documenter — transformer le serveur en <strong>livrable de CV</strong> : le <strong>runbook</strong>.</p>
+<p><strong>🤔 Le runbook fait la moitié de la valeur.</strong> Un <code>README.md</code> qui explique <strong>quoi</strong>, <strong>pourquoi</strong>, et <strong>comment reconstruire</strong>. Crée-le en suivant ce plan (chaque titre devient une section <code>##</code>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Document — turn the server into a <strong>CV deliverable</strong>: the <strong>runbook</strong>.</p>
+<p><strong>🤔 The runbook is half the value.</strong> A <code>README.md</code> explaining <strong>what</strong>, <strong>why</strong>, and <strong>how to rebuild</strong>. Create it following this outline (each heading becomes a <code>##</code> section):</p>
+</div>
+<h1>Atelier Média — runbook du serveur applicatif</h1>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> ton dépôt a un <code>README.md</code> (architecture, exploitation, décisions) et un dossier <code>scripts/</code> (backup, healthcheck, et le provision.sh de l&#39;étape suivante). Ouvre-le comme un recruteur : en deux minutes, comprend-on <strong>ce que fait le serveur, comment l&#39;exploiter, et pourquoi les choix sont bons</strong> ? Si oui, c&#39;est un livrable <strong>vendable</strong> — un runbook, l&#39;artefact quotidien d&#39;un vrai sysadmin.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> your repo has a <code>README.md</code> (architecture, operations, decisions) and a <code>scripts/</code> folder (backup, healthcheck, and the provision.sh from the next step). Open it like a recruiter: in two minutes, is it clear <strong>what the server does, how to operate it, and why the choices are sound</strong>? If so, it&#39;s a <strong>sellable</strong> deliverable — a runbook, the daily artifact of a real sysadmin.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Capitaliser dans un <strong>script de provisionnement</strong> idempotent, committer, puis vérifier la reproductibilité.</p>
+<p><strong>🤔 Rejouable, pas de mémoire.</strong> Un vrai serveur se pilote <strong>par des scripts</strong>. Ce <code>provision.sh</code> capture le <strong>noyau rejouable</strong> de la config — les <strong>identités</strong> (équipe, sudo) et l&#39;<strong>activation</strong> des services — en <strong>idempotent</strong> (chaque action vérifie avant d&#39;agir). <em>(Pour un rebuild <strong>complet</strong> à zéro, on y ajouterait la création du volume LVM et des units des étapes 2-4 ; on garde ici le cœur pour montrer le motif d&#39;idempotence.)</em> Crée-le :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Capitalize into an idempotent <strong>provisioning script</strong>, commit, then verify reproducibility.</p>
+<p><strong>🤔 Replayable, not from memory.</strong> A real server is driven <strong>by scripts</strong>. This <code>provision.sh</code> captures the <strong>replayable core</strong> of the config — the <strong>identities</strong> (team, sudo) and the <strong>activation</strong> of services — <strong>idempotently</strong> (each action checks before acting). <em>(For a <strong>full</strong> from-scratch rebuild, you&#39;d add the LVM volume and the units from steps 2-4; we keep the core here to show the idempotence pattern.)</em> Create it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>tee ~/atelier-runbook/scripts/provision.sh &gt;/dev/null &lt;&lt;&#39;EOF&#39;
+#!/usr/bin/env bash
+set -euo pipefail
+# idempotent : chaque action vérifie avant d&#39;agir / each action checks before acting
+getent group atelier &gt;/dev/null || sudo groupadd atelier
+for u in marie karim; do
+  id &quot;$u&quot; &gt;/dev/null 2&gt;&amp;1 || sudo useradd -m -s /bin/bash -G atelier &quot;$u&quot;
+done
+if [[ ! -f /etc/sudoers.d/atelier ]]; then
+  echo &#39;%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier&#39; | sudo tee /etc/sudoers.d/atelier &gt;/dev/null
+  sudo chmod 0440 /etc/sudoers.d/atelier
+fi
+sudo systemctl enable --now atelier atelier-backup.timer
+echo &quot;provisionnement OK&quot;
+EOF
+chmod +x ~/atelier-runbook/scripts/provision.sh
+~/atelier-runbook/scripts/provision.sh          # rejoue : ne recrée rien d&#39;existant / replays: recreates nothing
+
+# identité git (indispensable sur une VM fraîche) / git identity (required on a fresh VM)
+git config user.email &quot;toi@exemple.fr&quot; &amp;&amp; git config user.name &quot;Ton Nom&quot;
+cat &gt; .gitignore &lt;&lt;&#39;EOF&#39;
+*.tar.gz
+EOF
+git add . &amp;&amp; git commit -m &quot;Atelier Média : serveur Ubuntu durci (users, LVM, service, backup, SSH, ufw, scripts)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>~/atelier-runbook/scripts/provision.sh</code> s&#39;exécute <strong>sans erreur même en le relançant</strong> — chaque étape teste avant d&#39;agir (<code>getent group … || groupadd</code>, <code>id … || useradd</code>) : c&#39;est l&#39;<strong>idempotence</strong>, la propriété clé d&#39;un script de provisionnement. Le <code>git config</code> fixe ton identité (obligatoire sur une VM fraîche, sinon <code>git commit</code> échoue), puis le <code>commit</code> fige ton livrable. Preuve finale : <code>sudo scripts/healthcheck.sh</code> renvoie toujours <strong><code>Serveur sain</code></strong>. Tu as un serveur dont la config d&#39;équipe/services est <strong>rejouable par un script (idempotent)</strong> et dont le rebuild complet est <strong>documenté par le runbook</strong> — pousse le dépôt sur GitHub et <strong>mets le lien sur ton CV</strong>.</p>
+<p><strong>🧹 Ménage (détruire la VM) :</strong> depuis ton hôte, <code>multipass delete atelier &amp;&amp; multipass purge</code>. Tout le projet (VM, disque loopback, services) disparaît proprement ; ton <strong>dépôt Git</strong>, lui, reste le livrable.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>~/atelier-runbook/scripts/provision.sh</code> runs <strong>with no error even when re-run</strong> — each step checks before acting (<code>getent group … || groupadd</code>, <code>id … || useradd</code>): that&#39;s <strong>idempotence</strong>, the key property of a provisioning script. The <code>git config</code> sets your identity (required on a fresh VM, or <code>git commit</code> fails), then the <code>commit</code> freezes your deliverable. Final proof: <code>sudo scripts/healthcheck.sh</code> still returns <strong><code>Serveur sain</code></strong>. You have a server whose team/service config is <strong>replayable by an idempotent script</strong> and whose full rebuild is <strong>documented by the runbook</strong> — push the repo to GitHub and <strong>put the link on your CV</strong>.</p>
+<p><strong>🧹 Cleanup (destroy the VM):</strong> from your host, <code>multipass delete atelier &amp;&amp; multipass purge</code>. The whole project (VM, loopback disk, services) disappears cleanly; your <strong>Git repo</strong> stays the deliverable.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Une faute dans <code>fstab</code> bloque le boot.</strong> Toujours <code>sudo mount -a</code> <strong>avant</strong> de considérer la ligne comme bonne. Le montage par <strong>UUID</strong> évite les surprises de nommage.</p>
+<p><strong>2. Faire tourner le service en root.</strong> Un service exposé (web sur :8080) doit tourner en utilisateur <strong>non privilégié</strong> (<code>User=www-data</code>). Root = toute la machine compromise si l&#39;app est piégée.</p>
+<p><strong>3. Activer ufw avant d&#39;autoriser SSH.</strong> <code>ufw enable</code> sans <code>allow OpenSSH</code> te coupe l&#39;accès distant. Autorise <strong>SSH d&#39;abord</strong> (et l&#39;app), puis active.</p>
+<p><strong>4. Désactiver les mots de passe SSH sans clé testée.</strong> Vérifie que ta clé marche <strong>avant</strong> <code>PasswordAuthentication no</code>. Dans une VM, la console te sauve — en prod, tu serais dehors.</p>
+<p><strong>5. Sudo trop large.</strong> <code>%atelier ALL=(ALL) ALL</code> donne <strong>tout</strong> à l&#39;équipe. La règle ciblée (<code>… restart atelier</code>) applique le <strong>moindre privilège</strong> — c&#39;est le but.</p>
+<p><strong>6. Script de provisionnement non idempotent.</strong> Un <code>useradd</code> relancé <strong>échoue</strong> si l&#39;utilisateur existe. Teste avant d&#39;agir (<code>id u || useradd</code>) pour pouvoir <strong>rejouer</strong> sans casser.</p>
+<p><strong>7. Committer les sauvegardes.</strong> Les <code>.tar.gz</code> n&#39;ont rien à faire dans Git (volumineux, données). Le <code>.gitignore</code> les exclut. Le dépôt contient le <strong>code</strong> et la <strong>doc</strong>, pas les données.</p>
+</div>
+<div data-lang="en"><p><strong>1. A mistake in <code>fstab</code> blocks boot.</strong> Always <code>sudo mount -a</code> <strong>before</strong> considering the line good. Mounting by <strong>UUID</strong> avoids naming surprises.</p>
+<p><strong>2. Running the service as root.</strong> An exposed service (web on :8080) must run as an <strong>unprivileged</strong> user (<code>User=www-data</code>). Root = the whole machine compromised if the app is exploited.</p>
+<p><strong>3. Enabling ufw before allowing SSH.</strong> <code>ufw enable</code> without <code>allow OpenSSH</code> cuts off remote access. Allow <strong>SSH first</strong> (and the app), then enable.</p>
+<p><strong>4. Disabling SSH passwords without a tested key.</strong> Verify your key works <strong>before</strong> <code>PasswordAuthentication no</code>. In a VM the console saves you — in prod, you&#39;d be locked out.</p>
+<p><strong>5. Too-broad sudo.</strong> <code>%atelier ALL=(ALL) ALL</code> gives the team <strong>everything</strong>. The targeted rule (<code>… restart atelier</code>) applies <strong>least privilege</strong> — that&#39;s the point.</p>
+<p><strong>6. Non-idempotent provisioning script.</strong> A re-run <code>useradd</code> <strong>fails</strong> if the user exists. Test before acting (<code>id u || useradd</code>) to <strong>replay</strong> without breaking.</p>
+<p><strong>7. Committing backups.</strong> <code>.tar.gz</code> files don&#39;t belong in Git (large, data). The <code>.gitignore</code> excludes them. The repo holds <strong>code</strong> and <strong>docs</strong>, not data.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Ton livrable est prêt pour un CV quand…</p>
+<ul class="checklist"><li>Une <strong>équipe</strong> (groupe + comptes) existe avec un <strong>sudo ciblé</strong> (<code>visudo -cf</code> OK).</li><li>Un <strong>volume LVM</strong> est monté sur <code>/srv/atelier</code> par <strong>UUID</strong> (SGID d&#39;équipe).</li><li>Le <strong>service</strong> <code>atelier</code> tourne (non-root) et répond sur <code>:8080</code>.</li><li>La <strong>sauvegarde</strong> est planifiée (<strong>timer</strong>) et produit des archives rotationnées.</li><li>SSH est <strong>par clés</strong> et <strong>durci</strong> ; <strong>ufw</strong> est en <strong>deny par défaut</strong>.</li><li><code>healthcheck.sh</code> renvoie <strong>6 [OK]</strong> ; <code>provision.sh</code> est <strong>idempotent</strong>.</li><li>Le dépôt a un <strong>runbook</strong> clair et tu sais <strong>justifier</strong> chaque choix.</li></ul>
+<p>Sept cases cochées = tu ne présentes pas un TP, tu présentes un <strong>serveur de production miniature</strong>.</p>
+</div>
+<div data-lang="en"><p>Your deliverable is CV-ready when…</p>
+<ul class="checklist"><li>A <strong>team</strong> (group + accounts) exists with <strong>targeted sudo</strong> (<code>visudo -cf</code> OK).</li><li>An <strong>LVM volume</strong> is mounted at <code>/srv/atelier</code> by <strong>UUID</strong> (team SGID).</li><li>The <code>atelier</code> <strong>service</strong> runs (non-root) and answers on <code>:8080</code>.</li><li>The <strong>backup</strong> is scheduled (<strong>timer</strong>) and produces rotated archives.</li><li>SSH is <strong>key-based</strong> and <strong>hardened</strong>; <strong>ufw</strong> is <strong>default deny</strong>.</li><li><code>healthcheck.sh</code> returns <strong>6 [OK]</strong>; <code>provision.sh</code> is <strong>idempotent</strong>.</li><li>The repo has a clear <strong>runbook</strong> and you can <strong>justify</strong> every choice.</li></ul>
+<p>Seven boxes ticked = you&#39;re not presenting a lab, you&#39;re presenting a <strong>miniature production server</strong>.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Tu as bouclé la <strong>track Linux → LPIC-1</strong>, projet compris — trois tracks de certification si tu as suivi Terraform et Kubernetes. Pour aller plus loin :</p>
+<ol><li><strong>Passe l&#39;examen</strong> — avec toute la track, tu couvres les objectifs <strong>LPIC-1</strong> (101 &amp; 102). Entraîne-toi au format QCM chronométré.</li><li><strong>Industrialise ce serveur</strong> — passe le provisionnement à <strong>Ansible</strong> (track Ansible → RHCE) : le même serveur, décrit en playbooks idempotents versionnés. C&#39;est la suite naturelle.</li><li><strong>Mets-le en ligne</strong> — rejoue le runbook sur un vrai VPS (le capstone homelab de la plateforme t&#39;y emmène), avec un vrai domaine et HTTPS.</li></ol>
+</div>
+<div data-lang="en"><p>You&#39;ve completed the <strong>Linux → LPIC-1 track</strong>, project included — three certification tracks if you followed Terraform and Kubernetes. To go further:</p>
+<ol><li><strong>Sit the exam</strong> — with the whole track, you cover the <strong>LPIC-1</strong> objectives (101 &amp; 102). Practice in the timed multiple-choice format.</li><li><strong>Industrialize this server</strong> — move provisioning to <strong>Ansible</strong> (Ansible → RHCE track): the same server, described as versioned idempotent playbooks. The natural next step.</li><li><strong>Put it online</strong> — replay the runbook on a real VPS (the platform&#39;s homelab capstone takes you there), with a real domain and HTTPS.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">10</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire projet serveur.</p>
+</div>
+<div data-lang="en"><p>Server project cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Équipe &amp; sudo / team &amp; sudo
+sudo groupadd atelier ; sudo useradd -m -G atelier NOM
+echo &#39;%atelier ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart atelier&#39; | sudo tee /etc/sudoers.d/atelier
+sudo visudo -cf /etc/sudoers.d/atelier
+
+# Stockage LVM / LVM storage
+sudo pvcreate DEV ; sudo vgcreate vg_atelier DEV ; sudo lvcreate -L 800M -n data vg_atelier
+# fstab: UUID=...  /srv/atelier  ext4  defaults  0  2   -&gt; sudo mount -a
+sudo chgrp atelier /srv/atelier ; sudo chmod 2775 /srv/atelier   # SGID d&#39;équipe
+
+# Service &amp; sauvegarde / service &amp; backup
+sudo systemctl enable --now atelier atelier-backup.timer
+systemctl list-timers atelier-backup.timer
+
+# Sécurité / security  (SSH d&#39;abord !)
+sudo sshd -t &amp;&amp; sudo systemctl reload ssh ; sudo sshd -T | grep -i permitroot
+sudo ufw allow OpenSSH ; sudo ufw allow 8080/tcp ; sudo ufw default deny incoming ; sudo ufw enable
+
+# Ops
+sudo scripts/healthcheck.sh          # audit (6 checks)
+scripts/provision.sh                 # idempotent</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li>Les <strong>six guides</strong> de la track Linux (chaque étape du projet en approfondit un).</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/sudoers.5.html"><code>man sudoers</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/systemd.timer.5.html"><code>man systemd.timer</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/fstab.5.html"><code>man fstab</code></a>.</li><li><a href="https://ubuntu.com/server/docs">Ubuntu Server Guide</a> — provisionnement et durcissement.</li><li>Objectifs <strong>LPIC-1 101 &amp; 102</strong> (l&#39;ensemble de la certification).</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>six guides</strong> of the Linux track (each project step deepens one).</li><li><a href="https://manpages.ubuntu.com/manpages/noble/man5/sudoers.5.html"><code>man sudoers</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/systemd.timer.5.html"><code>man systemd.timer</code></a>, <a href="https://manpages.ubuntu.com/manpages/noble/man5/fstab.5.html"><code>man fstab</code></a>.</li><li><a href="https://ubuntu.com/server/docs">Ubuntu Server Guide</a> — provisioning and hardening.</li><li><strong>LPIC-1 101 &amp; 102</strong> objectives (the whole certification).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>systemctl status atelier</code> en <code>failed</code>.</strong> Regarde <code>journalctl -u atelier</code> : souvent le port 8080 déjà pris, ou <code>/srv/atelier</code> non monté (le service sert un dossier vide). Vérifie <code>df -h /srv/atelier</code>.</p>
+<p><strong><code>curl localhost:8080</code> : connection refused.</strong> Le service ne tourne pas (<code>systemctl status atelier</code>) ou n&#39;a pas démarré (<code>daemon-reload</code> oublié après création de l&#39;unit).</p>
+<p><strong><code>sudo mount -a</code> échoue.</strong> Ta ligne <code>fstab</code> est mauvaise (UUID erroné). Corrige <strong>avant</strong> tout reboot ; <code>findmnt --verify</code> aide.</p>
+<p><strong>Le service ne peut pas lire <code>/srv/atelier</code> (<code>www-data</code>).</strong> Le dossier n&#39;est pas accessible à <code>www-data</code>. Les permissions <code>2775</code> + groupe <code>atelier</code> suffisent en lecture ; sinon vérifie le propriétaire/les droits.</p>
+<p><strong>La sauvegarde ne se déclenche pas.</strong> Le timer est-il actif ? <code>systemctl list-timers atelier-backup.timer</code>. <code>enable --now</code> la timer (pas seulement la créer), après <code>daemon-reload</code>.</p>
+<p><strong><code>provision.sh</code> échoue au 2ᵉ passage.</strong> Une action n&#39;est pas idempotente (un <code>useradd</code>/<code>groupadd</code> sans garde). Ajoute le test <code>id/getent … ||</code> devant.</p>
+</div>
+<div data-lang="en"><p><strong><code>systemctl status atelier</code> is <code>failed</code>.</strong> Look at <code>journalctl -u atelier</code>: often port 8080 already taken, or <code>/srv/atelier</code> not mounted (the service serves an empty folder). Check <code>df -h /srv/atelier</code>.</p>
+<p><strong><code>curl localhost:8080</code>: connection refused.</strong> The service isn&#39;t running (<code>systemctl status atelier</code>) or didn&#39;t start (<code>daemon-reload</code> forgotten after creating the unit).</p>
+<p><strong><code>sudo mount -a</code> fails.</strong> Your <code>fstab</code> line is wrong (bad UUID). Fix it <strong>before</strong> any reboot; <code>findmnt --verify</code> helps.</p>
+<p><strong>The service can&#39;t read <code>/srv/atelier</code> (<code>www-data</code>).</strong> The folder isn&#39;t accessible to <code>www-data</code>. The <code>2775</code> permissions + <code>atelier</code> group are enough for reading; otherwise check the owner/rights.</p>
+<p><strong>The backup doesn&#39;t trigger.</strong> Is the timer active? <code>systemctl list-timers atelier-backup.timer</code>. <code>enable --now</code> the timer (not just create it), after <code>daemon-reload</code>.</p>
+<p><strong><code>provision.sh</code> fails on the 2nd run.</strong> An action isn&#39;t idempotent (a <code>useradd</code>/<code>groupadd</code> without a guard). Add the <code>id/getent … ||</code> test in front.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

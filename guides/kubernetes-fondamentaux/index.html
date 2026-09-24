@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Kubernetes — orchestrer des conteneurs — jiha.tech</title>
+  <title data-lang="en">Kubernetes — orchestrate containers — jiha.tech</title>
+  <meta name="description" content="Apprends Kubernetes sur ta propre machine avec k3d : un cluster local complet, pods et deployments, self-healing, services, ConfigMap/Secret, et mises à jour progressives. Aligné CKA/CKAD." data-lang="fr">
+  <meta name="description" content="Learn Kubernetes on your own machine with k3d: a full local cluster, pods and deployments, self-healing, services, ConfigMap/Secret, and rolling updates. Aligned with CKA/CKAD." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kubernetes — orchestrer des conteneurs">
+  <meta property="og:description" content="Apprends Kubernetes sur ta propre machine avec k3d : un cluster local complet, pods et deployments, self-healing, services, ConfigMap/Secret, et mises à jour progressives. Aligné CKA/CKAD.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/kubernetes-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/kubernetes-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="kubernetes-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/kubernetes-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/kubernetes-fondamentaux</div>
+    <h1 data-lang="fr">Kubernetes — orchestrer des conteneurs</h1>
+    <h1 data-lang="en">Kubernetes — orchestrate containers</h1>
+    <p class="tagline" data-lang="fr">Pods, deployments, services, self-healing, rollouts.</p>
+    <p class="tagline" data-lang="en">Pods, deployments, services, self-healing, rollouts.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 210 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 210 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tu sais lancer des conteneurs (Docker) et décrire une stack (Compose). Mais que se passe-t-il quand un conteneur <strong>plante à 3h du matin</strong> ? Quand il faut <strong>10 répliques</strong> derrière un load balancer ? Quand tu veux <strong>mettre à jour sans coupure</strong> ? Docker Compose ne gère pas ça. <strong>Kubernetes</strong> (K8s) oui : c&#39;est l&#39;<strong>orchestrateur</strong> qui maintient tes applications dans l&#39;état voulu, se répare tout seul, monte en charge et déploie progressivement.</p>
+<p>L&#39;idée maîtresse : tu déclares l&#39;<strong>état voulu</strong> (« je veux 3 répliques de cette image »), et un <strong>contrôleur</strong> travaille en boucle pour que le réel corresponde. Un pod meurt ? Kubernetes en recrée un. C&#39;est le principe de <strong>réconciliation</strong>, et c&#39;est ce qui rend K8s à la fois puissant et déroutant au début.</p>
+<p>Le piège pour apprendre : la plupart pensent qu&#39;il faut un cluster cloud (coûteux, complexe). Faux. Avec <strong>k3d</strong>, tu fais tourner un <strong>vrai cluster Kubernetes complet dans Docker, sur ta machine</strong> — mêmes commandes <code>kubectl</code>, mêmes manifestes qu&#39;en production. Zéro cloud, zéro coût.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu maîtrises Docker (image, conteneur, port) et tu veux comprendre l&#39;orchestration.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Docker n&#39;est pas encore clair pour toi → repasse par ce guide, c&#39;est le prérequis dur.</li><li>Tu héberges <strong>un seul petit service</strong> chez toi : Docker Compose suffit largement. Kubernetes se justifie à l&#39;échelle (répliques, self-healing, équipes).</li></ul>
+</div>
+<div data-lang="en"><p>You can run containers (Docker) and describe a stack (Compose). But what happens when a container <strong>crashes at 3 a.m.</strong>? When you need <strong>10 replicas</strong> behind a load balancer? When you want to <strong>update with no downtime</strong>? Docker Compose doesn&#39;t handle that. <strong>Kubernetes</strong> (K8s) does: it&#39;s the <strong>orchestrator</strong> that keeps your apps in the desired state, self-heals, scales, and rolls out progressively.</p>
+<p>The core idea: you declare the <strong>desired state</strong> (&quot;I want 3 replicas of this image&quot;), and a <strong>controller</strong> loops to make reality match. A pod dies? Kubernetes recreates one. That&#39;s the <strong>reconciliation</strong> principle, and it&#39;s what makes K8s both powerful and confusing at first.</p>
+<p>The trap when learning: most think you need a cloud cluster (costly, complex). False. With <strong>k3d</strong>, you run a <strong>full real Kubernetes cluster inside Docker, on your machine</strong> — same <code>kubectl</code> commands, same manifests as in production. Zero cloud, zero cost.</p>
+<p><strong>Who it&#39;s for:</strong> you&#39;re comfortable with Docker (image, container, port) and want to understand orchestration.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>Docker isn&#39;t clear to you yet → go back through that guide, it&#39;s the hard prerequisite.</li><li>You self-host <strong>a single small service</strong>: Docker Compose is plenty. Kubernetes earns its keep at scale (replicas, self-healing, teams).</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Créer un <strong>cluster local</strong> avec k3d et le piloter avec <code>kubectl</code>.</li><li>La différence <strong>pod / deployment / replicaset</strong>.</li><li>Voir le <strong>self-healing</strong> en action (réconciliation).</li><li><strong>Scaler</strong> une application (répliques).</li><li>Exposer un service avec un <strong>Service</strong> et y accéder.</li><li>Injecter de la config avec <strong>ConfigMap</strong> et <strong>Secret</strong>.</li><li>Faire une <strong>mise à jour progressive</strong> (rolling update) et un <strong>rollback</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Create a <strong>local cluster</strong> with k3d and drive it with <code>kubectl</code>.</li><li>Tell apart <strong>pod / deployment / replicaset</strong>.</li><li>See <strong>self-healing</strong> in action (reconciliation).</li><li><strong>Scale</strong> an application (replicas).</li><li>Expose a service with a <strong>Service</strong> and access it.</li><li>Inject config with <strong>ConfigMap</strong> and <strong>Secret</strong>.</li><li>Do a <strong>rolling update</strong> and a <strong>rollback</strong>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Le guide <strong>Docker fondamentaux</strong> acquis (image, conteneur, port — prérequis dur).</li><li><strong>Docker</strong> installé, fonctionnel <strong>et lancé</strong> (Docker Desktop ouvert sur macOS/Windows) : k3d fait tourner le cluster dans Docker, donc <code>k3d cluster create</code> échoue si Docker ne tourne pas.</li><li><strong>k3d</strong> et <strong>kubectl</strong> installés :</li></ul>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Docker fundamentals</strong> guide under your belt (image, container, port — hard prerequisite).</li><li><strong>Docker</strong> installed, working <strong>and running</strong> (Docker Desktop open on macOS/Windows): k3d runs the cluster inside Docker, so <code>k3d cluster create</code> fails if Docker isn&#39;t running.</li><li><strong>k3d</strong> and <strong>kubectl</strong> installed:</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># k3d (Linux/macOS) : script officiel / official script
+curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+# kubectl : voir https://kubernetes.io/docs/tasks/tools/  (macOS : brew install kubectl)
+k3d version &amp;&amp; kubectl version --client</code></pre>
+<div data-lang="fr"><p><em>(Windows : installe k3d et kubectl via <strong>WSL2</strong> avec Docker Desktop, et travaille depuis WSL.)</em></p>
+</div>
+<div data-lang="en"><p><em>(Windows: install k3d and kubectl via <strong>WSL2</strong> with Docker Desktop, and work from WSL.)</em></p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Kubernetes s&#39;organise en couches.</p>
+<ul><li>Un <strong>cluster</strong> est un ensemble de <strong>nœuds</strong> (machines). Un <strong>plan de contrôle</strong> (<em>control plane</em>) décide, des <strong>nœuds de travail</strong> exécutent. Avec k3d, tout ça tourne dans des conteneurs sur ta machine.</li><li>Le <strong>pod</strong> est la plus petite unité déployable : un (ou plusieurs) conteneur(s) qui partagent réseau et stockage. On ne crée presque <strong>jamais</strong> un pod à la main.</li><li>Le <strong>deployment</strong> est ce que tu manipules : il décrit « je veux N répliques de cette image ». Il crée et pilote un <strong>replicaset</strong>, qui lui garantit le bon nombre de pods. Si un pod meurt, le replicaset en recrée un : c&#39;est le <strong>self-healing</strong>.</li><li>Le <strong>service</strong> donne une <strong>adresse stable</strong> à un groupe de pods (dont les IP changent sans cesse). Il répartit le trafic entre eux.</li></ul>
+<p>Le concept qui change tout : la <strong>réconciliation</strong>. Tu ne donnes jamais d&#39;ordres impératifs (« démarre ce conteneur »). Tu déclares un <strong>état voulu</strong> dans un manifeste YAML, tu fais <code>kubectl apply</code>, et des <strong>contrôleurs</strong> travaillent en boucle pour que le réel y corresponde — en permanence. C&#39;est déclaratif, comme Terraform, mais <strong>vivant</strong> : ça surveille et corrige tout le temps.</p>
+</div>
+<div data-lang="en"><p>Kubernetes is organized in layers.</p>
+<ul><li>A <strong>cluster</strong> is a set of <strong>nodes</strong> (machines). A <strong>control plane</strong> decides, <strong>worker nodes</strong> execute. With k3d, all of it runs in containers on your machine.</li><li>The <strong>pod</strong> is the smallest deployable unit: one (or more) container(s) sharing network and storage. You almost <strong>never</strong> create a pod by hand.</li><li>The <strong>deployment</strong> is what you manipulate: it describes &quot;I want N replicas of this image&quot;. It creates and drives a <strong>replicaset</strong>, which guarantees the right number of pods. If a pod dies, the replicaset recreates one: that&#39;s <strong>self-healing</strong>.</li><li>The <strong>service</strong> gives a <strong>stable address</strong> to a group of pods (whose IPs constantly change). It load-balances traffic between them.</li></ul>
+<p>The concept that changes everything: <strong>reconciliation</strong>. You never give imperative orders (&quot;start this container&quot;). You declare a <strong>desired state</strong> in a YAML manifest, you <code>kubectl apply</code>, and <strong>controllers</strong> loop to make reality match — continuously. It&#39;s declarative, like Terraform, but <strong>alive</strong>: it watches and corrects all the time.</p>
+</div>
+
+<figure class="schema" id="figure-kubernetes-reconciliation">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-kubernetes-reconciliation">
+  <title id="s-kubernetes-reconciliation">Boucle de réconciliation</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Boucle de réconciliation</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="77" text-anchor="middle">Deployment</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="77" text-anchor="middle">ReplicaSet</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="77" text-anchor="middle">Pods</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">Service</text><text class="sub" x="662" y="83.5" text-anchor="middle">expose</text><text class="sub" x="380" y="144" text-anchor="middle">le contrôleur réconcilie en boucle vers l’état voulu</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Deployment → ReplicaSet → Pods, exposés par un Service. Le contrôleur réconcilie en boucle.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Deployment → ReplicaSet → Pods, exposed by a Service. The controller reconciles in a loop.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance ainsi : cluster local → premier deployment → self-healing → scaling → service → config → rolling update.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go like this: local cluster → first deployment → self-healing → scaling → service → config → rolling update.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un cluster local et vérifier que <code>kubectl</code> lui parle.</p>
+<p><strong>🤔 Pourquoi <code>-p &quot;8080:80@loadbalancer&quot;</code> ?</strong> k3d embarque un load balancer. Cette option mappe le <strong>port 8080 de ta machine</strong> vers le port 80 du load balancer du cluster — on s&#39;en servira à l&#39;étape 5 pour joindre notre service depuis le navigateur.</p>
+<p><strong>🤔 Et <code>--disable=traefik</code> ?</strong> k3s installe un Ingress Traefik par défaut, qui <strong>occuperait le port 80</strong> et entrerait en conflit avec notre propre Service à l&#39;étape 5. On le retire ici (on apprendra Traefik dans un guide dédié).</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a local cluster and check that <code>kubectl</code> talks to it.</p>
+<p><strong>🤔 Why <code>-p &quot;8080:80@loadbalancer&quot;</code>?</strong> k3d ships a load balancer. This option maps <strong>port 8080 on your machine</strong> to the cluster load balancer&#39;s port 80 — we&#39;ll use it in step 5 to reach our service from the browser.</p>
+<p><strong>🤔 And <code>--disable=traefik</code>?</strong> k3s installs a Traefik Ingress by default, which <strong>would occupy port 80</strong> and conflict with our own Service in step 5. We remove it here (we&#39;ll learn Traefik in a dedicated guide).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>k3d cluster create devlab -p &quot;8080:80@loadbalancer&quot; --k3s-arg &quot;--disable=traefik@server:0&quot;
+kubectl get nodes            # les nœuds du cluster / the cluster nodes
+kubectl get pods -A          # les pods système déjà en place / the system pods already in place</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get nodes</code> liste un nœud <code>k3d-devlab-server-0</code> en statut <code>Ready</code>. <code>kubectl get pods -A</code> montre les pods système (<code>coredns</code>, <code>local-path-provisioner</code>, <code>metrics-server</code>) dans le namespace <code>kube-system</code> — <strong>pas</strong> de traefik, puisqu&#39;on l&#39;a désactivé. Ton cluster est vivant.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get nodes</code> lists a <code>k3d-devlab-server-0</code> node in <code>Ready</code> status. <code>kubectl get pods -A</code> shows system pods (<code>coredns</code>, <code>local-path-provisioner</code>, <code>metrics-server</code>) in the <code>kube-system</code> namespace — <strong>no</strong> traefik, since we disabled it. Your cluster is alive.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Déployer ta première application avec un <strong>deployment</strong>.</p>
+<p><strong>🤔 Pourquoi un deployment et pas un pod ?</strong> Un pod seul n&#39;est pas résilient : s&#39;il meurt, il reste mort. Le <strong>deployment</strong> décrit l&#39;état voulu (« 2 répliques de nginx ») et garantit qu&#39;il est <strong>maintenu</strong>. Le <code>selector</code> relie le deployment à ses pods par un <strong>label</strong> (<code>app: web</code>) — c&#39;est le fil qui les rattache.</p>
+<p>Crée <code>deployment.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Deploy your first application with a <strong>deployment</strong>.</p>
+<p><strong>🤔 Why a deployment and not a pod?</strong> A lone pod isn&#39;t resilient: if it dies, it stays dead. The <strong>deployment</strong> describes the desired state (&quot;2 replicas of nginx&quot;) and guarantees it&#39;s <strong>maintained</strong>. The <code>selector</code> links the deployment to its pods via a <strong>label</strong> (<code>app: web</code>) — that&#39;s the thread that ties them together.</p>
+<p>Create <code>deployment.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f deployment.yaml
+kubectl get deployments
+kubectl get pods -l app=web         # les pods du deployment / the deployment&#39;s pods</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get deployments</code> montre <code>web</code> avec <code>READY 2/2</code>, et <code>kubectl get pods -l app=web</code> liste <strong>deux</strong> pods <code>web-...</code> en <code>Running</code>. Tu viens de déclarer un état voulu ; Kubernetes l&#39;a réalisé.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get deployments</code> shows <code>web</code> with <code>READY 2/2</code>, and <code>kubectl get pods -l app=web</code> lists <strong>two</strong> <code>web-...</code> pods in <code>Running</code>. You just declared a desired state; Kubernetes made it real.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Voir le <strong>self-healing</strong> de tes propres yeux. <strong>C&#39;est le moment « aha » du guide.</strong></p>
+<p><strong>🤔 Pourquoi supprimer un pod exprès ?</strong> Parce que « Kubernetes recrée les pods qui meurent » est une phrase qu&#39;on oublie — alors qu&#39;un pod qui <strong>ressuscite sous tes yeux</strong>, tu ne l&#39;oublies pas. Le replicaset veille : il constate qu&#39;il manque une réplique et en recrée une immédiatement.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> See <strong>self-healing</strong> with your own eyes. <strong>This is the guide&#39;s &quot;aha&quot; moment.</strong></p>
+<p><strong>🤔 Why delete a pod on purpose?</strong> Because &quot;Kubernetes recreates pods that die&quot; is a sentence you forget — but a pod that <strong>comes back to life before your eyes</strong>, you don&#39;t. The replicaset watches: it notices a replica is missing and recreates one immediately.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl get pods -l app=web             # note les noms / note the names
+kubectl delete pod &lt;un-nom-de-pod-web&gt;  # tue-en un / kill one
+kubectl get pods -l app=web             # relance vite : un nouveau apparaît / run again fast: a new one appears</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> juste après le <code>delete</code>, tu vois un pod <code>Terminating</code> et un <strong>nouveau</strong> pod en <code>ContainerCreating</code> puis <code>Running</code>. Le deployment est toujours à <code>2/2</code>. Tu n&#39;as rien fait pour ça : c&#39;est la réconciliation.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> right after the <code>delete</code>, you see one pod <code>Terminating</code> and a <strong>new</strong> pod in <code>ContainerCreating</code> then <code>Running</code>. The deployment is still <code>2/2</code>. You did nothing to make that happen: it&#39;s reconciliation.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Monter (et descendre) en charge.</p>
+<p><strong>🤔 Deux façons de scaler ?</strong> L&#39;impératif (<code>kubectl scale</code>) est rapide pour tester. Mais la <strong>bonne pratique déclarative</strong> est de changer <code>replicas:</code> dans le manifeste et de refaire <code>apply</code> — ainsi ton fichier reste la source de vérité (versionnable en Git). On voit les deux.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Scale up (and down).</p>
+<p><strong>🤔 Two ways to scale?</strong> The imperative one (<code>kubectl scale</code>) is quick for testing. But the <strong>declarative best practice</strong> is to change <code>replicas:</code> in the manifest and re-<code>apply</code> — so your file stays the source of truth (versionable in Git). We&#39;ll see both.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl scale deployment web --replicas=5    # impératif, pour tester / imperative, to test
+kubectl get pods -l app=web                  # 5 pods maintenant / 5 pods now
+# Bonne pratique : mets replicas: 3 dans deployment.yaml, puis / Best practice: set replicas: 3 in deployment.yaml, then:
+kubectl apply -f deployment.yaml</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après le <code>scale</code>, <code>kubectl get pods -l app=web</code> montre 5 pods. Après avoir mis <code>replicas: 3</code> dans le YAML et refait <code>apply</code>, le deployment converge à <code>3/3</code> (Kubernetes supprime 2 pods). Le manifeste gagne toujours.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after the <code>scale</code>, <code>kubectl get pods -l app=web</code> shows 5 pods. After setting <code>replicas: 3</code> in the YAML and re-<code>apply</code>, the deployment converges to <code>3/3</code> (Kubernetes removes 2 pods). The manifest always wins.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exposer le deployment avec un <strong>Service</strong> et y accéder depuis ton navigateur.</p>
+<p><strong>🤔 Pourquoi un Service ?</strong> Les pods sont <strong>éphémères</strong> : leurs IP changent à chaque recréation. Un <strong>Service</strong> fournit une adresse <strong>stable</strong> et <strong>répartit</strong> le trafic entre les pods qui portent le label <code>app: web</code>. En type <code>LoadBalancer</code>, k3d l&#39;expose sur le port qu&#39;on a mappé à l&#39;étape 1.</p>
+<p>Crée <code>service.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Expose the deployment with a <strong>Service</strong> and access it from your browser.</p>
+<p><strong>🤔 Why a Service?</strong> Pods are <strong>ephemeral</strong>: their IPs change on every recreation. A <strong>Service</strong> provides a <strong>stable</strong> address and <strong>load-balances</strong> traffic across the pods carrying the <code>app: web</code> label. As type <code>LoadBalancer</code>, k3d exposes it on the port we mapped in step 1.</p>
+<p>Create <code>service.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  type: LoadBalancer
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f service.yaml
+kubectl get service web
+curl http://localhost:8080          # via le port mappé à l&#39;étape 1 / via the port mapped in step 1</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl http://localhost:8080</code> (ou le navigateur) affiche la page nginx. Le <code>Service</code> route vers tes pods <code>web</code>, quel que soit celui qui répond. Le <code>selector: app: web</code> est ce qui relie le Service aux pods.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl http://localhost:8080</code> (or the browser) shows the nginx page. The <code>Service</code> routes to your <code>web</code> pods, whichever one answers. The <code>selector: app: web</code> is what links the Service to the pods.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Injecter de la configuration avec un <strong>ConfigMap</strong> (et comprendre le <strong>Secret</strong>).</p>
+<p><strong>🤔 Pourquoi séparer la config du conteneur ?</strong> Comme les variables d&#39;environnement Docker : une même image doit servir plusieurs environnements. Un <strong>ConfigMap</strong> stocke de la config non sensible ; un <strong>Secret</strong> fait pareil pour les données sensibles (mots de passe, clés) — même mécanisme, mais encodé et traité à part.</p>
+<p>Crée un ConfigMap et monte-le comme page d&#39;accueil :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Inject configuration with a <strong>ConfigMap</strong> (and understand the <strong>Secret</strong>).</p>
+<p><strong>🤔 Why separate config from the container?</strong> Like Docker environment variables: one image should serve multiple environments. A <strong>ConfigMap</strong> stores non-sensitive config; a <strong>Secret</strong> does the same for sensitive data (passwords, keys) — same mechanism, but encoded and handled separately.</p>
+<p>Create a ConfigMap and mount it as the home page:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl create configmap web-home \
+  --from-literal=index.html=&#39;&lt;h1&gt;Config injectée par Kubernetes&lt;/h1&gt;&#39;</code></pre>
+<div data-lang="fr"><p>Dans <code>deployment.yaml</code>, <strong>remplace tout le bloc <code>containers:</code></strong> par le bloc ci-dessous (il ajoute <code>volumeMounts</code> au conteneur et un <code>volumes:</code> frère de <code>containers</code>, tous deux sous <code>spec.template.spec</code>) :</p>
+</div>
+<div data-lang="en"><p>In <code>deployment.yaml</code>, <strong>replace the entire <code>containers:</code> block</strong> with the block below (it adds <code>volumeMounts</code> to the container and a <code>volumes:</code> sibling of <code>containers</code>, both under <code>spec.template.spec</code>):</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: home
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: home
+          configMap:
+            name: web-home</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f deployment.yaml
+kubectl rollout status deployment web
+curl http://localhost:8080</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl http://localhost:8080</code> affiche maintenant « Config injectée par Kubernetes ». La config vit <strong>hors</strong> de l&#39;image, dans le ConfigMap. <em>(Un <code>Secret</code> se crée pareil avec <code>kubectl create secret generic ...</code> et se monte de la même façon.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl http://localhost:8080</code> now shows &quot;Config injectée par Kubernetes&quot;. The config lives <strong>outside</strong> the image, in the ConfigMap. <em>(A <code>Secret</code> is created the same way with <code>kubectl create secret generic ...</code> and mounted similarly.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Mettre à jour l&#39;image <strong>sans coupure</strong> (rolling update), puis <strong>revenir en arrière</strong>.</p>
+<p><strong>🤔 Pourquoi c&#39;est sans coupure ?</strong> Le deployment remplace les pods <strong>progressivement</strong> : il en crée un nouveau (nouvelle image), attend qu&#39;il soit prêt, supprime un ancien, et recommence. À aucun moment le service n&#39;est à zéro pod. Et Kubernetes garde l&#39;historique : tu peux <strong>annuler</strong> en une commande.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Update the image <strong>with no downtime</strong> (rolling update), then <strong>roll back</strong>.</p>
+<p><strong>🤔 Why is it downtime-free?</strong> The deployment replaces pods <strong>progressively</strong>: it creates a new one (new image), waits for it to be ready, removes an old one, and repeats. At no point is the service at zero pods. And Kubernetes keeps the history: you can <strong>undo</strong> with one command.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl set image deployment/web nginx=nginx:1.26    # change l&#39;image / change the image
+kubectl rollout status deployment web                # suit le déploiement progressif / follow the rollout
+kubectl rollout undo deployment web                  # rollback à la version précédente / roll back</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> pendant le <code>rollout status</code>, tu vois les pods se remplacer un par un (« Waiting for deployment... 1 out of 3 new replicas... »). Le <code>curl</code> répond <strong>en continu</strong> pendant l&#39;opération. Après le <code>undo</code>, le deployment revient à <code>nginx:1.27</code>.</p>
+<p><em>(Nettoyage : <code>k3d cluster delete devlab</code> supprime tout le cluster.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> during <code>rollout status</code>, you see pods replaced one by one (&quot;Waiting for deployment... 1 out of 3 new replicas...&quot;). The <code>curl</code> responds <strong>continuously</strong> throughout. After the <code>undo</code>, the deployment returns to <code>nginx:1.27</code>.</p>
+<p><em>(Cleanup: <code>k3d cluster delete devlab</code> removes the whole cluster.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Créer des pods « nus ».</strong> Un pod créé à la main (<code>kubectl run</code> sans deployment) n&#39;est pas surveillé : il meurt, il reste mort. Passe <strong>toujours</strong> par un deployment (ou un autre contrôleur).</p>
+<p><strong>2. Un <code>selector</code> qui ne matche pas les labels.</strong> Si le <code>selector</code> du deployment ou du service ne correspond pas aux <code>labels</code> des pods, plus rien ne se relie : deployment sans pods, service sans endpoints. Vérifie que les labels concordent.</p>
+<p><strong>3. Débugger sans les bons outils.</strong> Un pod en <code>CrashLoopBackOff</code> ou <code>ImagePullBackOff</code> ? <code>kubectl describe pod &lt;nom&gt;</code> (les événements en bas) et <code>kubectl logs &lt;nom&gt;</code> te disent presque toujours pourquoi. Ne devine pas.</p>
+<p><strong>4. Mettre des secrets dans un ConfigMap (ou en clair dans le YAML).</strong> Les données sensibles vont dans un <strong>Secret</strong>, jamais dans un ConfigMap ni en dur dans un manifeste versionné.</p>
+<p><strong>5. Oublier les <code>resources</code> (requests/limits).</strong> Sans limites, un pod peut affamer le nœud. En vrai cluster, déclare des <code>requests</code>/<code>limits</code> CPU/mémoire (hors périmètre de ce guide, mais à connaître pour la suite).</p>
+<p><strong>6. Confondre <code>port</code> et <code>targetPort</code>.</strong> Dans un Service, <code>port</code> est le port du Service, <code>targetPort</code> celui du conteneur. Les inverser = trafic dans le vide.</p>
+</div>
+<div data-lang="en"><p><strong>1. Creating &quot;naked&quot; pods.</strong> A pod created by hand (<code>kubectl run</code> without a deployment) isn&#39;t supervised: it dies, it stays dead. <strong>Always</strong> go through a deployment (or another controller).</p>
+<p><strong>2. A <code>selector</code> that doesn&#39;t match the labels.</strong> If the deployment&#39;s or service&#39;s <code>selector</code> doesn&#39;t match the pods&#39; <code>labels</code>, nothing links up: deployment with no pods, service with no endpoints. Check that labels agree.</p>
+<p><strong>3. Debugging without the right tools.</strong> A pod in <code>CrashLoopBackOff</code> or <code>ImagePullBackOff</code>? <code>kubectl describe pod &lt;name&gt;</code> (events at the bottom) and <code>kubectl logs &lt;name&gt;</code> almost always tell you why. Don&#39;t guess.</p>
+<p><strong>4. Putting secrets in a ConfigMap (or in clear text in the YAML).</strong> Sensitive data goes in a <strong>Secret</strong>, never in a ConfigMap nor hardcoded in a versioned manifest.</p>
+<p><strong>5. Forgetting <code>resources</code> (requests/limits).</strong> Without limits, a pod can starve the node. On a real cluster, declare CPU/memory <code>requests</code>/<code>limits</code> (outside this guide&#39;s scope, but good to know for later).</p>
+<p><strong>6. Confusing <code>port</code> and <code>targetPort</code>.</strong> In a Service, <code>port</code> is the Service&#39;s port, <code>targetPort</code> the container&#39;s. Swapping them = traffic into the void.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu expliques <strong>deployment → replicaset → pods</strong> et le rôle du <strong>selector</strong>/label.</li><li>Le <strong>self-healing</strong> et la <strong>réconciliation</strong> sont clairs (tu as vu un pod renaître).</li><li>Tu scales en impératif <strong>et</strong> en déclaratif, et tu sais lequel privilégier.</li><li>Tu exposes une app avec un <strong>Service</strong> et tu y accèdes.</li><li>Tu injectes de la config par <strong>ConfigMap</strong>/<strong>Secret</strong>.</li><li>Tu fais un <strong>rolling update</strong> et un <strong>rollback</strong> sans stresser.</li></ul>
+<p>Six cases cochées = tu as les fondamentaux de l&#39;orchestration Kubernetes. Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You can explain <strong>deployment → replicaset → pods</strong> and the role of the <strong>selector</strong>/label.</li><li><strong>Self-healing</strong> and <strong>reconciliation</strong> are clear (you watched a pod come back).</li><li>You scale imperatively <strong>and</strong> declaratively, and you know which to prefer.</li><li>You expose an app with a <strong>Service</strong> and access it.</li><li>You inject config via <strong>ConfigMap</strong>/<strong>Secret</strong>.</li><li>You do a <strong>rolling update</strong> and a <strong>rollback</strong> without stress.</li></ul>
+<p>Six boxes ticked = you have the fundamentals of Kubernetes orchestration. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite logique :</p>
+<ol><li><strong>Traefik</strong> — l&#39;<em>Ingress controller</em> de facto : router plusieurs services K8s derrière un nom de domaine et du HTTPS.</li><li>Plus loin : le <strong>projet homelab</strong>, où tu combines tout (Terraform provisionne, Ansible configure, Kubernetes orchestre).</li></ol>
+<p>Pour la <strong>prépa CKA/CKAD</strong>, creuse ensuite : namespaces, <code>requests</code>/<code>limits</code>, sondes (<code>liveness</code>/<code>readiness</code>), volumes persistants (PV/PVC), Ingress, RBAC, Jobs/CronJobs. Entraîne-toi aussi à générer des manifestes en <strong>impératif</strong> (<code>kubectl create deploy web --image=nginx:1.27 --dry-run=client -o yaml</code>) — un gain de temps décisif au CKAD chronométré.</p>
+</div>
+<div data-lang="en"><p>The logical next steps:</p>
+<ol><li><strong>Traefik</strong> — the de-facto <em>Ingress controller</em>: route several K8s services behind a domain name and HTTPS.</li><li>Further along: the <strong>homelab project</strong>, where you combine everything (Terraform provisions, Ansible configures, Kubernetes orchestrates).</li></ol>
+<p>For <strong>CKA/CKAD prep</strong>, dig next into: namespaces, <code>requests</code>/<code>limits</code>, probes (<code>liveness</code>/<code>readiness</code>), persistent volumes (PV/PVC), Ingress, RBAC, Jobs/CronJobs. Also practice generating manifests <strong>imperatively</strong> (<code>kubectl create deploy web --image=nginx:1.27 --dry-run=client -o yaml</code>) — a decisive time-saver on the timed CKAD.</p>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire kubectl.</p>
+</div>
+<div data-lang="en"><p>kubectl cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cluster (k3d)
+k3d cluster create devlab -p &quot;8080:80@loadbalancer&quot; --k3s-arg &quot;--disable=traefik@server:0&quot;   # créer / create
+k3d cluster delete devlab                              # supprimer / delete
+kubectl get nodes                                      # les nœuds / the nodes
+
+# Observer / Observe
+kubectl get pods -l app=web        # filtrer par label / filter by label
+kubectl get deploy,svc,pods        # plusieurs types d&#39;un coup / several types at once
+kubectl describe pod &lt;nom&gt;         # détails + événements (debug) / details + events (debug)
+kubectl logs &lt;nom&gt;                 # logs d&#39;un pod / a pod&#39;s logs
+
+# Déclarer / Declare
+kubectl apply -f fichier.yaml      # appliquer un manifeste / apply a manifest
+kubectl delete -f fichier.yaml     # supprimer / delete
+
+# Piloter / Drive
+kubectl scale deploy/web --replicas=3        # scaler / scale
+kubectl set image deploy/web nginx=nginx:1.26 # mettre à jour l&#39;image / update the image
+kubectl rollout status deploy/web            # suivre / follow
+kubectl rollout undo deploy/web              # rollback
+kubectl port-forward svc/web 8080:80         # accès local sans LoadBalancer / local access without LoadBalancer</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://kubernetes.io/docs/home/">Documentation Kubernetes</a> — la référence.</li><li><a href="https://k3d.io">k3d</a> — Kubernetes local dans Docker.</li><li><a href="https://kubernetes.io/docs/reference/kubectl/cheatsheet/">kubectl — aide-mémoire officiel</a> — toutes les commandes.</li><li><a href="https://www.cncf.io/training/certification/cka/">CKA</a> / <a href="https://www.cncf.io/training/certification/ckad/">CKAD</a> — les certifications que ce module prépare.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://kubernetes.io/docs/home/">Kubernetes documentation</a> — the reference.</li><li><a href="https://k3d.io">k3d</a> — local Kubernetes in Docker.</li><li><a href="https://kubernetes.io/docs/reference/kubectl/cheatsheet/">kubectl — official cheat sheet</a> — all the commands.</li><li><a href="https://www.cncf.io/training/certification/cka/">CKA</a> / <a href="https://www.cncf.io/training/certification/ckad/">CKAD</a> — the certifications this module prepares for.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>kubectl</code> : « The connection to the server ... was refused ».</strong> Le cluster n&#39;est pas lancé ou le contexte est mauvais. Vérifie <code>k3d cluster list</code> et <code>kubectl config current-context</code> (il doit être <code>k3d-devlab</code>).</p>
+<p><strong>Pod en <code>ImagePullBackOff</code>.</strong> Kubernetes n&#39;arrive pas à télécharger l&#39;image : tag inexistant ou faute de frappe. <code>kubectl describe pod &lt;nom&gt;</code> → section Events. Corrige l&#39;image dans le manifeste.</p>
+<p><strong>Pod en <code>CrashLoopBackOff</code>.</strong> Le conteneur démarre puis plante en boucle. <code>kubectl logs &lt;nom&gt;</code> (ajoute <code>--previous</code> pour l&#39;instance précédente) donne l&#39;erreur applicative.</p>
+<p><strong><code>curl http://localhost:8080</code> ne répond pas.</strong> Vérifie que le cluster a bien été créé <strong>avec</strong> <code>-p &quot;8080:80@loadbalancer&quot;</code>, que le Service est de type <code>LoadBalancer</code>, et que ses <code>selector</code>/<code>labels</code> matchent (<code>kubectl get endpoints web</code> ne doit pas être vide). Sinon, utilise <code>kubectl port-forward svc/web 8080:80</code>.</p>
+<p><strong>Le deployment reste à <code>0/2</code> ou <code>1/2</code>.</strong> <code>kubectl describe deploy web</code> et <code>kubectl describe pod &lt;nom&gt;</code> : souvent un problème d&#39;image, de ressources, ou de selector qui ne matche pas les labels du template.</p>
+</div>
+<div data-lang="en"><p><strong><code>kubectl</code>: &quot;The connection to the server ... was refused&quot;.</strong> The cluster isn&#39;t running or the context is wrong. Check <code>k3d cluster list</code> and <code>kubectl config current-context</code> (it should be <code>k3d-devlab</code>).</p>
+<p><strong>Pod in <code>ImagePullBackOff</code>.</strong> Kubernetes can&#39;t pull the image: nonexistent tag or typo. <code>kubectl describe pod &lt;name&gt;</code> → Events section. Fix the image in the manifest.</p>
+<p><strong>Pod in <code>CrashLoopBackOff</code>.</strong> The container starts then crashes in a loop. <code>kubectl logs &lt;name&gt;</code> (add <code>--previous</code> for the prior instance) gives the app error.</p>
+<p><strong><code>curl http://localhost:8080</code> doesn&#39;t respond.</strong> Check the cluster was created <strong>with</strong> <code>-p &quot;8080:80@loadbalancer&quot;</code>, that the Service is type <code>LoadBalancer</code>, and that its <code>selector</code>/<code>labels</code> match (<code>kubectl get endpoints web</code> must not be empty). Otherwise, use <code>kubectl port-forward svc/web 8080:80</code>.</p>
+<p><strong>The deployment stays at <code>0/2</code> or <code>1/2</code>.</strong> <code>kubectl describe deploy web</code> and <code>kubectl describe pod &lt;name&gt;</code>: often an image issue, resources, or a selector that doesn&#39;t match the template&#39;s labels.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

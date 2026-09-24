@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Azure — DevSecOps (AZ-400) : secrets, scan IaC, chaîne d&#39;approvisionnement — jiha.tech</title>
+  <title data-lang="en">Azure — DevSecOps (AZ-400): secrets, IaC scanning, supply chain — jiha.tech</title>
+  <meta name="description" content="&quot;Sécuriser la chaîne DevOps pour l&#39;AZ-400, en local et pour de vrai : détecter un secret en dur avec detect-secrets, le bloquer AVANT le commit via un hook pre-commit (shift-left), gérer les secrets correctement dans un coffre Key Vault (live sur miniblue : set/show/list), scanner l&#39;IaC avec checkov (12 problèmes trouvés sur un stockage non durci, puis 0 après correction), et bâtir une pipeline Sécurité (scan de secrets + IaC + dépendances) au moindre privilège, avec des actions épinglées par SHA. Plus la chaîne d&#39;approvisionnement (SBOM, pinning). Sans compte cloud.&quot;," data-lang="fr">
+  <meta name="description" content="Securing the DevOps chain for AZ-400, locally and for real: detect a hardcoded secret with detect-secrets, block it BEFORE the commit via a pre-commit hook (shift-left), manage secrets properly in a Key Vault (live on miniblue: set/show/list), scan IaC with checkov (12 issues found on an un-hardened storage, then 0 after fixing), and build a Security pipeline (secret + IaC + dependency scanning) with least privilege and SHA-pinned actions. Plus supply chain (SBOM, pinning). No cloud account." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Azure — DevSecOps (AZ-400) : secrets, scan IaC, chaîne d&#39;approvisionnement">
+  <meta property="og:description" content="&quot;Sécuriser la chaîne DevOps pour l&#39;AZ-400, en local et pour de vrai : détecter un secret en dur avec detect-secrets, le bloquer AVANT le commit via un hook pre-commit (shift-left), gérer les secrets correctement dans un coffre Key Vault (live sur miniblue : set/show/list), scanner l&#39;IaC avec checkov (12 problèmes trouvés sur un stockage non durci, puis 0 après correction), et bâtir une pipeline Sécurité (scan de secrets + IaC + dépendances) au moindre privilège, avec des actions épinglées par SHA. Plus la chaîne d&#39;approvisionnement (SBOM, pinning). Sans compte cloud.&quot;,">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/azure-devsecops/">
+  <link rel="canonical" href="https://jiha.tech/guides/azure-devsecops/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="azure-devsecops">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/azure-devsecops</div>
+    <div class="prompt" data-lang="en">~/guides/azure-devsecops</div>
+    <h1 data-lang="fr">Azure — DevSecOps (AZ-400) : secrets, scan IaC, chaîne d&#39;approvisionnement</h1>
+    <h1 data-lang="en">Azure — DevSecOps (AZ-400): secrets, IaC scanning, supply chain</h1>
+    <p class="tagline" data-lang="fr">détecter les secrets, scanner l&#39;IaC, sécuriser la pipeline.</p>
+    <p class="tagline" data-lang="en">detect secrets, scan IaC, secure the pipeline.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 280 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-26</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 280 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-26</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Tes pipelines <strong>construisent, testent et déploient</strong> (guides précédents). Il manque le <strong>S</strong> de <strong>DevSecOps</strong> : intégrer la <strong>sécurité</strong> dans la chaîne, tôt et automatiquement — pas comme une étape finale qu&#39;on subit. C&#39;est un pilier de l&#39;<strong>AZ-400</strong> : gestion des <strong>secrets</strong>, <strong>analyse statique</strong> de l&#39;IaC et des dépendances, sécurité de la <strong>chaîne d&#39;approvisionnement</strong>.</p>
+<p>Fidèle à la méthode, on le fait <strong>en vrai et en local</strong>, avec des outils <strong>open-source</strong> standards : on <strong>détecte un secret</strong> codé en dur (<code>detect-secrets</code>), on le <strong>bloque avant le commit</strong> avec un hook <strong>pre-commit</strong> (le fameux <em>shift-left</em>), puis on gère les secrets <strong>correctement</strong> dans un <strong>coffre Key Vault</strong> — live sur <strong>miniblue</strong> (<code>set</code> / <code>show</code> / <code>list</code>). On <strong>scanne l&#39;IaC</strong> avec <strong>checkov</strong> : sur un compte de stockage non durci, il trouve <strong>12 problèmes</strong> ; après correction, <strong>0</strong>. On assemble une <strong>pipeline Sécurité</strong> (scan de secrets + IaC + dépendances) au <strong>moindre privilège</strong> et avec des <strong>actions épinglées par SHA</strong>. Enfin, la <strong>chaîne d&#39;approvisionnement</strong> : SBOM, pinning, scan des dépendances.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as des pipelines qui déploient (guides AZ-400 précédents) et tu veux les <strong>sécuriser</strong>.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu n&#39;as pas encore de pipeline IaC → fais d&#39;abord <em>Azure — l&#39;IaC dans les pipelines (AZ-400)</em>.</li><li>Tu cherches la sécurité <strong>runtime</strong> (Defender, WAF) → c&#39;est plutôt l&#39;<strong>AZ-500</strong> ; ici c&#39;est la sécurité <strong>de la pipeline</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>Your pipelines <strong>build, test and deploy</strong> (previous guides). The <strong>S</strong> of <strong>DevSecOps</strong> is missing: baking <strong>security</strong> into the chain, early and automatically — not as a final step you endure. It&#39;s an <strong>AZ-400</strong> pillar: <strong>secrets</strong> management, <strong>static analysis</strong> of IaC and dependencies, <strong>supply chain</strong> security.</p>
+<p>True to the method, we do it <strong>for real and locally</strong>, with standard <strong>open-source</strong> tools: we <strong>detect a hardcoded secret</strong> (<code>detect-secrets</code>), <strong>block it before the commit</strong> with a <strong>pre-commit</strong> hook (the famous <em>shift-left</em>), then manage secrets <strong>properly</strong> in a <strong>Key Vault</strong> — live on <strong>miniblue</strong> (<code>set</code> / <code>show</code> / <code>list</code>). We <strong>scan IaC</strong> with <strong>checkov</strong>: on an un-hardened storage account it finds <strong>12 issues</strong>; after fixing, <strong>0</strong>. We assemble a <strong>Security pipeline</strong> (secret + IaC + dependency scanning) with <strong>least privilege</strong> and <strong>SHA-pinned actions</strong>. Finally, the <strong>supply chain</strong>: SBOM, pinning, dependency scanning.</p>
+<p><strong>Who it&#39;s for:</strong> you have pipelines that deploy (previous AZ-400 guides) and want to <strong>secure</strong> them.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t have an IaC pipeline yet → do <em>Azure — IaC in pipelines (AZ-400)</em> first.</li><li>You want <strong>runtime</strong> security (Defender, WAF) → that&#39;s more <strong>AZ-500</strong>; here it&#39;s <strong>pipeline</strong> security.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sais :</p>
+<ul><li><strong>Détecter</strong> un secret codé en dur avec <code>detect-secrets</code>.</li><li><strong>Bloquer</strong> un secret <strong>avant</strong> le commit avec un hook <strong>pre-commit</strong> (shift-left).</li><li>Gérer les secrets <strong>correctement</strong> dans un <strong>Key Vault</strong> (set / show / list).</li><li><strong>Scanner l&#39;IaC</strong> avec <strong>checkov</strong> et <strong>corriger</strong> les problèmes trouvés.</li><li>Bâtir une pipeline <strong>Sécurité</strong> (secrets + IaC + dépendances).</li><li>Appliquer le <strong>moindre privilège</strong> (<code>permissions</code>) et <strong>épingler les actions par SHA</strong>.</li><li>Comprendre la sécurité de la <strong>chaîne d&#39;approvisionnement</strong> (SBOM, pinning).</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you can:</p>
+<ul><li><strong>Detect</strong> a hardcoded secret with <code>detect-secrets</code>.</li><li><strong>Block</strong> a secret <strong>before</strong> the commit with a <strong>pre-commit</strong> hook (shift-left).</li><li>Manage secrets <strong>properly</strong> in a <strong>Key Vault</strong> (set / show / list).</li><li><strong>Scan IaC</strong> with <strong>checkov</strong> and <strong>fix</strong> the issues found.</li><li>Build a <strong>Security</strong> pipeline (secrets + IaC + dependencies).</li><li>Apply <strong>least privilege</strong> (<code>permissions</code>) and <strong>pin actions by SHA</strong>.</li><li>Understand <strong>supply chain</strong> security (SBOM, pinning).</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><ul><li>Le guide <strong>Azure — l&#39;IaC dans les pipelines (AZ-400)</strong> (Terraform, checkov utile).</li><li><strong>Python 3</strong> + <code>pip</code>, et deux outils open-source : <code>pip install detect-secrets checkov</code> (installation locale, hors ligne une fois téléchargés).</li><li>Le <strong>lab local</strong> : <strong>miniblue</strong> démarré (port 4567) pour la partie <strong>Key Vault</strong> (<code>azlocal keyvault</code>).</li><li><strong>Git</strong> et un <strong>terminal</strong>. <strong>Aucun compte cloud</strong> : tout est local.</li></ul>
+</div>
+<div data-lang="en"><ul><li>The <strong>Azure — IaC in pipelines (AZ-400)</strong> guide (Terraform, checkov handy).</li><li><strong>Python 3</strong> + <code>pip</code>, and two open-source tools: <code>pip install detect-secrets checkov</code> (local install, offline once downloaded).</li><li>The <strong>local lab</strong>: <strong>miniblue</strong> started (port 4567) for the <strong>Key Vault</strong> part (<code>azlocal keyvault</code>).</li><li><strong>Git</strong> and a <strong>terminal</strong>. <strong>No cloud account</strong>: everything is local.</li></ul>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../azure-iac-pipelines/">
+    <span class="num">72</span>
+    <span class="title-line" data-lang="fr">Azure — l&#39;IaC dans les pipelines (AZ-400) : validate, plan, apply</span>
+    <span class="title-line" data-lang="en">Azure — IaC in pipelines (AZ-400): validate, plan, apply</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>**DevSecOps : décaler la sécurité à gauche (<em>shift-left</em>).<strong> Dans un flux classique, la sécurité arrive </strong>en dernier<strong> — trop tard, trop cher. DevSecOps la </strong>déplace tôt<strong> : dès l&#39;écriture du code et à </strong>chaque commit<strong>, des contrôles automatiques cherchent secrets, mauvaises configs et dépendances vulnérables. La sécurité devient une </strong>responsabilité partagée**, intégrée à la pipeline.</p>
+<p><strong>Les secrets : le risque n°1.</strong> Un mot de passe, une clé d&#39;API, un jeton <strong>codé en dur</strong> dans le dépôt = fuite quasi certaine (les dépôts sont clonés, publiés, indexés). Deux défenses : (1) <strong>détecter</strong> — un scanner (<code>detect-secrets</code>) repère les motifs et les chaînes à forte entropie ; (2) <strong>prévenir</strong> — un <strong>hook pre-commit</strong> <strong>bloque</strong> le commit s&#39;il contient un secret. Et la bonne pratique : ne <strong>jamais</strong> mettre le secret dans le code — le stocker dans un <strong>coffre</strong> (<strong>Key Vault</strong>) et l&#39;<strong>injecter</strong> au moment de l&#39;exécution.</p>
+<p><strong>Le coffre (Key Vault).</strong> Un service qui <strong>stocke</strong> secrets, clés et certificats, avec contrôle d&#39;accès et audit. Le code ne contient qu&#39;une <strong>référence</strong> ; la valeur est lue au runtime (via identité managée en vrai Azure). On teste <code>set</code> / <code>show</code> / <code>list</code> en local sur miniblue.</p>
+<p><strong>L&#39;analyse statique (SAST &amp; IaC scanning).</strong> Analyser le <strong>code</strong> (et l&#39;<strong>IaC</strong>) <strong>sans l&#39;exécuter</strong> pour trouver des failles. Pour l&#39;infra, <strong>checkov</strong> compare ton Terraform/Bicep à des <strong>centaines de règles</strong> (HTTPS forcé, TLS récent, accès public fermé, chiffrement…). Il tourne <strong>hors ligne</strong>, en <strong>gate de CI</strong> : un <code>Failed checks: N</code> fait échouer le job jusqu&#39;à correction.</p>
+<p><strong>Le scan des dépendances.</strong> Ton app dépend de bibliothèques ; certaines ont des <strong>vulnérabilités connues</strong> (CVE). Un scanner (<code>npm audit</code>, <code>pip-audit</code>, Dependabot) les <strong>signale</strong>. En pipeline, on échoue au-dessus d&#39;un <strong>seuil</strong> de sévérité (<code>--audit-level=high</code>).</p>
+<p><strong>La chaîne d&#39;approvisionnement (supply chain).</strong> Tout ce dont dépend ta build : dépendances, images de base, <strong>actions</strong> de CI. Risques : une action de tierce partie compromise, une image piégée. Défenses : <strong>épingler par SHA</strong> (pas par tag mouvant — <code>@v4</code> peut changer, <code>@&lt;sha40&gt;</code> non), <strong>moindre privilège</strong> (<code>permissions: contents: read</code>), un <strong>SBOM</strong> (inventaire des composants) pour la traçabilité.</p>
+<p><strong>Ce qui est live ici.</strong> <code>detect-secrets</code> <strong>scanne</strong> de vrais fichiers et <strong>trouve</strong> de vrais secrets ; le <strong>hook pre-commit</strong> <strong>bloque</strong> réellement un commit ; <strong>Key Vault</strong> sur miniblue <strong>stocke et restitue</strong> un secret (<code>set</code>/<code>show</code>/<code>list</code>) ; <strong>checkov</strong> <strong>analyse</strong> ton Terraform et <strong>compte</strong> les problèmes (12 → 0). Les <strong>pipelines de sécurité</strong> (GitHub Actions) se <strong>valident</strong> en local ; leur <strong>exécution</strong> sur runner cible un vrai dépôt. Tout s&#39;apprend <strong>sans compte cloud</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>DevSecOps: shifting security left.</strong> In a classic flow, security comes <strong>last</strong> — too late, too costly. DevSecOps <strong>moves it early</strong>: from the moment code is written and on <strong>every commit</strong>, automated checks look for secrets, misconfigurations and vulnerable dependencies. Security becomes a <strong>shared responsibility</strong>, baked into the pipeline.</p>
+<p><strong>Secrets: risk #1.</strong> A password, an API key, a <strong>hardcoded</strong> token in the repo = near-certain leak (repos get cloned, published, indexed). Two defenses: (1) <strong>detect</strong> — a scanner (<code>detect-secrets</code>) spots patterns and high-entropy strings; (2) <strong>prevent</strong> — a <strong>pre-commit hook</strong> <strong>blocks</strong> the commit if it contains a secret. And the good practice: <strong>never</strong> put the secret in code — store it in a <strong>vault</strong> (<strong>Key Vault</strong>) and <strong>inject</strong> it at runtime.</p>
+<p><strong>The vault (Key Vault).</strong> A service that <strong>stores</strong> secrets, keys and certificates, with access control and audit. Code holds only a <strong>reference</strong>; the value is read at runtime (via managed identity in real Azure). We test <code>set</code> / <code>show</code> / <code>list</code> locally on miniblue.</p>
+<p><strong>Static analysis (SAST &amp; IaC scanning).</strong> Analyze the <strong>code</strong> (and <strong>IaC</strong>) <strong>without running it</strong> to find flaws. For infra, <strong>checkov</strong> compares your Terraform/Bicep to <strong>hundreds of rules</strong> (HTTPS enforced, recent TLS, public access closed, encryption…). It runs <strong>offline</strong>, as a <strong>CI gate</strong>: a <code>Failed checks: N</code> fails the job until fixed.</p>
+<p><strong>Dependency scanning.</strong> Your app depends on libraries; some have <strong>known vulnerabilities</strong> (CVEs). A scanner (<code>npm audit</code>, <code>pip-audit</code>, Dependabot) <strong>flags</strong> them. In a pipeline, you fail above a severity <strong>threshold</strong> (<code>--audit-level=high</code>).</p>
+<p><strong>The supply chain.</strong> Everything your build depends on: dependencies, base images, CI <strong>actions</strong>. Risks: a compromised third-party action, a poisoned image. Defenses: <strong>pin by SHA</strong> (not a movable tag — <code>@v4</code> can change, <code>@&lt;sha40&gt;</code> can&#39;t), <strong>least privilege</strong> (<code>permissions: contents: read</code>), an <strong>SBOM</strong> (component inventory) for traceability.</p>
+<p><strong>What&#39;s live here.</strong> <code>detect-secrets</code> <strong>scans</strong> real files and <strong>finds</strong> real secrets; the <strong>pre-commit hook</strong> actually <strong>blocks</strong> a commit; <strong>Key Vault</strong> on miniblue <strong>stores and returns</strong> a secret (<code>set</code>/<code>show</code>/<code>list</code>); <strong>checkov</strong> <strong>analyzes</strong> your Terraform and <strong>counts</strong> the issues (12 → 0). The <strong>security pipelines</strong> (GitHub Actions) are <strong>validated</strong> locally; <strong>running</strong> them on a runner targets a real repo. It all learns <strong>without a cloud account</strong>.</p>
+</div>
+
+<figure class="schema" id="figure-azure-devsecops-chain">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-azure-devsecops-chain">
+  <title id="s-azure-devsecops-chain">La chaîne DevSecOps (shift-left)</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">La chaîne DevSecOps (shift-left)</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">pre-commit</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">bloque les secrets</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-soft" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="286" y="70.5" text-anchor="middle">Key Vault</text><text class="sub sub-blue" x="286" y="83.5" text-anchor="middle">coffre</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="70.5" text-anchor="middle">pipeline sécurité</text><text class="sub" x="474" y="83.5" text-anchor="middle">secrets · IaC · deps</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="70.5" text-anchor="middle">moindre privilège</text><text class="sub" x="662" y="83.5" text-anchor="middle">actions épinglées SHA</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> La chaîne DevSecOps : à l&#39;écriture, un hook PRE-COMMIT bloque tout SECRET (detect-secrets) — les secrets vont au COFFRE (Key Vault), pas dans le code. À chaque push, la pipeline SÉCURITÉ scanne en parallèle : secrets, IaC (checkov), dépendances (audit). Au moindre privilège (permissions: read) et actions épinglées par SHA. La sécurité est décalée À GAUCHE, automatique, à chaque étape.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The DevSecOps chain: at writing time, a PRE-COMMIT hook blocks any SECRET (detect-secrets) — secrets go to the VAULT (Key Vault), not into code. On every push, the SECURITY pipeline scans in parallel: secrets, IaC (checkov), dependencies (audit). With least privilege (permissions: read) and SHA-pinned actions. Security is shifted LEFT, automatic, at every stage.</figcaption>
+</figure>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Détecter</strong> un secret codé en dur avec <code>detect-secrets</code>.</p>
+<p><strong>🤔 On ne peut protéger que ce qu&#39;on voit.</strong> Avant tout, apprends à <strong>repérer</strong> un secret. <code>detect-secrets</code> scanne un fichier et signale clés d&#39;API, jetons et chaînes à forte entropie. On crée un fichier fautif et on le scanne.</p>
+<p>Installe l&#39;outil, crée un fichier fautif, scanne :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Detect</strong> a hardcoded secret with <code>detect-secrets</code>.</p>
+<p><strong>🤔 You can only protect what you can see.</strong> First, learn to <strong>spot</strong> a secret. <code>detect-secrets</code> scans a file and flags API keys, tokens and high-entropy strings. We create an offending file and scan it.</p>
+<p>Install the tool, create an offending file, scan:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install detect-secrets checkov    # outils DevSecOps open-source / open-source DevSecOps tools
+
+mkdir -p devsecops &amp;&amp; cd devsecops
+cat &gt; config.py &lt;&lt;&#39;PY&#39;
+DB_HOST = &quot;localhost&quot;
+AWS_SECRET_ACCESS_KEY = &quot;wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY&quot;
+API_TOKEN = &quot;ghp_1234567890abcdefghijklmnopqrstuvwxyzAB&quot;
+PY
+
+detect-secrets scan config.py \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); [print(f&#39;{f}:{r[\&quot;line_number\&quot;]}  {r[\&quot;type\&quot;]}&#39;) for f,res in d[&#39;results&#39;].items() for r in res]&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie liste plusieurs détections, dont <code>config.py:2  AWS Access Key</code>, <code>config.py:3  GitHub Token</code>, et des <code>Base64 High Entropy String</code>. <code>detect-secrets</code> a <strong>repéré</strong> les secrets en dur — clés reconnues <strong>et</strong> chaînes suspectes par entropie. C&#39;est le radar. Mais détecter <strong>après</strong> commit, c&#39;est déjà trop tard : on va <strong>prévenir</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output lists several detections, including <code>config.py:2  AWS Access Key</code>, <code>config.py:3  GitHub Token</code>, and <code>Base64 High Entropy String</code>s. <code>detect-secrets</code> <strong>spotted</strong> the hardcoded secrets — known key formats <strong>and</strong> entropy-suspicious strings. That&#39;s the radar. But detecting <strong>after</strong> commit is already too late: we&#39;ll <strong>prevent</strong>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Bloquer</strong> un secret <strong>avant</strong> le commit — un hook <strong>pre-commit</strong> (shift-left).</p>
+<p><strong>🤔 Empêcher, pas seulement constater.</strong> Un <strong>hook pre-commit</strong> est un script que Git lance <strong>avant</strong> d&#39;enregistrer un commit. S&#39;il détecte un secret, il <strong>refuse</strong> (<code>exit 1</code>) : le secret n&#39;entre <strong>jamais</strong> dans l&#39;historique. On installe le hook, on tente un commit fautif, puis un commit propre.</p>
+<p>Installe le hook, teste le blocage :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Block</strong> a secret <strong>before</strong> the commit — a <strong>pre-commit</strong> hook (shift-left).</p>
+<p><strong>🤔 Prevent, not just observe.</strong> A <strong>pre-commit hook</strong> is a script Git runs <strong>before</strong> recording a commit. If it detects a secret, it <strong>refuses</strong> (<code>exit 1</code>): the secret <strong>never</strong> enters history. We install the hook, attempt an offending commit, then a clean one.</p>
+<p>Install the hook, test the block:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>git init -q &amp;&amp; git config user.email you@example.com &amp;&amp; git config user.name student
+
+cat &gt; .git/hooks/pre-commit &lt;&lt;&#39;HOOK&#39;
+#!/bin/sh
+# Un contrôle de sécurité doit ÉCHOUER FERMÉ / a security control must FAIL CLOSED.
+# Si l&#39;outil manque, on bloque (on ne laisse pas passer par défaut).
+if ! command -v detect-secrets &gt;/dev/null 2&gt;&amp;1; then
+  echo &quot;⛔ detect-secrets introuvable — commit bloqué par sécurité (installe-le / ajoute-le au PATH).&quot;
+  exit 1
+fi
+for f in $(git diff --cached --name-only); do
+  [ -f &quot;$f&quot; ] || continue
+  N=$(detect-secrets scan &quot;$f&quot; 2&gt;/dev/null | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(sum(len(v) for v in d[&#39;results&#39;].values()))&quot; 2&gt;/dev/null)
+  [ -z &quot;$N&quot; ] &amp;&amp; N=-1   # scan échoué -&gt; traiter comme suspect / failed scan -&gt; treat as suspect
+  if [ &quot;$N&quot; -ne 0 ]; then
+    echo &quot;❌ SECRET détecté (ou scan impossible) dans $f — commit bloqué (utilise Key Vault, pas de secret en dur).&quot;
+    exit 1
+  fi
+done
+echo &quot;✅ Aucun secret détecté.&quot;
+HOOK
+chmod +x .git/hooks/pre-commit
+
+# Tentative fautive / offending attempt
+git add config.py
+git commit -m &quot;ajout config&quot; ; echo &quot;resultat commit fautif / offending commit result: $?&quot;
+
+# Version propre (le secret vient de l&#39;environnement) / clean version (secret from env)
+cat &gt; config.py &lt;&lt;&#39;PY&#39;
+import os
+DB_HOST = &quot;localhost&quot;
+API_TOKEN = os.environ[&quot;API_TOKEN&quot;]   # injecté au runtime, jamais en dur
+PY
+git add config.py
+git commit -m &quot;ajout config (sans secret)&quot; ; echo &quot;resultat commit propre / clean commit result: $?&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le <strong>premier</strong> commit est <strong>refusé</strong> — tu vois <code>❌ SECRET détecté dans config.py — commit bloqué</code> et <code>resultat commit fautif: 1</code> (Git a <strong>rejeté</strong> l&#39;enregistrement). Après avoir remplacé le secret par une <strong>lecture d&#39;environnement</strong>, le <strong>second</strong> commit <strong>passe</strong> (<code>resultat commit propre: 0</code>). Le secret n&#39;est <strong>jamais</strong> entré dans l&#39;historique : c&#39;est le <em>shift-left</em>. En équipe, on utilise le framework <code>pre-commit</code> (fichier <code>.pre-commit-config.yaml</code>) ; le principe est identique.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the <strong>first</strong> commit is <strong>refused</strong> — you see <code>❌ SECRET détecté dans config.py — commit bloqué</code> and <code>resultat commit fautif: 1</code> (Git <strong>rejected</strong> the record). After replacing the secret with an <strong>environment read</strong>, the <strong>second</strong> commit <strong>passes</strong> (<code>resultat commit propre: 0</code>). The secret <strong>never</strong> entered history: that&#39;s <em>shift-left</em>. In a team you&#39;d use the <code>pre-commit</code> framework (a <code>.pre-commit-config.yaml</code> file); the principle is identical.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Gérer les secrets <strong>correctement</strong> — dans un <strong>Key Vault</strong> (live sur miniblue).</p>
+<p><strong>🤔 Le secret vit dans le coffre, pas dans le code.</strong> Si le code ne doit <strong>jamais</strong> contenir le secret, où va-t-il ? Dans un <strong>coffre</strong> : on l&#39;y <strong>dépose</strong> (<code>set</code>), le code garde une <strong>référence</strong>, et on le <strong>lit</strong> au runtime. On teste le cycle sur miniblue.</p>
+<p>Dépose, liste, relis un secret :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Manage secrets <strong>properly</strong> — in a <strong>Key Vault</strong> (live on miniblue).</p>
+<p><strong>🤔 The secret lives in the vault, not in code.</strong> If code must <strong>never</strong> hold the secret, where does it go? In a <strong>vault</strong>: you <strong>deposit</strong> it (<code>set</code>), code keeps a <strong>reference</strong>, and you <strong>read</strong> it at runtime. We test the cycle on miniblue.</p>
+<p>Deposit, list, re-read a secret:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Déposer le secret dans le coffre / deposit the secret in the vault
+azlocal keyvault secret set --vault kv-devsecops --name api-token --value &quot;ghp_secret_du_lab_123&quot; 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;déposé / stored:&#39;, d[&#39;id&#39;])&quot;
+
+# Lister les secrets du coffre / list the vault&#39;s secrets
+azlocal keyvault secret list --vault kv-devsecops 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;secrets:&#39;, [s[&#39;id&#39;].split(&#39;/&#39;)[-1] for s in d[&#39;value&#39;]])&quot;
+
+# Relire la valeur (ce que fait l&#39;app au runtime) / read the value (what the app does at runtime)
+azlocal keyvault secret show --vault kv-devsecops --name api-token 2&gt;/dev/null \
+  | python3 -c &quot;import sys,json; d=json.load(sys.stdin); print(&#39;valeur lue / value read:&#39;, d[&#39;value&#39;])&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>set</code> renvoie <code>déposé / stored: https://kv-devsecops.vault.azure.net/secrets/api-token</code>, <code>list</code> affiche <code>secrets: [&#39;api-token&#39;]</code>, et <code>show</code> renvoie <code>valeur lue / value read: ghp_secret_du_lab_123</code>. Le secret vit dans le <strong>coffre</strong> ; le code ne contient qu&#39;une <strong>référence</strong> (le nom). En vrai Azure, l&#39;app lit le coffre via une <strong>identité managée</strong> (pas de secret pour accéder au secret). ⚠️ miniblue <strong>stocke la valeur en clair</strong> pour la démo — un vrai Key Vault la <strong>chiffre</strong> et <strong>journalise</strong> les accès.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>set</code> returns <code>déposé / stored: https://kv-devsecops.vault.azure.net/secrets/api-token</code>, <code>list</code> shows <code>secrets: [&#39;api-token&#39;]</code>, and <code>show</code> returns <code>valeur lue / value read: ghp_secret_du_lab_123</code>. The secret lives in the <strong>vault</strong>; code holds only a <strong>reference</strong> (the name). In real Azure, the app reads the vault via a <strong>managed identity</strong> (no secret to access the secret). ⚠️ miniblue <strong>stores the value in clear</strong> for the demo — a real Key Vault <strong>encrypts</strong> it and <strong>audits</strong> access.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Scanner l&#39;IaC</strong> avec <strong>checkov</strong> — trouver les mauvaises configurations.</p>
+<p><strong>🤔 Une infra peut être « valide » et </strong>non sécurisée<strong>.</strong> <code>terraform validate</code> dit que la <strong>syntaxe</strong> est bonne ; il ne dit <strong>rien</strong> de la sécurité. <strong>checkov</strong> compare ton code à des <strong>centaines de règles</strong>. On écrit un compte de stockage <strong>volontairement non durci</strong> et on le scanne.</p>
+<p>Écris une infra non durcie et scanne-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Scan IaC</strong> with <strong>checkov</strong> — find misconfigurations.</p>
+<p><strong>🤔 Infra can be &quot;valid&quot; and </strong>insecure<strong>.</strong> <code>terraform validate</code> says the <strong>syntax</strong> is fine; it says <strong>nothing</strong> about security. <strong>checkov</strong> compares your code to <strong>hundreds of rules</strong>. We write a <strong>deliberately un-hardened</strong> storage account and scan it.</p>
+<p>Write un-hardened infra and scan it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p infra
+cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;insecure&quot; {
+  name                     = &quot;stinsecure001&quot;
+  resource_group_name      = &quot;rg-demo&quot;
+  location                 = &quot;westeurope&quot;
+  account_tier             = &quot;Standard&quot;
+  account_replication_type = &quot;LRS&quot;
+  enable_https_traffic_only = false   # PROBLEME : HTTPS non forcé / HTTPS not enforced
+  min_tls_version           = &quot;TLS1_0&quot; # PROBLEME : TLS obsolète / obsolete TLS
+}
+TF
+
+checkov -d infra --compact --quiet -o cli 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot;
+echo &quot;--- exemples de règles échouées / sample failed rules ---&quot;
+checkov -d infra --compact --quiet -o cli 2&gt;/dev/null | grep -E &quot;CKV_AZURE_3:|CKV_AZURE_44:&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> checkov affiche <code>Passed checks: 3, Failed checks: 12</code> (l&#39;infra est <strong>valide</strong> mais <strong>non sécurisée</strong>) et pointe des règles comme <code>CKV_AZURE_3: &quot;Ensure that &#39;enable_https_traffic_only&#39; is enabled&quot;</code> et <code>CKV_AZURE_44: &quot;Ensure Storage Account is using the latest version of TLS&quot;</code>. C&#39;est le <strong>gate de sécurité IaC</strong> : en pipeline, <code>Failed checks &gt; 0</code> fait <strong>échouer</strong> le job. On corrige à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> checkov shows <code>Passed checks: 3, Failed checks: 12</code> (the infra is <strong>valid</strong> but <strong>insecure</strong>) and points to rules like <code>CKV_AZURE_3: &quot;Ensure that &#39;enable_https_traffic_only&#39; is enabled&quot;</code> and <code>CKV_AZURE_44: &quot;Ensure Storage Account is using the latest version of TLS&quot;</code>. That&#39;s the <strong>IaC security gate</strong>: in a pipeline, <code>Failed checks &gt; 0</code> <strong>fails</strong> the job. We fix it next.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> <strong>Corriger</strong> et <strong>re-scanner</strong> — passer de 12 à 0.</p>
+<p><strong>🤔 Le scan guide la correction.</strong> Chaque règle échouée dit <strong>quoi</strong> durcir. On force HTTPS, on relève le TLS, on ferme l&#39;accès public, et on <strong>re-scanne</strong> : les règles concernées <strong>passent</strong>.</p>
+<p>Durcis l&#39;infra et re-scanne :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> <strong>Fix</strong> and <strong>re-scan</strong> — go from 12 to 0.</p>
+<p><strong>🤔 The scan guides the fix.</strong> Each failed rule tells you <strong>what</strong> to harden. We enforce HTTPS, raise TLS, close public access, and <strong>re-scan</strong>: the relevant rules <strong>pass</strong>.</p>
+<p>Harden the infra and re-scan:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat &gt; infra/main.tf &lt;&lt;&#39;TF&#39;
+resource &quot;azurerm_storage_account&quot; &quot;secure&quot; {
+  name                            = &quot;stsecure001&quot;
+  resource_group_name             = &quot;rg-demo&quot;
+  location                        = &quot;westeurope&quot;
+  account_tier                    = &quot;Standard&quot;
+  account_replication_type        = &quot;GRS&quot;
+  enable_https_traffic_only       = true      # HTTPS forcé / HTTPS enforced
+  min_tls_version                 = &quot;TLS1_2&quot;  # TLS récent / recent TLS
+  public_network_access_enabled   = false     # accès public fermé / public access closed
+  allow_nested_items_to_be_public = false
+}
+TF
+
+echo &quot;--- règles HTTPS/TLS après durcissement / HTTPS/TLS rules after hardening ---&quot;
+checkov -d infra --check CKV_AZURE_3,CKV_AZURE_44 --compact --quiet 2&gt;/dev/null | grep -E &quot;Passed checks|Failed checks&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> en ne gardant que les deux règles clés, checkov affiche <code>Passed checks: 2, Failed checks: 0</code> — HTTPS forcé et TLS récent sont désormais <strong>respectés</strong>. Le durcissement (GRS, accès public fermé, chiffrement récent) fait tomber les problèmes. En pipeline, on peut <strong>exiger</strong> un scan <strong>vert</strong> avant de fusionner. ⚠️ Ne « skippe » une règle (<code># checkov:skip=...</code>) que si tu la <strong>comprends</strong> et l&#39;<strong>assumes</strong> (avec justification).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> keeping only the two key rules, checkov shows <code>Passed checks: 2, Failed checks: 0</code> — HTTPS enforced and recent TLS are now <strong>respected</strong>. Hardening (GRS, public access closed, recent encryption) clears the issues. In a pipeline you can <strong>require</strong> a <strong>green</strong> scan before merging. ⚠️ Only &quot;skip&quot; a rule (<code># checkov:skip=...</code>) if you <strong>understand</strong> and <strong>own</strong> it (with justification).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Assembler la <strong>pipeline Sécurité</strong> — moindre privilège et actions <strong>épinglées par SHA</strong>.</p>
+<p><strong>🤔 La sécurité, un stage à part entière.</strong> On regroupe les scans (secrets, IaC, dépendances) dans un workflow <strong>Sécurité</strong> qui tourne à <strong>chaque push/PR</strong>. Deux durcissements clés du workflow lui-même : <code>permissions: contents: read</code> (<strong>moindre privilège</strong>) et les <strong>actions épinglées par SHA</strong> (immuables). On écrit et on <strong>valide</strong>.</p>
+<p>Écris la pipeline Sécurité et valide-la :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Assemble the <strong>Security pipeline</strong> — least privilege and <strong>SHA-pinned</strong> actions.</p>
+<p><strong>🤔 Security, a first-class stage.</strong> We group the scans (secrets, IaC, dependencies) into a <strong>Security</strong> workflow that runs on <strong>every push/PR</strong>. Two key hardenings of the workflow itself: <code>permissions: contents: read</code> (<strong>least privilege</strong>) and <strong>SHA-pinned actions</strong> (immutable). We write and <strong>validate</strong>.</p>
+<p>Write the Security pipeline and validate it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p .github/workflows
+cat &gt; .github/workflows/securite.yml &lt;&lt;&#39;YAML&#39;
+name: Sécurité
+on: [push, pull_request]
+permissions:
+  contents: read            # moindre privilège : lecture seule / least privilege: read-only
+jobs:
+  secrets:
+    name: Scan de secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2 (épinglé par SHA)
+      - run: pip install detect-secrets &amp;&amp; detect-secrets scan --all-files
+  iac:
+    name: Scan IaC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - run: pip install checkov &amp;&amp; checkov -d infra
+  dependances:
+    name: Scan des dépendances
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - run: npm audit --audit-level=high
+YAML
+
+python3 -c &quot;
+import yaml, re
+d = yaml.safe_load(open(&#39;.github/workflows/securite.yml&#39;))
+print(&#39;jobs:&#39;, list(d[&#39;jobs&#39;].keys()))
+print(&#39;moindre privilège / least privilege:&#39;, d[&#39;permissions&#39;])
+pins = [s[&#39;uses&#39;].split(&#39;@&#39;)[1] for j in d[&#39;jobs&#39;].values() for s in j[&#39;steps&#39;] if &#39;uses&#39; in s]
+print(&#39;toutes actions épinglées par SHA / all actions SHA-pinned:&#39;, all(re.fullmatch(r&#39;[0-9a-f]{40}&#39;, p) for p in pins))
+&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> la sortie affiche <code>jobs: [&#39;secrets&#39;, &#39;iac&#39;, &#39;dependances&#39;]</code>, <code>moindre privilège / least privilege: {&#39;contents&#39;: &#39;read&#39;}</code>, et <code>toutes actions épinglées par SHA / all actions SHA-pinned: True</code>. Trois scans <strong>en parallèle</strong> à chaque push, un token de workflow <strong>en lecture seule</strong>, des actions <strong>immuables</strong> (un attaquant ne peut pas repousser du code malveillant derrière <code>@v4</code>). C&#39;est une pipeline de sécurité <strong>complète</strong>. ⚠️ On <strong>valide</strong> la structure ici ; l&#39;exécution réelle installe et lance les scanners sur le runner.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the output shows <code>jobs: [&#39;secrets&#39;, &#39;iac&#39;, &#39;dependances&#39;]</code>, <code>moindre privilège / least privilege: {&#39;contents&#39;: &#39;read&#39;}</code>, and <code>toutes actions épinglées par SHA / all actions SHA-pinned: True</code>. Three scans <strong>in parallel</strong> on every push, a <strong>read-only</strong> workflow token, <strong>immutable</strong> actions (an attacker can&#39;t push malicious code behind <code>@v4</code>). That&#39;s a <strong>complete</strong> security pipeline. ⚠️ We <strong>validate</strong> the structure here; real execution installs and runs the scanners on the runner.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre la <strong>chaîne d&#39;approvisionnement</strong> (SBOM, pinning, dépendances) et récapituler.</p>
+<p><strong>🤔 Tu hérites de la sécurité de tes dépendances.</strong> Ta build dépend de bibliothèques, d&#39;images et d&#39;actions : leur compromission devient la tienne. Défenses : <strong>scanner les dépendances</strong> (seuil de sévérité), <strong>épingler</strong> par version/SHA, produire un <strong>SBOM</strong> (inventaire) pour savoir <strong>ce qui</strong> tourne. On simule un scan de dépendances et on note les pratiques.</p>
+<p>Prépare un manifeste, note le SBOM, récapitule :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand the <strong>supply chain</strong> (SBOM, pinning, dependencies) and recap.</p>
+<p><strong>🤔 You inherit your dependencies&#39; security.</strong> Your build depends on libraries, images and actions: their compromise becomes yours. Defenses: <strong>scan dependencies</strong> (severity threshold), <strong>pin</strong> by version/SHA, produce an <strong>SBOM</strong> (inventory) to know <strong>what</strong> runs. We simulate a dependency scan and note the practices.</p>
+<p>Prepare a manifest, note the SBOM, recap:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Un manifeste avec versions épinglées / a manifest with pinned versions
+cat &gt; package.json &lt;&lt;&#39;JSON&#39;
+{
+  &quot;name&quot;: &quot;app&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;dependencies&quot;: {}
+}
+JSON
+
+# npm audit exige un fichier de verrou / npm audit requires a lockfile
+npm install --package-lock-only &gt;/dev/null 2&gt;&amp;1
+
+# Scan des dépendances (seuil de sévérité) / dependency scan (severity threshold)
+npm audit --audit-level=high 2&gt;&amp;1 | tail -2
+
+# SBOM : inventaire des composants (concept) / SBOM: component inventory (concept)
+echo &quot;SBOM = inventaire signé de TOUS les composants (deps, versions, licences)&quot;
+echo &quot;  outils : syft, &#39;npm sbom&#39;, &#39;az acr&#39; ; format : CycloneDX / SPDX&quot;
+echo &quot;Chaîne d&#39;approvisionnement sécurisée = pin par SHA + scan deps + SBOM + moindre privilège&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>npm audit</code> répond <code>found 0 vulnerabilities</code> (manifeste vide) — en pipeline, un <code>--audit-level=high</code> <strong>échouerait</strong> au-dessus d&#39;une vulnérabilité haute/critique. Tu as bouclé la chaîne DevSecOps : <strong>secrets</strong> (détecter, bloquer, coffre), <strong>IaC</strong> (scanner, durcir), <strong>pipeline</strong> (moindre privilège, SHA), <strong>dépendances &amp; SBOM</strong>. La sécurité est désormais <strong>dans</strong> la pipeline, à chaque étape. La suite du track AZ-400 : la <strong>supervision</strong> de la livraison (métriques, alertes, feedback), puis le <strong>projet DevOps</strong> de synthèse.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>npm audit</code> answers <code>found 0 vulnerabilities</code> (empty manifest) — in a pipeline, an <code>--audit-level=high</code> would <strong>fail</strong> above a high/critical vulnerability. You closed the DevSecOps loop: <strong>secrets</strong> (detect, block, vault), <strong>IaC</strong> (scan, harden), <strong>pipeline</strong> (least privilege, SHA), <strong>dependencies &amp; SBOM</strong>. Security is now <strong>inside</strong> the pipeline, at every stage. Next in the AZ-400 track: delivery <strong>monitoring</strong> (metrics, alerts, feedback), then the capstone <strong>DevOps project</strong>.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Détecter sans prévenir — et échouer « ouvert ».</strong> Trouver un secret <strong>après</strong> commit = déjà fuité (l&#39;historique le garde). Mets un <strong>hook pre-commit</strong> (ou un check CI <strong>bloquant</strong>). Et surtout, un contrôle de sécurité doit <strong>échouer fermé</strong> : si l&#39;outil manque ou le scan plante, <strong>bloque</strong> (ne laisse <strong>pas</strong> passer par défaut) — un hook qui « laisse passer » en cas d&#39;erreur est pire qu&#39;inutile.</p>
+<p><strong>2. Secret « chiffré » dans le repo.</strong> Un secret encodé/base64 <strong>reste</strong> un secret. Le seul bon endroit est un <strong>coffre</strong> (Key Vault), pas le dépôt.</p>
+<p><strong>3. Confondre <code>validate</code> et sécurité.</strong> <code>terraform validate</code> ne vérifie que la syntaxe. La sécurité de l&#39;infra, c&#39;est <strong>checkov</strong> (ou tfsec/trivy).</p>
+<p><strong>4. Skipper les règles pour « passer ».</strong> <code># checkov:skip</code> sans justification = fausse sécurité. Corrige, ou assume explicitement (avec raison).</p>
+<p><strong>5. Actions épinglées par tag mouvant.</strong> <code>@v4</code> peut être <strong>réécrit</strong>. Épingle par <strong>SHA</strong> (<code>@&lt;40 hex&gt;</code>) — immuable.</p>
+<p><strong>6. Token de workflow trop permissif.</strong> Par défaut, un workflow peut avoir des droits d&#39;écriture. Déclare <code>permissions: contents: read</code> et n&#39;élargis <strong>qu&#39;au besoin</strong>.</p>
+<p><strong>7. Ignorer les dépendances.</strong> Le code peut être parfait et <strong>hériter</strong> d&#39;une CVE d&#39;une lib. Scanne (<code>npm audit</code>, <code>pip-audit</code>, Dependabot) et fixe un <strong>seuil</strong>.</p>
+</div>
+<div data-lang="en"><p><strong>1. Detect without prevent — and failing &quot;open&quot;.</strong> Finding a secret <strong>after</strong> commit = already leaked (history keeps it). Add a <strong>pre-commit hook</strong> (or a <strong>blocking</strong> CI check). And crucially, a security control must <strong>fail closed</strong>: if the tool is missing or the scan crashes, <strong>block</strong> (do <strong>not</strong> let it through by default) — a hook that &quot;lets it through&quot; on error is worse than useless.</p>
+<p><strong>2. An &quot;encrypted&quot; secret in the repo.</strong> An encoded/base64 secret <strong>is still</strong> a secret. The only right place is a <strong>vault</strong> (Key Vault), not the repo.</p>
+<p><strong>3. Confusing <code>validate</code> with security.</strong> <code>terraform validate</code> only checks syntax. Infra security is <strong>checkov</strong> (or tfsec/trivy).</p>
+<p><strong>4. Skipping rules to &quot;pass&quot;.</strong> <code># checkov:skip</code> without justification = fake security. Fix it, or explicitly own it (with a reason).</p>
+<p><strong>5. Actions pinned by a movable tag.</strong> <code>@v4</code> can be <strong>rewritten</strong>. Pin by <strong>SHA</strong> (<code>@&lt;40 hex&gt;</code>) — immutable.</p>
+<p><strong>6. Over-permissive workflow token.</strong> By default a workflow can have write rights. Declare <code>permissions: contents: read</code> and widen <strong>only as needed</strong>.</p>
+<p><strong>7. Ignoring dependencies.</strong> Code can be perfect and <strong>inherit</strong> a CVE from a lib. Scan (<code>npm audit</code>, <code>pip-audit</code>, Dependabot) and set a <strong>threshold</strong>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu as réussi si :</p>
+<ul><li>Tu <strong>détectes</strong> un secret avec <code>detect-secrets</code>.</li><li>Ton <strong>hook pre-commit</strong> <strong>bloque</strong> un commit contenant un secret.</li><li>Tu <strong>stockes/lis</strong> un secret dans un <strong>Key Vault</strong> (au lieu de le coder en dur).</li><li>Tu <strong>scannes</strong> ton IaC avec <strong>checkov</strong> et <strong>corriges</strong> (12 → 0).</li><li>Tu as une pipeline <strong>Sécurité</strong> (secrets + IaC + dépendances) au <strong>moindre privilège</strong>.</li><li>Tes <strong>actions</strong> sont <strong>épinglées par SHA</strong> et tu sais ce qu&#39;est un <strong>SBOM</strong>.</li></ul>
+</div>
+<div data-lang="en"><p>You&#39;ve succeeded if:</p>
+<ul><li>You <strong>detect</strong> a secret with <code>detect-secrets</code>.</li><li>Your <strong>pre-commit hook</strong> <strong>blocks</strong> a commit containing a secret.</li><li>You <strong>store/read</strong> a secret in a <strong>Key Vault</strong> (instead of hardcoding it).</li><li>You <strong>scan</strong> your IaC with <strong>checkov</strong> and <strong>fix</strong> it (12 → 0).</li><li>You have a <strong>Security</strong> pipeline (secrets + IaC + dependencies) with <strong>least privilege</strong>.</li><li>Your <strong>actions</strong> are <strong>SHA-pinned</strong> and you know what an <strong>SBOM</strong> is.</li></ul>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><ul><li><strong>Suivant :</strong> <em>Azure — supervision de la livraison (AZ-400)</em> — métriques (DORA), alertes, boucles de retour.</li><li><strong>Réviser :</strong> <em>Azure — l&#39;IaC dans les pipelines (AZ-400)</em> pour le contexte Terraform/Bicep.</li><li><strong>S&#39;entraîner :</strong> ajoute le stage <strong>Sécurité</strong> à ta pipeline CI/CD et exige un scan <strong>vert</strong> dans la stratégie de branche.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>Next:</strong> <em>Azure — delivery monitoring (AZ-400)</em> — metrics (DORA), alerts, feedback loops.</li><li><strong>Review:</strong> <em>Azure — IaC in pipelines (AZ-400)</em> for the Terraform/Bicep context.</li><li><strong>Practice:</strong> add the <strong>Security</strong> stage to your CI/CD pipeline and require a <strong>green</strong> scan in the branch policy.</li></ul>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p><strong>Secrets</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install detect-secrets                  # installe le scanner
+detect-secrets scan FICHIER                 # scanne un fichier / dossier (--all-files)
+# hook : .git/hooks/pre-commit -&gt; scan des fichiers indexés, exit 1 si trouvé
+#        FAIL CLOSED : si l&#39;outil manque ou le scan échoue -&gt; bloquer (ne jamais laisser passer)</code></pre>
+<p><strong>Coffre (Key Vault, live sur miniblue)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal keyvault secret set  --vault V --name N --value &quot;…&quot;   # déposer
+azlocal keyvault secret list --vault V                        # lister
+azlocal keyvault secret show --vault V --name N               # relire
+# le code garde une RÉFÉRENCE (nom), jamais la valeur</code></pre>
+<p><strong>Scan IaC (checkov)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install checkov
+checkov -d infra                            # scanne un dossier Terraform/Bicep
+checkov -d infra --check CKV_AZURE_3        # une règle précise
+checkov -d infra --compact --quiet          # sortie condensée (gate de CI)</code></pre>
+<p><strong>Chaîne d&#39;approvisionnement</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- actions épinglées par SHA :  uses: actions/checkout@&lt;40 hex&gt;   # pas @v4
+- moindre privilège :           permissions: { contents: read }
+- scan des dépendances :        npm audit --audit-level=high
+- SBOM :                        syft / npm sbom (format CycloneDX / SPDX)</code></pre>
+</div>
+<div data-lang="en"><p><strong>Secrets</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install detect-secrets                  # install the scanner
+detect-secrets scan FILE                    # scan a file / folder (--all-files)
+# hook: .git/hooks/pre-commit -&gt; scan staged files, exit 1 if found
+#       FAIL CLOSED: if the tool is missing or the scan fails -&gt; block (never let it through)</code></pre>
+<p><strong>Vault (Key Vault, live on miniblue)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>azlocal keyvault secret set  --vault V --name N --value &quot;…&quot;   # deposit
+azlocal keyvault secret list --vault V                        # list
+azlocal keyvault secret show --vault V --name N               # re-read
+# code keeps a REFERENCE (name), never the value</code></pre>
+<p><strong>IaC scan (checkov)</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pip install checkov
+checkov -d infra                            # scan a Terraform/Bicep folder
+checkov -d infra --check CKV_AZURE_3        # a specific rule
+checkov -d infra --compact --quiet          # condensed output (CI gate)</code></pre>
+<p><strong>Supply chain</strong></p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>- SHA-pinned actions:  uses: actions/checkout@&lt;40 hex&gt;   # not @v4
+- least privilege:     permissions: { contents: read }
+- dependency scan:     npm audit --audit-level=high
+- SBOM:                syft / npm sbom (CycloneDX / SPDX format)</code></pre>
+</div>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><strong>detect-secrets</strong> (Yelp) : scan de secrets, baseline, hook — dépôt GitHub <code>Yelp/detect-secrets</code>.</li><li><strong>pre-commit</strong> : framework de hooks Git (<code>.pre-commit-config.yaml</code>) — pre-commit.com.</li><li><strong>checkov</strong> (Prisma/Bridgecrew) : scan IaC (Terraform, Bicep, ARM, K8s) — docs checkov.</li><li><strong>Azure Key Vault</strong> : secrets, clés, certificats ; accès par identité managée — Microsoft Learn.</li><li><strong>Sécurité GitHub Actions</strong> : <code>permissions</code>, épinglage par SHA, <code>GITHUB_TOKEN</code> — docs GitHub.</li><li><strong>SBOM &amp; supply chain</strong> : SLSA, CycloneDX, SPDX, <code>syft</code> — pour la traçabilité des composants.</li></ul>
+</div>
+<div data-lang="en"><ul><li><strong>detect-secrets</strong> (Yelp): secret scanning, baseline, hook — GitHub repo <code>Yelp/detect-secrets</code>.</li><li><strong>pre-commit</strong>: Git hooks framework (<code>.pre-commit-config.yaml</code>) — pre-commit.com.</li><li><strong>checkov</strong> (Prisma/Bridgecrew): IaC scanning (Terraform, Bicep, ARM, K8s) — checkov docs.</li><li><strong>Azure Key Vault</strong>: secrets, keys, certificates; access via managed identity — Microsoft Learn.</li><li><strong>GitHub Actions security</strong>: <code>permissions</code>, SHA pinning, <code>GITHUB_TOKEN</code> — GitHub docs.</li><li><strong>SBOM &amp; supply chain</strong>: SLSA, CycloneDX, SPDX, <code>syft</code> — for component traceability.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>detect-secrets : commande introuvable</code>.</strong> Installe-le : <code>pip install detect-secrets</code>. Si <code>pip</code> l&#39;installe dans <code>~/.local/bin</code> hors PATH, ajoute ce dossier au <code>PATH</code> ou lance <code>python3 -m detect_secrets</code>.</p>
+<p><strong>Le hook pre-commit ne se déclenche pas.</strong> Vérifie qu&#39;il est <strong>exécutable</strong> (<code>chmod +x .git/hooks/pre-commit</code>) et bien nommé (<code>pre-commit</code>, sans extension). Il ne s&#39;applique qu&#39;au dépôt local (pas partagé par <code>git clone</code> — d&#39;où le framework <code>pre-commit</code> en équipe).</p>
+<p><strong><code>checkov</code> très bavard / trop de règles.</strong> Utilise <code>--compact --quiet</code>, cible des règles (<code>--check CKV_...</code>) ou un framework (<code>--framework terraform</code>). Pour ignorer une règle <strong>assumée</strong> : commentaire <code># checkov:skip=CKV_AZURE_X: raison</code>.</p>
+<p><strong><code>azlocal keyvault</code> : <code>--vault is required</code>.</strong> Le drapeau est <code>--vault</code> (pas <code>--vault-name</code>). Vérifie aussi que miniblue tourne (port 4567).</p>
+<p><strong><code>npm audit</code> : <code>requires existing shrinkwrap file</code>.</strong> L&#39;audit a besoin d&#39;un <strong>fichier de verrou</strong>. Génère-le d&#39;abord : <code>npm install --package-lock-only</code>. (Sans réseau, l&#39;audit peut aussi échouer car il interroge le registre npm ; en pipeline, le runner a le réseau.)</p>
+<p><strong>checkov signale des règles sur du code de démo.</strong> C&#39;est normal : nos exemples sont <strong>minimalistes</strong>. En vrai, corrige ou assume chaque règle ; ne vise pas « zéro finding » à tout prix, vise « <strong>zéro finding non justifié</strong> ».</p>
+</div>
+<div data-lang="en"><p><strong><code>detect-secrets: command not found</code>.</strong> Install it: <code>pip install detect-secrets</code>. If <code>pip</code> installs it into <code>~/.local/bin</code> off PATH, add that folder to <code>PATH</code> or run <code>python3 -m detect_secrets</code>.</p>
+<p><strong>The pre-commit hook doesn&#39;t fire.</strong> Check it&#39;s <strong>executable</strong> (<code>chmod +x .git/hooks/pre-commit</code>) and correctly named (<code>pre-commit</code>, no extension). It only applies to the local repo (not shared by <code>git clone</code> — hence the <code>pre-commit</code> framework for teams).</p>
+<p><strong><code>checkov</code> very verbose / too many rules.</strong> Use <code>--compact --quiet</code>, target rules (<code>--check CKV_...</code>) or a framework (<code>--framework terraform</code>). To ignore an <strong>owned</strong> rule: comment <code># checkov:skip=CKV_AZURE_X: reason</code>.</p>
+<p><strong><code>azlocal keyvault</code>: <code>--vault is required</code>.</strong> The flag is <code>--vault</code> (not <code>--vault-name</code>). Also check miniblue is running (port 4567).</p>
+<p><strong><code>npm audit</code> fails offline.</strong> The audit queries the npm registry; offline it can fail. In local learning, keep the <strong>principle</strong> (severity threshold); in a pipeline, the runner has network.</p>
+<p><strong>checkov flags rules on demo code.</strong> That&#39;s normal: our examples are <strong>minimal</strong>. In reality, fix or own each rule; don&#39;t chase &quot;zero findings&quot; at all costs, aim for &quot;<strong>zero unjustified findings</strong>&quot;.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Linux — les fondamentaux — jiha.tech</title>
+  <title data-lang="en">Linux — the fundamentals — jiha.tech</title>
+  <meta name="description" content="Les fondamentaux Linux pour le DevOps, refaisables sur ta propre machine : arborescence, permissions, utilisateurs et sudo, processus, services systemd, paquets, réseau en ligne de commande." data-lang="fr">
+  <meta name="description" content="Linux fundamentals for DevOps, reproducible on your own machine: filesystem, permissions, users and sudo, processes, systemd services, packages, command-line networking." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Linux — les fondamentaux">
+  <meta property="og:description" content="Les fondamentaux Linux pour le DevOps, refaisables sur ta propre machine : arborescence, permissions, utilisateurs et sudo, processus, services systemd, paquets, réseau en ligne de commande.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/linux-fondamentaux/">
+  <link rel="canonical" href="https://jiha.tech/guides/linux-fondamentaux/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="linux-fondamentaux">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/linux-fondamentaux</div>
+    <div class="prompt" data-lang="en">~/guides/linux-fondamentaux</div>
+    <h1 data-lang="fr">Linux — les fondamentaux</h1>
+    <h1 data-lang="en">Linux — the fundamentals</h1>
+    <p class="tagline" data-lang="fr">Fichiers, permissions, processus, services, réseau.</p>
+    <p class="tagline" data-lang="en">Files, permissions, processes, services, networking.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 150 min</strong></div>
+  <div><span>Niveau</span><strong>Débutant</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-07-31</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 150 min</strong></div>
+  <div><span>Level</span><strong>Beginner</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-07-31</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Linux est le <strong>système d&#39;exploitation de tout le DevOps</strong> : tes conteneurs tournent dessus, tes serveurs en sont faits, tes pipelines s&#39;exécutent dessus. Tu n&#39;as pas besoin de le « connaître par cœur » — tu as besoin d&#39;un <strong>socle solide</strong> que tu comprends assez pour débugger quand ça coince.</p>
+<p>Le piège classique : empiler des commandes copiées-collées sans jamais comprendre <em>qui</em> possède un fichier, <em>pourquoi</em> une permission est refusée, ou <em>où</em> un service écrit ses logs. Résultat : le premier <code>Permission denied</code> te bloque une heure.</p>
+<p>Ce guide construit le <strong>modèle mental d&#39;abord</strong>, la pratique ensuite. Tout est <strong>refaisable sur ta propre machine</strong> — aucun serveur distant requis. À la fin, tu liras une sortie <code>ls -l</code>, une table de processus ou un statut <code>systemctl</code> sans hésiter.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu sais ouvrir un terminal et taper quelques commandes (guide <em>Ligne de commande</em> en prérequis), et tu veux le <strong>socle système</strong> qu&#39;exigent Docker, Ansible, Kubernetes et le reste du parcours.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu administres déjà Linux au quotidien (permissions, systemd, réseau) → passe directement à Docker.</li><li>Tu cherches un cours de programmation → ce n&#39;est pas ça : ici on <strong>pilote un système</strong>, on ne code pas une application.</li></ul>
+</div>
+<div data-lang="en"><p>Linux is the <strong>operating system of all DevOps</strong>: your containers run on it, your servers are made of it, your pipelines execute on it. You don&#39;t need to &quot;know it by heart&quot; — you need a <strong>solid foundation</strong> you understand well enough to debug when things break.</p>
+<p>The classic trap: stacking copy-pasted commands without ever understanding <em>who</em> owns a file, <em>why</em> a permission is denied, or <em>where</em> a service writes its logs. Result: the first <code>Permission denied</code> blocks you for an hour.</p>
+<p>This guide builds the <strong>mental model first</strong>, practice second. Everything is <strong>reproducible on your own machine</strong> — no remote server needed. By the end, you&#39;ll read an <code>ls -l</code> output, a process table, or a <code>systemctl</code> status without hesitation.</p>
+<p><strong>Who it&#39;s for:</strong> you can open a terminal and type a few commands (the <em>Command line</em> guide is a prerequisite), and you want the <strong>system foundation</strong> that Docker, Ansible, Kubernetes and the rest of the track require.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You already administer Linux daily (permissions, systemd, networking) → skip straight to Docker.</li><li>You&#39;re looking for a programming course → this isn&#39;t it: here we <strong>drive a system</strong>, we don&#39;t write an application.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Te repérer dans l&#39;<strong>arborescence</strong> Linux (le standard FHS) : où vit quoi.</li><li>Lire et manipuler les <strong>permissions</strong> (<code>rwx</code>, <code>chmod</code>, <code>chown</code>) et comprendre <code>Permission denied</code>.</li><li>Distinguer les <strong>utilisateurs</strong>, le compte <code>root</code> et le bon usage de <code>sudo</code> (moindre privilège).</li><li>Observer et contrôler les <strong>processus</strong> : <code>ps</code>, <code>top</code>, signaux, <code>kill</code>.</li><li>Piloter les <strong>services</strong> avec <code>systemd</code> (<code>systemctl</code>, <code>journalctl</code>).</li><li>Installer et maintenir des <strong>paquets</strong> (<code>apt</code> / <code>dnf</code>).</li><li>Diagnostiquer le <strong>réseau</strong> en ligne de commande : <code>ip</code>, <code>ss</code>, <code>ping</code>, <code>dig</code>, <code>curl</code>.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Navigate the Linux <strong>filesystem</strong> (the FHS standard): where everything lives.</li><li>Read and manage <strong>permissions</strong> (<code>rwx</code>, <code>chmod</code>, <code>chown</code>) and understand <code>Permission denied</code>.</li><li>Tell apart <strong>users</strong>, the <code>root</code> account, and the correct use of <code>sudo</code> (least privilege).</li><li>Observe and control <strong>processes</strong>: <code>ps</code>, <code>top</code>, signals, <code>kill</code>.</li><li>Drive <strong>services</strong> with <code>systemd</code> (<code>systemctl</code>, <code>journalctl</code>).</li><li>Install and maintain <strong>packages</strong> (<code>apt</code> / <code>dnf</code>).</li><li>Diagnose the <strong>network</strong> from the command line: <code>ip</code>, <code>ss</code>, <code>ping</code>, <code>dig</code>, <code>curl</code>.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<p>- Une <strong>aisance de base en ligne de commande</strong> (<code>cd</code>, <code>ls</code>, éditer un fichier) — sinon, repasse par le guide <em>Ligne de commande</em>. - Un <strong>environnement Linux sur ta machine</strong>, au choix :   - <strong>Linux natif</strong> (Ubuntu, Debian, Fedora…) — idéal ;   - <strong>Windows + WSL2</strong> — installe Ubuntu (<code>wsl --install</code>) ;   - <strong>macOS</strong> — certaines commandes (<code>ip</code>, <code>systemctl</code>, <code>apt</code>) sont propres à Linux : fais ce guide dans une <strong>VM Ubuntu</strong>. Avec Multipass : <code>brew install --cask multipass</code>, puis <code>multipass launch --name lab</code> et enfin <code>multipass shell lab</code> pour entrer dans la VM (c&#39;est là que tu tapes les commandes du guide). - Un compte utilisateur <strong>normal</strong> (pas root) avec les droits <code>sudo</code> — c&#39;est le cas par défaut sur une install desktop/WSL. - Un <strong>éditeur en terminal</strong> : <code>nano</code> est présent presque partout (sinon <code>sudo apt install -y nano</code>). On s&#39;en sert pour créer des fichiers.</p>
+<p>⚠️ <strong>WSL2 et systemd :</strong> l&#39;étape sur <code>systemd</code> suppose qu&#39;il est actif. Sur WSL, édite <code>/etc/wsl.conf</code> (<code>sudo nano /etc/wsl.conf</code>) pour qu&#39;il contienne les <strong>deux lignes ci-dessous</strong>, puis lance <code>wsl --shutdown</code> dans PowerShell et rouvre ton terminal.</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<p>- <strong>Basic command-line comfort</strong> (<code>cd</code>, <code>ls</code>, editing a file) — if not, go back through the <em>Command line</em> guide. - A <strong>Linux environment on your machine</strong>, one of:   - <strong>Native Linux</strong> (Ubuntu, Debian, Fedora…) — ideal;   - <strong>Windows + WSL2</strong> — install Ubuntu (<code>wsl --install</code>);   - <strong>macOS</strong> — some commands (<code>ip</code>, <code>systemctl</code>, <code>apt</code>) are Linux-specific: do this guide in an <strong>Ubuntu VM</strong>. With Multipass: <code>brew install --cask multipass</code>, then <code>multipass launch --name lab</code> and finally <code>multipass shell lab</code> to enter the VM (that&#39;s where you type the guide&#39;s commands). - A <strong>normal user</strong> account (not root) with <code>sudo</code> rights — the default on a desktop/WSL install. - A <strong>terminal editor</strong>: <code>nano</code> is present almost everywhere (otherwise <code>sudo apt install -y nano</code>). We&#39;ll use it to create files.</p>
+<p>⚠️ <strong>WSL2 and systemd:</strong> the <code>systemd</code> step assumes it&#39;s active. On WSL, edit <code>/etc/wsl.conf</code> (<code>sudo nano /etc/wsl.conf</code>) so it contains the <strong>two lines below</strong>, then run <code>wsl --shutdown</code> in PowerShell and reopen your terminal.</p>
+</div>
+<pre class="term lang-ini"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">ini</span><button class="copy-btn" type="button">Copy</button></div><code># /etc/wsl.conf
+[boot]
+systemd=true</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../art-of-command-line/">
+    <span class="num">01</span>
+    <span class="title-line" data-lang="fr">L&#39;Art de la ligne de commande</span>
+    <span class="title-line" data-lang="en">The Art of the Command Line</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Trois idées suffisent à tenir tout le reste debout.</p>
+<p><strong>1. Tout est fichier.</strong> Sous Linux, un fichier texte, un disque, un périphérique, même une connexion réseau : presque tout se présente comme un « fichier » quelque part dans une <strong>arborescence unique</strong> qui commence à la racine <code>/</code>. Il n&#39;y a pas de « lecteur C: » — juste un seul arbre. Cet arbre suit un standard, le <strong>FHS</strong> : <code>/etc</code> (configuration), <code>/var</code> (données variables, logs), <code>/home</code> (tes fichiers), <code>/usr</code> (programmes), <code>/tmp</code> (temporaire).</p>
+<p><strong>2. Tout appartient à quelqu&#39;un.</strong> Chaque fichier a un <strong>propriétaire</strong>, un <strong>groupe</strong>, et des <strong>permissions</strong> (<code>rwx</code> : lire, écrire, exécuter) pour trois catégories : le propriétaire, le groupe, et « les autres ». <code>Permission denied</code> n&#39;est jamais un mystère : c&#39;est simplement que ton utilisateur n&#39;a pas le droit demandé sur cet objet.</p>
+<p><strong>3. Tout est processus.</strong> Un programme qui tourne est un <strong>processus</strong>, avec un identifiant (PID), un propriétaire, et une consommation CPU/mémoire. Les <strong>services</strong> (bases de données, serveurs web) sont des processus au long cours, gérés par <code>systemd</code> — le chef d&#39;orchestre qui les démarre, les surveille et centralise leurs logs.</p>
+</div>
+<div data-lang="en"><p>Three ideas hold everything else up.</p>
+<p><strong>1. Everything is a file.</strong> On Linux, a text file, a disk, a device, even a network connection: almost everything appears as a &quot;file&quot; somewhere in a <strong>single tree</strong> that starts at the root <code>/</code>. There&#39;s no &quot;C: drive&quot; — just one tree. That tree follows a standard, the <strong>FHS</strong>: <code>/etc</code> (configuration), <code>/var</code> (variable data, logs), <code>/home</code> (your files), <code>/usr</code> (programs), <code>/tmp</code> (temporary).</p>
+<p><strong>2. Everything is owned by someone.</strong> Every file has an <strong>owner</strong>, a <strong>group</strong>, and <strong>permissions</strong> (<code>rwx</code>: read, write, execute) for three categories: the owner, the group, and &quot;others&quot;. <code>Permission denied</code> is never a mystery: it simply means your user lacks the requested right on that object.</p>
+<p><strong>3. Everything is a process.</strong> A running program is a <strong>process</strong>, with an identifier (PID), an owner, and CPU/memory usage. <strong>Services</strong> (databases, web servers) are long-running processes, managed by <code>systemd</code> — the conductor that starts them, watches them, and centralizes their logs.</p>
+</div>
+
+<figure class="schema" id="figure-linux-filesystem">
+  <svg viewBox="0 0 760 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-linux-filesystem">
+  <title id="s-linux-filesystem">Arborescence Linux (FHS) — depuis /</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Arborescence Linux (FHS) — depuis /</text><rect class="box" x="16" y="40" width="168" height="62" rx="3"/><text class="lbl" x="100" y="68.5" text-anchor="middle">/etc</text><text class="sub" x="100" y="81.5" text-anchor="middle">config</text><rect class="box" x="202" y="40" width="168" height="62" rx="3"/><text class="lbl" x="286" y="68.5" text-anchor="middle">/var</text><text class="sub" x="286" y="81.5" text-anchor="middle">données variables</text><rect class="box" x="388" y="40" width="168" height="62" rx="3"/><text class="lbl" x="472" y="68.5" text-anchor="middle">/home</text><text class="sub" x="472" y="81.5" text-anchor="middle">utilisateurs</text><rect class="box" x="574" y="40" width="168" height="62" rx="3"/><text class="lbl" x="658" y="68.5" text-anchor="middle">/usr</text><text class="sub" x="658" y="81.5" text-anchor="middle">programmes</text><rect class="box" x="16" y="118" width="168" height="62" rx="3"/><text class="lbl" x="100" y="146.5" text-anchor="middle">/bin · /sbin</text><text class="sub" x="100" y="159.5" text-anchor="middle">binaires</text><rect class="box" x="202" y="118" width="168" height="62" rx="3"/><text class="lbl" x="286" y="146.5" text-anchor="middle">/tmp</text><text class="sub" x="286" y="159.5" text-anchor="middle">temporaire</text><rect class="box" x="388" y="118" width="168" height="62" rx="3"/><text class="lbl" x="472" y="146.5" text-anchor="middle">/dev · /proc</text><text class="sub" x="472" y="159.5" text-anchor="middle">système</text><rect class="box" x="574" y="118" width="168" height="62" rx="3"/><text class="lbl" x="658" y="146.5" text-anchor="middle">/srv</text><text class="sub" x="658" y="159.5" text-anchor="middle">services</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> L&#39;arborescence Linux (FHS) : un arbre unique depuis la racine /, chaque répertoire a un rôle.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> The Linux filesystem (FHS): a single tree from root /, each directory with a role.</figcaption>
+</figure>
+<div data-lang="fr"><p>On explore chaque brique dans cet ordre : se repérer (arborescence) → lire &amp; inspecter → permissions → utilisateurs &amp; sudo → processus → services systemd → paquets → réseau → un petit script qui relie le tout.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll explore each block in this order: get oriented (filesystem) → read &amp; inspect → permissions → users &amp; sudo → processes → systemd services → packages → networking → a small script tying it all together.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Te repérer dans l&#39;arborescence et distinguer chemins absolus et relatifs.</p>
+<p><strong>🤔 Pourquoi ?</strong> Avant de manipuler, il faut savoir <em>où on est</em> et <em>où vit quoi</em>. Un chemin <strong>absolu</strong> part de la racine (<code>/etc/hosts</code>) : il est vrai partout. Un chemin <strong>relatif</strong> part de ton répertoire courant (<code>../projets</code>) : il dépend d&#39;où tu te trouves. Confondre les deux est la première source d&#39;erreurs.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Get oriented in the filesystem and tell absolute from relative paths.</p>
+<p><strong>🤔 Why?</strong> Before touching anything, you must know <em>where you are</em> and <em>where things live</em>. An <strong>absolute</strong> path starts from the root (<code>/etc/hosts</code>): it&#39;s true everywhere. A <strong>relative</strong> path starts from your current directory (<code>../projects</code>): it depends on where you stand. Confusing the two is the first source of errors.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pwd                      # où suis-je ? (chemin absolu) / where am I? (absolute path)
+ls -a /                  # le contenu de la racine / the root&#39;s contents
+cd /etc &amp;&amp; ls            # config système / system config
+cd ~ &amp;&amp; pwd              # retour à ton dossier perso / back to your home directory</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>pwd</code> après <code>cd ~</code> affiche <code>/home/&lt;ton-user&gt;</code> (ou <code>/root</code> si tu es root, ce qui ne devrait pas être le cas). Tu as vu <code>bin</code>, <code>etc</code>, <code>home</code>, <code>var</code>, <code>usr</code>, <code>tmp</code> sous <code>/</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>pwd</code> after <code>cd ~</code> shows <code>/home/&lt;your-user&gt;</code> (or <code>/root</code> if you&#39;re root, which you shouldn&#39;t be). You saw <code>bin</code>, <code>etc</code>, <code>home</code>, <code>var</code>, <code>usr</code>, <code>tmp</code> under <code>/</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lire les métadonnées d&#39;un fichier et retrouver un fichier dans l&#39;arbre.</p>
+<p><strong>🤔 Pourquoi <code>ls -l</code> ?</strong> La forme longue révèle tout ce qui compte : type, permissions, propriétaire, groupe, taille, date. <code>stat</code> va encore plus loin. <code>find</code> est ta boussole quand tu ne sais plus <em>où</em> est un fichier.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Read a file&#39;s metadata and locate a file in the tree.</p>
+<p><strong>🤔 Why <code>ls -l</code>?</strong> The long form reveals everything that matters: type, permissions, owner, group, size, date. <code>stat</code> goes even further. <code>find</code> is your compass when you no longer know <em>where</em> a file is.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>ls -l /etc/hostname           # une ligne détaillée / one detailed line
+stat /etc/hostname            # métadonnées complètes / full metadata
+file /etc/hostname            # de quel type de fichier s&#39;agit-il ? / what kind of file is it?
+find /etc -name &quot;*.conf&quot; -type f | head   # chercher par nom / search by name</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ls -l /etc/hostname</code> affiche une ligne commençant par <code>-rw-r--r--</code>. Tu sais déjà lire les 4 derniers champs (proprio, groupe, taille, date) — on décode les permissions à l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ls -l /etc/hostname</code> shows a line starting with <code>-rw-r--r--</code>. You can already read the last 4 fields (owner, group, size, date) — we&#39;ll decode the permissions in the next step.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Décoder et modifier les permissions. <strong>C&#39;est l&#39;étape la plus importante du guide</strong> — 80 % des <code>Permission denied</code> viennent d&#39;ici.</p>
+<p><strong>🤔 Comment lire <code>-rw-r--r--</code> ?</strong> Dix caractères : le 1er est le <strong>type</strong> (<code>-</code> fichier, <code>d</code> dossier, <code>l</code> lien), puis <strong>trois triplets</strong> <code>rwx</code> pour le <strong>propriétaire</strong>, le <strong>groupe</strong>, et <strong>les autres</strong>. <code>r</code>=lire (4), <code>w</code>=écrire (2), <code>x</code>=exécuter (1). On additionne : <code>rw-</code>=6, <code>r--</code>=4 → <code>644</code>.</p>
+<p>On crée un fichier, on l&#39;observe, puis on le rend exécutable de deux façons (symbolique et octale) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Decode and change permissions. <strong>This is the most important step of the guide</strong> — 80 % of <code>Permission denied</code> errors come from here.</p>
+<p><strong>🤔 How do you read <code>-rw-r--r--</code>?</strong> Ten characters: the 1st is the <strong>type</strong> (<code>-</code> file, <code>d</code> directory, <code>l</code> link), then <strong>three triplets</strong> <code>rwx</code> for the <strong>owner</strong>, the <strong>group</strong>, and <strong>others</strong>. <code>r</code>=read (4), <code>w</code>=write (2), <code>x</code>=execute (1). You add them up: <code>rw-</code>=6, <code>r--</code>=4 → <code>644</code>.</p>
+<p>We&#39;ll create a file, inspect it, then make it executable two ways (symbolic and octal):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>echo &#39;echo &quot;Bonjour depuis mon script&quot;&#39; &gt; demo.sh
+ls -l demo.sh                 # -rw-r--r-- : pas exécutable / not executable
+./demo.sh                     # → Permission denied (attendu / expected)
+
+chmod u+x demo.sh             # symbolique : +x pour le propriétaire (user) / symbolic: +x for the owner
+./demo.sh                     # → ça marche / it works
+
+chmod 644 demo.sh             # octal : on retire le x / octal: remove the x
+ls -l demo.sh                 # de retour à -rw-r--r-- / back to -rw-r--r--</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>chmod u+x</code>, <code>ls -l demo.sh</code> montre <code>-rwxr--r--</code> et <code>./demo.sh</code> affiche ton message. Tu viens de vivre, puis résoudre, un <code>Permission denied</code>.</p>
+<p>⚠️ <strong>Ne fais jamais <code>chmod 777</code>.</strong> C&#39;est le réflexe du débutant paniqué (« je mets tous les droits, comme ça ça passe »). <code>777</code> = tout le monde peut lire, écrire <strong>et exécuter</strong> — un trou de sécurité béant. Donne le <strong>droit minimum</strong> nécessaire : <code>644</code> pour un fichier de données, <code>755</code> pour un exécutable ou un dossier.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>chmod u+x</code>, <code>ls -l demo.sh</code> shows <code>-rwxr--r--</code> and <code>./demo.sh</code> prints your message. You just lived through, then fixed, a <code>Permission denied</code>.</p>
+<p>⚠️ <strong>Never <code>chmod 777</code>.</strong> It&#39;s the panicked beginner&#39;s reflex (&quot;I grant all rights so it just works&quot;). <code>777</code> = everyone can read, write <strong>and execute</strong> — a gaping security hole. Grant the <strong>minimum right</strong> needed: <code>644</code> for a data file, <code>755</code> for an executable or a directory.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Comprendre qui tu es, ce qu&#39;est <code>root</code>, et pourquoi on passe par <code>sudo</code> plutôt que d&#39;être root en permanence.</p>
+<p><strong>🤔 Pourquoi <code>sudo</code> et pas root ?</strong> <code>root</code> peut <strong>tout</strong> faire, y compris détruire le système d&#39;une frappe. Le principe du <strong>moindre privilège</strong> : tu travailles en utilisateur normal, et tu n&#39;élèves tes droits (<code>sudo</code>) que pour la commande précise qui en a besoin. Tu limites ainsi les dégâts d&#39;une erreur ou d&#39;un script malveillant.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Understand who you are, what <code>root</code> is, and why we go through <code>sudo</code> rather than being root permanently.</p>
+<p><strong>🤔 Why <code>sudo</code> and not root?</strong> <code>root</code> can do <strong>everything</strong>, including destroying the system in one keystroke. The <strong>least-privilege</strong> principle: you work as a normal user, and only elevate (<code>sudo</code>) for the exact command that needs it. This limits the damage from a mistake or a malicious script.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>whoami                        # ton nom d&#39;utilisateur / your username
+id                            # ton UID, tes groupes / your UID, your groups
+head -n 3 /etc/passwd         # les comptes du système / the system accounts
+sudo whoami                   # → root : tu as élevé tes droits ponctuellement / you elevated rights momentarily</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>whoami</code> renvoie ton nom, <code>sudo whoami</code> renvoie <code>root</code>. Dans <code>id</code>, si tu vois <code>sudo</code> (Debian/Ubuntu) ou <code>wheel</code> (Fedora) dans tes groupes, tu as bien le droit d&#39;élever tes privilèges.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>whoami</code> returns your name, <code>sudo whoami</code> returns <code>root</code>. In <code>id</code>, if you see <code>sudo</code> (Debian/Ubuntu) or <code>wheel</code> (Fedora) among your groups, you do have the right to elevate.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Observer les processus et en arrêter un proprement.</p>
+<p><strong>🤔 Pourquoi deux <code>kill</code> ?</strong> Un processus est un programme vivant, identifié par son <strong>PID</strong>. <code>kill</code> lui envoie un <strong>signal</strong> : <code>SIGTERM</code> (par défaut) demande poliment de s&#39;arrêter (le programme peut sauvegarder, fermer ses fichiers) ; <code>SIGKILL</code> (<code>-9</code>) le tue net, sans ménagement. On essaie <strong>toujours</strong> <code>SIGTERM</code> d&#39;abord.</p>
+<p>On lance un processus de fond bidon, on le retrouve, on l&#39;arrête :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Observe processes and stop one cleanly.</p>
+<p><strong>🤔 Why two <code>kill</code>s?</strong> A process is a living program, identified by its <strong>PID</strong>. <code>kill</code> sends it a <strong>signal</strong>: <code>SIGTERM</code> (default) politely asks it to stop (the program can save, close its files); <code>SIGKILL</code> (<code>-9</code>) kills it outright, no mercy. <strong>Always</strong> try <code>SIGTERM</code> first.</p>
+<p>We&#39;ll start a dummy background process, find it, and stop it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sleep 600 &amp;                   # un process qui dort 10 min, en arrière-plan / a process sleeping 10 min, in the background
+ps aux | grep sleep           # le retrouver / find it
+pgrep sleep                   # son PID, directement / its PID, directly
+kill &lt;PID&gt;                    # SIGTERM : arrêt propre (remplace &lt;PID&gt;) / clean stop (replace &lt;PID&gt;)
+# s&#39;il résiste seulement : kill -9 &lt;PID&gt;   # SIGKILL, en dernier recours / last resort</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>kill &lt;PID&gt;</code>, un nouveau <code>ps aux | grep sleep</code> ne montre plus ton <code>sleep</code> (hormis la ligne du <code>grep</code> lui-même). Essaie aussi <code>top</code> (ou <code>htop</code>) : <code>q</code> pour quitter.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>kill &lt;PID&gt;</code>, a fresh <code>ps aux | grep sleep</code> no longer shows your <code>sleep</code> (except the <code>grep</code> line itself). Also try <code>top</code> (or <code>htop</code>): <code>q</code> to quit.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Piloter un service avec <code>systemd</code> et lire ses logs.</p>
+<p><strong>🤔 Pourquoi <code>systemd</code> ?</strong> C&#39;est le <strong>gestionnaire de services</strong> de la quasi-totalité des Linux modernes. Il démarre les services au boot, les redémarre s&#39;ils tombent, et centralise leurs journaux (<code>journalctl</code>). Chaque base de données, chaque serveur web que tu déploieras est un service <code>systemd</code>.</p>
+<p>On observe le service de <strong>planification</strong> <code>cron</code> (l&#39;ordonnanceur de tâches, présent presque partout) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Drive a service with <code>systemd</code> and read its logs.</p>
+<p><strong>🤔 Why <code>systemd</code>?</strong> It&#39;s the <strong>service manager</strong> of nearly all modern Linux. It starts services at boot, restarts them if they crash, and centralizes their logs (<code>journalctl</code>). Every database, every web server you deploy is a <code>systemd</code> service.</p>
+<p>We&#39;ll observe the <code>cron</code> scheduling service (present almost everywhere):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>systemctl status cron         # état du service (Fedora : crond) / service status (Fedora: crond)
+systemctl is-enabled cron     # démarre-t-il au boot ? / does it start at boot?
+sudo journalctl -u cron -n 20 --no-pager   # ses 20 dernières lignes de log / its last 20 log lines</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>systemctl status cron</code> affiche une ligne <code>Active: active (running)</code> en vert. Si l&#39;affichage ouvre un pager, tape <code>q</code> pour en sortir. Retiens les verbes : <code>start</code>, <code>stop</code>, <code>restart</code>, <code>enable</code> (au boot), <code>disable</code>, <code>status</code>. C&#39;est le même quatuor pour <strong>tous</strong> les services.</p>
+<p>⚠️ <strong>Sur WSL :</strong> si <code>systemctl</code> répond « System has not been booted with systemd », c&#39;est que systemd n&#39;est pas activé — voir la note WSL des prérequis.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>systemctl status cron</code> shows a green <code>Active: active (running)</code> line. If the output opens a pager, press <code>q</code> to exit. Remember the verbs: <code>start</code>, <code>stop</code>, <code>restart</code>, <code>enable</code> (at boot), <code>disable</code>, <code>status</code>. It&#39;s the same quartet for <strong>every</strong> service.</p>
+<p>⚠️ <strong>On WSL:</strong> if <code>systemctl</code> replies &quot;System has not been booted with systemd&quot;, then systemd isn&#39;t enabled — see the WSL note in the prerequisites.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Installer, chercher et supprimer un paquet.</p>
+<p><strong>🤔 Pourquoi un gestionnaire de paquets ?</strong> Sous Linux, on n&#39;installe pas des logiciels en téléchargeant des <code>.exe</code> au hasard : un <strong>gestionnaire de paquets</strong> (<code>apt</code> sur Debian/Ubuntu, <code>dnf</code> sur Fedora) télécharge depuis des dépôts de confiance, gère les dépendances et les mises à jour de sécurité. <code>update</code> rafraîchit d&#39;abord la <strong>liste</strong> des paquets disponibles ; <code>upgrade</code> applique ensuite les mises à jour.</p>
+<p>On installe <code>tree</code>, un petit outil qui affiche l&#39;arborescence :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Install, search for, and remove a package.</p>
+<p><strong>🤔 Why a package manager?</strong> On Linux, you don&#39;t install software by downloading random <code>.exe</code> files: a <strong>package manager</strong> (<code>apt</code> on Debian/Ubuntu, <code>dnf</code> on Fedora) downloads from trusted repositories, handles dependencies and security updates. <code>update</code> first refreshes the <strong>list</strong> of available packages; <code>upgrade</code> then applies the updates.</p>
+<p>We&#39;ll install <code>tree</code>, a small tool that prints the directory tree:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt update               # rafraîchit la liste des paquets / refresh the package list
+sudo apt install -y tree      # installe tree / install tree
+tree -L 1 /etc                # l&#39;utiliser : /etc sur 1 niveau / use it: /etc, 1 level deep
+apt-cache search json | head  # chercher un paquet / search for a package
+sudo apt remove -y tree       # le désinstaller / uninstall it</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>tree -L 1 /etc</code> a affiché une arborescence en ASCII avant la désinstallation. <em>(Fedora : remplace <code>apt update</code> par rien, <code>apt install</code> par <code>sudo dnf install</code>, <code>apt-cache search</code> par <code>dnf search</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>tree -L 1 /etc</code> printed an ASCII tree before uninstalling. <em>(Fedora: replace <code>apt update</code> with nothing, <code>apt install</code> with <code>sudo dnf install</code>, <code>apt-cache search</code> with <code>dnf search</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Diagnostiquer le réseau : ton IP, les ports en écoute, la résolution DNS, une requête HTTP.</p>
+<p><strong>🤔 Pourquoi ces quatre commandes ?</strong> Ce sont les réflexes de debug réseau que tu répéteras toute ta carrière : <code>ip a</code> (quelle est mon adresse ?), <code>ss -tlnp</code> (quels services écoutent, sur quels ports ?), <code>dig</code> (à quelle IP répond ce nom de domaine ?), <code>curl</code> (que renvoie ce service ?).</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Diagnose the network: your IP, listening ports, DNS resolution, an HTTP request.</p>
+<p><strong>🤔 Why these four commands?</strong> They&#39;re the network-debugging reflexes you&#39;ll repeat your whole career: <code>ip a</code> (what&#39;s my address?), <code>ss -tlnp</code> (which services listen, on which ports?), <code>dig</code> (what IP does this domain name resolve to?), <code>curl</code> (what does this service return?).</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>sudo apt install -y dnsutils curl   # dig + curl si absents / if missing (Fedora : bind-utils curl)
+ip a                          # tes interfaces et adresses IP / your interfaces and IP addresses
+sudo ss -tlnp                 # ports TCP en écoute + le process associé / listening TCP ports + the owning process
+dig +short example.com        # résolution DNS / DNS resolution
+curl -s https://example.com | head -n 5   # une requête HTTP / an HTTP request</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>ip a</code> montre au moins <code>lo</code> (127.0.0.1) et une interface avec ton IP locale (ex. <code>192.168.x.x</code>, ou <code>172.x</code> sous WSL2). <code>dig +short example.com</code> renvoie une ou plusieurs IP. <code>curl</code> affiche du HTML.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>ip a</code> shows at least <code>lo</code> (127.0.0.1) and an interface with your local IP (e.g. <code>192.168.x.x</code>, or <code>172.x</code> on WSL2). <code>dig +short example.com</code> returns one or more IPs. <code>curl</code> prints HTML.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-09">
+  <span class="step-num" data-lang="fr">Étape 09</span>
+  <span class="step-num" data-lang="en">Step 09</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Relier tout le guide dans un petit script de « bilan machine ».</p>
+<p><strong>🤔 Pourquoi un script ?</strong> Automatiser, c&#39;est le cœur du DevOps. Un script, c&#39;est juste une suite de commandes que tu sais déjà taper, enregistrée dans un fichier exécutable. Tu réutilises <strong>exactement</strong> ce que tu viens d&#39;apprendre : permissions (<code>chmod +x</code>), le shebang, et quelques commandes système.</p>
+<p>Crée <code>bilan.sh</code> avec un éditeur — <code>nano bilan.sh</code>, colle le contenu, puis <code>Ctrl+O</code> <code>Entrée</code> pour enregistrer et <code>Ctrl+X</code> pour quitter (ne colle pas directement dans le terminal : on veut un <strong>fichier</strong>) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Tie the whole guide together in a small &quot;machine report&quot; script.</p>
+<p><strong>🤔 Why a script?</strong> Automating is the heart of DevOps. A script is just a sequence of commands you already know how to type, saved in an executable file. You reuse <strong>exactly</strong> what you just learned: permissions (<code>chmod +x</code>), the shebang, and a few system commands.</p>
+<p>Create <code>bilan.sh</code> with an editor — <code>nano bilan.sh</code>, paste the content, then <code>Ctrl+O</code> <code>Enter</code> to save and <code>Ctrl+X</code> to quit (don&#39;t paste straight into the terminal: we want a <strong>file</strong>):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>#!/usr/bin/env bash
+# Petit bilan de la machine / Small machine report
+echo &quot;== Utilisateur / User ==&quot;
+whoami
+echo &quot;== Espace disque / Disk usage ==&quot;
+df -h / | tail -n 1
+echo &quot;== Mémoire / Memory ==&quot;
+free -h | grep Mem
+echo &quot;== Adresse IP ==&quot;
+ip -brief address | grep -v &#39;^lo&#39;</code></pre>
+<div data-lang="fr"><p>Rends-le exécutable et lance-le :</p>
+</div>
+<div data-lang="en"><p>Make it executable and run it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>chmod +x bilan.sh
+./bilan.sh</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> le script affiche ton utilisateur, l&#39;espace disque de <code>/</code>, la mémoire et ton IP. <strong>Le <code>#!/usr/bin/env bash</code> du début (le &quot;shebang&quot;)</strong> dit au système quel interpréteur utiliser — sans lui, le noyau ne sait pas que c&#39;est du bash.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> the script prints your user, the disk space of <code>/</code>, memory, and your IP. <strong>The <code>#!/usr/bin/env bash</code> at the top (the &quot;shebang&quot;)</strong> tells the system which interpreter to use — without it, the kernel doesn&#39;t know it&#39;s bash.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. <code>chmod 777</code> pour « régler » un Permission denied.</strong> Tu ouvres un trou de sécurité au lieu de comprendre le problème. Lis <code>ls -l</code>, identifie <em>qui</em> doit avoir <em>quel</em> droit, et donne le minimum (<code>644</code>/<code>755</code>).</p>
+<p><strong>2. Travailler en <code>root</code> en permanence (ou <code>sudo</code> devant tout).</strong> Une faute de frappe en root peut détruire le système (<code>rm -rf /</code> n&#39;est pas une légende). Reste utilisateur normal, élève seulement quand c&#39;est nécessaire.</p>
+<p><strong>3. <code>sudo rm -rf</code> sur un chemin mal relu.</strong> Les suppressions sont <strong>définitives</strong> (pas de corbeille). Avant un <code>rm -rf</code>, relis le chemin à voix haute, et teste d&#39;abord avec <code>ls</code> sur le même chemin.</p>
+<p><strong>4. Confondre chemin absolu et relatif.</strong> <code>./config</code> (dans le dossier courant) n&#39;est pas <code>/config</code> (à la racine). En cas de doute : <code>pwd</code>.</p>
+<p><strong>5. Oublier <code>apt update</code> avant <code>apt install</code>.</strong> Sans rafraîchir la liste, tu installes des versions périmées ou tu tombes sur des « package not found » trompeurs.</p>
+<p><strong>6. Chercher les logs au mauvais endroit.</strong> Pour un service systemd, les logs sont dans <code>journalctl -u &lt;service&gt;</code>, pas dans un fichier au hasard. Pour le reste, regarde sous <code>/var/log</code>.</p>
+</div>
+<div data-lang="en"><p><strong>1. <code>chmod 777</code> to &quot;fix&quot; a Permission denied.</strong> You open a security hole instead of understanding the problem. Read <code>ls -l</code>, identify <em>who</em> needs <em>which</em> right, and grant the minimum (<code>644</code>/<code>755</code>).</p>
+<p><strong>2. Working as <code>root</code> permanently (or <code>sudo</code> in front of everything).</strong> A typo as root can destroy the system (<code>rm -rf /</code> is not a legend). Stay a normal user, elevate only when needed.</p>
+<p><strong>3. <code>sudo rm -rf</code> on a misread path.</strong> Deletions are <strong>permanent</strong> (no recycle bin). Before an <code>rm -rf</code>, read the path out loud, and test first with <code>ls</code> on the same path.</p>
+<p><strong>4. Confusing absolute and relative paths.</strong> <code>./config</code> (in the current folder) isn&#39;t <code>/config</code> (at the root). When in doubt: <code>pwd</code>.</p>
+<p><strong>5. Forgetting <code>apt update</code> before <code>apt install</code>.</strong> Without refreshing the list, you install stale versions or hit misleading &quot;package not found&quot; errors.</p>
+<p><strong>6. Looking for logs in the wrong place.</strong> For a systemd service, logs are in <code>journalctl -u &lt;service&gt;</code>, not in some random file. For the rest, look under <code>/var/log</code>.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu lis une ligne <code>ls -l</code> (type, permissions, proprio) <strong>sans réfléchir</strong>.</li><li>Un <code>Permission denied</code> ne te bloque plus : tu diagnostiques et corriges avec le bon droit.</li><li>Tu expliques pourquoi on travaille en utilisateur normal + <code>sudo</code>, pas en root.</li><li><code>ps</code>, <code>kill</code>, <code>systemctl status</code>, <code>journalctl</code> sont des réflexes.</li><li>Tu installes un paquet et retrouves les logs d&#39;un service sans chercher au hasard.</li><li>Tu trouves ton IP, les ports en écoute et tu résous un nom de domaine en CLI.</li></ul>
+<p>Six cases cochées = tu as le socle Linux qu&#39;exige tout le reste du parcours (Docker, Ansible, Kubernetes). Bravo.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You read an <code>ls -l</code> line (type, permissions, owner) <strong>without thinking</strong>.</li><li>A <code>Permission denied</code> no longer blocks you: you diagnose and fix it with the right permission.</li><li>You can explain why we work as a normal user + <code>sudo</code>, not as root.</li><li><code>ps</code>, <code>kill</code>, <code>systemctl status</code>, <code>journalctl</code> are reflexes.</li><li>You install a package and find a service&#39;s logs without random searching.</li><li>You find your IP, listening ports, and resolve a domain name from the CLI.</li></ul>
+<p>Six boxes ticked = you have the Linux foundation the rest of the track (Docker, Ansible, Kubernetes) demands. Well done.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Deux prolongements naturels, dans l&#39;ordre du parcours :</p>
+<ol><li><strong>Git &amp; collaboration</strong> — versionner ton travail et collaborer proprement : le second réflexe de tout profil technique.</li><li><strong>Docker fondamentaux</strong> — conteneuriser des applications ; tout ce que tu viens d&#39;apprendre (permissions, processus, réseau) y prend un sens concret.</li></ol>
+</div>
+<div data-lang="en"><p>Two natural next steps, in path order:</p>
+<ol><li><strong>Git &amp; collaboration</strong> — version your work and collaborate cleanly: the second reflex of any technical profile.</li><li><strong>Docker fundamentals</strong> — containerize applications; everything you just learned (permissions, processes, networking) takes on concrete meaning there.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../git-fondamentaux/">
+    <span class="num">10</span>
+    <span class="title-line" data-lang="fr">Git fondamentaux</span>
+    <span class="title-line" data-lang="en">Git fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés du quotidien Linux.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet for day-to-day Linux.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Se repérer / Get oriented
+pwd                      # où suis-je / where am I
+ls -l   ls -a            # détaillé / caché / detailed / hidden
+cd /chemin   cd ~   cd - # se déplacer / dossier perso / précédent / move / home / previous
+
+# Fichiers / Files
+stat f     file f        # métadonnées / type / metadata / type
+find /etc -name &quot;*.conf&quot; # chercher / search
+cp  mv  rm               # copier / déplacer / supprimer (définitif !) / copy / move / delete (permanent!)
+
+# Permissions
+chmod u+x f              # symbolique / symbolic
+chmod 644 f              # octal (fichier / file)   755 = exécutable / dossier
+chown user:group f       # changer le propriétaire / change owner
+
+# Utilisateurs / Users
+whoami   id              # qui suis-je / who am I
+sudo &lt;cmd&gt;               # élever les droits ponctuellement / elevate rights momentarily
+
+# Processus / Processes
+ps aux   top   htop      # lister / temps réel / list / live
+kill PID                 # SIGTERM (propre)   kill -9 PID = SIGKILL (dernier recours)
+
+# Services (systemd)
+systemctl status|start|stop|restart|enable &lt;svc&gt;
+journalctl -u &lt;svc&gt; -n 50 --no-pager    # logs d&#39;un service / a service&#39;s logs
+
+# Paquets / Packages (Debian/Ubuntu ; Fedora = dnf)
+sudo apt update &amp;&amp; sudo apt upgrade
+sudo apt install &lt;pkg&gt;    apt-cache search &lt;mot&gt;    sudo apt remove &lt;pkg&gt;
+
+# Réseau / Network
+ip a       ip -brief address        # adresses / addresses
+sudo ss -tlnp                        # ports en écoute / listening ports
+dig +short &lt;domaine&gt;    curl -s &lt;url&gt;</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://linuxcommand.org/tlcl.php">The Linux Command Line (livre gratuit)</a> — la référence douce et complète.</li><li><a href="https://www.lpi.org/our-certifications/lpic-1-overview/">LPIC-1 — objectifs officiels</a> — la certification que ce socle prépare.</li><li><a href="https://explainshell.com">ExplainShell</a> — colle une commande, il décortique chaque option.</li><li><a href="https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html">Filesystem Hierarchy Standard</a> — la carte officielle de l&#39;arborescence.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://linuxcommand.org/tlcl.php">The Linux Command Line (free book)</a> — the gentle, complete reference.</li><li><a href="https://www.lpi.org/our-certifications/lpic-1-overview/">LPIC-1 — official objectives</a> — the certification this foundation prepares.</li><li><a href="https://explainshell.com">ExplainShell</a> — paste a command, it breaks down each option.</li><li><a href="https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html">Filesystem Hierarchy Standard</a> — the official map of the filesystem.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>« Permission denied » sur une commande.</strong> Tu n&#39;as pas le droit demandé. Lis <code>ls -l</code> sur la cible : si le fichier appartient à root et que tu dois vraiment y toucher, préfixe par <code>sudo</code> — mais demande-toi d&#39;abord si c&#39;est légitime.</p>
+<p><strong>« command not found ».</strong> Le programme n&#39;est pas installé, ou pas dans ton <code>PATH</code>. Installe-le (<code>sudo apt install &lt;paquet&gt;</code>), ou vérifie l&#39;orthographe.</p>
+<p><strong><code>systemctl</code> : « System has not been booted with systemd ».</strong> Tu es sur WSL sans systemd. Active-le (<code>/etc/wsl.conf</code> → <code>[boot]</code> <code>systemd=true</code>, puis <code>wsl --shutdown</code>), ou fais cette étape dans une VM.</p>
+<p><strong><code>sudo</code> : « user is not in the sudoers file ».</strong> Ton compte n&#39;a pas les droits d&#39;élévation. Sur une install perso c&#39;est rare ; il faut ajouter l&#39;utilisateur au groupe <code>sudo</code> (<code>usermod -aG sudo &lt;user&gt;</code>) depuis un compte qui, lui, les a.</p>
+<p><strong>Un <code>apt install</code> échoue avec « Unable to locate package ».</strong> Tu as oublié <code>sudo apt update</code>, ou le paquet n&#39;existe pas sous ce nom : cherche avec <code>apt-cache search</code>.</p>
+</div>
+<div data-lang="en"><p><strong>&quot;Permission denied&quot; on a command.</strong> You lack the requested right. Read <code>ls -l</code> on the target: if the file belongs to root and you genuinely must touch it, prefix with <code>sudo</code> — but first ask whether that&#39;s legitimate.</p>
+<p><strong>&quot;command not found&quot;.</strong> The program isn&#39;t installed, or isn&#39;t in your <code>PATH</code>. Install it (<code>sudo apt install &lt;package&gt;</code>), or check the spelling.</p>
+<p><strong><code>systemctl</code>: &quot;System has not been booted with systemd&quot;.</strong> You&#39;re on WSL without systemd. Enable it (<code>/etc/wsl.conf</code> → <code>[boot]</code> <code>systemd=true</code>, then <code>wsl --shutdown</code>), or do this step in a VM.</p>
+<p><strong><code>sudo</code>: &quot;user is not in the sudoers file&quot;.</strong> Your account lacks elevation rights. Rare on a personal install; you&#39;d add the user to the <code>sudo</code> group (<code>usermod -aG sudo &lt;user&gt;</code>) from an account that already has them.</p>
+<p><strong>An <code>apt install</code> fails with &quot;Unable to locate package&quot;.</strong> You forgot <code>sudo apt update</code>, or the package doesn&#39;t exist under that name: search with <code>apt-cache search</code>.</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

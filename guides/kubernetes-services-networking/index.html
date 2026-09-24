@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Kubernetes — services, networking &amp; ingress — jiha.tech</title>
+  <title data-lang="en">Kubernetes — services, networking &amp; ingress — jiha.tech</title>
+  <meta name="description" content="Le réseau Kubernetes de bout en bout, en local sur k3d : Services (ClusterIP, NodePort), Endpoints et sélecteurs, DNS interne, Ingress avec routage par chemin, Services headless, et NetworkPolicy réellement appliquées. Le domaine Services &amp; Networking du CKA/CKAD." data-lang="fr">
+  <meta name="description" content="Kubernetes networking end to end, locally on k3d: Services (ClusterIP, NodePort), Endpoints and selectors, internal DNS, Ingress with path routing, headless Services, and NetworkPolicies that are actually enforced. The CKA/CKAD Services &amp; Networking domain." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kubernetes — services, networking &amp; ingress">
+  <meta property="og:description" content="Le réseau Kubernetes de bout en bout, en local sur k3d : Services (ClusterIP, NodePort), Endpoints et sélecteurs, DNS interne, Ingress avec routage par chemin, Services headless, et NetworkPolicy réellement appliquées. Le domaine Services &amp; Networking du CKA/CKAD.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/kubernetes-services-networking/">
+  <link rel="canonical" href="https://jiha.tech/guides/kubernetes-services-networking/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="kubernetes-services-networking">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/kubernetes-services-networking</div>
+    <div class="prompt" data-lang="en">~/guides/kubernetes-services-networking</div>
+    <h1 data-lang="fr">Kubernetes — services, networking &amp; ingress</h1>
+    <h1 data-lang="en">Kubernetes — services, networking &amp; ingress</h1>
+    <p class="tagline" data-lang="fr">ClusterIP, NodePort, DNS, Ingress, headless, NetworkPolicy.</p>
+    <p class="tagline" data-lang="en">ClusterIP, NodePort, DNS, Ingress, headless, NetworkPolicy.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 200 min</strong></div>
+  <div><span>Niveau</span><strong>Avancé</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-08-12</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 200 min</strong></div>
+  <div><span>Level</span><strong>Advanced</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-08-12</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Un pod tout seul ne sert à rien : il faut que le trafic <strong>l&#39;atteigne</strong>. Or les pods naissent, meurent, changent d&#39;IP en permanence. Le réseau Kubernetes résout ce chaos avec une pile d&#39;abstractions — et l&#39;examen <strong>CKA/CKAD</strong> teste chacune : <em>comment donner une adresse stable à un groupe de pods ? comment les joindre par leur nom ? comment exposer un service à l&#39;extérieur ? comment router <code>/api</code> vers un service et <code>/web</code> vers un autre ? comment interdire à un pod de parler à un autre ?</em></p>
+<p>Ce guide couvre tout le domaine <strong>Services &amp; Networking</strong> : les <strong>Services</strong> (<code>ClusterIP</code>, <code>NodePort</code>), les <strong>Endpoints</strong> et <strong>sélecteurs</strong> qui les font fonctionner, le <strong>DNS interne</strong>, l&#39;<strong>Ingress</strong> (routage HTTP par chemin), les <strong>Services headless</strong>, et les <strong>NetworkPolicy</strong> (pare-feu entre pods).</p>
+<p>On travaille en <strong>local sur k3d</strong>. Nuance importante : ici on <strong>garde</strong> l&#39;Ingress Controller <strong>Traefik</strong> que k3s embarque (dans le guide fondamentaux, on l&#39;avait désactivé) — car c&#39;est lui qui implémentera nos objets <code>Ingress</code>. Et bonne nouvelle : <strong>k3s applique réellement les NetworkPolicy</strong> (via son contrôleur intégré), donc le pare-feu qu&#39;on écrira <strong>bloquera</strong> vraiment le trafic — contrairement à un cluster flannel nu.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as les guides <strong>fondamentaux</strong> et <strong>workloads &amp; scheduling</strong>, et tu vises la certification.</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu ne sais pas ce qu&#39;est un <code>Deployment</code> → reviens aux fondamentaux.</li><li>Tu cherches le stockage persistant ou le RBAC → ce sont les guides suivants.</li></ul>
+</div>
+<div data-lang="en"><p>A pod on its own is useless: traffic must <strong>reach</strong> it. But pods are born, die, and change IP constantly. Kubernetes networking tames this chaos with a stack of abstractions — and the <strong>CKA/CKAD</strong> exam tests each one: <em>how do you give a group of pods a stable address? how do you reach them by name? how do you expose a service externally? how do you route <code>/api</code> to one service and <code>/web</code> to another? how do you forbid one pod from talking to another?</em></p>
+<p>This guide covers the whole <strong>Services &amp; Networking</strong> domain: <strong>Services</strong> (<code>ClusterIP</code>, <code>NodePort</code>), the <strong>Endpoints</strong> and <strong>selectors</strong> that make them work, internal <strong>DNS</strong>, <strong>Ingress</strong> (HTTP path routing), <strong>headless Services</strong>, and <strong>NetworkPolicies</strong> (pod-to-pod firewall).</p>
+<p>We work <strong>locally on k3d</strong>. Important nuance: here we <strong>keep</strong> the <strong>Traefik</strong> Ingress Controller that k3s ships (in the fundamentals guide we disabled it) — because it&#39;s what will implement our <code>Ingress</code> objects. And good news: <strong>k3s actually enforces NetworkPolicies</strong> (via its built-in controller), so the firewall we&#39;ll write <strong>will</strong> truly block traffic — unlike a bare flannel cluster.</p>
+<p><strong>Who it&#39;s for:</strong> you have the <strong>fundamentals</strong> and <strong>workloads &amp; scheduling</strong> guides, and you&#39;re aiming for the cert.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You don&#39;t know what a <code>Deployment</code> is → go back to the fundamentals.</li><li>You&#39;re after persistent storage or RBAC → those are the next guides.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Créer un cluster avec <strong>Ingress Controller</strong> et un <strong>namespace</strong> de travail.</li><li>Créer un <strong><code>ClusterIP</code></strong> et comprendre les <strong>Endpoints</strong> (le lien Service ↔ pods via <strong>sélecteur</strong>).</li><li>Résoudre un Service par son <strong>nom DNS</strong> (<code>svc.namespace.svc.cluster.local</code>).</li><li>Exposer à l&#39;extérieur avec un <strong><code>NodePort</code></strong>.</li><li>Router du HTTP par <strong>chemin</strong> avec un <strong><code>Ingress</code></strong>.</li><li>Créer un <strong>Service headless</strong> (<code>ClusterIP: None</code>) et voir le DNS renvoyer les IP de pods.</li><li>Écrire une <strong><code>NetworkPolicy</code></strong> <em>default-deny</em> puis une règle <em>allow</em>, et vérifier le blocage.</li></ul>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Create a cluster with an <strong>Ingress Controller</strong> and a working <strong>namespace</strong>.</li><li>Create a <strong><code>ClusterIP</code></strong> and understand <strong>Endpoints</strong> (the Service ↔ pods link via <strong>selector</strong>).</li><li>Resolve a Service by its <strong>DNS name</strong> (<code>svc.namespace.svc.cluster.local</code>).</li><li>Expose externally with a <strong><code>NodePort</code></strong>.</li><li>Route HTTP by <strong>path</strong> with an <strong><code>Ingress</code></strong>.</li><li>Create a <strong>headless Service</strong> (<code>ClusterIP: None</code>) and see DNS return pod IPs.</li><li>Write a <em>default-deny</em> <strong><code>NetworkPolicy</code></strong> then an <em>allow</em> rule, and verify the block.</li></ul>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li>Les guides <strong>Kubernetes fondamentaux</strong> et <strong>workloads &amp; scheduling</strong> acquis.</li><li><strong>Docker</strong> lancé, <strong>k3d</strong> et <strong>kubectl</strong> installés.</li></ul>
+<p>On crée un cluster <strong>avec Traefik</strong> (pour l&#39;Ingress) et deux mappages de ports hôte — un pour l&#39;Ingress (<code>8080→80</code>) et un pour notre futur NodePort :</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>The <strong>Kubernetes fundamentals</strong> and <strong>workloads &amp; scheduling</strong> guides under your belt.</li><li><strong>Docker</strong> running, <strong>k3d</strong> and <strong>kubectl</strong> installed.</li></ul>
+<p>We create a cluster <strong>with Traefik</strong> (for Ingress) and two host-port mappings — one for the Ingress (<code>8080→80</code>) and one for our future NodePort:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>k3d cluster create netlab \
+  -p &quot;8080:80@loadbalancer&quot; \
+  -p &quot;30080:30080@server:0&quot;
+kubectl get pods -n kube-system | grep traefik      # traefik doit tourner (Ingress Controller) / traefik must run</code></pre>
+<div data-lang="fr"><p><em>(Ici <strong>pas</strong> de <code>--disable=traefik</code> : on veut l&#39;Ingress Controller. Le port <code>8080</code> de ta machine atteint Traefik ; le port <code>30080</code> atteindra notre NodePort à l&#39;étape 3.)</em></p>
+<p>Prépare le namespace et <strong>deux backends</strong> identifiables (<code>whoami</code> renvoie le nom du pod qui répond) :</p>
+</div>
+<div data-lang="en"><p><em>(Here <strong>no</strong> <code>--disable=traefik</code>: we want the Ingress Controller. Your machine&#39;s port <code>8080</code> reaches Traefik; port <code>30080</code> will reach our NodePort in step 3.)</em></p>
+<p>Set up the namespace and <strong>two identifiable backends</strong> (<code>whoami</code> returns the name of the pod that answered):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl create namespace net
+kubectl config set-context --current --namespace=net
+
+kubectl create deployment app1 --image=traefik/whoami --replicas=2
+kubectl create deployment app2 --image=traefik/whoami --replicas=2
+kubectl get pods -l app=app1 -o wide       # 2 pods app1 / two app1 pods</code></pre>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../kubernetes-workloads-scheduling/">
+    <span class="num">34</span>
+    <span class="title-line" data-lang="fr">Kubernetes — workloads avancés &amp; scheduling</span>
+    <span class="title-line" data-lang="en">Kubernetes — advanced workloads &amp; scheduling</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>Kubernetes empile les abstractions réseau de la plus interne à la plus externe.</p>
+<p><strong>Le Service</strong> donne une <strong>IP virtuelle stable</strong> (et un nom DNS) à un groupe de pods sélectionnés par <strong>label</strong>. Derrière lui, un objet <strong><code>Endpoints</code></strong> (ou <code>EndpointSlice</code>) liste les <strong>IP réelles</strong> des pods prêts — mis à jour en continu. <code>kube-proxy</code> programme le nœud pour rediriger l&#39;IP du Service vers ces pods. Types de Service :</p>
+<ul><li><strong><code>ClusterIP</code></strong> (défaut) : joignable <strong>uniquement depuis le cluster</strong>. La brique de base.</li><li><strong><code>NodePort</code></strong> : ouvre le <strong>même port haut</strong> (30000-32767) sur <strong>chaque nœud</strong> ; joignable de l&#39;extérieur via <code>IP_nœud:port</code>.</li><li><strong><code>LoadBalancer</code></strong> : demande un LB externe (sur k3d, <code>klipper-lb</code> en fournit un local). En prod cloud, une vraie IP publique.</li><li><strong><code>ExternalName</code></strong> : un alias DNS vers un nom externe (pas de proxy).</li></ul>
+<p><strong>Le DNS interne</strong> (CoreDNS) donne à chaque Service un nom : <strong><code>&lt;service&gt;.&lt;namespace&gt;.svc.cluster.local</code></strong>. Dans le même namespace, <code>&lt;service&gt;</code> suffit. C&#39;est ainsi que les pods se parlent — <strong>jamais par IP</strong>.</p>
+<p><strong>L&#39;Ingress</strong> n&#39;est <strong>pas</strong> un Service : c&#39;est une <strong>règle de routage HTTP</strong> (par <strong>hôte</strong> et/ou <strong>chemin</strong>) devant plusieurs Services. Il faut un <strong>Ingress Controller</strong> (ici Traefik) qui <strong>lit</strong> ces règles et fait le vrai routage L7. Un seul point d&#39;entrée (port 80/443) → N services, par <code>/chemin</code> ou par nom de domaine.</p>
+<p><strong>Le Service headless</strong> (<code>clusterIP: None</code>) n&#39;attribue <strong>pas</strong> d&#39;IP virtuelle : le DNS renvoie directement <strong>les IP de tous les pods</strong>. Utile quand le client veut joindre <strong>chaque</strong> pod (bases répliquées, StatefulSet).</p>
+<p><strong>La NetworkPolicy</strong> est un <strong>pare-feu entre pods</strong>. Par défaut, tout pod peut parler à tout pod. Une NetworkPolicy qui <strong>sélectionne</strong> des pods bascule ceux-ci en <em>deny par défaut</em> pour la direction couverte (ingress/egress), et <strong>seules</strong> les règles déclarées rouvrent le trafic. <em>(Elle n&#39;a d&#39;effet que si le réseau l&#39;applique — k3s le fait.)</em></p>
+</div>
+<div data-lang="en"><p>Kubernetes stacks networking abstractions from innermost to outermost.</p>
+<p><strong>The Service</strong> gives a <strong>stable virtual IP</strong> (and a DNS name) to a group of pods selected by <strong>label</strong>. Behind it, an <strong><code>Endpoints</code></strong> object (or <code>EndpointSlice</code>) lists the <strong>real IPs</strong> of ready pods — continuously updated. <code>kube-proxy</code> programs the node to redirect the Service IP to those pods. Service types:</p>
+<ul><li><strong><code>ClusterIP</code></strong> (default): reachable <strong>only from within the cluster</strong>. The base brick.</li><li><strong><code>NodePort</code></strong>: opens the <strong>same high port</strong> (30000-32767) on <strong>every node</strong>; reachable externally via <code>node_IP:port</code>.</li><li><strong><code>LoadBalancer</code></strong>: requests an external LB (on k3d, <code>klipper-lb</code> provides a local one). In cloud prod, a real public IP.</li><li><strong><code>ExternalName</code></strong>: a DNS alias to an external name (no proxy).</li></ul>
+<p><strong>Internal DNS</strong> (CoreDNS) gives each Service a name: <strong><code>&lt;service&gt;.&lt;namespace&gt;.svc.cluster.local</code></strong>. In the same namespace, <code>&lt;service&gt;</code> suffices. That&#39;s how pods talk to each other — <strong>never by IP</strong>.</p>
+<p><strong>Ingress</strong> is <strong>not</strong> a Service: it&#39;s an <strong>HTTP routing rule</strong> (by <strong>host</strong> and/or <strong>path</strong>) in front of several Services. It needs an <strong>Ingress Controller</strong> (here Traefik) that <strong>reads</strong> those rules and does the real L7 routing. A single entry point (port 80/443) → N services, by <code>/path</code> or by domain name.</p>
+<p><strong>The headless Service</strong> (<code>clusterIP: None</code>) assigns <strong>no</strong> virtual IP: DNS returns <strong>all the pods&#39; IPs</strong> directly. Useful when the client wants to reach <strong>each</strong> pod (replicated databases, StatefulSets).</p>
+<p><strong>The NetworkPolicy</strong> is a <strong>pod-to-pod firewall</strong>. By default, any pod can talk to any pod. A NetworkPolicy that <strong>selects</strong> pods flips them to <em>default-deny</em> for the covered direction (ingress/egress), and <strong>only</strong> the declared rules reopen traffic. <em>(It only takes effect if the network enforces it — k3s does.)</em></p>
+</div>
+
+<figure class="schema" id="figure-kubernetes-networking-layers">
+  <svg viewBox="0 0 760 152" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-kubernetes-networking-layers">
+  <title id="s-kubernetes-networking-layers">Couches réseau K8s</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Couches réseau K8s</text><rect class="box-accent" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="98" y="70.5" text-anchor="middle">Ingress</text><text class="sub sub-fill" x="98" y="83.5" text-anchor="middle">L7 chemin/hôte</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl" x="286" y="70.5" text-anchor="middle">Services</text><text class="sub" x="286" y="83.5" text-anchor="middle">IP stable</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl" x="474" y="77" text-anchor="middle">Endpoints</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box-soft" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="662" y="77" text-anchor="middle">Pods</text><text class="sub" x="380" y="144" text-anchor="middle">le DNS nomme les Services · la NetworkPolicy filtre entre pods</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Ingress (L7, par chemin/hôte) → Services (IP stable) → Endpoints → Pods. Le DNS nomme les Services ; la NetworkPolicy filtre entre pods.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Ingress (L7, by path/host) → Services (stable IP) → Endpoints → Pods. DNS names the Services; the NetworkPolicy filters between pods.</figcaption>
+</figure>
+<div data-lang="fr"><p>On avance : ClusterIP &amp; Endpoints &amp; DNS → NodePort → Ingress → headless → NetworkPolicy.</p>
+</div>
+<div data-lang="en"><p>We&#39;ll go: ClusterIP &amp; Endpoints &amp; DNS → NodePort → Ingress → headless → NetworkPolicy.</p>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exposer <code>app1</code> avec un <strong><code>ClusterIP</code></strong>, et comprendre le lien <strong>Service → Endpoints → pods</strong> via le <strong>sélecteur</strong>.</p>
+<p><strong>🤔 Le sélecteur fait tout.</strong> Un Service ne « contient » pas de pods : il en <strong>sélectionne</strong> par label, et Kubernetes remplit ses <strong>Endpoints</strong> avec les IP des pods <strong>prêts</strong> qui matchent. Expose :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Expose <code>app1</code> with a <strong><code>ClusterIP</code></strong>, and understand the <strong>Service → Endpoints → pods</strong> link via the <strong>selector</strong>.</p>
+<p><strong>🤔 The selector does everything.</strong> A Service doesn&#39;t &quot;contain&quot; pods: it <strong>selects</strong> them by label, and Kubernetes fills its <strong>Endpoints</strong> with the IPs of the <strong>ready</strong> pods that match. Expose it:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl expose deployment app1 --port=80 --target-port=80 --name=app1
+kubectl get svc app1                       # TYPE ClusterIP, une IP interne / an internal IP
+kubectl get endpoints app1                 # 2 IP:80 — les deux pods app1 / the two app1 pods</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>kubectl get endpoints app1</code> liste <strong>deux</strong> <code>IP:80</code> — exactement les IP des deux pods <code>app1</code> (compare avec <code>kubectl get pods -l app=app1 -o wide</code>). Preuve du lien vivant : <code>kubectl scale deployment app1 --replicas=3</code>, puis re-<code>get endpoints app1</code> → <strong>trois</strong> IP. Le Service suit les pods <strong>automatiquement</strong>, sans que tu touches au Service. Remets <code>--replicas=2</code>.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>kubectl get endpoints app1</code> lists <strong>two</strong> <code>IP:80</code> — exactly the IPs of the two <code>app1</code> pods (compare with <code>kubectl get pods -l app=app1 -o wide</code>). Proof of the live link: <code>kubectl scale deployment app1 --replicas=3</code>, then re-<code>get endpoints app1</code> → <strong>three</strong> IPs. The Service follows the pods <strong>automatically</strong>, without you touching the Service. Set <code>--replicas=2</code> back.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Joindre le Service par son <strong>nom DNS</strong>, depuis un autre pod.</p>
+<p><strong>🤔 On ne code jamais une IP.</strong> Les pods se parlent par <strong>nom de Service</strong>. Lance un pod client jetable et résous/interroge <code>app1</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Reach the Service by its <strong>DNS name</strong>, from another pod.</p>
+<p><strong>🤔 You never hardcode an IP.</strong> Pods talk by <strong>Service name</strong>. Launch a throwaway client pod and resolve/query <code>app1</code>:</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl run client --image=busybox:1.36 --restart=Never -it --rm -- \
+  sh -c &quot;nslookup app1; echo &#39;---&#39;; wget -qO- app1 | grep Hostname&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>nslookup app1</code> résout vers le nom complet <strong><code>app1.net.svc.cluster.local</code></strong> et l&#39;IP du Service (pas celle d&#39;un pod). Le <code>wget -qO- app1</code> renvoie une ligne <code>Hostname: app1-…</code> — un des deux pods <code>app1</code> a répondu, via le nom court <code>app1</code> (même namespace). Relance-le plusieurs fois : sur l&#39;ensemble des essais, les réponses se <strong>répartissent</strong> sur les deux pods → le Service <strong>load-balance</strong>. <em>(kube-proxy en mode iptables répartit de façon <strong>statistique</strong>, pas en tour de rôle strict : deux essais de suite peuvent tomber sur le même pod — c&#39;est normal. Depuis un autre namespace, il faudrait <code>app1.net</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>nslookup app1</code> resolves to the full name <strong><code>app1.net.svc.cluster.local</code></strong> and the Service IP (not a pod&#39;s). The <code>wget -qO- app1</code> returns a <code>Hostname: app1-…</code> line — one of the two <code>app1</code> pods answered, via the short name <code>app1</code> (same namespace). Re-run it several times: across the runs, responses are <strong>spread</strong> across both pods → the Service <strong>load-balances</strong>. <em>(kube-proxy in iptables mode balances <strong>statistically</strong>, not strict round-robin: two runs in a row can hit the same pod — that&#39;s normal. From another namespace, you&#39;d need <code>app1.net</code>.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Exposer <code>app1</code> à l&#39;<strong>extérieur</strong> du cluster avec un <strong><code>NodePort</code></strong>.</p>
+<p><strong>🤔 NodePort = un port sur chaque nœud.</strong> On fixe <code>nodePort: 30080</code> (qu&#39;on a mappé vers l&#39;hôte à la création du cluster). Crée <code>nodeport.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Expose <code>app1</code> <strong>outside</strong> the cluster with a <strong><code>NodePort</code></strong>.</p>
+<p><strong>🤔 NodePort = a port on every node.</strong> We pin <code>nodePort: 30080</code> (which we mapped to the host at cluster creation). Create <code>nodeport.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># nodeport.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1-np
+spec:
+  type: NodePort
+  selector:
+    app: app1
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080        # doit être dans 30000-32767 / must be within 30000-32767</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f nodeport.yaml
+kubectl get svc app1-np                    # TYPE NodePort, 80:30080/TCP
+curl -s localhost:30080 | grep Hostname    # un pod app1 répond depuis l&#39;extérieur / an app1 pod answers from outside</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl localhost:30080</code> renvoie <code>Hostname: app1-…</code> — tu as atteint le pod <strong>depuis ta machine</strong>, hors du cluster, via le NodePort mappé. Un NodePort ouvre ce port sur <strong>tous</strong> les nœuds ; ici on a mappé celui du serveur (<code>30080@server:0</code>) vers l&#39;hôte. En prod, on met <strong>rarement</strong> un NodePort en frontal (ports hauts, un par service) : on préfère un <strong>Ingress</strong> — l&#39;étape suivante.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl localhost:30080</code> returns <code>Hostname: app1-…</code> — you reached the pod <strong>from your machine</strong>, outside the cluster, via the mapped NodePort. A NodePort opens that port on <strong>all</strong> nodes; here we mapped the server&#39;s (<code>30080@server:0</code>) to the host. In prod, you <strong>rarely</strong> put a NodePort at the front (high ports, one per service): you prefer an <strong>Ingress</strong> — the next step.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Router du HTTP par <strong>chemin</strong> avec un <strong><code>Ingress</code></strong> : <code>/app1</code> → <code>app1</code>, <code>/app2</code> → <code>app2</code>.</p>
+<p>D&#39;abord, expose <code>app2</code> en ClusterIP (comme <code>app1</code> à l&#39;étape 1) :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Route HTTP by <strong>path</strong> with an <strong><code>Ingress</code></strong>: <code>/app1</code> → <code>app1</code>, <code>/app2</code> → <code>app2</code>.</p>
+<p>First, expose <code>app2</code> as ClusterIP (like <code>app1</code> in step 1):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl expose deployment app2 --port=80 --target-port=80 --name=app2</code></pre>
+<div data-lang="fr"><p>Puis l&#39;<code>Ingress</code> (Traefik l&#39;implémente) — <code>ingress.yaml</code> :</p>
+</div>
+<div data-lang="en"><p>Then the <code>Ingress</code> (Traefik implements it) — <code>ingress.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /app1
+            pathType: Prefix
+            backend:
+              service:
+                name: app1
+                port:
+                  number: 80
+          - path: /app2
+            pathType: Prefix
+            backend:
+              service:
+                name: app2
+                port:
+                  number: 80</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f ingress.yaml
+kubectl get ingress web                    # HOSTS *, la colonne ADDRESS se remplit / ADDRESS column fills in
+curl -s localhost:8080/app1 | grep Hostname   # app1-…
+curl -s localhost:8080/app2 | grep Hostname   # app2-…</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>curl localhost:8080/app1</code> renvoie un <code>Hostname: app1-…</code> et <code>/app2</code> un <code>Hostname: app2-…</code> — <strong>un seul point d&#39;entrée</strong> (le port 80 de Traefik, mappé sur <code>8080</code>) route vers <strong>deux</strong> services selon le <strong>chemin</strong>. C&#39;est le pattern de prod : un Ingress devant tous tes services, au lieu d&#39;un NodePort/LoadBalancer par service. <em>(Traefik transmet le chemin tel quel ; <code>whoami</code> répond sur n&#39;importe quel chemin, d&#39;où le 200 sans réécriture.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>curl localhost:8080/app1</code> returns a <code>Hostname: app1-…</code> and <code>/app2</code> a <code>Hostname: app2-…</code> — <strong>a single entry point</strong> (Traefik&#39;s port 80, mapped to <code>8080</code>) routes to <strong>two</strong> services by <strong>path</strong>. That&#39;s the prod pattern: one Ingress in front of all your services, instead of one NodePort/LoadBalancer per service. <em>(Traefik forwards the path as-is; <code>whoami</code> answers on any path, hence the 200 without rewriting.)</em></p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer un <strong>Service headless</strong> (<code>clusterIP: None</code>) et voir le DNS renvoyer <strong>toutes</strong> les IP de pods.</p>
+<p><strong>🤔 Quand headless ?</strong> Quand le client ne veut <strong>pas</strong> un load-balancing vers une IP virtuelle, mais la <strong>liste des pods</strong> pour les joindre un par un (réplicas de base de données, découverte de pairs). Crée <code>headless.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create a <strong>headless Service</strong> (<code>clusterIP: None</code>) and see DNS return <strong>all</strong> the pod IPs.</p>
+<p><strong>🤔 When headless?</strong> When the client doesn&#39;t want load-balancing to a virtual IP, but the <strong>list of pods</strong> to reach them one by one (database replicas, peer discovery). Create <code>headless.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1-headless
+spec:
+  clusterIP: None            # &lt;- headless : pas d&#39;IP virtuelle / no virtual IP
+  selector:
+    app: app1
+  ports:
+    - port: 80
+      targetPort: 80</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f headless.yaml
+kubectl run dnsclient --image=busybox:1.36 --restart=Never -it --rm -- \
+  nslookup app1-headless</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> <code>nslookup app1-headless</code> renvoie <strong>deux</strong> enregistrements <code>Address</code> — les IP <strong>des deux pods</strong> <code>app1</code> directement (compare avec <code>kubectl get pods -l app=app1 -o wide</code>). Un Service <code>ClusterIP</code> classique n&#39;aurait renvoyé <strong>qu&#39;une</strong> IP (la virtuelle). C&#39;est toute la différence : headless = « donne-moi les pods », ClusterIP = « donne-moi une porte d&#39;entrée load-balancée ».</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> <code>nslookup app1-headless</code> returns <strong>two</strong> <code>Address</code> records — the IPs <strong>of the two</strong> <code>app1</code> pods directly (compare with <code>kubectl get pods -l app=app1 -o wide</code>). A regular <code>ClusterIP</code> Service would have returned <strong>only one</strong> IP (the virtual one). That&#39;s the whole difference: headless = &quot;give me the pods&quot;, ClusterIP = &quot;give me one load-balanced entry point&quot;.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire une <strong><code>NetworkPolicy</code></strong> : bloquer tout le trafic entrant vers <code>app1</code>, puis n&#39;autoriser qu&#39;une source labellisée.</p>
+<p><strong>🤔 Deny par défaut, puis allow.</strong> Tant qu&#39;aucune policy ne sélectionne un pod, tout est permis. Dès qu&#39;une policy le sélectionne pour l&#39;<code>Ingress</code>, ce pod passe en <em>deny</em>, et seules ses règles rouvrent. Étape A — <strong>default-deny</strong> sur <code>app1</code>. Crée <code>deny.yaml</code> :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write a <strong><code>NetworkPolicy</code></strong>: block all inbound traffic to <code>app1</code>, then allow only a labeled source.</p>
+<p><strong>🤔 Default-deny, then allow.</strong> As long as no policy selects a pod, everything is allowed. The moment a policy selects it for <code>Ingress</code>, that pod flips to <em>deny</em>, and only its rules reopen. Step A — <strong>default-deny</strong> on <code>app1</code>. Create <code>deny.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># deny.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app1-deny-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: app1          # cible les pods app1 / targets app1 pods
+  policyTypes: [Ingress]  # aucune règle ingress = tout entrant bloqué / no ingress rule = all inbound blocked</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f deny.yaml
+# Test depuis un pod NON autorisé (timeout attendu) / from a NON-allowed pod (timeout expected)
+kubectl run probe --image=busybox:1.36 --restart=Never -it --rm -- \
+  wget -qO- -T 5 app1 || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
+<div data-lang="fr"><p>Étape B — autoriser <strong>uniquement</strong> les pods portant <code>access: app1</code>. Crée <code>allow.yaml</code> :</p>
+</div>
+<div data-lang="en"><p>Step B — allow <strong>only</strong> pods carrying <code>access: app1</code>. Create <code>allow.yaml</code>:</p>
+</div>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code># allow.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app1-allow-from-client
+spec:
+  podSelector:
+    matchLabels:
+      app: app1
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              access: app1     # seuls ces pods peuvent entrer / only these pods may enter
+      ports:
+        - protocol: TCP
+          port: 80</code></pre>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>kubectl apply -f allow.yaml
+# Pod autorisé (label access=app1) -&gt; passe / allowed pod (label access=app1) -&gt; succeeds
+kubectl run ok --image=busybox:1.36 --labels=&quot;access=app1&quot; --restart=Never -it --rm -- \
+  wget -qO- -T 5 app1 | grep Hostname
+# Pod non-labellisé -&gt; toujours bloqué / unlabeled pod -&gt; still blocked
+kubectl run ko --image=busybox:1.36 --restart=Never -it --rm -- \
+  wget -qO- -T 5 app1 || echo &quot;BLOQUÉ (attendu) / BLOCKED (expected)&quot;</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> après <code>deny.yaml</code>, le pod <code>probe</code> <strong>timeoute</strong> en joignant <code>app1</code> (trafic bloqué). Après <code>allow.yaml</code>, le pod <code>ok</code> (label <code>access=app1</code>) <strong>reçoit</strong> la réponse <code>Hostname: app1-…</code>, tandis que le pod <code>ko</code> (sans label) <strong>timeoute encore</strong>. Le pare-feu discrimine <strong>par label de source</strong> — et il s&#39;applique vraiment parce que <strong>k3s embarque un contrôleur de NetworkPolicy</strong> (un cluster flannel nu, lui, ignorerait ces policies). <em>(Nettoyage : <code>kubectl delete networkpolicy --all</code>.)</em></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> after <code>deny.yaml</code>, the <code>probe</code> pod <strong>times out</strong> reaching <code>app1</code> (traffic blocked). After <code>allow.yaml</code>, the <code>ok</code> pod (label <code>access=app1</code>) <strong>gets</strong> the <code>Hostname: app1-…</code> response, while the <code>ko</code> pod (no label) <strong>still times out</strong>. The firewall discriminates <strong>by source label</strong> — and it truly applies because <strong>k3s ships a NetworkPolicy controller</strong> (a bare flannel cluster would ignore these policies). <em>(Cleanup: <code>kubectl delete networkpolicy --all</code>.)</em></p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Un Service sans Endpoints.</strong> Si <code>kubectl get endpoints &lt;svc&gt;</code> est vide, le <strong>sélecteur</strong> ne matche aucun pod prêt (mauvais label, pods non <code>Ready</code>, mauvais <code>targetPort</code>). Le symptôme : « connection refused / timeout » vers le Service.</p>
+<p><strong>2. <code>port</code> vs <code>targetPort</code>.</strong> <code>port</code> = le port du <strong>Service</strong> ; <code>targetPort</code> = le port du <strong>conteneur</strong>. Les confondre = trafic dans le vide.</p>
+<p><strong>3. Ingress sans Ingress Controller.</strong> Un objet <code>Ingress</code> seul ne fait <strong>rien</strong> : il faut un contrôleur qui le lise. Ici Traefik (k3s) ; ailleurs <code>ingress-nginx</code>. Sans contrôleur, la colonne <code>ADDRESS</code> reste vide.</p>
+<p><strong>4. Oublier <code>ingressClassName</code>.</strong> Si plusieurs contrôleurs coexistent (ou si aucune classe par défaut n&#39;est définie), un Ingress sans <code>ingressClassName</code> peut n&#39;être servi par personne.</p>
+<p><strong>5. Croire qu&#39;une NetworkPolicy est appliquée partout.</strong> Elle n&#39;a d&#39;effet que si le <strong>CNI l&#39;implémente</strong>. k3s oui ; un cluster flannel nu <strong>non</strong> (la policy existe mais ne bloque rien). Toujours <strong>tester</strong> le blocage.</p>
+<p><strong>6. NetworkPolicy : le sélecteur vide piège.</strong> <code>podSelector: {}</code> sélectionne <strong>tous</strong> les pods du namespace ; <code>namespaceSelector</code>/<code>podSelector</code> combinés ont une sémantique précise (ET vs OU selon la structure). Lis deux fois avant d&#39;appliquer un default-deny en prod.</p>
+<p><strong>7. NodePort injoignable sur k3d.</strong> Le port n&#39;est ouvert sur l&#39;hôte que si tu l&#39;as <strong>mappé</strong> à la création (<code>-p &quot;30080:30080@server:0&quot;</code>). Sinon, le NodePort existe dans le cluster mais pas sur ta machine.</p>
+</div>
+<div data-lang="en"><p><strong>1. A Service with no Endpoints.</strong> If <code>kubectl get endpoints &lt;svc&gt;</code> is empty, the <strong>selector</strong> matches no ready pod (wrong label, pods not <code>Ready</code>, wrong <code>targetPort</code>). Symptom: &quot;connection refused / timeout&quot; to the Service.</p>
+<p><strong>2. <code>port</code> vs <code>targetPort</code>.</strong> <code>port</code> = the <strong>Service&#39;s</strong> port; <code>targetPort</code> = the <strong>container&#39;s</strong> port. Confusing them = traffic into the void.</p>
+<p><strong>3. Ingress without an Ingress Controller.</strong> An <code>Ingress</code> object alone does <strong>nothing</strong>: you need a controller to read it. Here Traefik (k3s); elsewhere <code>ingress-nginx</code>. Without a controller, the <code>ADDRESS</code> column stays empty.</p>
+<p><strong>4. Forgetting <code>ingressClassName</code>.</strong> If several controllers coexist (or no default class is set), an Ingress without <code>ingressClassName</code> may be served by no one.</p>
+<p><strong>5. Believing a NetworkPolicy is enforced everywhere.</strong> It only takes effect if the <strong>CNI implements it</strong>. k3s yes; a bare flannel cluster <strong>no</strong> (the policy exists but blocks nothing). Always <strong>test</strong> the block.</p>
+<p><strong>6. NetworkPolicy: the empty-selector trap.</strong> <code>podSelector: {}</code> selects <strong>all</strong> pods in the namespace; combined <code>namespaceSelector</code>/<code>podSelector</code> have precise semantics (AND vs OR depending on structure). Read twice before applying a default-deny in prod.</p>
+<p><strong>7. NodePort unreachable on k3d.</strong> The port is only opened on the host if you <strong>mapped</strong> it at creation (<code>-p &quot;30080:30080@server:0&quot;</code>). Otherwise, the NodePort exists in the cluster but not on your machine.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Tu crées un <code>ClusterIP</code> et tu lis ses <strong>Endpoints</strong> (et vois le lien vivant au scaling).</li><li>Tu joins un Service par son <strong>nom DNS</strong> depuis un pod.</li><li>Tu exposes en <strong>NodePort</strong> et tu l&#39;atteins depuis l&#39;hôte.</li><li>Tu routes <code>/app1</code> et <code>/app2</code> avec un <strong>Ingress</strong>.</li><li>Tu crées un <strong>Service headless</strong> et tu vois le DNS renvoyer les IP de pods.</li><li>Tu écris un <strong>default-deny</strong> puis un <strong>allow</strong> NetworkPolicy, et tu <strong>vérifies</strong> le blocage.</li></ul>
+<p>Six cases cochées = tu maîtrises le domaine <strong>Services &amp; Networking</strong> du CKA/CKAD.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>You create a <code>ClusterIP</code> and read its <strong>Endpoints</strong> (and see the live link on scaling).</li><li>You reach a Service by its <strong>DNS name</strong> from a pod.</li><li>You expose a <strong>NodePort</strong> and reach it from the host.</li><li>You route <code>/app1</code> and <code>/app2</code> with an <strong>Ingress</strong>.</li><li>You create a <strong>headless Service</strong> and see DNS return pod IPs.</li><li>You write a <strong>default-deny</strong> then an <strong>allow</strong> NetworkPolicy, and <strong>verify</strong> the block.</li></ul>
+<p>Six boxes ticked = you&#39;ve got the CKA/CKAD <strong>Services &amp; Networking</strong> domain.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>La suite de la track Kubernetes → CKA/CKAD :</p>
+<ol><li><strong>Stockage</strong> — <code>PersistentVolume</code>/<code>PersistentVolumeClaim</code>, <code>StorageClass</code>, StatefulSet et stockage stable.</li><li><strong>Cluster ops, sécurité &amp; RBAC</strong> — kubeconfig/contextes, RBAC, sauvegarde etcd, mises à jour, troubleshooting.</li><li><strong>Projet d&#39;entreprise</strong> — appli multi-tier (ingress + config + stockage + probes + autoscaling) : le livrable de CV.</li></ol>
+</div>
+<div data-lang="en"><p>The rest of the Kubernetes → CKA/CKAD track:</p>
+<ol><li><strong>Storage</strong> — <code>PersistentVolume</code>/<code>PersistentVolumeClaim</code>, <code>StorageClass</code>, StatefulSet and stable storage.</li><li><strong>Cluster ops, security &amp; RBAC</strong> — kubeconfig/contexts, RBAC, etcd backup, upgrades, troubleshooting.</li><li><strong>Enterprise project</strong> — multi-tier app (ingress + config + storage + probes + autoscaling): the CV deliverable.</li></ol>
+</div>
+
+<h3 data-lang="fr">Suite logique du parcours</h3>
+<h3 data-lang="en">Logical next steps in the path</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../traefik/">
+    <span class="num">39</span>
+    <span class="title-line" data-lang="fr">Traefik v3 — Reverse proxy avec HTTPS automatique</span>
+    <span class="title-line" data-lang="en">Traefik v3 — Reverse proxy with automatic HTTPS</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire services &amp; networking.</p>
+</div>
+<div data-lang="en"><p>Services &amp; networking cheat sheet.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Services
+kubectl expose deployment app1 --port=80 --target-port=80         # ClusterIP
+kubectl get endpoints app1                                        # IP réelles des pods / real pod IPs
+kubectl expose deployment app1 --type=NodePort --port=80          # NodePort (port haut auto)
+#   clusterIP: None dans le YAML -&gt; Service headless / headless Service
+
+# DNS interne / internal DNS
+#   &lt;service&gt;.&lt;namespace&gt;.svc.cluster.local  (court : &lt;service&gt; même ns / short: same ns)
+kubectl run c --image=busybox:1.36 --rm -it --restart=Never -- nslookup app1
+
+# Ingress (nécessite un controller / needs a controller)
+#   spec.ingressClassName + rules[].http.paths[] (path, pathType, backend.service)
+kubectl get ingress
+
+# NetworkPolicy (appliquée par k3s / enforced by k3s)
+#   podSelector + policyTypes:[Ingress] SANS ingress: -&gt; default-deny
+#   ingress.from[].podSelector -&gt; allow par label / allow by label
+kubectl get networkpolicy</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://kubernetes.io/docs/concepts/services-networking/service/">Service</a> et <a href="https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/">DNS des Services/Pods</a>.</li><li><a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Ingress</a> et <a href="https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/">Ingress Controllers</a>.</li><li><a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/">NetworkPolicy</a>.</li><li><a href="https://docs.k3s.io/networking/networking-services">k3s — Network Policy Controller</a> (k3s applique les NetworkPolicy).</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://kubernetes.io/docs/concepts/services-networking/service/">Service</a> and <a href="https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/">Service/Pod DNS</a>.</li><li><a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Ingress</a> and <a href="https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/">Ingress Controllers</a>.</li><li><a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/">NetworkPolicy</a>.</li><li><a href="https://docs.k3s.io/networking/networking-services">k3s — Network Policy Controller</a> (k3s enforces NetworkPolicies).</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong><code>kubectl get endpoints &lt;svc&gt;</code> est vide.</strong> Le sélecteur ne matche aucun pod prêt. Vérifie les labels (<code>kubectl get pods --show-labels</code>), l&#39;état <code>Ready</code>, et que <code>targetPort</code> = port du conteneur.</p>
+<p><strong><code>curl localhost:8080/app1</code> renvoie 404 (Traefik).</strong> L&#39;Ingress n&#39;est pas (encore) pris en compte, ou <code>ingressClassName</code> est absent/incorrect. <code>kubectl describe ingress web</code> et vérifie que Traefik tourne (<code>-n kube-system</code>).</p>
+<p><strong><code>curl localhost:30080</code> : connection refused.</strong> Le mapping de port hôte manque. Recrée le cluster avec <code>-p &quot;30080:30080@server:0&quot;</code>, ou utilise l&#39;Ingress.</p>
+<p><strong>La NetworkPolicy ne bloque rien.</strong> Sur k3s elle devrait ; vérifie que tu testes le bon namespace et que la policy <strong>sélectionne</strong> bien le pod cible (<code>kubectl describe networkpolicy</code>). Rappelle-toi qu&#39;une policy est <strong>additive</strong> : plusieurs policies s&#39;additionnent (union des autorisations).</p>
+<p><strong>Le pod <code>client</code>/<code>probe</code> reste ouvert et bloque le terminal.</strong> Avec <code>-it --rm --restart=Never</code>, il se supprime à la sortie. Si un pod jetable traîne, <code>kubectl delete pod client dnsclient probe ok ko --ignore-not-found</code>.</p>
+<p><strong><code>nslookup</code> échoue dans busybox.</strong> Utilise le nom complet <code>app1.net.svc.cluster.local</code>, ou vérifie CoreDNS (<code>kubectl -n kube-system get pods -l k8s-app=kube-dns</code>).</p>
+</div>
+<div data-lang="en"><p><strong><code>kubectl get endpoints &lt;svc&gt;</code> is empty.</strong> The selector matches no ready pod. Check labels (<code>kubectl get pods --show-labels</code>), <code>Ready</code> status, and that <code>targetPort</code> = the container port.</p>
+<p><strong><code>curl localhost:8080/app1</code> returns 404 (Traefik).</strong> The Ingress isn&#39;t picked up (yet), or <code>ingressClassName</code> is missing/wrong. <code>kubectl describe ingress web</code> and check Traefik is running (<code>-n kube-system</code>).</p>
+<p><strong><code>curl localhost:30080</code>: connection refused.</strong> The host port mapping is missing. Recreate the cluster with <code>-p &quot;30080:30080@server:0&quot;</code>, or use the Ingress.</p>
+<p><strong>The NetworkPolicy blocks nothing.</strong> On k3s it should; check you&#39;re testing the right namespace and that the policy actually <strong>selects</strong> the target pod (<code>kubectl describe networkpolicy</code>). Remember a policy is <strong>additive</strong>: multiple policies add up (union of allowances).</p>
+<p><strong>The <code>client</code>/<code>probe</code> pod hangs and blocks the terminal.</strong> With <code>-it --rm --restart=Never</code>, it deletes itself on exit. If a throwaway pod lingers, <code>kubectl delete pod client dnsclient probe ok ko --ignore-not-found</code>.</p>
+<p><strong><code>nslookup</code> fails in busybox.</strong> Use the full name <code>app1.net.svc.cluster.local</code>, or check CoreDNS (<code>kubectl -n kube-system get pods -l k8s-app=kube-dns</code>).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>

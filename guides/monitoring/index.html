@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-lang="fr">Prometheus + Grafana — Monitoring de ton homelab — jiha.tech</title>
+  <title data-lang="en">Prometheus + Grafana — Homelab monitoring — jiha.tech</title>
+  <meta name="description" content="Guide pas-à-pas pour monitorer ton homelab avec Prometheus et Grafana : exporters, dashboards, alertes." data-lang="fr">
+  <meta name="description" content="Step-by-step guide to monitor your homelab with Prometheus and Grafana: exporters, dashboards, alerts." data-lang="en">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Prometheus + Grafana — Monitoring de ton homelab">
+  <meta property="og:description" content="Guide pas-à-pas pour monitorer ton homelab avec Prometheus et Grafana : exporters, dashboards, alertes.">
+  <meta property="og:image" content="https://jiha.tech/assets/logo/LOGO_JIHA_TECHSVG.svg">
+  <meta property="og:url" content="https://jiha.tech/guides/monitoring/">
+  <link rel="canonical" href="https://jiha.tech/guides/monitoring/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../assets/styles/main.css">
+  <link rel="stylesheet" href="../../assets/styles/print.css" media="print">
+</head>
+<body data-guide-slug="monitoring">
+
+<!-- ============================================ TOPBAR ============================================ -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a class="brand" href="../../">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg>
+    </a>
+    <span class="spacer"></span>
+    <div class="btn-group" role="group" aria-label="Language">
+      <button class="btn-pill" type="button" data-set-lang="fr">FR</button>
+      <button class="btn-pill" type="button" data-set-lang="en">EN</button>
+    </div>
+    <button class="btn-pill" type="button" data-toggle-theme>☾ Dark</button>
+    <button class="btn-pill" type="button" data-print-pdf>
+      <span data-lang="fr">PDF</span>
+      <span data-lang="en">PDF</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================ CTA BANDEAU HAUT (discret) ============================================ -->
+<div class="cta-banner">
+  <span data-lang="fr">Ce guide fait partie de la formation jiha.tech · </span>
+  <span data-lang="en">This guide is part of the jiha.tech learning path · </span>
+  <a href="https://jiha.tech/" data-lang="fr">découvrir le parcours →</a>
+  <a href="https://jiha.tech/" data-lang="en">discover the path →</a>
+</div>
+
+<!-- ============================================ HERO ============================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="prompt" data-lang="fr">~/guides/monitoring</div>
+    <div class="prompt" data-lang="en">~/guides/monitoring</div>
+    <h1 data-lang="fr">Prometheus + Grafana — Monitoring de ton homelab</h1>
+    <h1 data-lang="en">Prometheus + Grafana — Homelab monitoring</h1>
+    <p class="tagline" data-lang="fr">Métriques, dashboards, alertes pour tous tes services.</p>
+    <p class="tagline" data-lang="en">Metrics, dashboards, alerts for all your services.</p>
+    
+<div class="hero-meta" data-lang="fr">
+  <div><span>Durée</span><strong>~ 90 min</strong></div>
+  <div><span>Niveau</span><strong>Intermédiaire</strong></div>
+  <div><span>Étapes</span><strong>8 étapes</strong></div>
+  <div><span>Version validée</span><strong>undefined</strong></div>
+  <div><span>Dernière revue</span><strong>2026-06-19</strong></div>
+</div>
+<div class="hero-meta" data-lang="en">
+  <div><span>Duration</span><strong>~ 90 min</strong></div>
+  <div><span>Level</span><strong>Intermediate</strong></div>
+  <div><span>Steps</span><strong>8 steps</strong></div>
+  <div><span>Validated version</span><strong>undefined</strong></div>
+  <div><span>Last review</span><strong>2026-06-19</strong></div>
+</div>
+  </div>
+</header>
+
+<!-- ============================================ LAYOUT ============================================ -->
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire / Contents">
+  <h3 data-lang="fr">Sommaire</h3>
+  <h3 data-lang="en">Contents</h3>
+  <ol>
+    <li>
+      <a href="#intro" data-lang="fr">Introduction</a>
+      <a href="#intro" data-lang="en">Introduction</a>
+    </li>
+    <li>
+      <a href="#objectives" data-lang="fr">Objectifs</a>
+      <a href="#objectives" data-lang="en">Objectives</a>
+    </li>
+    <li>
+      <a href="#prerequisites" data-lang="fr">Prérequis</a>
+      <a href="#prerequisites" data-lang="en">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#concepts" data-lang="fr">Vue d'ensemble</a>
+      <a href="#concepts" data-lang="en">Overview</a>
+    </li>
+    <li>
+      <a href="#walkthrough" data-lang="fr">Pas-à-pas</a>
+      <a href="#walkthrough" data-lang="en">Walkthrough</a>
+    </li>
+    <li>
+      <a href="#pitfalls" data-lang="fr">Pièges</a>
+      <a href="#pitfalls" data-lang="en">Pitfalls</a>
+    </li>
+    <li>
+      <a href="#success" data-lang="fr">Succès</a>
+      <a href="#success" data-lang="en">Success</a>
+    </li>
+    <li>
+      <a href="#next" data-lang="fr">Et après ?</a>
+      <a href="#next" data-lang="en">What's next</a>
+    </li>
+    <li>
+      <a href="#cheatsheet" data-lang="fr">Cheatsheet</a>
+      <a href="#cheatsheet" data-lang="en">Cheatsheet</a>
+    </li>
+    <li>
+      <a href="#resources" data-lang="fr">Ressources</a>
+      <a href="#resources" data-lang="en">Resources</a>
+    </li>
+    <li>
+      <a href="#troubleshooting" data-lang="fr">Troubleshooting</a>
+      <a href="#troubleshooting" data-lang="en">Troubleshooting</a>
+    </li>
+  </ol>
+</nav>
+  <main>
+
+<section id="intro">
+  <span class="section-tag" data-lang="fr">§ 01 — Pourquoi ce guide existe</span>
+  <span class="section-tag" data-lang="en">§ 01 — Why this guide exists</span>
+  <h2 data-lang="fr">Pourquoi ce guide existe</h2>
+  <h2 data-lang="en">Why this guide exists</h2>
+<div data-lang="fr"><p>Sans monitoring, tu découvres qu&#39;un service est tombé <strong>au moment où tu en as besoin</strong> (panique). Avec monitoring, tu le sais en quelques minutes (calme).</p>
+<p>Le problème : beaucoup de tutos te font installer Prometheus + Grafana <strong>sans expliquer</strong> ce que tu monitores ni pourquoi. Tu finis avec un beau dashboard que tu ne regardes jamais.</p>
+<p>Ce guide construit une stack <strong>minimale mais utile</strong> : tu comprends ce que chaque composant fait, tu importes 2-3 dashboards qui <em>valent vraiment le coup</em>, et tu poses les bases de l&#39;alerting.</p>
+<p><strong>Pour qui c&#39;est :</strong> tu as plusieurs services qui tournent (homelab, VPS, apps perso) et tu veux passer du « je ne sais pas ce qui se passe » à « j&#39;ai une vue ».</p>
+<p><strong>Quand ce n&#39;est PAS le bon choix :</strong></p>
+<ul><li>Tu as <strong>un seul service très simple</strong> → l&#39;overhead n&#39;en vaut peut-être pas la peine. Uptime Kuma suffit pour du monitoring « ping-style ».</li><li>Tu veux du <strong>logging centralisé</strong> → c&#39;est Loki ou ELK qu&#39;il te faut, pas Prometheus (métriques ≠ logs).</li><li>Tu veux de l&#39;<strong>APM</strong> (tracing, profiling applicatif) → Grafana Tempo / Pyroscope, autre sujet.</li></ul>
+</div>
+<div data-lang="en"><p>Without monitoring, you find out a service is down <strong>the moment you need it</strong> (panic). With monitoring, you know within minutes (calm).</p>
+<p>The problem: lots of tutorials have you install Prometheus + Grafana <strong>without explaining</strong> what you&#39;re monitoring or why. You end up with a pretty dashboard you never look at.</p>
+<p>This guide builds a <strong>minimal but useful</strong> stack: you understand what each component does, you import 2-3 dashboards that are <em>actually worth it</em>, and you lay the groundwork for alerting.</p>
+<p><strong>Who it&#39;s for:</strong> you have several services running (homelab, VPS, personal apps) and you want to go from &quot;I have no idea what&#39;s happening&quot; to &quot;I have visibility&quot;.</p>
+<p><strong>When it&#39;s NOT the right choice:</strong></p>
+<ul><li>You run <strong>a single very simple service</strong> → the overhead may not be worth it. Uptime Kuma is enough for &quot;ping-style&quot; monitoring.</li><li>You want <strong>centralized logging</strong> → you need Loki or ELK, not Prometheus (metrics ≠ logs).</li><li>You want <strong>APM</strong> (tracing, application profiling) → Grafana Tempo / Pyroscope, a different topic.</li></ul>
+</div>
+</section>
+
+<section id="objectives">
+  <span class="section-tag" data-lang="fr">§ 02 — Ce que tu vas apprendre</span>
+  <span class="section-tag" data-lang="en">§ 02 — What you'll learn</span>
+  <h2 data-lang="fr">Ce que tu vas apprendre</h2>
+  <h2 data-lang="en">What you'll learn</h2>
+<div data-lang="fr"><p>À la fin de ce guide, tu sauras :</p>
+<ul><li>Expliquer le modèle <strong>pull-based</strong> de Prometheus (vs push) et pourquoi il est plus simple à opérer.</li><li>Déployer les deux <strong>exporters</strong> essentiels : node-exporter (machine) et cAdvisor (conteneurs).</li><li>Comprendre comment Prometheus <strong>scrape</strong> et stocke des métriques (séries temporelles, rétention).</li><li>Écrire du <strong>PromQL</strong> au niveau utile (pas besoin d&#39;être expert).</li><li>Importer un <strong>dashboard Grafana</strong> éprouvé depuis grafana.com au lieu de partir de zéro.</li><li>Poser une première <strong>alerte</strong> simple (disque &gt; 85 %) et comprendre le rôle d&#39;<strong>Alertmanager</strong> (mentionné, non installé ici).</li></ul>
+<p>Tu manipuleras au passage : <code>docker compose</code>, réseaux Docker, volumes nommés, basic auth Traefik, échappement des <code>$</code> dans un compose.</p>
+</div>
+<div data-lang="en"><p>By the end of this guide, you&#39;ll know how to:</p>
+<ul><li>Explain Prometheus&#39;s <strong>pull-based</strong> model (vs push) and why it&#39;s simpler to operate.</li><li>Deploy the two essential <strong>exporters</strong>: node-exporter (machine) and cAdvisor (containers).</li><li>Understand how Prometheus <strong>scrapes</strong> and stores metrics (time series, retention).</li><li>Write <strong>PromQL</strong> at a useful level (no need to be an expert).</li><li>Import a battle-tested <strong>Grafana dashboard</strong> from grafana.com instead of starting from scratch.</li><li>Set up a first simple <strong>alert</strong> (disk &gt; 85%) and understand the role of <strong>Alertmanager</strong> (mentioned, not installed here).</li></ul>
+<p>Along the way you&#39;ll handle: <code>docker compose</code>, Docker networks, named volumes, Traefik basic auth, <code>$</code> escaping in a compose file.</p>
+</div>
+</section>
+
+<section id="prerequisites">
+  <span class="section-tag" data-lang="fr">§ 03 — Prérequis honnêtes</span>
+  <span class="section-tag" data-lang="en">§ 03 — Honest prerequisites</span>
+  <h2 data-lang="fr">Prérequis honnêtes</h2>
+  <h2 data-lang="en">Honest prerequisites</h2>
+<div data-lang="fr"><p>Tu dois avoir :</p>
+<ul><li><strong>Docker et Docker Compose</strong> maîtrisés : services, volumes, réseaux, <code>env_file</code>.</li><li>Une aisance en <strong>ligne de commande Linux</strong> (<code>cd</code>, <code>nano</code>/<code>vim</code>, <code>crontab</code> non requis ici).</li><li>Un <strong>reverse proxy Traefik avec HTTPS</strong> qui tourne déjà — optionnel mais fortement recommandé pour exposer Grafana et Prometheus proprement. Ce guide suppose le réseau Docker <code>proxy</code> et le certresolver <code>le</code> du guide Traefik.</li><li>Au moins <strong>1 Go de RAM disponible</strong> pour la stack (Prometheus + Grafana + exporters).</li><li>Deux <strong>sous-domaines</strong> que tu contrôles (ex. <code>grafana.exemple.com</code>, <code>prometheus.exemple.com</code>), pointant vers ton serveur.</li></ul>
+<p><strong>Prérequis honnête :</strong> pas besoin de connaître PromQL ni Grafana avant de commencer — c&#39;est justement ce qu&#39;on apprend ici.</p>
+</div>
+<div data-lang="en"><p>You should have:</p>
+<ul><li>A solid grasp of <strong>Docker and Docker Compose</strong>: services, volumes, networks, <code>env_file</code>.</li><li>Comfort with the <strong>Linux command line</strong> (<code>cd</code>, <code>nano</code>/<code>vim</code>; no <code>crontab</code> needed here).</li><li>A <strong>Traefik reverse proxy with HTTPS</strong> already running — optional but strongly recommended to expose Grafana and Prometheus cleanly. This guide assumes the <code>proxy</code> Docker network and the <code>le</code> certresolver from the Traefik guide.</li><li>At least <strong>1 GB of available RAM</strong> for the stack (Prometheus + Grafana + exporters).</li><li>Two <strong>subdomains</strong> you control (e.g. <code>grafana.exemple.com</code>, <code>prometheus.exemple.com</code>), pointed at your server.</li></ul>
+<p><strong>Honest prerequisite:</strong> you don&#39;t need to know PromQL or Grafana before starting — that&#39;s exactly what we learn here.</p>
+</div>
+
+<h3 data-lang="fr">Guides prérequis</h3>
+<h3 data-lang="en">Required prerequisite guides</h3>
+<ul class="guides-list">
+<li>
+  <a class="guide-link" href="../docker-fondamentaux/">
+    <span class="num">11</span>
+    <span class="title-line" data-lang="fr">Docker fondamentaux</span>
+    <span class="title-line" data-lang="en">Docker fundamentals</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li>
+<li>
+  <a class="guide-link" href="../docker-compose/">
+    <span class="num">12</span>
+    <span class="title-line" data-lang="fr">Docker Compose</span>
+    <span class="title-line" data-lang="en">Docker Compose</span>
+    <span data-lang="fr"></span>
+    <span data-lang="en"></span>
+  </a>
+</li></ul>
+</section>
+
+<section id="concepts">
+  <span class="section-tag" data-lang="fr">§ 04 — Vue d'ensemble</span>
+  <span class="section-tag" data-lang="en">§ 04 — Overview</span>
+  <h2 data-lang="fr">Vue d'ensemble</h2>
+  <h2 data-lang="en">Overview</h2>
+<div data-lang="fr"><p>La stack repose sur un modèle clé : Prometheus <strong>va chercher</strong> (pull) les métriques. Chaque composant expose un endpoint HTTP <code>/metrics</code> en texte brut, et Prometheus passe les récupérer à intervalle régulier (le <strong>scrape</strong>). C&#39;est l&#39;inverse des systèmes push (StatsD, InfluxDB) : plus simple à opérer, plus robuste (une cible morte = une info, pas un silence), et self-service (ajouter une cible = trois lignes de config).</p>
+<p>Les quatre composants :</p>
+<ul><li><strong>node-exporter</strong> expose les métriques de la <strong>machine</strong> : CPU, RAM, disque, réseau, load average.</li><li><strong>cAdvisor</strong> expose les métriques <strong>par conteneur Docker</strong> : quel service consomme quoi.</li><li><strong>Prometheus</strong> scrape ces endpoints, stocke tout dans sa base de <strong>séries temporelles</strong> (TSDB) et te laisse interroger avec <strong>PromQL</strong>.</li><li><strong>Grafana</strong> interroge Prometheus et affiche des <strong>dashboards</strong> ; il sait aussi évaluer des règles d&#39;alerte et notifier.</li></ul>
+<p>Pour l&#39;alerting « pro », il existe un cinquième composant, <strong>Alertmanager</strong> (routage, déduplication, silences). On le mentionne dans le schéma mais on ne l&#39;installe pas ici : les alertes Grafana suffisent pour démarrer.</p>
+</div>
+<div data-lang="en"><p>The stack rests on one key model: Prometheus <strong>goes and fetches</strong> (pull) the metrics. Each component exposes a plain-text HTTP <code>/metrics</code> endpoint, and Prometheus collects them at a regular interval (the <strong>scrape</strong>). It&#39;s the opposite of push systems (StatsD, InfluxDB): simpler to operate, more robust (a dead target = information, not silence), and self-service (adding a target = three lines of config).</p>
+<p>The four components:</p>
+<ul><li><strong>node-exporter</strong> exposes <strong>machine</strong> metrics: CPU, RAM, disk, network, load average.</li><li><strong>cAdvisor</strong> exposes <strong>per-Docker-container</strong> metrics: which service consumes what.</li><li><strong>Prometheus</strong> scrapes those endpoints, stores everything in its <strong>time-series</strong> database (TSDB), and lets you query it with <strong>PromQL</strong>.</li><li><strong>Grafana</strong> queries Prometheus and renders <strong>dashboards</strong>; it can also evaluate alert rules and notify you.</li></ul>
+<p>For &quot;pro-grade&quot; alerting there&#39;s a fifth component, <strong>Alertmanager</strong> (routing, deduplication, silences). It appears in the diagram but we don&#39;t install it here: Grafana alerts are enough to get started.</p>
+</div>
+
+<figure class="schema" id="figure-monitoring-architecture">
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s-monitoring-architecture">
+  <title id="s-monitoring-architecture">Chaîne de monitoring</title>
+  <style>
+    .box{fill:none;stroke:currentColor;stroke-width:1.5}
+    .box-accent{fill:#ffb627;stroke:#c98d10;stroke-width:1.5}
+    .box-soft{fill:#1e3a5f;stroke:#1e3a5f;stroke-width:1.5}
+    .lbl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;fill:currentColor;font-weight:600}
+    .lbl-fill{fill:#0d1117}.lbl-blue{fill:#f5f0e6}
+    .sub{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;fill:currentColor;opacity:.62}
+    .sub-fill{fill:#0d1117;opacity:.72}.sub-blue{fill:#d1d9e0;opacity:.85}
+    .ttl{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:currentColor;opacity:.8;font-weight:600}
+    .arrow{stroke:currentColor;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+    .dash{stroke:#ffb627;stroke-dasharray:5,3;stroke-width:1.4;fill:none}
+  </style>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+  <text class="ttl" x="380" y="22" text-anchor="middle">Chaîne de monitoring</text><rect class="box" x="17" y="40" width="162" height="66" rx="3"/><text class="lbl" x="98" y="77" text-anchor="middle">exporters</text><path class="arrow" d="M 179 73 L 205 73"/><rect class="box-accent" x="205" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-fill" x="286" y="70.5" text-anchor="middle">Prometheus</text><text class="sub sub-fill" x="286" y="83.5" text-anchor="middle">scrape + stockage</text><path class="arrow" d="M 367 73 L 393 73"/><rect class="box-soft" x="393" y="40" width="162" height="66" rx="3"/><text class="lbl lbl-blue" x="474" y="70.5" text-anchor="middle">Grafana</text><text class="sub sub-blue" x="474" y="83.5" text-anchor="middle">dashboards</text><path class="arrow" d="M 555 73 L 581 73"/><rect class="box" x="581" y="40" width="162" height="66" rx="3"/><text class="lbl" x="662" y="77" text-anchor="middle">alertes</text>
+</svg>
+
+  <figcaption data-lang="fr"><strong>Schéma 1.</strong> Chaîne de monitoring : exporters → Prometheus (scrape + stockage) → Grafana (dashboards) → alertes.</figcaption>
+  <figcaption data-lang="en"><strong>Figure 1.</strong> Monitoring chain: exporters → Prometheus (scrape + storage) → Grafana (dashboards) → alerts.</figcaption>
+</figure>
+<div data-lang="fr"><p><strong>Points clés à retenir :</strong></p>
+<ul><li>Prometheus stocke des <strong>séries temporelles</strong> : une métrique + des labels + des valeurs horodatées. PromQL est conçu pour ça (<code>rate()</code>, <code>sum by()</code>), pas SQL.</li><li>Les conteneurs de la stack se parlent <strong>par nom de service</strong> sur leur réseau Docker interne — Grafana joint Prometheus via <code>http://prometheus:9090</code>, jamais via <code>localhost</code>.</li><li>Seuls <strong>Grafana et Prometheus</strong> rejoignent le réseau <code>proxy</code> (exposition via Traefik). Les exporters restent internes : rien à exposer, rien à protéger.</li><li>Prometheus expose ton architecture interne : s&#39;il est accessible depuis Internet, c&#39;est <strong>toujours derrière une basic auth</strong>.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Key takeaways:</strong></p>
+<ul><li>Prometheus stores <strong>time series</strong>: a metric + labels + timestamped values. PromQL is designed for that (<code>rate()</code>, <code>sum by()</code>), not SQL.</li><li>The stack&#39;s containers talk to each other <strong>by service name</strong> on their internal Docker network — Grafana reaches Prometheus at <code>http://prometheus:9090</code>, never via <code>localhost</code>.</li><li>Only <strong>Grafana and Prometheus</strong> join the <code>proxy</code> network (exposure through Traefik). The exporters stay internal: nothing to expose, nothing to protect.</li><li>Prometheus reveals your internal architecture: if it&#39;s reachable from the Internet, it&#39;s <strong>always behind basic auth</strong>.</li></ul>
+</div>
+</section>
+
+<section id="walkthrough">
+  <span class="section-tag" data-lang="fr">§ 05 — Pas-à-pas</span>
+  <span class="section-tag" data-lang="en">§ 05 — Walkthrough</span>
+  <h2 data-lang="fr">Pas-à-pas</h2>
+  <h2 data-lang="en">Walkthrough</h2>
+
+<div class="step" id="step-01">
+  <span class="step-num" data-lang="fr">Étape 01</span>
+  <span class="step-num" data-lang="en">Step 01</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Préparer la structure — un dossier dédié à la stack avec un sous-dossier pour la config Prometheus.</p>
+<p><strong>🤔 Pourquoi ?</strong> Toute la stack (4 services) vit dans un seul projet Compose : un <code>compose.yaml</code>, un <code>.env</code>, une config Prometheus. Un dossier = un service (ou une stack), c&#39;est le pattern qui rend ton serveur lisible dans six mois.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Prepare the structure — a dedicated folder for the stack with a sub-folder for the Prometheus config.</p>
+<p><strong>🤔 Why?</strong> The whole stack (4 services) lives in a single Compose project: one <code>compose.yaml</code>, one <code>.env</code>, one Prometheus config. One folder = one service (or stack) — that&#39;s the pattern that keeps your server readable six months from now.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>mkdir -p ~/monitoring/prometheus
+cd ~/monitoring</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>pwd     # /home/&lt;toi&gt;/monitoring
+ls      # doit montrer / should show: prometheus</code></pre>
+
+</div>
+
+<div class="step" id="step-02">
+  <span class="step-num" data-lang="fr">Étape 02</span>
+  <span class="step-num" data-lang="en">Step 02</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire la config Prometheus : qui scraper, à quelle fréquence.</p>
+<p><strong>🤔 Pourquoi ces 3 jobs ?</strong></p>
+<ul><li><code>prometheus</code> → Prometheus se monitore lui-même (méta-monitoring, bonne pratique : si ta stack de monitoring souffre, tu veux le savoir).</li><li><code>node</code> → métriques <strong>machine</strong> (CPU, RAM, disque, réseau, load average).</li><li><code>cadvisor</code> → métriques <strong>par conteneur</strong> Docker (CPU/RAM par service).</li></ul>
+<p>Avec ces deux exporters, tu couvres déjà 80 % des questions importantes. Les cibles sont des <strong>noms de services Docker</strong> (<code>node-exporter:9100</code>) : Prometheus les résout sur le réseau interne du projet Compose.</p>
+<p><strong>🤔 Pourquoi <code>scrape_interval: 15s</code> ?</strong> Compromis classique : assez fin pour voir les pics, assez large pour ne pas exploser le stockage. Pour 99 % des homelabs, 15-30 s suffisent.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the Prometheus config: what to scrape, and how often.</p>
+<p><strong>🤔 Why these 3 jobs?</strong></p>
+<ul><li><code>prometheus</code> → Prometheus monitors itself (meta-monitoring, good practice: if your monitoring stack is suffering, you want to know).</li><li><code>node</code> → <strong>machine</strong> metrics (CPU, RAM, disk, network, load average).</li><li><code>cadvisor</code> → <strong>per-container</strong> Docker metrics (CPU/RAM per service).</li></ul>
+<p>With those two exporters you already cover 80% of the questions that matter. The targets are <strong>Docker service names</strong> (<code>node-exporter:9100</code>): Prometheus resolves them on the Compose project&#39;s internal network.</p>
+<p><strong>🤔 Why <code>scrape_interval: 15s</code>?</strong> The classic trade-off: fine enough to catch spikes, coarse enough not to blow up storage. For 99% of homelabs, 15-30s is plenty.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano prometheus/prometheus.yml</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: &#39;prometheus&#39;
+    static_configs:
+      - targets: [&#39;localhost:9090&#39;]
+
+  - job_name: &#39;node&#39;
+    static_configs:
+      - targets: [&#39;node-exporter:9100&#39;]
+
+  - job_name: &#39;cadvisor&#39;
+    static_configs:
+      - targets: [&#39;cadvisor:8080&#39;]</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> valide la syntaxe avec <code>promtool</code> (inclus dans l&#39;image Prometheus, pas besoin de l&#39;installer) :</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> validate the syntax with <code>promtool</code> (bundled in the Prometheus image, nothing to install):</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker run --rm -v ~/monitoring/prometheus/prometheus.yml:/prometheus.yml:ro \
+  --entrypoint promtool prom/prometheus:v3.0.0 check config /prometheus.yml
+# Attendu / Expected: &quot;SUCCESS: /prometheus.yml is valid prometheus config file syntax&quot;</code></pre>
+
+</div>
+
+<div class="step" id="step-03">
+  <span class="step-num" data-lang="fr">Étape 03</span>
+  <span class="step-num" data-lang="en">Step 03</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Créer le <code>.env</code> avec la config sensible de Grafana, hors <code>compose.yaml</code>.</p>
+<p><strong>🤔 Pourquoi ?</strong></p>
+<ul><li>Le compte admin Grafana est créé <strong>au premier démarrage</strong> à partir de ces variables — après, changer le <code>.env</code> ne change plus le mot de passe (ça se fait dans l&#39;UI).</li><li><code>GF_USERS_ALLOW_SIGN_UP=false</code> ferme les inscriptions publiques d&#39;entrée de jeu.</li><li>Séparer secrets et <code>compose.yaml</code> te permet de versionner le compose en Git <strong>sans</strong> committer tes mots de passe.</li><li>Ce <code>.env</code> est chargé via <code>env_file:</code> → les valeurs se collent <strong>brutes</strong> : pas de guillemets, pas de doublement des <code>$</code>. (Retiens la règle, elle revient à l&#39;étape suivante dans l&#39;autre sens.)</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Create the <code>.env</code> with Grafana&#39;s sensitive config, kept out of <code>compose.yaml</code>.</p>
+<p><strong>🤔 Why?</strong></p>
+<ul><li>The Grafana admin account is created <strong>on first startup</strong> from these variables — after that, changing <code>.env</code> no longer changes the password (that&#39;s done in the UI).</li><li><code>GF_USERS_ALLOW_SIGN_UP=false</code> closes public sign-ups from the start.</li><li>Splitting secrets from <code>compose.yaml</code> lets you Git-version the compose file <strong>without</strong> committing your passwords.</li><li>This <code>.env</code> is loaded via <code>env_file:</code> → values are pasted <strong>raw</strong>: no quotes, no doubling of <code>$</code>. (Remember the rule — it comes back in the next step, the other way around.)</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano .env</code></pre>
+<pre class="term lang-env"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">.env</span><button class="copy-btn" type="button">Copy</button></div><code># Compte admin créé au premier démarrage / Admin account created on first startup
+# Valeurs BRUTES : pas de guillemets, pas de $$ (fichier chargé via env_file)
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=remplace-par-un-mot-de-passe-fort
+
+# Pas d&#39;inscriptions publiques / No public sign-ups
+GF_USERS_ALLOW_SIGN_UP=false
+
+# URL publique (liens corrects dans les notifications) / Public URL (correct links in notifications)
+GF_SERVER_ROOT_URL=https://grafana.exemple.com</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat .env
+# 4 variables, aucune valeur entre guillemets</code></pre>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>cat .env
+# 4 variables, no value wrapped in quotes</code></pre>
+</div>
+
+</div>
+
+<div class="step" id="step-04">
+  <span class="step-num" data-lang="fr">Étape 04</span>
+  <span class="step-num" data-lang="en">Step 04</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Générer le hash basic-auth qui protégera l&#39;UI Prometheus derrière Traefik.</p>
+<p><strong>🤔 Pourquoi ?</strong> Prometheus n&#39;a <strong>aucune authentification native</strong> et son UI révèle toute ton architecture interne (services, ports, versions). On l&#39;exposera donc derrière une middleware basic auth de Traefik. Le hash bcrypt sera collé <strong>directement dans le <code>compose.yaml</code></strong> — et là, la règle des <code>$</code> s&#39;inverse : dans un compose, Compose interprète <code>${...}</code> (interpolation), donc <strong>chaque <code>$</code> littéral doit être doublé en <code>$$</code></strong>. C&#39;est l&#39;inverse du <code>.env</code> de l&#39;étape 3. Le <code>sed</code> ci-dessous fait le doublement pour toi.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Generate the basic-auth hash that will protect the Prometheus UI behind Traefik.</p>
+<p><strong>🤔 Why?</strong> Prometheus has <strong>no built-in authentication</strong>, and its UI reveals your entire internal architecture (services, ports, versions). So we&#39;ll expose it behind a Traefik basic-auth middleware. The bcrypt hash will be pasted <strong>directly into <code>compose.yaml</code></strong> — and there the <code>$</code> rule flips: in a compose file, Compose interprets <code>${...}</code> (interpolation), so <strong>every literal <code>$</code> must be doubled as <code>$$</code></strong>. It&#39;s the opposite of step 3&#39;s <code>.env</code>. The <code>sed</code> below does the doubling for you.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># htpasswd vient de l&#39;image httpd (pas besoin de l&#39;installer sur l&#39;hôte)
+# htpasswd comes from the httpd image (no need to install it on the host)
+docker run --rm httpd:2.4.62 htpasswd -nbB admin &#39;TonMotDePasseFort&#39; | sed -e &#39;s/\$/\$\$/g&#39;</code></pre>
+<div data-lang="fr"><p>La sortie ressemble à :</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>admin:$$2y$$05$$Q3bX...</code></pre>
+<p>Garde-la sous la main : on la colle dans le <code>compose.yaml</code> à l&#39;étape suivante. Retiens aussi le mot de passe <strong>en clair</strong> — c&#39;est lui que tu taperas dans le navigateur.</p>
+<p><strong>✅ Vérification :</strong> chaque <code>$</code> de la sortie est bien doublé (<code>$$2y$$05$$...</code>). Si tu vois des <code>$</code> simples, le <code>sed</code> n&#39;a pas été appliqué.</p>
+</div>
+<div data-lang="en"><p>The output looks like:</p>
+<pre class="term lang-text"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">text</span><button class="copy-btn" type="button">Copy</button></div><code>admin:$$2y$$05$$Q3bX...</code></pre>
+<p>Keep it handy: we paste it into <code>compose.yaml</code> in the next step. Also remember the <strong>clear-text</strong> password — that&#39;s what you&#39;ll type in the browser.</p>
+<p><strong>✅ Check:</strong> every <code>$</code> in the output is doubled (<code>$$2y$$05$$...</code>). If you see single <code>$</code>, the <code>sed</code> wasn&#39;t applied.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-05">
+  <span class="step-num" data-lang="fr">Étape 05</span>
+  <span class="step-num" data-lang="en">Step 05</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Écrire le <code>compose.yaml</code> qui décrit les 4 services.</p>
+<p><strong>🤔 Pourquoi chacun des choix ?</strong></p>
+<ul><li><strong>Versions pinées</strong> (<code>v3.0.0</code>, <code>11.4.0</code>, <code>v1.8.2</code>, <code>v0.49.1</code>) → jamais <code>:latest</code>. Tu décides quand mettre à jour, et tu sais quoi rollback si ça casse.</li><li><code>--storage.tsdb.retention.time=30d</code> → 30 jours de métriques fines ≈ 1-3 Go pour un homelab moyen. Au-delà, il faudrait du downsampling (Thanos, Mimir) — rarement utile ici.</li><li><strong>Volumes nommés</strong> (<code>prometheus-data</code>, <code>grafana-data</code>) → tes métriques et dashboards survivent à la recréation des conteneurs.</li><li><strong>Réseaux</strong> : les 4 services partagent le réseau <code>default</code> du projet (résolution par nom de service). Seuls <strong>prometheus</strong> et <strong>grafana</strong> rejoignent en plus le réseau <code>proxy</code> (externe, créé par Traefik) — les exporters n&#39;ont <strong>rien à faire</strong> sur le réseau d&#39;exposition.</li><li><strong>node-exporter</strong> monte <code>/proc</code>, <code>/sys</code> et <code>/</code> en lecture seule → pour lire les vraies métriques de l&#39;<strong>hôte</strong>, pas celles du conteneur. Note le <code>($$|/)</code> dans son <code>--collector.filesystem.mount-points-exclude</code> : c&#39;est un <code>$</code> de regex, doublé parce qu&#39;on est dans le compose (règle de l&#39;étape 4).</li><li><strong>cAdvisor</strong> est <code>privileged: true</code> → il a besoin d&#39;un accès profond au runtime Docker pour mesurer les ressources par conteneur. Compromis sécurité accepté pour cet usage.</li><li>Le label <code>basicauth.users</code> reçoit <strong>ton hash doublé</strong> de l&#39;étape 4.</li><li><code>certresolver=le</code> → doit correspondre <strong>exactement</strong> au nom défini dans ta config Traefik.</li></ul>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Write the <code>compose.yaml</code> describing the 4 services.</p>
+<p><strong>🤔 Why each choice?</strong></p>
+<ul><li><strong>Pinned versions</strong> (<code>v3.0.0</code>, <code>11.4.0</code>, <code>v1.8.2</code>, <code>v0.49.1</code>) → never <code>:latest</code>. You decide when to update, and you know what to roll back if something breaks.</li><li><code>--storage.tsdb.retention.time=30d</code> → 30 days of fine-grained metrics ≈ 1-3 GB for an average homelab. Beyond that you&#39;d want downsampling (Thanos, Mimir) — rarely useful here.</li><li><strong>Named volumes</strong> (<code>prometheus-data</code>, <code>grafana-data</code>) → your metrics and dashboards survive container recreation.</li><li><strong>Networks</strong>: all 4 services share the project&#39;s <code>default</code> network (service-name resolution). Only <strong>prometheus</strong> and <strong>grafana</strong> additionally join the <code>proxy</code> network (external, created by Traefik) — the exporters have <strong>no business</strong> on the exposure network.</li><li><strong>node-exporter</strong> mounts <code>/proc</code>, <code>/sys</code> and <code>/</code> read-only → to read the real metrics of the <strong>host</strong>, not the container&#39;s. Note the <code>($$|/)</code> in its <code>--collector.filesystem.mount-points-exclude</code>: that&#39;s a regex <code>$</code>, doubled because we&#39;re inside the compose file (step 4&#39;s rule).</li><li><strong>cAdvisor</strong> is <code>privileged: true</code> → it needs deep access to the Docker runtime to measure per-container resources. An accepted security trade-off for this use.</li><li>The <code>basicauth.users</code> label takes <strong>your doubled hash</strong> from step 4.</li><li><code>certresolver=le</code> → must match <strong>exactly</strong> the name defined in your Traefik config.</li></ul>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>nano compose.yaml</code></pre>
+<pre class="term lang-yaml"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">docker-compose.yml</span><button class="copy-btn" type="button">Copy</button></div><code>services:
+  prometheus:
+    image: prom/prometheus:v3.0.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - &#39;--config.file=/etc/prometheus/prometheus.yml&#39;
+      - &#39;--storage.tsdb.path=/prometheus&#39;
+      - &#39;--storage.tsdb.retention.time=30d&#39;
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - default
+      - proxy
+    labels:
+      - &quot;traefik.enable=true&quot;
+      - &quot;traefik.http.routers.prometheus.rule=Host(`prometheus.exemple.com`)&quot;
+      - &quot;traefik.http.routers.prometheus.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.prometheus.tls.certresolver=le&quot;
+      - &quot;traefik.http.services.prometheus.loadbalancer.server.port=9090&quot;
+      # Basic auth OBLIGATOIRE : colle ici TA sortie de l&#39;étape 4 ($ doublés en $$)
+      # Basic auth REQUIRED: paste YOUR step-4 output here ($ doubled as $$)
+      - &quot;traefik.http.routers.prometheus.middlewares=prometheus-auth&quot;
+      - &quot;traefik.http.middlewares.prometheus-auth.basicauth.users=admin:$$2y$$05$$Q3bX...&quot;
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - &#39;--path.procfs=/host/proc&#39;
+      - &#39;--path.sysfs=/host/sys&#39;
+      - &#39;--path.rootfs=/host&#39;
+      - &#39;--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/.+)($$|/)&#39;
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    networks:
+      - default
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: grafana
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - default
+      - proxy
+    labels:
+      - &quot;traefik.enable=true&quot;
+      - &quot;traefik.http.routers.grafana.rule=Host(`grafana.exemple.com`)&quot;
+      - &quot;traefik.http.routers.grafana.entrypoints=websecure&quot;
+      - &quot;traefik.http.routers.grafana.tls.certresolver=le&quot;
+      - &quot;traefik.http.services.grafana.loadbalancer.server.port=3000&quot;
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  proxy:
+    external: true</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Doit afficher la config interprétée sans erreur.</code></pre>
+<p>Dans la sortie, la ligne <code>basicauth.users</code> doit montrer ton hash avec des <code>$</code> <strong>simples</strong> (Compose a « consommé » les <code>$$</code> — c&#39;est le signe que l&#39;échappement est correct). Si tu vois <code>refers to undefined network proxy</code> → ton réseau <code>proxy</code> n&#39;existe pas : <code>docker network create proxy</code> (ou repasse par le guide Traefik).</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose config
+# Should print the parsed config with no error.</code></pre>
+<p>In the output, the <code>basicauth.users</code> line must show your hash with <strong>single</strong> <code>$</code> (Compose has &quot;consumed&quot; the <code>$$</code> — the sign that escaping is correct). If you see <code>refers to undefined network proxy</code> → your <code>proxy</code> network doesn&#39;t exist: <code>docker network create proxy</code> (or go back through the Traefik guide).</p>
+</div>
+
+</div>
+
+<div class="step" id="step-06">
+  <span class="step-num" data-lang="fr">Étape 06</span>
+  <span class="step-num" data-lang="en">Step 06</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Lancer la stack et vérifier que Prometheus voit toutes ses cibles.</p>
+<p><strong>🤔 Pourquoi vérifier les targets d&#39;abord ?</strong> « Le conteneur tourne » ne veut pas dire « le scrape fonctionne ». La page <strong>Status → Targets</strong> est ta source de vérité : chaque job doit être <code>UP</code>. Une cible <code>DOWN</code> maintenant = un dashboard vide tout à l&#39;heure — autant régler ça tout de suite.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Launch the stack and check that Prometheus sees all its targets.</p>
+<p><strong>🤔 Why check the targets first?</strong> &quot;The container is running&quot; doesn&#39;t mean &quot;the scrape works&quot;. The <strong>Status → Targets</strong> page is your source of truth: every job must be <code>UP</code>. A <code>DOWN</code> target now = an empty dashboard later — better to fix it right away.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose up -d
+docker compose logs -f prometheus</code></pre>
+<div data-lang="fr"><p>Cherche dans les logs : <code>Server is ready to receive web requests.</code> — puis <code>Ctrl+C</code> pour sortir des logs (ça n&#39;arrête pas les conteneurs).</p>
+<p><strong>✅ Vérification :</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# Les 4 services en &quot;Up&quot;</code></pre>
+<p>Puis ouvre <code>https://prometheus.exemple.com</code> (le navigateur demande le login basic auth de l&#39;étape 4). Va dans <strong>Status → Targets</strong> : les 3 jobs (<code>prometheus</code>, <code>node</code>, <code>cadvisor</code>) doivent être en <code>UP</code>. Si l&#39;un est rouge : problème de réseau ou de port — voir troubleshooting.</p>
+</div>
+<div data-lang="en"><p>Look for this in the logs: <code>Server is ready to receive web requests.</code> — then <code>Ctrl+C</code> to exit the logs (it does not stop the containers).</p>
+<p><strong>✅ Check:</strong></p>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>docker compose ps
+# All 4 services &quot;Up&quot;</code></pre>
+<p>Then open <code>https://prometheus.exemple.com</code> (the browser asks for step 4&#39;s basic-auth login). Go to <strong>Status → Targets</strong>: the 3 jobs (<code>prometheus</code>, <code>node</code>, <code>cadvisor</code>) must be <code>UP</code>. If one is red: network or port issue — see troubleshooting.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-07">
+  <span class="step-num" data-lang="fr">Étape 07</span>
+  <span class="step-num" data-lang="en">Step 07</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Première connexion à Grafana et branchement de la data source Prometheus.</p>
+<p><strong>🤔 Pourquoi <code>http://prometheus:9090</code> et pas <code>localhost</code> ?</strong> Grafana et Prometheus sont dans le même réseau Docker : ils se résolvent <strong>par nom de service</strong>. <code>localhost</code>, vu depuis le conteneur Grafana, c&#39;est… le conteneur Grafana lui-même. C&#39;est l&#39;erreur n°1 des débutants sur cette étape. Bonus : pas besoin d&#39;exposer Prometheus à Internet pour que Grafana lui parle.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> First Grafana login and wiring the Prometheus data source.</p>
+<p><strong>🤔 Why <code>http://prometheus:9090</code> and not <code>localhost</code>?</strong> Grafana and Prometheus are on the same Docker network: they resolve each other <strong>by service name</strong>. <code>localhost</code>, as seen from the Grafana container, is… the Grafana container itself. That&#39;s the #1 beginner mistake at this step. Bonus: no need to expose Prometheus to the Internet for Grafana to talk to it.</p>
+</div>
+<div data-lang="fr"><ol><li>Ouvre <code>https://grafana.exemple.com</code>, connecte-toi avec le compte du <code>.env</code> (étape 3).</li><li>Va dans <strong>Connections → Data sources → Add data source</strong>.</li><li>Choisis <strong>Prometheus</strong>.</li><li>URL : <code>http://prometheus:9090</code> (nom du service Docker, <strong>pas localhost</strong>).</li><li><strong>Save &amp; test</strong>.</li></ol>
+<p><strong>✅ Vérification :</strong> Grafana affiche « Successfully queried the Prometheus API » (ou « Data source is working »). Si erreur → voir le piège n°4.</p>
+</div>
+<div data-lang="en"><ol><li>Open <code>https://grafana.exemple.com</code>, log in with the <code>.env</code> account (step 3).</li><li>Go to <strong>Connections → Data sources → Add data source</strong>.</li><li>Pick <strong>Prometheus</strong>.</li><li>URL: <code>http://prometheus:9090</code> (Docker service name, <strong>not localhost</strong>).</li><li><strong>Save &amp; test</strong>.</li></ol>
+<p><strong>✅ Check:</strong> Grafana shows &quot;Successfully queried the Prometheus API&quot; (or &quot;Data source is working&quot;). If it errors → see pitfall #4.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-08">
+  <span class="step-num" data-lang="fr">Étape 08</span>
+  <span class="step-num" data-lang="en">Step 08</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Importer des dashboards éprouvés depuis grafana.com — pas les créer from scratch.</p>
+<p><strong>🤔 Pourquoi importer plutôt que créer ?</strong> Des milliers de personnes ont déjà itéré sur ces dashboards : bons panels, bonnes requêtes PromQL, bons seuils visuels. Tu apprendras plus vite en lisant leurs requêtes qu&#39;en réinventant les tiennes. Les 3 IDs ci-dessous :</p>
+<ul><li><strong>1860</strong> (Node Exporter Full) → ton dashboard « système », celui que tu regardes le matin.</li><li><strong>893</strong> (Docker and system monitoring) → quel conteneur consomme quoi (vue cAdvisor).</li><li><strong>3662</strong> (Prometheus 2.0 Overview) → santé de la stack de monitoring elle-même.</li></ul>
+<p>Pas besoin de 50 dashboards : 3-5 que tu regardes <em>vraiment</em> &gt; 30 que tu n&#39;ouvres jamais.</p>
+<p><strong>Méthode :</strong></p>
+<ol><li>Grafana → <strong>Dashboards → New → Import</strong>.</li><li>Tape l&#39;ID (ex. <code>1860</code>) → <strong>Load</strong>.</li><li>Sélectionne ta data source Prometheus → <strong>Import</strong>.</li><li>Répète pour <code>893</code> et <code>3662</code>.</li></ol>
+<p><strong>✅ Vérification :</strong> le dashboard 1860 affiche tes métriques système en temps réel (CPU, RAM, disque). Si des panels affichent « No data » → vérifie l&#39;intervalle de temps en haut à droite (mets « Last 15 minutes »), et que les targets sont toujours <code>UP</code>.</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Import battle-tested dashboards from grafana.com — don&#39;t build them from scratch.</p>
+<p><strong>🤔 Why import instead of building?</strong> Thousands of people have already iterated on these dashboards: good panels, good PromQL queries, good visual thresholds. You&#39;ll learn faster reading their queries than reinventing your own. The 3 IDs below:</p>
+<ul><li><strong>1860</strong> (Node Exporter Full) → your &quot;system&quot; dashboard, the one you check in the morning.</li><li><strong>893</strong> (Docker and system monitoring) → which container consumes what (cAdvisor view).</li><li><strong>3662</strong> (Prometheus 2.0 Overview) → health of the monitoring stack itself.</li></ul>
+<p>You don&#39;t need 50 dashboards: 3-5 you <em>actually</em> look at &gt; 30 you never open.</p>
+<p><strong>Method:</strong></p>
+<ol><li>Grafana → <strong>Dashboards → New → Import</strong>.</li><li>Type the ID (e.g. <code>1860</code>) → <strong>Load</strong>.</li><li>Select your Prometheus data source → <strong>Import</strong>.</li><li>Repeat for <code>893</code> and <code>3662</code>.</li></ol>
+<p><strong>✅ Check:</strong> dashboard 1860 shows your system metrics in real time (CPU, RAM, disk). If panels show &quot;No data&quot; → check the time range at the top right (set &quot;Last 15 minutes&quot;), and that the targets are still <code>UP</code>.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-09">
+  <span class="step-num" data-lang="fr">Étape 09</span>
+  <span class="step-num" data-lang="en">Step 09</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Poser ta première alerte : disque presque plein.</p>
+<p><strong>🤔 Pourquoi commencer par « disque plein » ?</strong> C&#39;est la cause n°1 de panne silencieuse en self-hosting : logs qui débordent, backups jamais purgés, conteneur qui écrit à fond. Un disque plein = beaucoup de services qui crashent en cascade.</p>
+<p><strong>🤔 Pourquoi les alertes Grafana et pas Alertmanager ?</strong> Le chemin « pro » est Prometheus → Alertmanager → Discord/Telegram/Email (routage, déduplication, silences). Mais pour un homelab, les alertes Grafana couvrent le besoin avec beaucoup moins de pièces mobiles. Alertmanager viendra plus tard si tu multiplies les règles.</p>
+<p>Dans Grafana :</p>
+<ol><li>Configure d&#39;abord un <strong>contact point</strong> : <strong>Alerting → Contact points → Add contact point</strong> (webhook Discord/Telegram, ou email si tu as un SMTP).</li><li>Ouvre un panel « Disk usage » du dashboard 1860 → titre du panel → <strong>More → New alert rule</strong>.</li><li>Condition : valeur au-dessus de <code>0.85</code> (85 % de disque utilisé).</li><li>Associe ton contact point, sauvegarde.</li></ol>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Set your first alert: disk almost full.</p>
+<p><strong>🤔 Why start with &quot;disk full&quot;?</strong> It&#39;s the #1 cause of silent failure in self-hosting: overflowing logs, backups never pruned, a container writing at full speed. A full disk = many services crashing in cascade.</p>
+<p><strong>🤔 Why Grafana alerts and not Alertmanager?</strong> The &quot;pro&quot; path is Prometheus → Alertmanager → Discord/Telegram/Email (routing, deduplication, silences). But for a homelab, Grafana alerts cover the need with far fewer moving parts. Alertmanager can come later if your rules multiply.</p>
+<p>In Grafana:</p>
+<ol><li>First configure a <strong>contact point</strong>: <strong>Alerting → Contact points → Add contact point</strong> (Discord/Telegram webhook, or email if you have SMTP).</li><li>Open a &quot;Disk usage&quot; panel from dashboard 1860 → panel title → <strong>More → New alert rule</strong>.</li><li>Condition: value above <code>0.85</code> (85% disk used).</li><li>Attach your contact point, save.</li></ol>
+</div>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> teste l&#39;alerte en simulant un disque qui se remplit.</p>
+<p>⚠️ <strong>Attention :</strong> la commande ci-dessous <strong>écrit 5 Go</strong> sur ton disque. Ne la lance pas si tu es déjà proche du seuil, et supprime le fichier juste après le test.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> test the alert by simulating a filling disk.</p>
+<p>⚠️ <strong>Warning:</strong> the command below <strong>writes 5 GB</strong> to your disk. Don&#39;t run it if you&#39;re already close to the threshold, and delete the file right after the test.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code>dd if=/dev/zero of=~/test-disk-alert.img bs=1G count=5
+# ... attends la notification / wait for the notification ...
+rm ~/test-disk-alert.img</code></pre>
+<div data-lang="fr"><p>Si ton disque passe au-dessus du seuil, tu dois recevoir la notification sur ton contact point après le délai d&#39;évaluation (« pending period », 1-5 min par défaut). Si ton disque reste sous 85 %, baisse temporairement le seuil de la règle pour la déclencher, puis remets-le.</p>
+</div>
+<div data-lang="en"><p>If your disk crosses the threshold, you should receive the notification on your contact point after the evaluation delay (&quot;pending period&quot;, 1-5 min by default). If your disk stays under 85%, temporarily lower the rule&#39;s threshold to trigger it, then restore it.</p>
+</div>
+
+</div>
+
+<div class="step" id="step-10">
+  <span class="step-num" data-lang="fr">Étape 10</span>
+  <span class="step-num" data-lang="en">Step 10</span>
+  <div data-lang="fr"><p><strong>Objectif.</strong> Te familiariser avec PromQL en interrogeant tes propres métriques.</p>
+<p><strong>🤔 Pourquoi PromQL et pas SQL ?</strong> Prometheus stocke des séries temporelles, pas des lignes. PromQL est conçu pour les manipuler : <code>rate()</code> (dérivée sur une fenêtre), <code>sum()</code>, <code>avg by()</code> (agrégations par label). Quelques heures d&#39;apprentissage, immense gain de pouvoir — c&#39;est le langage de toutes tes futures alertes et de tous tes panels.</p>
+<p>Va dans Prometheus → <strong>Graph</strong> (ou l&#39;onglet <strong>Explore</strong> de Grafana) et tape :</p>
+</div>
+<div data-lang="en"><p><strong>Goal.</strong> Get comfortable with PromQL by querying your own metrics.</p>
+<p><strong>🤔 Why PromQL and not SQL?</strong> Prometheus stores time series, not rows. PromQL is built to manipulate them: <code>rate()</code> (derivative over a window), <code>sum()</code>, <code>avg by()</code> (aggregations by label). A few hours of learning, a huge gain in power — it&#39;s the language of all your future alerts and panels.</p>
+<p>Go to Prometheus → <strong>Graph</strong> (or Grafana&#39;s <strong>Explore</strong> tab) and type:</p>
+</div>
+<pre class="term lang-promql"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">promql</span><button class="copy-btn" type="button">Copy</button></div><code># Charge CPU des 5 dernières minutes / 5-minute load average
+node_load5
+
+# % de RAM utilisée / % RAM used
+100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+
+# Trafic réseau reçu (octets/sec) / Network traffic received (bytes/sec)
+rate(node_network_receive_bytes_total[5m])
+
+# RAM utilisée par conteneur / RAM used per container
+container_memory_usage_bytes{name!=&quot;&quot;}</code></pre>
+<div data-lang="fr"><p><strong>✅ Vérification :</strong> chaque requête renvoie des valeurs (et un graphe dans l&#39;onglet Graph). Si <code>container_memory_usage_bytes</code> ne renvoie rien → la cible <code>cadvisor</code> est probablement <code>DOWN</code>, retourne à l&#39;étape 6.</p>
+</div>
+<div data-lang="en"><p><strong>✅ Check:</strong> each query returns values (and a graph in the Graph tab). If <code>container_memory_usage_bytes</code> returns nothing → the <code>cadvisor</code> target is probably <code>DOWN</code>, go back to step 6.</p>
+</div>
+
+</div>
+</section>
+
+<section id="pitfalls">
+  <span class="section-tag" data-lang="fr">§ 06 — Pièges connus</span>
+  <span class="section-tag" data-lang="en">§ 06 — Known pitfalls</span>
+  <h2 data-lang="fr">Pièges connus</h2>
+  <h2 data-lang="en">Known pitfalls</h2>
+<div data-lang="fr"><p><strong>1. Target en <code>DOWN</code> alors que le service tourne.</strong> Presque toujours un problème de réseau Docker (Prometheus pas sur le même réseau que la cible) ou de port (le service expose <code>/metrics</code> sur un autre port que celui scrapé). Regarde la colonne <code>Last Error</code> dans Status → Targets, elle dit tout.</p>
+<p><strong>2. Data source Grafana en erreur avec <code>http://localhost:9090</code>.</strong> <code>localhost</code>, vu depuis le conteneur Grafana, c&#39;est le conteneur Grafana. Mets le <strong>nom de service</strong> : <code>http://prometheus:9090</code>.</p>
+<p><strong>3. Basic auth Prometheus qui refuse ton mot de passe.</strong> Quasi toujours l&#39;échappement des <code>$</code> : dans le <code>compose.yaml</code>, chaque <code>$</code> du hash bcrypt doit être doublé en <code>$$</code> (interpolation <code>${...}</code> de Compose). À l&#39;inverse, dans un <code>.env</code> chargé par <code>env_file</code> (Grafana), les valeurs se collent <strong>brutes</strong>, sans <code>$$</code> ni guillemets. Vérifie avec <code>docker compose config</code> : le hash doit y apparaître avec des <code>$</code> simples.</p>
+<p><strong>4. node-exporter qui scrape les filesystems de Docker.</strong> Pollue tes métriques avec des dizaines de « filesystems » (overlay2, etc.). C&#39;est le rôle du <code>--collector.filesystem.mount-points-exclude</code> du compose. Si tu vois ce souci, vérifie qu&#39;il est bien là — avec son <code>($$|/)</code> final intact.</p>
+<p><strong>5. Disque qui se remplit à cause de Prometheus.</strong> 30 jours × scrape 15 s × milliers de séries = quelques Go. Si tu manques de place, baisse <code>retention.time</code> ou passe <code>scrape_interval</code> à 30-60 s. (Et vois l&#39;ironie : ton monitoring peut déclencher sa propre alerte disque.)</p>
+<p><strong>6. Alerte configurée mais jamais reçue.</strong> Une règle d&#39;alerte <strong>sans contact point</strong> évalue dans le vide. En Grafana, vérifie Alerting → Contact points (fais « Test »). Côté Prometheus pur, les règles ne notifient <strong>jamais</strong> sans Alertmanager.</p>
+<p><strong>7. Prometheus exposé sans auth sur Internet.</strong> Son UI révèle ton architecture interne (services, ports, versions). <strong>Toujours</strong> une middleware basic auth Traefik devant — ou pas d&#39;exposition du tout (Grafana lui parle très bien par le réseau interne).</p>
+<p><strong>8. Tu importes 30 dashboards et tu en regardes 0.</strong> Discipline-toi : 3-5 dashboards utiles. Le reste, c&#39;est du folklore.</p>
+</div>
+<div data-lang="en"><p><strong>1. Target <code>DOWN</code> while the service is running.</strong> Almost always a Docker network issue (Prometheus not on the same network as the target) or a port issue (the service exposes <code>/metrics</code> on a different port than the one scraped). Check the <code>Last Error</code> column in Status → Targets — it tells you everything.</p>
+<p><strong>2. Grafana data source erroring with <code>http://localhost:9090</code>.</strong> <code>localhost</code>, as seen from the Grafana container, is the Grafana container. Use the <strong>service name</strong>: <code>http://prometheus:9090</code>.</p>
+<p><strong>3. Prometheus basic auth rejecting your password.</strong> Nearly always the <code>$</code> escaping: in <code>compose.yaml</code>, every <code>$</code> of the bcrypt hash must be doubled as <code>$$</code> (Compose <code>${...}</code> interpolation). Conversely, in a <code>.env</code> loaded via <code>env_file</code> (Grafana), values are pasted <strong>raw</strong>, no <code>$$</code> and no quotes. Check with <code>docker compose config</code>: the hash must appear there with single <code>$</code>.</p>
+<p><strong>4. node-exporter scraping Docker&#39;s filesystems.</strong> Pollutes your metrics with dozens of &quot;filesystems&quot; (overlay2, etc.). That&#39;s what the compose&#39;s <code>--collector.filesystem.mount-points-exclude</code> is for. If you hit this, check it&#39;s there — with its trailing <code>($$|/)</code> intact.</p>
+<p><strong>5. Disk filling up because of Prometheus.</strong> 30 days × 15s scrape × thousands of series = a few GB. If you&#39;re short on space, lower <code>retention.time</code> or raise <code>scrape_interval</code> to 30-60s. (Note the irony: your monitoring can trigger its own disk alert.)</p>
+<p><strong>6. Alert configured but never received.</strong> An alert rule <strong>without a contact point</strong> evaluates into the void. In Grafana, check Alerting → Contact points (use &quot;Test&quot;). On the pure-Prometheus side, rules <strong>never</strong> notify without Alertmanager.</p>
+<p><strong>7. Prometheus exposed on the Internet without auth.</strong> Its UI reveals your internal architecture (services, ports, versions). <strong>Always</strong> a Traefik basic-auth middleware in front — or no exposure at all (Grafana talks to it just fine over the internal network).</p>
+<p><strong>8. You import 30 dashboards and look at 0.</strong> Discipline yourself: 3-5 useful dashboards. The rest is folklore.</p>
+</div>
+</section>
+
+<section id="success">
+  <span class="section-tag" data-lang="fr">§ 07 — Tu sais que c'est bon quand…</span>
+  <span class="section-tag" data-lang="en">§ 07 — You know it works when…</span>
+  <h2 data-lang="fr">Tu sais que c'est bon quand…</h2>
+  <h2 data-lang="en">You know it works when…</h2>
+<div data-lang="fr"><p>Tu sais que c&#39;est bon quand…</p>
+<ul class="checklist"><li>Prometheus → Status → Targets : les 3 jobs (<code>prometheus</code>, <code>node</code>, <code>cadvisor</code>) en <code>UP</code>.</li><li><code>https://prometheus.exemple.com</code> exige le login basic auth (cadenas vert).</li><li>Grafana → dashboard 1860 affiche tes métriques système en temps réel.</li><li>Tu peux répondre en &lt; 30 s à : « quelle est la charge CPU de mon serveur, là ? »</li><li>Tu as au moins <strong>une</strong> alerte configurée avec un contact point testé (disque, RAM ou conteneur down).</li><li>Tu as reçu la notification lors du test de remplissage disque de l&#39;étape 9 (et supprimé <code>test-disk-alert.img</code>).</li><li>Tu as ouvert ton dashboard au moins <strong>2 fois</strong> cette semaine.</li></ul>
+<p>Si tout est coché, tu as un monitoring <strong>que tu comprends et que tu regardes</strong>. C&#39;est ça, la vraie victoire.</p>
+</div>
+<div data-lang="en"><p>You know it works when…</p>
+<ul class="checklist"><li>Prometheus → Status → Targets: all 3 jobs (<code>prometheus</code>, <code>node</code>, <code>cadvisor</code>) are <code>UP</code>.</li><li><code>https://prometheus.exemple.com</code> requires the basic-auth login (green padlock).</li><li>Grafana → dashboard 1860 shows your system metrics in real time.</li><li>You can answer in &lt; 30s: &quot;what&#39;s my server&#39;s CPU load right now?&quot;</li><li>You have at least <strong>one</strong> alert configured with a tested contact point (disk, RAM, or container down).</li><li>You received the notification during step 9&#39;s disk-fill test (and deleted <code>test-disk-alert.img</code>).</li><li>You&#39;ve opened your dashboard at least <strong>twice</strong> this week.</li></ul>
+<p>If everything is ticked, you have monitoring <strong>you understand and actually look at</strong>. That&#39;s the real win.</p>
+</div>
+</section>
+
+<section id="next">
+  <span class="section-tag" data-lang="fr">§ 08 — Et après ?</span>
+  <span class="section-tag" data-lang="en">§ 08 — What's next?</span>
+  <h2 data-lang="fr">Et après ?</h2>
+  <h2 data-lang="en">What's next?</h2>
+<div data-lang="fr"><p>Cinq prolongements naturels, du plus utile au plus avancé :</p>
+<ol><li><strong>Alertmanager</strong> — router les alertes vers Discord/Telegram/Email avec déduplication et silences, quand tes règles se multiplient.</li><li><strong>Loki</strong> — ajouter le logging centralisé (complète Prometheus côté logs, s&#39;affiche dans le même Grafana).</li><li><strong>Blackbox exporter</strong> — monitoring externe : « est-ce que mon site répond depuis dehors ? »</li><li><strong>Exporters spécifiques</strong> — Postgres exporter, Redis exporter, etc., selon les services que tu héberges.</li><li><strong>Uptime Kuma</strong> (alternative simple) — si finalement tu veux juste du « ping monitoring » sans la richesse (ni la complexité) de Prometheus.</li></ol>
+</div>
+<div data-lang="en"><p>Five natural extensions, from most useful to most advanced:</p>
+<ol><li><strong>Alertmanager</strong> — route alerts to Discord/Telegram/Email with deduplication and silences, once your rules multiply.</li><li><strong>Loki</strong> — add centralized logging (complements Prometheus on the logs side, shows up in the same Grafana).</li><li><strong>Blackbox exporter</strong> — external monitoring: &quot;does my site respond from the outside?&quot;</li><li><strong>Service-specific exporters</strong> — Postgres exporter, Redis exporter, etc., depending on what you host.</li><li><strong>Uptime Kuma</strong> (simple alternative) — if in the end you just want &quot;ping monitoring&quot; without Prometheus&#39;s richness (or complexity).</li></ol>
+</div>
+</section>
+
+<section id="cheatsheet">
+  <span class="section-tag" data-lang="fr">§ 09 — Cheatsheet</span>
+  <span class="section-tag" data-lang="en">§ 09 — Cheatsheet</span>
+  <h2 data-lang="fr">Cheatsheet</h2>
+  <h2 data-lang="en">Cheatsheet</h2>
+<div data-lang="fr"><p>Aide-mémoire des commandes clés pour gérer ta stack au quotidien.</p>
+</div>
+<div data-lang="en"><p>Key commands cheat sheet to operate your stack day-to-day.</p>
+</div>
+<pre class="term lang-bash"><div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="title">shell</span><button class="copy-btn" type="button">Copy</button></div><code># Cycle de vie / Lifecycle
+docker compose up -d                 # démarrer / start
+docker compose ps                    # statut / status
+docker compose logs -f prometheus    # suivre les logs / follow logs
+docker compose down                  # arrêter / stop (volumes préservés / preserved)
+
+# ⚠️ DESTRUCTIF : supprime métriques ET dashboards / DESTRUCTIVE: deletes metrics AND dashboards
+# docker compose down -v
+
+# Recharger prometheus.yml sans redémarrer / Reload prometheus.yml without restarting
+docker compose kill -s SIGHUP prometheus
+
+# Valider prometheus.yml / Validate prometheus.yml
+docker run --rm -v ~/monitoring/prometheus/prometheus.yml:/prometheus.yml:ro \
+  --entrypoint promtool prom/prometheus:v3.0.0 check config /prometheus.yml
+
+# Regénérer un hash basic-auth ($ doublés pour le compose) / Regenerate a basic-auth hash ($ doubled for compose)
+docker run --rm httpd:2.4.62 htpasswd -nbB admin &#39;MotDePasseFort&#39; | sed -e &#39;s/\$/\$\$/g&#39;
+
+# Mettre à jour / Update (après lecture des release notes / after reading release notes)
+# 1. éditer les tags image: dans compose.yaml / edit the image: tags in compose.yaml
+# 2. appliquer / apply:
+docker compose pull &amp;&amp; docker compose up -d</code></pre>
+</section>
+
+<section id="resources">
+  <span class="section-tag" data-lang="fr">§ 10 — Pour aller plus loin</span>
+  <span class="section-tag" data-lang="en">§ 10 — Going further</span>
+  <h2 data-lang="fr">Pour aller plus loin</h2>
+  <h2 data-lang="en">Going further</h2>
+<div data-lang="fr"><ul><li><a href="https://prometheus.io/docs/">Documentation Prometheus</a> — la référence : config, PromQL, bonnes pratiques.</li><li><a href="https://grafana.com/docs/">Documentation Grafana</a> — data sources, dashboards, alerting unifié.</li><li><a href="https://promlabs.com/promql-cheat-sheet/">PromQL Cheat Sheet</a> — les requêtes usuelles, prêtes à copier.</li><li><a href="https://grafana.com/grafana/dashboards/">Dashboards Grafana communautaires</a> — dont les 1860, 893 et 3662 du guide.</li><li><a href="https://samber.github.io/awesome-prometheus-alerts/">Awesome Prometheus Alerts</a> — règles d&#39;alerte prêtes à l&#39;emploi.</li></ul>
+</div>
+<div data-lang="en"><ul><li><a href="https://prometheus.io/docs/">Prometheus documentation</a> — the reference: config, PromQL, best practices.</li><li><a href="https://grafana.com/docs/">Grafana documentation</a> — data sources, dashboards, unified alerting.</li><li><a href="https://promlabs.com/promql-cheat-sheet/">PromQL Cheat Sheet</a> — the everyday queries, ready to copy.</li><li><a href="https://grafana.com/grafana/dashboards/">Community Grafana dashboards</a> — including 1860, 893 and 3662 from this guide.</li><li><a href="https://samber.github.io/awesome-prometheus-alerts/">Awesome Prometheus Alerts</a> — ready-made alerting rules.</li></ul>
+</div>
+</section>
+
+<section id="troubleshooting">
+  <span class="section-tag" data-lang="fr">§ 11 — Troubleshooting</span>
+  <span class="section-tag" data-lang="en">§ 11 — Troubleshooting</span>
+  <h2 data-lang="fr">Troubleshooting</h2>
+  <h2 data-lang="en">Troubleshooting</h2>
+<div data-lang="fr"><p><strong>Target « DOWN » dans Status → Targets.</strong> Regarde la colonne <code>Last Error</code>. <code>connection refused</code> → mauvais port ; <code>no route to host</code> / erreur DNS → la cible n&#39;est pas sur le même réseau Docker que Prometheus ; timeout → service injoignable ou surchargé. Compare le port de la cible avec celui du <code>prometheus.yml</code>.</p>
+<p><strong>« No data » dans Grafana.</strong> Trois vérifications dans l&#39;ordre : la data source pointe bien sur <code>http://prometheus:9090</code> (Save &amp; test OK) ; les targets sont <code>UP</code> ; l&#39;intervalle de temps en haut à droite n&#39;est pas plus large que tes données (juste après l&#39;installation, tu n&#39;as que quelques minutes d&#39;historique — mets « Last 15 minutes »).</p>
+<p><strong>Prometheus consomme énormément de RAM.</strong> Trop de séries scrapées, souvent à cause d&#39;un label à cardinalité explosive (ex. un identifiant unique par requête). Vérifie : Prometheus → Status → TSDB Status → « Top 10 label value counts ». Corrige à la source (l&#39;app qui émet ce label) ou exclus la cible.</p>
+<p><strong>« Failed to load dashboard » à l&#39;import.</strong> Le dashboard utilise un plugin ou une data source que tu n&#39;as pas. Vérifie dans Grafana → Administration → Plugins, installe le manquant, redémarre Grafana (<code>docker compose restart grafana</code>).</p>
+</div>
+<div data-lang="en"><p><strong>Target &quot;DOWN&quot; in Status → Targets.</strong> Check the <code>Last Error</code> column. <code>connection refused</code> → wrong port; <code>no route to host</code> / DNS error → the target isn&#39;t on the same Docker network as Prometheus; timeout → service unreachable or overloaded. Compare the target&#39;s port with the one in <code>prometheus.yml</code>.</p>
+<p><strong>&quot;No data&quot; in Grafana.</strong> Three checks, in order: the data source points at <code>http://prometheus:9090</code> (Save &amp; test OK); the targets are <code>UP</code>; the time range at the top right isn&#39;t wider than your data (right after installation you only have a few minutes of history — set &quot;Last 15 minutes&quot;).</p>
+<p><strong>Prometheus using a huge amount of RAM.</strong> Too many scraped series, usually due to an exploding-cardinality label (e.g. a unique ID per request). Check: Prometheus → Status → TSDB Status → &quot;Top 10 label value counts&quot;. Fix it at the source (the app emitting that label) or exclude the target.</p>
+<p><strong>&quot;Failed to load dashboard&quot; on import.</strong> The dashboard uses a plugin or data source you don&#39;t have. Check Grafana → Administration → Plugins, install the missing one, restart Grafana (<code>docker compose restart grafana</code>).</p>
+</div>
+</section>
+
+
+<!-- ============================================ CTA fort en fin de guide ============================================ -->
+<aside class="cta-strong" role="complementary">
+  <h3 data-lang="fr">Ce guide t'a aidé ?</h3>
+  <h3 data-lang="en">Did this guide help?</h3>
+  <p data-lang="fr">Il fait partie d'un parcours complet pour t'apprendre le DevOps et le self-hosting en faisant, pas en cliquant. Inscris-toi sur jiha.tech pour suivre ta progression, débloquer les guides avancés, et rejoindre la communauté.</p>
+  <p data-lang="en">It's part of a complete path to teach you DevOps and self-hosting by doing — not by clicking. Sign up at jiha.tech to track your progress, unlock advanced guides, and join the community.</p>
+  <a class="btn" href="https://jiha.tech/" data-lang="fr">Rejoindre la formation</a>
+  <a class="btn" href="https://jiha.tech/" data-lang="en">Join the path</a>
+</aside>
+
+<!-- ============================================ BLOC PDF ============================================ -->
+<section class="pdf-block" id="pdf">
+  <div class="icon">⬇</div>
+  <div class="text">
+    <h3 data-lang="fr">Télécharger ce guide en PDF</h3>
+    <h3 data-lang="en">Download this guide as PDF</h3>
+    <p data-lang="fr">Le PDF reprend exactement ce que tu vois ici, dans ta langue active. Idéal pour lire offline, imprimer, ou partager.</p>
+    <p data-lang="en">The PDF mirrors exactly what you see here, in your active language. Great for offline reading, printing, or sharing.</p>
+  </div>
+  <button class="btn" type="button" data-print-pdf>
+    <span data-lang="fr">Télécharger</span>
+    <span data-lang="en">Download</span>
+  </button>
+</section>
+
+  </main>
+</div>
+
+<!-- ============================================ FOOTER ============================================ -->
+<footer class="page-footer" role="contentinfo">
+  <div class="footer-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" role="img" aria-label="jiha.tech">
+  <style>
+    .wm { font-family: 'Montserrat', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.02em; fill: currentColor; }
+    .dot { fill: #FFB627; }
+    .tld { font-weight: 600; fill: currentColor; opacity: 0.7; }
+  </style>
+  <text class="wm" x="6" y="44">jiha<tspan class="dot">.</tspan><tspan class="tld">tech</tspan></text>
+  <rect x="222" y="40" width="14" height="3" class="dot"/>
+</svg></div>
+  <p data-lang="fr">jiha.tech · Skill tree DevOps & self-hosting · v1.0 — juin 2026</p>
+  <p data-lang="en">jiha.tech · DevOps & self-hosting skill tree · v1.0 — juin 2026</p>
+  <p>
+    <a href="https://jiha.tech/" data-lang="fr">Plateforme</a>
+    <a href="https://jiha.tech/" data-lang="en">Platform</a>
+    · <a href="https://jiha.tech/guides.json">guides.json</a>
+    · <span data-lang="fr">Distribué sous licence MIT</span>
+    <span data-lang="en">Distributed under the MIT license</span>
+  </p>
+</footer>
+
+<script src="../../assets/js/ui.js" defer></script>
+</body>
+</html>
