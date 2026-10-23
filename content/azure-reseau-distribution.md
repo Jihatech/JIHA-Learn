@@ -45,7 +45,7 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** : on **choisit*
 **Quand ce n'est PAS le bon choix :**
 
 - Tu n'as pas les fondations réseau → fais les guides AZ-700 précédents.
-- Tu cherches la sécurité applicative (WAF en détail) → on l'aborde ici, l'approfondissement est côté **AZ-500**.
+- Tu cherches la sécurité applicative (WAF en détail) → on l'aborde ici, l'approfondissement est côté **SC-500**.
 :::
 
 :::lang en
@@ -58,7 +58,7 @@ True to the method, we practice **locally and for real**: we **choose** the righ
 **When it's NOT the right choice:**
 
 - You lack the network foundations → do the previous AZ-700 guides.
-- You want application security (WAF in detail) → we touch it here, the deep dive is on the **AZ-500** side.
+- You want application security (WAF in detail) → we touch it here, the deep dive is on the **SC-500** side.
 :::
 
 ## objectives

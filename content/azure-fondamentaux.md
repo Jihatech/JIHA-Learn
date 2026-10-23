@@ -29,8 +29,8 @@ concepts_en: [cloud-models, miniblue, azure-cli, azurite, bicep, resource-hierar
 access: free
 
 # — Partage social (Open Graph) —
-og_description_fr: "Démarre Microsoft Azure sans compte ni facture grâce à miniblue, l'émulateur Azure local (façon LocalStack, ~30 services) : installe l'outillage (miniblue/azlocal, az CLI, Azurite, Bicep), monte un labo local, comprends le modèle Azure (groupes d'administration → abonnements → groupes de ressources → ressources, régions et zones), crée un vrai GROUPE DE RESSOURCES et un compte de stockage EN LOCAL (plan de contrôle live sur miniblue), dépose un blob sur Azurite (plan de données), et compile ton premier template Bicep. La base du parcours de certifications Azure (AZ-900 → AZ-104 → AZ-305 → AZ-400 → AZ-500 → AZ-700)."
-og_description_en: "Start Microsoft Azure with no account or bill thanks to miniblue, the local Azure emulator (LocalStack-style, ~30 services): install the tooling (miniblue/azlocal, az CLI, Azurite, Bicep), set up a local lab, understand the Azure model (management groups → subscriptions → resource groups → resources, regions and zones), create a real RESOURCE GROUP and storage account LOCALLY (live control plane on miniblue), drop a blob on Azurite (data plane), and compile your first Bicep template. The base of the Azure certification path (AZ-900 → AZ-104 → AZ-305 → AZ-400 → AZ-500 → AZ-700)."
+og_description_fr: "Démarre Microsoft Azure sans compte ni facture grâce à miniblue, l'émulateur Azure local (façon LocalStack, ~30 services) : installe l'outillage (miniblue/azlocal, az CLI, Azurite, Bicep), monte un labo local, comprends le modèle Azure (groupes d'administration → abonnements → groupes de ressources → ressources, régions et zones), crée un vrai GROUPE DE RESSOURCES et un compte de stockage EN LOCAL (plan de contrôle live sur miniblue), dépose un blob sur Azurite (plan de données), et compile ton premier template Bicep. La base du parcours de certifications Azure (AZ-900 → AZ-104 → AZ-305 → AZ-400 → SC-500 → AZ-700)."
+og_description_en: "Start Microsoft Azure with no account or bill thanks to miniblue, the local Azure emulator (LocalStack-style, ~30 services): install the tooling (miniblue/azlocal, az CLI, Azurite, Bicep), set up a local lab, understand the Azure model (management groups → subscriptions → resource groups → resources, regions and zones), create a real RESOURCE GROUP and storage account LOCALLY (live control plane on miniblue), drop a blob on Azurite (data plane), and compile your first Bicep template. The base of the Azure certification path (AZ-900 → AZ-104 → AZ-305 → AZ-400 → SC-500 → AZ-700)."
 ---
 
 ## intro
@@ -40,7 +40,7 @@ Après AWS et GCP, voici **Microsoft Azure** — le cloud de l'entreprise par ex
 
 Ce guide pose les fondations de **tout le parcours Azure**. Tu installes l'**outillage** (**miniblue** + son wrapper `azlocal`, la CLI `az`, **Azurite**, **Bicep**), tu montes le **labo local**, tu comprends le **modèle Azure** (la hiérarchie **groupes d'administration → abonnements → groupes de ressources → ressources**, les **régions** et **zones**), et tu crées tes premiers objets **pour de vrai, en local** : un **groupe de ressources** et un **compte de stockage** (le **plan de contrôle**, live sur miniblue), un **blob** (le **plan de données**, sur Azurite), et un **template Bicep** (l'infrastructure-as-code).
 
-Ce guide ouvre une **série de certifications** : **AZ-900** (fondamentaux, ici), puis **AZ-104** (administrateur), **AZ-305** (architecte), **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau). Le labo que tu montes maintenant te resservira dans **tous** ces tracks — et grâce à miniblue, tu **exécuteras** vraiment les commandes, tu ne feras pas que les lire.
+Ce guide ouvre une **série de certifications** : **AZ-900** (fondamentaux, ici), puis **AZ-104** (administrateur), **AZ-305** (architecte), **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau). Le labo que tu montes maintenant te resservira dans **tous** ces tracks — et grâce à miniblue, tu **exécuteras** vraiment les commandes, tu ne feras pas que les lire.
 
 **Pour qui c'est :** tu débutes sur Azure (même en venant d'AWS/GCP) et tu veux une base **pratique**, montée à coût zéro.
 
@@ -55,7 +55,7 @@ After AWS and GCP, here's **Microsoft Azure** — the enterprise cloud par excel
 
 This guide lays the foundations for **the whole Azure path**. You install the **tooling** (**miniblue** + its `azlocal` wrapper, the `az` CLI, **Azurite**, **Bicep**), set up the **local lab**, understand the **Azure model** (the **management groups → subscriptions → resource groups → resources** hierarchy, **regions** and **zones**), and create your first objects **for real, locally**: a **resource group** and a **storage account** (the **control plane**, live on miniblue), a **blob** (the **data plane**, on Azurite), and a **Bicep template** (infrastructure-as-code).
 
-This guide opens a **series of certifications**: **AZ-900** (fundamentals, here), then **AZ-104** (administrator), **AZ-305** (architect), **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking). The lab you set up now will serve you in **all** these tracks — and thanks to miniblue, you truly **run** the commands, you don't just read them.
+This guide opens a **series of certifications**: **AZ-900** (fundamentals, here), then **AZ-104** (administrator), **AZ-305** (architect), **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking). The lab you set up now will serve you in **all** these tracks — and thanks to miniblue, you truly **run** the commands, you don't just read them.
 
 **Who it's for:** you're starting on Azure (even coming from AWS/GCP) and want a **practical** base, built at zero cost.
 
@@ -532,14 +532,14 @@ Seven boxes = your Azure base is set. Next up: **AZ-104 (administrator)**.
 Le parcours Azure continue :
 
 1. **AZ-104 — administrateur Azure** : identités (Entra ID), gouvernance (RBAC, policies, tags), stockage, réseau (VNet, NSG), machines virtuelles — **déployés en live** contre miniblue avec Terraform, + Bicep validé.
-2. Plus loin : **AZ-305** (architecte), **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau). Le labo (miniblue + Azurite) monté ici te resservira partout.
+2. Plus loin : **AZ-305** (architecte), **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau). Le labo (miniblue + Azurite) monté ici te resservira partout.
 :::
 
 :::lang en
 The Azure path continues:
 
 1. **AZ-104 — Azure administrator**: identities (Entra ID), governance (RBAC, policies, tags), storage, networking (VNet, NSG), virtual machines — **deployed live** against miniblue with Terraform, + validated Bicep.
-2. Further along: **AZ-305** (architect), **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking). The lab (miniblue + Azurite) set up here will serve you everywhere.
+2. Further along: **AZ-305** (architect), **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking). The lab (miniblue + Azurite) set up here will serve you everywhere.
 :::
 
 ## cheatsheet

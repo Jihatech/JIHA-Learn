@@ -444,11 +444,11 @@ revue d'architecture.
 ```
 
 :::lang fr
-**✅ Vérification :** ton dossier `~/solution-waf` contient `infra/` (réseau déployé), `durcissement/` (Bicep validé), la **revue WAF** et `README.md`. **Tu as un projet de CV d'architecte.** Phrase d'accroche : *« J'ai conçu une solution Azure Well-Architected multi-tier — réseau, compute serverless, données SQL+cache, gouvernance et continuité — en Terraform et Bicep, justifiée pilier par pilier et testée en local. »* Pousse-le sur **GitHub**. ⚠️ Prochaine étape : l'examen **AZ-305**, puis la suite du parcours (AZ-400, AZ-500, AZ-700).
+**✅ Vérification :** ton dossier `~/solution-waf` contient `infra/` (réseau déployé), `durcissement/` (Bicep validé), la **revue WAF** et `README.md`. **Tu as un projet de CV d'architecte.** Phrase d'accroche : *« J'ai conçu une solution Azure Well-Architected multi-tier — réseau, compute serverless, données SQL+cache, gouvernance et continuité — en Terraform et Bicep, justifiée pilier par pilier et testée en local. »* Pousse-le sur **GitHub**. ⚠️ Prochaine étape : l'examen **AZ-305**, puis la suite du parcours (AZ-400, SC-500, AZ-700).
 :::
 
 :::lang en
-**✅ Check:** your `~/solution-waf` folder holds `infra/` (deployed network), `durcissement/` (validated Bicep), the **WAF review** and `README.md`. **You have an architect CV project.** Hook sentence: *"I designed a multi-tier Well-Architected Azure solution — network, serverless compute, SQL+cache data, governance and continuity — in Terraform and Bicep, justified pillar by pillar and tested locally."* Push it to **GitHub**. ⚠️ Next step: the **AZ-305** exam, then the rest of the path (AZ-400, AZ-500, AZ-700).
+**✅ Check:** your `~/solution-waf` folder holds `infra/` (deployed network), `durcissement/` (validated Bicep), the **WAF review** and `README.md`. **You have an architect CV project.** Hook sentence: *"I designed a multi-tier Well-Architected Azure solution — network, serverless compute, SQL+cache data, governance and continuity — in Terraform and Bicep, justified pillar by pillar and tested locally."* Push it to **GitHub**. ⚠️ Next step: the **AZ-305** exam, then the rest of the path (AZ-400, SC-500, AZ-700).
 :::
 
 ### step-07
@@ -475,11 +475,11 @@ cd ~/solution-waf/infra && terraform destroy -auto-approve
 ```
 
 :::lang fr
-**✅ Vérification :** `group delete` renvoie `Deleted` : comme le **groupe de ressources emporte tout** ce qu'il contient (charges azlocal **et** le réseau géré par Terraform), il ne reste plus rien côté émulateur. `terraform destroy` **réconcilie alors son état** et affiche `Destroy complete! Resources: 0 destroyed` (le groupe étant déjà supprimé) — c'est normal. Vérifie avec `azlocal group list` (`{"value": []}`). Ta solution est entièrement démontée. **Tu tiens ton projet de CV AZ-305** : une solution Well-Architected complète, conçue, déployée/validée en local, et **justifiée pilier par pilier**. 🎓 Tu as terminé le track **AZ-305 — Architecte de solutions**. La suite du parcours Azure : **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
+**✅ Vérification :** `group delete` renvoie `Deleted` : comme le **groupe de ressources emporte tout** ce qu'il contient (charges azlocal **et** le réseau géré par Terraform), il ne reste plus rien côté émulateur. `terraform destroy` **réconcilie alors son état** et affiche `Destroy complete! Resources: 0 destroyed` (le groupe étant déjà supprimé) — c'est normal. Vérifie avec `azlocal group list` (`{"value": []}`). Ta solution est entièrement démontée. **Tu tiens ton projet de CV AZ-305** : une solution Well-Architected complète, conçue, déployée/validée en local, et **justifiée pilier par pilier**. 🎓 Tu as terminé le track **AZ-305 — Architecte de solutions**. La suite du parcours Azure : **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
 :::
 
 :::lang en
-**✅ Check:** `group delete` returns `Deleted`: since the **resource group takes everything** it holds (azlocal workloads **and** the Terraform-managed network), nothing remains on the emulator. `terraform destroy` **then reconciles its state** and shows `Destroy complete! Resources: 0 destroyed` (the group is already gone) — that's expected. Verify with `azlocal group list` (`{"value": []}`). Your solution is fully torn down. **You hold your AZ-305 CV project**: a complete Well-Architected solution, designed, deployed/validated locally, and **justified pillar by pillar**. 🎓 You've finished the **AZ-305 — Solutions Architect** track. The rest of the Azure path: **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
+**✅ Check:** `group delete` returns `Deleted`: since the **resource group takes everything** it holds (azlocal workloads **and** the Terraform-managed network), nothing remains on the emulator. `terraform destroy` **then reconciles its state** and shows `Destroy complete! Resources: 0 destroyed` (the group is already gone) — that's expected. Verify with `azlocal group list` (`{"value": []}`). Your solution is fully torn down. **You hold your AZ-305 CV project**: a complete Well-Architected solution, designed, deployed/validated locally, and **justified pillar by pillar**. 🎓 You've finished the **AZ-305 — Solutions Architect** track. The rest of the Azure path: **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
 :::
 
 ## pitfalls
@@ -553,7 +553,7 @@ Tu as terminé le track **AZ-305 — Architecte de solutions** ! 🎉
 
 1. **Certification AZ-305** : entraîne-toi sur des **études de cas** (le format de l'examen), révise les **choix de service** et les **compromis** par pilier.
 2. **Ton CV** : mets en avant la **solution Well-Architected** (multi-tier, IaC, justifiée).
-3. **La suite du parcours Azure** : **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
+3. **La suite du parcours Azure** : **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
 :::
 
 :::lang en
@@ -561,7 +561,7 @@ You've finished the **AZ-305 — Solutions Architect** track! 🎉
 
 1. **AZ-305 certification**: practice on **case studies** (the exam format), revise **service choices** and **tradeoffs** by pillar.
 2. **Your CV**: highlight the **Well-Architected solution** (multi-tier, IaC, justified).
-3. **The rest of the Azure path**: **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
+3. **The rest of the Azure path**: **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
 :::
 
 ## cheatsheet

@@ -6,8 +6,8 @@ order: 80
 status: published
 
 # — Titres & accroches (bilingue) —
-title_fr: "Azure — opérations de sécurité (AZ-500) : Policy, Defender, Sentinel"
-title_en: "Azure — security operations (AZ-500): Policy, Defender, Sentinel"
+title_fr: "Azure — opérations de sécurité (SC-500) : Policy, Defender, Sentinel"
+title_en: "Azure — security operations (SC-500): Policy, Defender, Sentinel"
 tagline_fr: "gouverner, mesurer la posture, détecter, chasser, répondre."
 tagline_en: "govern, measure posture, detect, hunt, respond."
 
@@ -29,14 +29,18 @@ concepts_en: [security-operations, azure-policy, defender-for-cloud, secure-scor
 access: premium
 
 # — Partage social (Open Graph) —
-og_description_fr: "Les opérations de sécurité pour l'AZ-500, en local et pour de vrai : Azure Policy qui REFUSE la création de ressources non conformes (évaluateur deny exécutable + checkov en shift-left), Defender for Cloud (secure score + recommandations priorisées), la centralisation des journaux, un moteur de détection type Sentinel/SIEM (force brute, voyage impossible → incidents), une requête de chasse (analogue KQL), et un playbook de réponse automatique à incident. Gouverner, mesurer, détecter, chasser, répondre. Sans compte cloud.",
-og_description_en: "Security operations for AZ-500, locally and for real: Azure Policy that DENIES creation of non-compliant resources (a runnable deny evaluator + checkov shift-left), Defender for Cloud (secure score + prioritized recommendations), log centralization, a Sentinel/SIEM-style detection engine (brute force, impossible travel → incidents), a hunting query (KQL analog), and an automated incident-response playbook. Govern, measure, detect, hunt, respond. No cloud account."
+og_description_fr: "Les opérations de sécurité pour le SC-500, en local et pour de vrai : Azure Policy qui REFUSE la création de ressources non conformes (évaluateur deny exécutable + checkov en shift-left), Defender for Cloud (secure score + recommandations priorisées), la centralisation des journaux, un moteur de détection type Sentinel/SIEM (force brute, voyage impossible → incidents), une requête de chasse (analogue KQL), et un playbook de réponse automatique à incident. Gouverner, mesurer, détecter, chasser, répondre. Sans compte cloud.",
+og_description_en: "Security operations for SC-500, locally and for real: Azure Policy that DENIES creation of non-compliant resources (a runnable deny evaluator + checkov shift-left), Defender for Cloud (secure score + prioritized recommendations), log centralization, a Sentinel/SIEM-style detection engine (brute force, impossible travel → incidents), a hunting query (KQL analog), and an automated incident-response playbook. Govern, measure, detect, hunt, respond. No cloud account."
 ---
 
 ## intro
 
 :::lang fr
-Tu as durci l'**identité**, le **réseau** et les **données**. Reste à **opérer** la sécurité dans le temps : **gouverner** ce qui se crée, **mesurer** la posture, **détecter** les attaques, **chasser** les menaces et **répondre** aux incidents. C'est le dernier pilier **AZ-500** — celui qui transforme des contrôles statiques en une **défense vivante**.
+:::note
+Depuis le 31 août 2026, Microsoft a remplacé l'examen Azure Security Engineer (ex-AZ-500) par le **SC-500** (Cloud and AI Security Engineer Associate). Ce parcours couvre le socle commun aux deux : identité, réseau, données et opérations de sécurité. Le volet nouveau du SC-500, la **sécurisation des charges d'IA** (Microsoft Foundry, Defender pour l'IA, identités d'agents), n'est pas encore traité ici : complète-le avec le guide d'étude officiel SC-500 sur Microsoft Learn.
+:::
+
+Tu as durci l'**identité**, le **réseau** et les **données**. Reste à **opérer** la sécurité dans le temps : **gouverner** ce qui se crée, **mesurer** la posture, **détecter** les attaques, **chasser** les menaces et **répondre** aux incidents. C'est le dernier pilier **SC-500** — celui qui transforme des contrôles statiques en une **défense vivante**.
 
 Fidèle à la méthode, on pratique **en local et pour de vrai** : on écrit un évaluateur **Azure Policy** qui **refuse** (deny) la création de ressources non conformes, on calcule un **secure score** avec des **recommandations priorisées** (Defender for Cloud), on **centralise** des journaux, on écrit un **moteur de détection** type **Sentinel/SIEM** qui repère **force brute** et **voyage impossible** et **lève des incidents**, on écrit une **requête de chasse** (analogue **KQL**), et on **répond** avec un **playbook automatique**.
 
@@ -44,12 +48,16 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** : on écrit un 
 
 **Quand ce n'est PAS le bon choix :**
 
-- Tu n'as pas les bases → fais les guides AZ-500 précédents.
+- Tu n'as pas les bases → fais les guides SC-500 précédents.
 - Tu veux le **SOC** organisationnel (processus, astreintes) → ici c'est la **mécanique** technique (détection, réponse).
 :::
 
 :::lang en
-You've hardened **identity**, **network** and **data**. What remains is to **operate** security over time: **govern** what gets created, **measure** posture, **detect** attacks, **hunt** threats and **respond** to incidents. It's the last **AZ-500** pillar — the one that turns static controls into a **living defense**.
+:::note
+Since August 31, 2026, Microsoft has replaced the Azure Security Engineer exam (ex-AZ-500) with **SC-500** (Cloud and AI Security Engineer Associate). This track covers the foundation shared by both: identity, network, data and security operations. SC-500's new area, **securing AI workloads** (Microsoft Foundry, Defender for AI, agent identities), is not covered here yet: complete it with the official SC-500 study guide on Microsoft Learn.
+:::
+
+You've hardened **identity**, **network** and **data**. What remains is to **operate** security over time: **govern** what gets created, **measure** posture, **detect** attacks, **hunt** threats and **respond** to incidents. It's the last **SC-500** pillar — the one that turns static controls into a **living defense**.
 
 True to the method, we practice **locally and for real**: we write an **Azure Policy** evaluator that **denies** creation of non-compliant resources, we compute a **secure score** with **prioritized recommendations** (Defender for Cloud), we **centralize** logs, we write a **Sentinel/SIEM-style detection engine** that spots **brute force** and **impossible travel** and **raises incidents**, we write a **hunting query** (**KQL** analog), and we **respond** with an **automated playbook**.
 
@@ -57,7 +65,7 @@ True to the method, we practice **locally and for real**: we write an **Azure Po
 
 **When it's NOT the right choice:**
 
-- You lack the basics → do the previous AZ-500 guides.
+- You lack the basics → do the previous SC-500 guides.
 - You want the organizational **SOC** (processes, on-call) → here it's the technical **mechanics** (detection, response).
 :::
 
@@ -90,13 +98,13 @@ By the end of this guide, you can:
 ## prerequisites
 
 :::lang fr
-- Les guides **Azure — sécurité fondamentaux / identité / réseau / données (AZ-500)**.
+- Les guides **Azure — sécurité fondamentaux / identité / réseau / données (SC-500)**.
 - Le **lab local** : **Python 3** (moteurs de détection/policy/réponse), `checkov` (`pip install checkov`), **miniblue** optionnel.
 - **Aucun compte cloud** : Policy, Defender, Sentinel et playbook sont des **moteurs exécutables** en local.
 :::
 
 :::lang en
-- The **Azure — security fundamentals / identity / network / data (AZ-500)** guides.
+- The **Azure — security fundamentals / identity / network / data (SC-500)** guides.
 - The **local lab**: **Python 3** (detection/policy/response engines), `checkov` (`pip install checkov`), **miniblue** optional.
 - **No cloud account**: Policy, Defender, Sentinel and playbook are **runnable engines** locally.
 :::
@@ -449,7 +457,7 @@ python3 playbook.py
 ### step-07
 
 :::lang fr
-**Objectif.** Assembler le **cycle SecOps** — et clore le track AZ-500.
+**Objectif.** Assembler le **cycle SecOps** — et clore le track SC-500.
 
 **🤔 Une boucle vivante.** On récapitule les six maillons des opérations de sécurité, qui forment un **cycle continu** : ce qu'on découvre en chasse et en réponse **nourrit** de nouvelles règles et politiques.
 
@@ -457,7 +465,7 @@ Récapitule le cycle SecOps :
 :::
 
 :::lang en
-**Goal.** Assemble the **SecOps cycle** — and close the AZ-500 track.
+**Goal.** Assemble the **SecOps cycle** — and close the SC-500 track.
 
 **🤔 A living loop.** We recap the six links of security operations, which form a **continuous cycle**: what you discover in hunting and response **feeds** new rules and policies.
 
@@ -476,11 +484,11 @@ echo "-> boucle : chasse + reponse nourrissent de nouvelles regles et politiques
 ```
 
 :::lang fr
-**✅ Vérification :** la table récapitule les **six maillons** — gouverner, mesurer, centraliser, détecter, chasser, répondre — reliés en **boucle continue**. Tu tiens le pilier **opérations** de l'AZ-500, et avec lui **tout le track de sécurité** : fondamentaux (Zero Trust), **identité** (RBAC/PIM), **réseau** (segmentation/WAF), **données** (chiffrement/rotation) et **opérations** (Policy/Defender/Sentinel). La sécurité n'est plus une case cochée mais une **pratique vivante** : on gouverne ce qui se crée, on mesure la posture, et on détecte-chasse-répond en continu. **Félicitations — tu as terminé le track AZ-500 !** Il ne reste que le **projet de synthèse** pour l'emballage CV.
+**✅ Vérification :** la table récapitule les **six maillons** — gouverner, mesurer, centraliser, détecter, chasser, répondre — reliés en **boucle continue**. Tu tiens le pilier **opérations** du SC-500, et avec lui **tout le track de sécurité** : fondamentaux (Zero Trust), **identité** (RBAC/PIM), **réseau** (segmentation/WAF), **données** (chiffrement/rotation) et **opérations** (Policy/Defender/Sentinel). La sécurité n'est plus une case cochée mais une **pratique vivante** : on gouverne ce qui se crée, on mesure la posture, et on détecte-chasse-répond en continu. **Félicitations — tu as terminé le track SC-500 !** Il ne reste que le **projet de synthèse** pour l'emballage CV.
 :::
 
 :::lang en
-**✅ Check:** the table recaps the **six links** — govern, measure, centralize, detect, hunt, respond — connected in a **continuous loop**. You hold the **operations** pillar of AZ-500, and with it **the whole security track**: fundamentals (Zero Trust), **identity** (RBAC/PIM), **network** (segmentation/WAF), **data** (encryption/rotation) and **operations** (Policy/Defender/Sentinel). Security is no longer a checkbox but a **living practice**: you govern what gets created, measure posture, and detect-hunt-respond continuously. **Congratulations — you finished the AZ-500 track!** Only the capstone **project** remains, for CV packaging.
+**✅ Check:** the table recaps the **six links** — govern, measure, centralize, detect, hunt, respond — connected in a **continuous loop**. You hold the **operations** pillar of SC-500, and with it **the whole security track**: fundamentals (Zero Trust), **identity** (RBAC/PIM), **network** (segmentation/WAF), **data** (encryption/rotation) and **operations** (Policy/Defender/Sentinel). Security is no longer a checkbox but a **living practice**: you govern what gets created, measure posture, and detect-hunt-respond continuously. **Congratulations — you finished the SC-500 track!** Only the capstone **project** remains, for CV packaging.
 :::
 
 ## pitfalls
@@ -544,14 +552,14 @@ You've succeeded if:
 ## next
 
 :::lang fr
-- **Suivant :** *Azure — projet de sécurité (AZ-500)* — le projet de synthèse : durcir et opérer un workload de bout en bout.
-- **Réviser :** n'importe quel guide AZ-500 dont un pilier t'a semblé fragile.
+- **Suivant :** *Azure — projet de sécurité (SC-500)* — le projet de synthèse : durcir et opérer un workload de bout en bout.
+- **Réviser :** n'importe quel guide SC-500 dont un pilier t'a semblé fragile.
 - **S'entraîner :** ajoute une règle de détection (accès hors horaires) et son playbook, et une politique **Deny** sur une balise (tag) obligatoire.
 :::
 
 :::lang en
-- **Next:** *Azure — security project (AZ-500)* — the capstone: harden and operate a workload end to end.
-- **Review:** any AZ-500 guide whose pillar felt shaky.
+- **Next:** *Azure — security project (SC-500)* — the capstone: harden and operate a workload end to end.
+- **Review:** any SC-500 guide whose pillar felt shaky.
 - **Practice:** add a detection rule (off-hours access) and its playbook, and a **Deny** policy on a required tag.
 :::
 
@@ -620,7 +628,7 @@ Azure Audit : flags non-compliance (doesn't prevent)
 :::lang fr
 - **Azure Policy** : définitions, effets (Audit/Deny/DINE), initiatives — Microsoft Learn.
 - **Microsoft Defender for Cloud** : secure score, recommandations, protection des charges — Microsoft Learn.
-- **Microsoft Sentinel** : SIEM/SOAR, règles d'analyse, incidents, playbooks — Microsoft Learn (AZ-500).
+- **Microsoft Sentinel** : SIEM/SOAR, règles d'analyse, incidents, playbooks — Microsoft Learn (SC-500).
 - **KQL (Kusto Query Language)** : requêtes, opérateurs, chasse aux menaces — Microsoft Learn.
 - **Log Analytics** : espaces de travail, ingestion, requêtes — Microsoft Learn.
 - **checkov** : policy-as-code shift-left (complément d'Azure Policy) — docs checkov.
@@ -629,7 +637,7 @@ Azure Audit : flags non-compliance (doesn't prevent)
 :::lang en
 - **Azure Policy**: definitions, effects (Audit/Deny/DINE), initiatives — Microsoft Learn.
 - **Microsoft Defender for Cloud**: secure score, recommendations, workload protection — Microsoft Learn.
-- **Microsoft Sentinel**: SIEM/SOAR, analytics rules, incidents, playbooks — Microsoft Learn (AZ-500).
+- **Microsoft Sentinel**: SIEM/SOAR, analytics rules, incidents, playbooks — Microsoft Learn (SC-500).
 - **KQL (Kusto Query Language)**: queries, operators, threat hunting — Microsoft Learn.
 - **Log Analytics**: workspaces, ingestion, queries — Microsoft Learn.
 - **checkov**: shift-left policy-as-code (complements Azure Policy) — checkov docs.

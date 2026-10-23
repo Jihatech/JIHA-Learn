@@ -39,7 +39,12 @@ Ajouter ou renuméroter une étape ici impose de mettre à jour ce fichier, sino
 
 ```bash
 node build.mjs <id> --strict   # échoue sur [A] parcours et [E] bilingue
+node scripts/check-exams.mjs   # échoue si un examen retiré est cité
 ```
+
+Examens retirés : `retired-exams.json` (code, date, remplaçant, source officielle).
+À mettre à jour à chaque annonce de retrait. Une mention historique s'écrit `ex-AZ-500`.
+La filière sécurité Azure prépare désormais au **SC-500** ; son volet IA reste à écrire.
 
 `[C]` (schéma manquant dans `concepts`) reste un avertissement : c'est une dette
 à corriger, pas un blocage. Dettes connues : `cicd-gitlab-local`, `terraform-localstack`.

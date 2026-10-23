@@ -6,8 +6,8 @@ order: 79
 status: published
 
 # — Titres & accroches (bilingue) —
-title_fr: "Azure — sécurité des données (AZ-500) : chiffrement, coffre, rotation"
-title_en: "Azure — data security (AZ-500): encryption, vault, rotation"
+title_fr: "Azure — sécurité des données (SC-500) : chiffrement, coffre, rotation"
+title_en: "Azure — data security (SC-500): encryption, vault, rotation"
 tagline_fr: "classer, chiffrer au repos et en transit, faire tourner les secrets."
 tagline_en: "classify, encrypt at rest and in transit, rotate the secrets."
 
@@ -29,14 +29,18 @@ concepts_en: [data, classification, encryption-at-rest, encryption-in-transit, t
 access: premium
 
 # — Partage social (Open Graph) —
-og_description_fr: "Sécuriser les données pour l'AZ-500, en local et pour de vrai : classer la donnée pour en déduire les contrôles (Public → Secret), le chiffrement au repos (par défaut + clés gérées par le client / CMK) validé par checkov, le chiffrement en transit (TLS 1.2 + HTTPS obligatoire, checkov), le coffre Key Vault et la rotation d'un secret (v1 → v2, live sur miniblue), la rotation des clés de stockage (motif à deux clés, live), et une ressource de données entièrement durcie qui passe le scan au vert. Sans compte cloud.",
-og_description_en: "Securing data for AZ-500, locally and for real: classifying data to derive its controls (Public → Secret), encryption at rest (default + customer-managed keys / CMK) validated by checkov, encryption in transit (TLS 1.2 + HTTPS required, checkov), the Key Vault and rotating a secret (v1 → v2, live on miniblue), rotating storage keys (two-key pattern, live), and a fully hardened data resource that passes the scan green. No cloud account."
+og_description_fr: "Sécuriser les données pour le SC-500, en local et pour de vrai : classer la donnée pour en déduire les contrôles (Public → Secret), le chiffrement au repos (par défaut + clés gérées par le client / CMK) validé par checkov, le chiffrement en transit (TLS 1.2 + HTTPS obligatoire, checkov), le coffre Key Vault et la rotation d'un secret (v1 → v2, live sur miniblue), la rotation des clés de stockage (motif à deux clés, live), et une ressource de données entièrement durcie qui passe le scan au vert. Sans compte cloud.",
+og_description_en: "Securing data for SC-500, locally and for real: classifying data to derive its controls (Public → Secret), encryption at rest (default + customer-managed keys / CMK) validated by checkov, encryption in transit (TLS 1.2 + HTTPS required, checkov), the Key Vault and rotating a secret (v1 → v2, live on miniblue), rotating storage keys (two-key pattern, live), and a fully hardened data resource that passes the scan green. No cloud account."
 ---
 
 ## intro
 
 :::lang fr
-Au bout de la chaîne, il y a la **donnée** — ce qu'un attaquant veut vraiment. L'identité et le réseau la protègent **autour** ; ici, on la protège **elle-même**. L'**AZ-500** attend que tu saches **classer** la donnée, la **chiffrer** au repos et en transit, gérer les **clés** et **faire tourner** les secrets. C'est la couche la plus **proche** de la valeur.
+:::note
+Depuis le 31 août 2026, Microsoft a remplacé l'examen Azure Security Engineer (ex-AZ-500) par le **SC-500** (Cloud and AI Security Engineer Associate). Ce parcours couvre le socle commun aux deux : identité, réseau, données et opérations de sécurité. Le volet nouveau du SC-500, la **sécurisation des charges d'IA** (Microsoft Foundry, Defender pour l'IA, identités d'agents), n'est pas encore traité ici : complète-le avec le guide d'étude officiel SC-500 sur Microsoft Learn.
+:::
+
+Au bout de la chaîne, il y a la **donnée** — ce qu'un attaquant veut vraiment. L'identité et le réseau la protègent **autour** ; ici, on la protège **elle-même**. Le **SC-500** attend que tu saches **classer** la donnée, la **chiffrer** au repos et en transit, gérer les **clés** et **faire tourner** les secrets. C'est la couche la plus **proche** de la valeur.
 
 Fidèle à la méthode, on pratique **en local et pour de vrai** : on **classe** la donnée (Public → Secret) pour en **déduire les contrôles**, on valide le **chiffrement au repos** (par défaut + **clés gérées par le client**, CMK) et le **chiffrement en transit** (**TLS 1.2** + HTTPS obligatoire) avec **checkov**, on **stocke** et on **fait tourner** un secret dans **Key Vault** (v1 → v2, **live** sur **miniblue**), on **rotationne** les **clés de stockage** (motif à **deux clés**, live), et on assemble une **ressource de données entièrement durcie** qui **passe le scan au vert**.
 
@@ -44,12 +48,16 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** : on **classe**
 
 **Quand ce n'est PAS le bon choix :**
 
-- Tu ne connais pas Key Vault → révise *Azure — sécurité fondamentaux (AZ-500)*.
+- Tu ne connais pas Key Vault → révise *Azure — sécurité fondamentaux (SC-500)*.
 - Tu veux la **conformité** réglementaire détaillée (RGPD, PCI-DSS) → ici c'est la **mécanique** technique.
 :::
 
 :::lang en
-At the end of the chain is the **data** — what an attacker really wants. Identity and network protect it **around**; here, we protect it **itself**. **AZ-500** expects you to **classify** data, **encrypt** it at rest and in transit, manage **keys** and **rotate** secrets. It's the layer **closest** to the value.
+:::note
+Since August 31, 2026, Microsoft has replaced the Azure Security Engineer exam (ex-AZ-500) with **SC-500** (Cloud and AI Security Engineer Associate). This track covers the foundation shared by both: identity, network, data and security operations. SC-500's new area, **securing AI workloads** (Microsoft Foundry, Defender for AI, agent identities), is not covered here yet: complete it with the official SC-500 study guide on Microsoft Learn.
+:::
+
+At the end of the chain is the **data** — what an attacker really wants. Identity and network protect it **around**; here, we protect it **itself**. **SC-500** expects you to **classify** data, **encrypt** it at rest and in transit, manage **keys** and **rotate** secrets. It's the layer **closest** to the value.
 
 True to the method, we practice **locally and for real**: we **classify** data (Public → Secret) to **derive its controls**, we validate **encryption at rest** (default + **customer-managed keys**, CMK) and **encryption in transit** (**TLS 1.2** + HTTPS required) with **checkov**, we **store** and **rotate** a secret in **Key Vault** (v1 → v2, **live** on **miniblue**), we **rotate** the **storage keys** (**two-key** pattern, live), and we assemble a **fully hardened data resource** that **passes the scan green**.
 
@@ -57,7 +65,7 @@ True to the method, we practice **locally and for real**: we **classify** data (
 
 **When it's NOT the right choice:**
 
-- You don't know Key Vault → review *Azure — security fundamentals (AZ-500)*.
+- You don't know Key Vault → review *Azure — security fundamentals (SC-500)*.
 - You want detailed regulatory **compliance** (GDPR, PCI-DSS) → here it's the technical **mechanics**.
 :::
 
@@ -90,13 +98,13 @@ By the end of this guide, you can:
 ## prerequisites
 
 :::lang fr
-- Les guides **Azure — sécurité fondamentaux / identité / réseau (AZ-500)**.
+- Les guides **Azure — sécurité fondamentaux / identité / réseau (SC-500)**.
 - Le **lab local** : **miniblue** démarré, `azlocal` sur le `PATH`, **Python 3**, `pip install checkov`.
 - **Aucun compte cloud** : coffre et rotation live, chiffrement validé par policy (checkov).
 :::
 
 :::lang en
-- The **Azure — security fundamentals / identity / network (AZ-500)** guides.
+- The **Azure — security fundamentals / identity / network (SC-500)** guides.
 - The **local lab**: **miniblue** started, `azlocal` on `PATH`, **Python 3**, `pip install checkov`.
 - **No cloud account**: vault and rotation live, encryption validated by policy (checkov).
 :::
@@ -420,11 +428,11 @@ azlocal group delete --name rg-data >/dev/null 2>&1 && echo "rg-data supprime / 
 ```
 
 :::lang fr
-**✅ Vérification :** la table récapitule les **cinq leviers** de la sécurité des données, puis `rg-data supprime` nettoie le lab. Tu tiens le pilier **données** de l'AZ-500 : **classer** (piloter l'effort), **chiffrer au repos** (défaut → CMK → double couche), **chiffrer en transit** (TLS 1.2/HTTPS), **coffrer** (Key Vault) et **faire tourner** (secrets versionnés, clés à deux temps). La donnée — la cible ultime — est protégée **elle-même**, pas seulement autour. La suite (et fin) du track AZ-500 : les **opérations de sécurité** — Defender for Cloud, Sentinel/SIEM, Azure Policy — surveiller, détecter, répondre.
+**✅ Vérification :** la table récapitule les **cinq leviers** de la sécurité des données, puis `rg-data supprime` nettoie le lab. Tu tiens le pilier **données** du SC-500 : **classer** (piloter l'effort), **chiffrer au repos** (défaut → CMK → double couche), **chiffrer en transit** (TLS 1.2/HTTPS), **coffrer** (Key Vault) et **faire tourner** (secrets versionnés, clés à deux temps). La donnée — la cible ultime — est protégée **elle-même**, pas seulement autour. La suite (et fin) du track SC-500 : les **opérations de sécurité** — Defender for Cloud, Sentinel/SIEM, Azure Policy — surveiller, détecter, répondre.
 :::
 
 :::lang en
-**✅ Check:** the table recaps the **five levers** of data security, then `rg-data supprime` cleans the lab. You hold the **data** pillar of AZ-500: **classify** (drive the effort), **encrypt at rest** (default → CMK → double layer), **encrypt in transit** (TLS 1.2/HTTPS), **vault** (Key Vault) and **rotate** (versioned secrets, two-stage keys). The data — the ultimate target — is protected **itself**, not just around. Next (and last) in the AZ-500 track: **security operations** — Defender for Cloud, Sentinel/SIEM, Azure Policy — monitor, detect, respond.
+**✅ Check:** the table recaps the **five levers** of data security, then `rg-data supprime` cleans the lab. You hold the **data** pillar of SC-500: **classify** (drive the effort), **encrypt at rest** (default → CMK → double layer), **encrypt in transit** (TLS 1.2/HTTPS), **vault** (Key Vault) and **rotate** (versioned secrets, two-stage keys). The data — the ultimate target — is protected **itself**, not just around. Next (and last) in the SC-500 track: **security operations** — Defender for Cloud, Sentinel/SIEM, Azure Policy — monitor, detect, respond.
 :::
 
 ## pitfalls
@@ -488,14 +496,14 @@ You've succeeded if:
 ## next
 
 :::lang fr
-- **Suivant :** *Azure — opérations de sécurité (AZ-500)* — Defender for Cloud, Sentinel/SIEM, Azure Policy.
-- **Réviser :** *Azure — sécurité fondamentaux (AZ-500)* pour Key Vault.
+- **Suivant :** *Azure — opérations de sécurité (SC-500)* — Defender for Cloud, Sentinel/SIEM, Azure Policy.
+- **Réviser :** *Azure — sécurité fondamentaux (SC-500)* pour Key Vault.
 - **S'entraîner :** ajoute une classe *Réglementé* à `classif.py` (avec journalisation renforcée), et une politique de rotation à 90 jours.
 :::
 
 :::lang en
-- **Next:** *Azure — security operations (AZ-500)* — Defender for Cloud, Sentinel/SIEM, Azure Policy.
-- **Review:** *Azure — security fundamentals (AZ-500)* for Key Vault.
+- **Next:** *Azure — security operations (SC-500)* — Defender for Cloud, Sentinel/SIEM, Azure Policy.
+- **Review:** *Azure — security fundamentals (SC-500)* for Key Vault.
 - **Practice:** add a *Regulated* class to `classif.py` (with enhanced logging), and a 90-day rotation policy.
 :::
 
@@ -565,7 +573,7 @@ azlocal storage account list-keys ...                           # key1/key2: zer
 - **Chiffrement Azure au repos** : clés gérées plateforme vs client (CMK), chiffrement d'infrastructure — Microsoft Learn.
 - **Key Vault** : secrets, clés, certificats, versions, politiques de rotation — Microsoft Learn.
 - **Rotation des clés de stockage** : motif à deux clés, régénération — Microsoft Learn.
-- **TLS & chiffrement en transit** : min TLS version, HTTPS obligatoire — Microsoft Learn (AZ-500).
+- **TLS & chiffrement en transit** : min TLS version, HTTPS obligatoire — Microsoft Learn (SC-500).
 - **Classification des données** : Microsoft Purview, étiquettes de sensibilité — Microsoft Learn.
 - **checkov** : règles de chiffrement (CKV_AZURE_3/44/59…) — docs checkov.
 :::
@@ -574,7 +582,7 @@ azlocal storage account list-keys ...                           # key1/key2: zer
 - **Azure encryption at rest**: platform vs customer-managed keys (CMK), infrastructure encryption — Microsoft Learn.
 - **Key Vault**: secrets, keys, certificates, versions, rotation policies — Microsoft Learn.
 - **Storage key rotation**: two-key pattern, regeneration — Microsoft Learn.
-- **TLS & encryption in transit**: min TLS version, HTTPS required — Microsoft Learn (AZ-500).
+- **TLS & encryption in transit**: min TLS version, HTTPS required — Microsoft Learn (SC-500).
 - **Data classification**: Microsoft Purview, sensitivity labels — Microsoft Learn.
 - **checkov**: encryption rules (CKV_AZURE_3/44/59…) — checkov docs.
 :::

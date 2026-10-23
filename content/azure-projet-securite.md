@@ -6,8 +6,8 @@ order: 81
 status: published
 
 # — Titres & accroches (bilingue) —
-title_fr: "Azure — projet de sécurité (AZ-500) : durcir et opérer un workload"
-title_en: "Azure — security project (AZ-500): harden and operate a workload"
+title_fr: "Azure — projet de sécurité (SC-500) : durcir et opérer un workload"
+title_en: "Azure — security project (SC-500): harden and operate a workload"
 tagline_fr: "identité, réseau, données, gouvernance, opérations — sur un workload réel."
 tagline_en: "identity, network, data, governance, operations — on a real workload."
 
@@ -29,28 +29,36 @@ concepts_en: [security-project, defense-in-depth, managed-identity, nsg, encrypt
 access: premium
 
 # — Partage social (Open Graph) —
-og_description_fr: "Le projet de CV du track AZ-500 : durcir ET opérer un workload complet, en local et pour de vrai. Une base réseau segmentée avec NSG en refus par défaut (live sur miniblue), une identité managée sans mot de passe + secret au coffre Key Vault (live), des données durcies (chiffrement, TLS 1.2, hors d'Internet — checkov au vert), une porte de gouvernance (Azure Policy deny + checkov), la détection d'un incident (force brute) et sa réponse automatique (playbook), et la mesure de la posture (secure score). Puis l'emballage CV. Sans compte ni facture.",
-og_description_en: "The AZ-500 track's CV project: hardening AND operating a complete workload, locally and for real. A segmented network base with a deny-by-default NSG (live on miniblue), a passwordless managed identity + secret in Key Vault (live), hardened data (encryption, TLS 1.2, off the Internet — checkov green), a governance gate (Azure Policy deny + checkov), detecting an incident (brute force) and its automated response (playbook), and measuring posture (secure score). Then CV packaging. No account or bill."
+og_description_fr: "Le projet de CV du track SC-500 : durcir ET opérer un workload complet, en local et pour de vrai. Une base réseau segmentée avec NSG en refus par défaut (live sur miniblue), une identité managée sans mot de passe + secret au coffre Key Vault (live), des données durcies (chiffrement, TLS 1.2, hors d'Internet — checkov au vert), une porte de gouvernance (Azure Policy deny + checkov), la détection d'un incident (force brute) et sa réponse automatique (playbook), et la mesure de la posture (secure score). Puis l'emballage CV. Sans compte ni facture.",
+og_description_en: "The SC-500 track's CV project: hardening AND operating a complete workload, locally and for real. A segmented network base with a deny-by-default NSG (live on miniblue), a passwordless managed identity + secret in Key Vault (live), hardened data (encryption, TLS 1.2, off the Internet — checkov green), a governance gate (Azure Policy deny + checkov), detecting an incident (brute force) and its automated response (playbook), and measuring posture (secure score). Then CV packaging. No account or bill."
 ---
 
 ## intro
 
 :::lang fr
-C'est le **projet de synthèse** du track **AZ-500**. Tu as durci, un pilier à la fois : les **fondamentaux** (Zero Trust), l'**identité**, le **réseau**, les **données**, les **opérations**. Ici, tu **assembles tout** sur **un workload réel** — et tu montres que tu sais non seulement le **sécuriser**, mais aussi l'**opérer**. Le genre de projet qui tient sur un CV d'**ingénieur sécurité**.
+:::note
+Depuis le 31 août 2026, Microsoft a remplacé l'examen Azure Security Engineer (ex-AZ-500) par le **SC-500** (Cloud and AI Security Engineer Associate). Ce parcours couvre le socle commun aux deux : identité, réseau, données et opérations de sécurité. Le volet nouveau du SC-500, la **sécurisation des charges d'IA** (Microsoft Foundry, Defender pour l'IA, identités d'agents), n'est pas encore traité ici : complète-le avec le guide d'étude officiel SC-500 sur Microsoft Learn.
+:::
+
+C'est le **projet de synthèse** du track **SC-500**. Tu as durci, un pilier à la fois : les **fondamentaux** (Zero Trust), l'**identité**, le **réseau**, les **données**, les **opérations**. Ici, tu **assembles tout** sur **un workload réel** — et tu montres que tu sais non seulement le **sécuriser**, mais aussi l'**opérer**. Le genre de projet qui tient sur un CV d'**ingénieur sécurité**.
 
 Fidèle à la méthode, tout est **local et pour de vrai** : une **base réseau segmentée** avec **NSG en refus par défaut** (live sur **miniblue**), une **identité managée** sans mot de passe + **secret au coffre** (live), des **données durcies** (chiffrement, TLS 1.2, hors d'Internet — **checkov au vert**), une **porte de gouvernance** (**Azure Policy deny** + checkov), la **détection** d'un incident (force brute) et sa **réponse automatique** (playbook), et la **mesure** de la posture (**secure score**). On finit par l'**emballage CV**.
 
-**Pour qui c'est :** tu as fait les cinq guides AZ-500 et tu veux un **livrable** qui prouve tes compétences sécurité.
+**Pour qui c'est :** tu as fait les cinq guides SC-500 et tu veux un **livrable** qui prouve tes compétences sécurité.
 
 **Ce que tu vas produire :** un workload **durci et opéré** — réseau + identité + données + gouvernance + détection/réponse — **déployable sur l'émulateur**, avec un **secure score** et une **fiche CV** qui le résume.
 :::
 
 :::lang en
-This is the **capstone** of the **AZ-500** track. You hardened, one pillar at a time: **fundamentals** (Zero Trust), **identity**, **network**, **data**, **operations**. Here you **assemble everything** on **a real workload** — and show you can not only **secure** it but also **operate** it. The kind of project that fits a **security engineer**'s CV.
+:::note
+Since August 31, 2026, Microsoft has replaced the Azure Security Engineer exam (ex-AZ-500) with **SC-500** (Cloud and AI Security Engineer Associate). This track covers the foundation shared by both: identity, network, data and security operations. SC-500's new area, **securing AI workloads** (Microsoft Foundry, Defender for AI, agent identities), is not covered here yet: complete it with the official SC-500 study guide on Microsoft Learn.
+:::
+
+This is the **capstone** of the **SC-500** track. You hardened, one pillar at a time: **fundamentals** (Zero Trust), **identity**, **network**, **data**, **operations**. Here you **assemble everything** on **a real workload** — and show you can not only **secure** it but also **operate** it. The kind of project that fits a **security engineer**'s CV.
 
 True to the method, everything is **local and for real**: a **segmented network base** with a **deny-by-default NSG** (live on **miniblue**), a passwordless **managed identity** + **secret in the vault** (live), **hardened data** (encryption, TLS 1.2, off the Internet — **checkov green**), a **governance gate** (**Azure Policy deny** + checkov), the **detection** of an incident (brute force) and its **automated response** (playbook), and **measuring** posture (**secure score**). We finish with **CV packaging**.
 
-**Who it's for:** you did the five AZ-500 guides and want a **deliverable** that proves your security skills.
+**Who it's for:** you did the five SC-500 guides and want a **deliverable** that proves your security skills.
 
 **What you'll produce:** a **hardened and operated** workload — network + identity + data + governance + detection/response — **deployable to the emulator**, with a **secure score** and a **CV sheet** summarizing it.
 :::
@@ -84,13 +92,13 @@ By the end of this project, you can:
 ## prerequisites
 
 :::lang fr
-- **Tous les guides AZ-500** : fondamentaux, identité, réseau, données, opérations.
+- **Tous les guides SC-500** : fondamentaux, identité, réseau, données, opérations.
 - Le **lab local** : **miniblue** démarré, **Terraform**, `SSL_CERT_FILE=$HOME/.miniblue/cert.pem`, `azlocal` sur le `PATH`.
 - **Python 3**, `pip install checkov`. **Aucun compte cloud** : le workload cible l'émulateur ; la gouvernance/détection s'exécutent en local.
 :::
 
 :::lang en
-- **All AZ-500 guides**: fundamentals, identity, network, data, operations.
+- **All SC-500 guides**: fundamentals, identity, network, data, operations.
 - The **local lab**: **miniblue** started, **Terraform**, `SSL_CERT_FILE=$HOME/.miniblue/cert.pem`, `azlocal` on `PATH`.
 - **Python 3**, `pip install checkov`. **No cloud account**: the workload targets the emulator; governance/detection run locally.
 :::
@@ -108,7 +116,7 @@ By the end of this project, you can:
 
 **Durcir ET opérer.** Un workload sécurisé ne se **configure** pas une fois : il se **maintient**. Les quatre premiers piliers **durcissent** (état statique) ; le cinquième **opère** (défense vivante : détection, réponse, mesure). Un vrai ingénieur sécurité fait **les deux** — et sait le **démontrer**.
 
-**Pourquoi ça vaut pour un CV.** Ce projet prouve, **preuves à l'appui**, que tu sais : segmenter un réseau (Zero Trust), gérer des identités sans mot de passe et des secrets, chiffrer et retirer les données d'Internet, gouverner par policy (deny + shift-left), et détecter/répondre à un incident tout en mesurant la posture. C'est **exactement** le périmètre **AZ-500** — et le quotidien d'un **Azure Security Engineer**.
+**Pourquoi ça vaut pour un CV.** Ce projet prouve, **preuves à l'appui**, que tu sais : segmenter un réseau (Zero Trust), gérer des identités sans mot de passe et des secrets, chiffrer et retirer les données d'Internet, gouverner par policy (deny + shift-left), et détecter/répondre à un incident tout en mesurant la posture. C'est le **cœur** du périmètre **SC-500** (hors volet IA) — et le quotidien d'un **ingénieur sécurité cloud**.
 
 **Ce qui est live ici.** La **base réseau** (RG + NSG refus par défaut) se **déploie** sur miniblue (Terraform, live). L'**identité managée** se **crée** (principalId réel, live), le **secret** vit au **coffre** (live). Le **durcissement des données**, la **policy deny**, la **détection** et le **secure score** sont **validés/exécutés** en local (checkov + moteurs Python). Tout **sans compte cloud**.
 :::
@@ -124,14 +132,14 @@ By the end of this project, you can:
 
 **Harden AND operate.** A secured workload isn't **configured** once: it's **maintained**. The first four pillars **harden** (static state); the fifth **operates** (living defense: detection, response, measurement). A real security engineer does **both** — and can **demonstrate** it.
 
-**Why it's CV-worthy.** This project proves, **with evidence**, that you can: segment a network (Zero Trust), manage passwordless identities and secrets, encrypt and remove data from the Internet, govern by policy (deny + shift-left), and detect/respond to an incident while measuring posture. That's **exactly** the **AZ-500** scope — and an **Azure Security Engineer**'s daily work.
+**Why it's CV-worthy.** This project proves, **with evidence**, that you can: segment a network (Zero Trust), manage passwordless identities and secrets, encrypt and remove data from the Internet, govern by policy (deny + shift-left), and detect/respond to an incident while measuring posture. That's the **core** of the **SC-500** scope (AI workloads aside) — and a **cloud security engineer**'s daily work.
 
 **What's live here.** The **network base** (RG + deny-by-default NSG) is **deployed** on miniblue (Terraform, live). The **managed identity** is **created** (real principalId, live), the **secret** lives in the **vault** (live). The **data hardening**, **deny policy**, **detection** and **secure score** are **validated/run** locally (checkov + Python engines). All **without a cloud account**.
 :::
 
 :::figure azure-projet-securite-workload
-caption_fr: "Schéma 1. Le workload durci et opéré : une BASE RÉSEAU segmentée (NSG refus par défaut) → IDENTITÉ managée sans mot de passe + secret au coffre → DONNÉES chiffrées, TLS 1.2, hors d'Internet (checkov vert) → GOUVERNANCE (Azure Policy deny + checkov shift-left) → OPÉRATIONS (détection d'incident → playbook de réponse) → SECURE SCORE qui mesure le tout. Cinq piliers AZ-500 superposés sur une seule charge de travail, prête pour le CV."
-caption_en: "Figure 1. The hardened and operated workload: a segmented NETWORK BASE (deny-by-default NSG) → passwordless managed IDENTITY + secret in vault → encrypted DATA, TLS 1.2, off the Internet (checkov green) → GOVERNANCE (Azure Policy deny + checkov shift-left) → OPERATIONS (incident detection → response playbook) → SECURE SCORE measuring it all. Five AZ-500 pillars stacked on one workload, CV-ready."
+caption_fr: "Schéma 1. Le workload durci et opéré : une BASE RÉSEAU segmentée (NSG refus par défaut) → IDENTITÉ managée sans mot de passe + secret au coffre → DONNÉES chiffrées, TLS 1.2, hors d'Internet (checkov vert) → GOUVERNANCE (Azure Policy deny + checkov shift-left) → OPÉRATIONS (détection d'incident → playbook de réponse) → SECURE SCORE qui mesure le tout. Cinq piliers SC-500 superposés sur une seule charge de travail, prête pour le CV."
+caption_en: "Figure 1. The hardened and operated workload: a segmented NETWORK BASE (deny-by-default NSG) → passwordless managed IDENTITY + secret in vault → encrypted DATA, TLS 1.2, off the Internet (checkov green) → GOVERNANCE (Azure Policy deny + checkov shift-left) → OPERATIONS (incident detection → response playbook) → SECURE SCORE measuring it all. Five SC-500 pillars stacked on one workload, CV-ready."
 :::
 
 ## walkthrough
@@ -440,11 +448,11 @@ PY
 ```
 
 :::lang fr
-**✅ Vérification :** la sortie affiche `Secure score du workload : 5/6 = 83%`, avec les **cinq piliers** cochés et un **❌** (continuité non testée) comme **prochaine recommandation**. Ton workload est **durci sur les cinq axes AZ-500** et sa posture est **mesurée** — exactement la logique de **Defender for Cloud** : un score, des recommandations, une amélioration continue. Tu as un **livrable** complet : sécurisé **et** opéré **et** mesuré. On l'emballe pour le CV.
+**✅ Vérification :** la sortie affiche `Secure score du workload : 5/6 = 83%`, avec les **cinq piliers** cochés et un **❌** (continuité non testée) comme **prochaine recommandation**. Ton workload est **durci sur les cinq axes SC-500** et sa posture est **mesurée** — exactement la logique de **Defender for Cloud** : un score, des recommandations, une amélioration continue. Tu as un **livrable** complet : sécurisé **et** opéré **et** mesuré. On l'emballe pour le CV.
 :::
 
 :::lang en
-**✅ Check:** the output shows `Secure score du workload : 5/6 = 83%`, with the **five pillars** checked and a **❌** (continuity untested) as the **next recommendation**. Your workload is **hardened on all five AZ-500 axes** and its posture is **measured** — exactly **Defender for Cloud**'s logic: a score, recommendations, continuous improvement. You have a complete **deliverable**: secured **and** operated **and** measured. Let's package it for the CV.
+**✅ Check:** the output shows `Secure score du workload : 5/6 = 83%`, with the **five pillars** checked and a **❌** (continuity untested) as the **next recommendation**. Your workload is **hardened on all five SC-500 axes** and its posture is **measured** — exactly **Defender for Cloud**'s logic: a score, recommendations, continuous improvement. You have a complete **deliverable**: secured **and** operated **and** measured. Let's package it for the CV.
 :::
 
 ### step-07
@@ -467,7 +475,7 @@ Write the CV sheet and clean up:
 
 ```bash
 cat > CV.md <<'MD'
-# Projet : workload Azure durci et opere (securite / AZ-500)
+# Projet : workload Azure durci et opere (securite / SC-500)
 Un workload securise sur les cinq piliers, durci ET opere - 100% local (emulateur).
 
 - **Reseau** : segmentation, NSG en refus par defaut (surface minimale).
@@ -481,7 +489,7 @@ Un workload securise sur les cinq piliers, durci ET opere - 100% local (emulateu
   (playbook SOAR), posture mesuree (secure score).
 
 Stack : Terraform, Bicep, Key Vault, identite managee, NSG, Azure Policy,
-Defender for Cloud, Sentinel (KQL), checkov. Aligne AZ-500.
+Defender for Cloud, Sentinel (KQL), checkov. Aligne SC-500.
 MD
 echo "--- fiche CV creee / CV sheet created ---"; head -3 CV.md
 
@@ -491,11 +499,11 @@ azlocal group delete --name rg-secproj >/dev/null 2>&1 && echo "rg-secproj suppr
 ```
 
 :::lang fr
-**✅ Vérification :** la **fiche CV** est créée (résumant les cinq piliers), puis `Destroy complete!` et `rg-secproj supprime` nettoient le lab. **Félicitations — tu as terminé le track AZ-500 !** Tu tiens un **projet complet** : un workload **durci** (réseau, identité, données, gouvernance) **et opéré** (détection, réponse, mesure), **déployé pour de vrai** sur l'émulateur, avec un **secure score** et une **fiche CV**. Mets `CV.md` en avant et parle de **chaque pilier** en entretien. Tu as désormais bouclé **trois tracks de certification** Azure — AZ-104, AZ-305, AZ-400 et AZ-500 — 100% en local, 100% pratiques. Prochaine étape possible : l'**AZ-700** (réseau avancé).
+**✅ Vérification :** la **fiche CV** est créée (résumant les cinq piliers), puis `Destroy complete!` et `rg-secproj supprime` nettoient le lab. **Félicitations — tu as terminé le track SC-500 !** Tu tiens un **projet complet** : un workload **durci** (réseau, identité, données, gouvernance) **et opéré** (détection, réponse, mesure), **déployé pour de vrai** sur l'émulateur, avec un **secure score** et une **fiche CV**. Mets `CV.md` en avant et parle de **chaque pilier** en entretien. Tu as désormais bouclé **trois tracks de certification** Azure — AZ-104, AZ-305, AZ-400 et SC-500 — 100% en local, 100% pratiques. Prochaine étape possible : l'**AZ-700** (réseau avancé).
 :::
 
 :::lang en
-**✅ Check:** the **CV sheet** is created (summarizing the five pillars), then `Destroy complete!` and `rg-secproj supprime` clean the lab. **Congratulations — you finished the AZ-500 track!** You hold a **complete project**: a **hardened** workload (network, identity, data, governance) **and operated** (detection, response, measurement), **deployed for real** on the emulator, with a **secure score** and a **CV sheet**. Feature `CV.md` and speak to **each pillar** in an interview. You've now completed **several Azure certification tracks** — AZ-104, AZ-305, AZ-400 and AZ-500 — 100% locally, 100% hands-on. Possible next step: **AZ-700** (advanced networking).
+**✅ Check:** the **CV sheet** is created (summarizing the five pillars), then `Destroy complete!` and `rg-secproj supprime` clean the lab. **Congratulations — you finished the SC-500 track!** You hold a **complete project**: a **hardened** workload (network, identity, data, governance) **and operated** (detection, response, measurement), **deployed for real** on the emulator, with a **secure score** and a **CV sheet**. Feature `CV.md` and speak to **each pillar** in an interview. You've now completed **several Azure certification tracks** — AZ-104, AZ-305, AZ-400 and SC-500 — 100% locally, 100% hands-on. Possible next step: **AZ-700** (advanced networking).
 :::
 
 ## pitfalls
@@ -560,13 +568,13 @@ You've succeeded if your workload has:
 
 :::lang fr
 - **Suivant :** l'**AZ-700** (réseau Azure avancé) pour compléter, ou consolide tes acquis avec un vrai compte gratuit.
-- **Réviser :** n'importe quel guide AZ-500 dont un pilier t'a semblé fragile.
+- **Réviser :** n'importe quel guide SC-500 dont un pilier t'a semblé fragile.
 - **Aller plus loin :** ajoute le pilier manquant (continuité/sauvegarde testée), branche la détection sur de **vrais** journaux, et automatise le secure score en CI.
 :::
 
 :::lang en
 - **Next:** **AZ-700** (advanced Azure networking) to complete, or consolidate with a real free account.
-- **Review:** any AZ-500 guide whose pillar felt shaky.
+- **Review:** any SC-500 guide whose pillar felt shaky.
 - **Go further:** add the missing pillar (tested continuity/backup), wire detection to **real** logs, and automate the secure score in CI.
 :::
 
@@ -592,7 +600,7 @@ azlocal keyvault secret set --vault V --name N --value "..."  # secret au coffre
 checkov -d data --check CKV_AZURE_3,CKV_AZURE_44,CKV_AZURE_59  # donnees au vert
 ```
 
-**Le mantra AZ-500**
+**Le mantra SC-500**
 
 ```text
 Durcir (reseau + identite + donnees + gouvernance)
@@ -622,7 +630,7 @@ azlocal keyvault secret set --vault V --name N --value "..."  # secret in vault
 checkov -d data --check CKV_AZURE_3,CKV_AZURE_44,CKV_AZURE_59  # data green
 ```
 
-**The AZ-500 mantra**
+**The SC-500 mantra**
 
 ```text
 Harden (network + identity + data + governance)
@@ -635,7 +643,7 @@ Operate (detect + respond + measure)
 ## resources
 
 :::lang fr
-- **AZ-500** : Microsoft Certified Azure Security Engineer Associate — objectifs officiels, Microsoft Learn.
+- **SC-500** : Microsoft Certified: Cloud and AI Security Engineer Associate — objectifs officiels, Microsoft Learn.
 - **Microsoft Cloud Security Benchmark** : la ligne de base des contrôles — Microsoft Learn.
 - **Zero Trust** : principes et architecture de référence — learn.microsoft.com/security/zero-trust.
 - **Defender for Cloud & Sentinel** : posture, détection, réponse — Microsoft Learn.
@@ -644,7 +652,7 @@ Operate (detect + respond + measure)
 :::
 
 :::lang en
-- **AZ-500**: Microsoft Certified Azure Security Engineer Associate — official objectives, Microsoft Learn.
+- **SC-500**: Microsoft Certified: Cloud and AI Security Engineer Associate — official objectives, Microsoft Learn.
 - **Microsoft Cloud Security Benchmark**: the baseline of controls — Microsoft Learn.
 - **Zero Trust**: principles and reference architecture — learn.microsoft.com/security/zero-trust.
 - **Defender for Cloud & Sentinel**: posture, detection, response — Microsoft Learn.

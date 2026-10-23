@@ -538,14 +538,14 @@ Seven boxes = you hold AZ-305 infrastructure design. Next up: the **architect pr
 Le track AZ-305 se termine bientôt :
 
 1. **Azure — projet d'architecte** : assembler une solution complète Well-Architected (compute, données, réseau, continuité, gouvernance) et la justifier pilier par pilier — le livrable de CV.
-2. Puis l'examen **AZ-305**, et la suite du parcours : **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau).
+2. Puis l'examen **AZ-305**, et la suite du parcours : **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau).
 :::
 
 :::lang en
 The AZ-305 track is nearing its end:
 
 1. **Azure — architect project**: assemble a complete Well-Architected solution (compute, data, networking, continuity, governance) and justify it pillar by pillar — the CV deliverable.
-2. Then the **AZ-305** exam, and the rest of the path: **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking).
+2. Then the **AZ-305** exam, and the rest of the path: **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking).
 :::
 
 ## cheatsheet

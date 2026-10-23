@@ -45,7 +45,7 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** avec **miniblue
 **Quand ce n'est PAS le bon choix :**
 
 - Tu débutes → fais *Azure — réseau (AZ-104)* d'abord.
-- Tu cherches la sécurité réseau (NSG, WAF) → c'est l'**AZ-500** ; ici c'est la **conception** réseau.
+- Tu cherches la sécurité réseau (NSG, WAF) → c'est le **SC-500** ; ici c'est la **conception** réseau.
 :::
 
 :::lang en
@@ -58,7 +58,7 @@ True to the method, we practice **locally and for real** with **miniblue**: we *
 **When it's NOT the right choice:**
 
 - You're a beginner → do *Azure — networking (AZ-104)* first.
-- You want network security (NSG, WAF) → that's **AZ-500**; here it's network **design**.
+- You want network security (NSG, WAF) → that's **SC-500**; here it's network **design**.
 :::
 
 ## objectives

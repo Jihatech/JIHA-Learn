@@ -457,11 +457,11 @@ echo "-> routes effectives = systeme + BGP + UDR : ce que le paquet suit vraimen
 ```
 
 :::lang fr
-**✅ Vérification :** la table récapitule la **mécanique complète** du routage. Tu tiens le pilier **routage** de l'AZ-700 : comprendre les **routes système**, appliquer le **préfixe le plus long** et la **priorité de source**, écrire des **UDR**, forcer l'egress par un **pare-feu** (tunneling forcé), lire les **routes effectives** et **chaîner** une NVA. Tu **contrôles** désormais où va chaque paquet — pas seulement s'il passe (NSG, AZ-500), mais **par où**. La suite du track AZ-700 : la **connectivité hybride** (VPN, ExpressRoute, peering) puis la **distribution** applicative (équilibrage de charge).
+**✅ Vérification :** la table récapitule la **mécanique complète** du routage. Tu tiens le pilier **routage** de l'AZ-700 : comprendre les **routes système**, appliquer le **préfixe le plus long** et la **priorité de source**, écrire des **UDR**, forcer l'egress par un **pare-feu** (tunneling forcé), lire les **routes effectives** et **chaîner** une NVA. Tu **contrôles** désormais où va chaque paquet — pas seulement s'il passe (NSG, SC-500), mais **par où**. La suite du track AZ-700 : la **connectivité hybride** (VPN, ExpressRoute, peering) puis la **distribution** applicative (équilibrage de charge).
 :::
 
 :::lang en
-**✅ Check:** the table recaps routing's **full mechanics**. You hold the **routing** pillar of AZ-700: understanding **system routes**, applying **longest prefix** and **source priority**, writing **UDRs**, forcing egress through a **firewall** (forced tunneling), reading **effective routes** and **chaining** an NVA. You now **control** where each packet goes — not just whether it passes (NSG, AZ-500), but **which way**. Next in the AZ-700 track: **hybrid connectivity** (VPN, ExpressRoute, peering) then application **delivery** (load balancing).
+**✅ Check:** the table recaps routing's **full mechanics**. You hold the **routing** pillar of AZ-700: understanding **system routes**, applying **longest prefix** and **source priority**, writing **UDRs**, forcing egress through a **firewall** (forced tunneling), reading **effective routes** and **chaining** an NVA. You now **control** where each packet goes — not just whether it passes (NSG, SC-500), but **which way**. Next in the AZ-700 track: **hybrid connectivity** (VPN, ExpressRoute, peering) then application **delivery** (load balancing).
 :::
 
 ## pitfalls

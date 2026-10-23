@@ -525,13 +525,13 @@ azlocal group delete --name rg-netproj >/dev/null 2>&1 && echo "rg-netproj suppr
 :::lang fr
 **✅ Vérification :** la **fiche CV** est créée (résumant les cinq décisions de conception), puis `Destroy complete!` et `rg-netproj supprime` nettoient le lab. **Félicitations — tu as terminé le track AZ-700 !** Tu tiens un **projet complet** : une topologie **hub-and-spoke** conçue et **déployée** (adressage, VNets, peering, routage, accès privé, distribution), avec un **schéma** et une **fiche CV**. Mets `CV.md` en avant et parle de **chaque décision** en entretien.
 
-**Et surtout : tu as bouclé tout le parcours Azure — AZ-900, AZ-104, AZ-305, AZ-400, AZ-500 et AZ-700 — 100% en local, 100% pratique, sans jamais payer un centime de cloud.** De débutant à ingénieur cloud complet : architecture, DevOps, sécurité et réseau. Bravo.
+**Et surtout : tu as bouclé tout le parcours Azure — AZ-900, AZ-104, AZ-305, AZ-400, SC-500 et AZ-700 — 100% en local, 100% pratique, sans jamais payer un centime de cloud.** De débutant à ingénieur cloud complet : architecture, DevOps, sécurité et réseau. Bravo.
 :::
 
 :::lang en
 **✅ Check:** the **CV sheet** is created (summarizing the five design decisions), then `Destroy complete!` and `rg-netproj supprime` clean the lab. **Congratulations — you finished the AZ-700 track!** You hold a **complete project**: a **hub-and-spoke** topology designed and **deployed** (addressing, VNets, peering, routing, private access, delivery), with a **diagram** and a **CV sheet**. Feature `CV.md` and speak to **each decision** in an interview.
 
-**And above all: you completed the entire Azure path — AZ-900, AZ-104, AZ-305, AZ-400, AZ-500 and AZ-700 — 100% locally, 100% hands-on, without ever paying a cent for cloud.** From beginner to a complete cloud engineer: architecture, DevOps, security and networking. Well done.
+**And above all: you completed the entire Azure path — AZ-900, AZ-104, AZ-305, AZ-400, SC-500 and AZ-700 — 100% locally, 100% hands-on, without ever paying a cent for cloud.** From beginner to a complete cloud engineer: architecture, DevOps, security and networking. Well done.
 :::
 
 ## pitfalls

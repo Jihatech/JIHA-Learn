@@ -40,7 +40,7 @@ Qui a le droit de faire quoi, où — et comment garder le contrôle quand des d
 
 Ce guide couvre les quatre piliers : les **identités** (Entra ID — utilisateurs, groupes, principaux de service, et surtout les **identités managées** qu'on crée ici en local), le **contrôle d'accès RBAC** (le modèle **principal → rôle → portée**, les rôles **intégrés** et **personnalisés**, le **moindre privilège**), **Azure Policy** (imposer des règles à grande échelle — « toute ressource doit avoir un tag `env` »), et les **tags** & **verrous** (organiser, gouverner le coût, protéger). Tu crées une **identité managée** et poses des **tags en live** sur miniblue ; tu décris et **valides** RBAC, rôle personnalisé, policy et verrou en **Bicep** — la forme exacte du vrai Azure.
 
-C'est le pilier « sécurité & conformité » du track AZ-104. Les concepts ici — RBAC vs Policy, portées et héritage, moindre privilège — reviennent dans **tous** les autres examens Azure (AZ-500 sécurité en tête).
+C'est le pilier « sécurité & conformité » du track AZ-104. Les concepts ici — RBAC vs Policy, portées et héritage, moindre privilège — reviennent dans **tous** les autres examens Azure (SC-500 sécurité en tête).
 
 **Pour qui c'est :** tu as fait *Azure fondamentaux* et tu veux comprendre le contrôle d'accès et la gouvernance.
 
@@ -55,7 +55,7 @@ Who is allowed to do what, where — and how do you keep control when dozens of 
 
 This guide covers the four pillars: **identities** (Entra ID — users, groups, service principals, and above all the **managed identities** we create here locally), **RBAC access control** (the **principal → role → scope** model, **built-in** and **custom** roles, **least privilege**), **Azure Policy** (enforce rules at scale — "every resource must have an `env` tag"), and **tags** & **locks** (organize, govern cost, protect). You create a **managed identity** and set **tags live** on miniblue; you describe and **validate** RBAC, a custom role, policy and a lock in **Bicep** — the exact shape of real Azure.
 
-This is the "security & compliance" pillar of the AZ-104 track. The concepts here — RBAC vs Policy, scopes and inheritance, least privilege — recur in **all** the other Azure exams (AZ-500 security foremost).
+This is the "security & compliance" pillar of the AZ-104 track. The concepts here — RBAC vs Policy, scopes and inheritance, least privilege — recur in **all** the other Azure exams (SC-500 security foremost).
 
 **Who it's for:** you've done *Azure fundamentals* and want to understand access control and governance.
 
@@ -118,7 +118,7 @@ By the end of this guide, you can:
 
 **Rôles intégrés vs personnalisés.** Azure fournit des **rôles intégrés** (built-in) prêts à l'emploi : **Propriétaire** (tout, y compris déléguer), **Contributeur** (tout gérer sauf déléguer les accès), **Lecteur** (lecture seule), et des centaines de rôles spécialisés (« Contributeur de stockage »…). Si aucun ne convient, on crée un **rôle personnalisé** avec **exactement** les permissions voulues.
 
-**Moindre privilège.** La règle d'or : accorder le **strict minimum** de droits, à la **portée la plus étroite**, de préférence via des **groupes** et des **identités managées**. Jamais **Propriétaire** « par confort ». C'est le réflexe que testent l'AZ-104 et l'AZ-500.
+**Moindre privilège.** La règle d'or : accorder le **strict minimum** de droits, à la **portée la plus étroite**, de préférence via des **groupes** et des **identités managées**. Jamais **Propriétaire** « par confort ». C'est le réflexe que testent l'AZ-104 et le SC-500.
 
 **Azure Policy.** Différent du RBAC ! Le RBAC dit **qui peut faire** quoi ; la **Policy** dit **ce qui est autorisé** sur les ressources, quel que soit l'auteur. Une policy impose une règle : `deny` (interdire — « pas de VM hors d'Europe »), `audit` (signaler la non-conformité), `append`/`modify` (ajouter/corriger — « ajoute le tag `env` »). On l'**assigne** à une portée ; elle s'applique à **toutes** les ressources dessous.
 
@@ -138,7 +138,7 @@ By the end of this guide, you can:
 
 **Built-in vs custom roles.** Azure provides ready-made **built-in roles**: **Owner** (everything, including delegating), **Contributor** (manage everything except delegating access), **Reader** (read-only), and hundreds of specialized roles ("Storage Contributor"…). If none fits, you create a **custom role** with **exactly** the permissions you want.
 
-**Least privilege.** The golden rule: grant the **bare minimum** rights, at the **narrowest scope**, preferably via **groups** and **managed identities**. Never **Owner** "for convenience". It's the reflex AZ-104 and AZ-500 test.
+**Least privilege.** The golden rule: grant the **bare minimum** rights, at the **narrowest scope**, preferably via **groups** and **managed identities**. Never **Owner** "for convenience". It's the reflex AZ-104 and SC-500 test.
 
 **Azure Policy.** Different from RBAC! RBAC says **who can do** what; **Policy** says **what is allowed** on resources, regardless of the author. A policy enforces a rule: `deny` (forbid — "no VM outside Europe"), `audit` (flag non-compliance), `append`/`modify` (add/fix — "add the `env` tag"). You **assign** it to a scope; it applies to **all** resources under it.
 

@@ -577,11 +577,11 @@ git add -A && git commit -qm "docs: fiche CV du projet DevOps" && git log --onel
 ```
 
 :::lang fr
-**✅ Vérification :** tu vois `DORA — déploiements taggés: 1`, `Destroy complete!` (lab nettoyé), et la **fiche CV** créée puis commitée — le hook affiche `✅ Aucun secret détecté` : la porte de sécurité **re-vérifie** ce commit et **passe**, car le `.gitignore` (step-01) exclut les artefacts Terraform et le `# pragma: allowlist secret` marque l'identifiant **factice** de l'émulateur. La boucle est **cohérente** : même le dernier commit respecte la porte. **Félicitations — tu as terminé le track AZ-400 !** Tu tiens un **projet complet** : dépôt versionné, chaîne de livraison **sécurisée** (secrets, IaC), **automatisée** (CI/CD), **déployée pour de vrai** (émulateur) derrière une **porte**, et **supervisée** (smoke test, DORA). Mets `CV.md` en avant, publie le dépôt, et parle de **chaque maillon** en entretien. Toute la partie **AZ-400** de ton parcours Azure est bouclée — cap sur l'**AZ-500** (sécurité) et l'**AZ-700** (réseau).
+**✅ Vérification :** tu vois `DORA — déploiements taggés: 1`, `Destroy complete!` (lab nettoyé), et la **fiche CV** créée puis commitée — le hook affiche `✅ Aucun secret détecté` : la porte de sécurité **re-vérifie** ce commit et **passe**, car le `.gitignore` (step-01) exclut les artefacts Terraform et le `# pragma: allowlist secret` marque l'identifiant **factice** de l'émulateur. La boucle est **cohérente** : même le dernier commit respecte la porte. **Félicitations — tu as terminé le track AZ-400 !** Tu tiens un **projet complet** : dépôt versionné, chaîne de livraison **sécurisée** (secrets, IaC), **automatisée** (CI/CD), **déployée pour de vrai** (émulateur) derrière une **porte**, et **supervisée** (smoke test, DORA). Mets `CV.md` en avant, publie le dépôt, et parle de **chaque maillon** en entretien. Toute la partie **AZ-400** de ton parcours Azure est bouclée — cap sur le **SC-500** (sécurité) et l'**AZ-700** (réseau).
 :::
 
 :::lang en
-**✅ Check:** you see `DORA — déploiements taggés: 1`, `Destroy complete!` (lab cleaned), and the **CV sheet** created then committed — the hook prints `✅ Aucun secret détecté`: the security gate **re-checks** this commit and **passes**, because the `.gitignore` (step-01) excludes the Terraform artifacts and the `# pragma: allowlist secret` marks the emulator's **dummy** credential. The loop is **consistent**: even the last commit respects the gate. **Congratulations — you finished the AZ-400 track!** You hold a **complete project**: versioned repo, a **secured** delivery chain (secrets, IaC), **automated** (CI/CD), **deployed for real** (emulator) behind a **gate**, and **monitored** (smoke test, DORA). Feature `CV.md`, publish the repo, and speak to **every link** in an interview. The whole **AZ-400** part of your Azure path is complete — onward to **AZ-500** (security) and **AZ-700** (networking).
+**✅ Check:** you see `DORA — déploiements taggés: 1`, `Destroy complete!` (lab cleaned), and the **CV sheet** created then committed — the hook prints `✅ Aucun secret détecté`: the security gate **re-checks** this commit and **passes**, because the `.gitignore` (step-01) excludes the Terraform artifacts and the `# pragma: allowlist secret` marks the emulator's **dummy** credential. The loop is **consistent**: even the last commit respects the gate. **Congratulations — you finished the AZ-400 track!** You hold a **complete project**: versioned repo, a **secured** delivery chain (secrets, IaC), **automated** (CI/CD), **deployed for real** (emulator) behind a **gate**, and **monitored** (smoke test, DORA). Feature `CV.md`, publish the repo, and speak to **every link** in an interview. The whole **AZ-400** part of your Azure path is complete — onward to **SC-500** (security) and **AZ-700** (networking).
 :::
 
 ## pitfalls
@@ -647,13 +647,13 @@ You've succeeded if your repo contains:
 ## next
 
 :::lang fr
-- **Suivant :** cap sur l'**AZ-500** (sécurité Azure) et l'**AZ-700** (réseau Azure) pour compléter le parcours.
+- **Suivant :** cap sur le **SC-500** (sécurité Azure) et l'**AZ-700** (réseau Azure) pour compléter le parcours.
 - **Réviser :** n'importe quel guide AZ-400 dont un maillon t'a paru fragile.
 - **Aller plus loin :** branche la pipeline sur un **vrai** dépôt GitHub (gratuit) et fais-la **tourner** pour de vrai ; ajoute un environnement `dev` automatique avant `production`.
 :::
 
 :::lang en
-- **Next:** onward to **AZ-500** (Azure security) and **AZ-700** (Azure networking) to complete the path.
+- **Next:** onward to **SC-500** (Azure security) and **AZ-700** (Azure networking) to complete the path.
 - **Review:** any AZ-400 guide whose link felt shaky.
 - **Go further:** wire the pipeline to a **real** GitHub repo (free) and **run** it for real; add an automatic `dev` environment before `production`.
 :::

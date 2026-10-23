@@ -6,8 +6,8 @@ order: 76
 status: published
 
 # — Titres & accroches (bilingue) —
-title_fr: "Azure — sécurité fondamentaux (AZ-500) : défense en profondeur, Zero Trust"
-title_en: "Azure — security fundamentals (AZ-500): defense in depth, Zero Trust"
+title_fr: "Azure — sécurité fondamentaux (SC-500) : défense en profondeur, Zero Trust"
+title_en: "Azure — security fundamentals (SC-500): defense in depth, Zero Trust"
 tagline_fr: "le modèle mental de la sécurité + les ancres : coffre, identité, réseau."
 tagline_en: "the security mental model + the anchors: vault, identity, network."
 
@@ -29,14 +29,18 @@ concepts_en: [security, defense-in-depth, zero-trust, cia, key-vault, managed-id
 access: premium
 
 # — Partage social (Open Graph) —
-og_description_fr: "Poser les fondations de la sécurité Azure pour l'AZ-500, en local et pour de vrai (miniblue) : le modèle mental (défense en profondeur, Zero Trust, triade CIA, responsabilité partagée), puis les ancres concrètes — le coffre Key Vault (secret stocké, live), l'identité managée (authentification sans mot de passe, principalId réel, live), l'anti-pattern des clés partagées de stockage (à éviter), un réseau qui refuse par défaut (NSG durci en Terraform, live), et le garde-fou policy-as-code (checkov). Plus la ligne de base de sécurité et le secure score. Sans compte cloud.",
-og_description_en: "Laying the foundations of Azure security for AZ-500, locally and for real (miniblue): the mental model (defense in depth, Zero Trust, CIA triad, shared responsibility), then the concrete anchors — the Key Vault (a secret stored, live), managed identity (passwordless auth, a real principalId, live), the storage shared-keys anti-pattern (to avoid), a network that denies by default (hardened NSG in Terraform, live), and the policy-as-code guardrail (checkov). Plus the security baseline and secure score. No cloud account."
+og_description_fr: "Poser les fondations de la sécurité Azure pour le SC-500, en local et pour de vrai (miniblue) : le modèle mental (défense en profondeur, Zero Trust, triade CIA, responsabilité partagée), puis les ancres concrètes — le coffre Key Vault (secret stocké, live), l'identité managée (authentification sans mot de passe, principalId réel, live), l'anti-pattern des clés partagées de stockage (à éviter), un réseau qui refuse par défaut (NSG durci en Terraform, live), et le garde-fou policy-as-code (checkov). Plus la ligne de base de sécurité et le secure score. Sans compte cloud.",
+og_description_en: "Laying the foundations of Azure security for SC-500, locally and for real (miniblue): the mental model (defense in depth, Zero Trust, CIA triad, shared responsibility), then the concrete anchors — the Key Vault (a secret stored, live), managed identity (passwordless auth, a real principalId, live), the storage shared-keys anti-pattern (to avoid), a network that denies by default (hardened NSG in Terraform, live), and the policy-as-code guardrail (checkov). Plus the security baseline and secure score. No cloud account."
 ---
 
 ## intro
 
 :::lang fr
-La sécurité n'est pas une fonctionnalité qu'on ajoute à la fin : c'est une **façon de concevoir**. L'examen **AZ-500** (Azure Security Engineer) en fait un métier — identité, réseau, données, opérations. Ce premier guide pose le **modèle mental** et les **ancres** concrètes que toute la suite réutilise.
+:::note
+Depuis le 31 août 2026, Microsoft a remplacé l'examen Azure Security Engineer (ex-AZ-500) par le **SC-500** (Cloud and AI Security Engineer Associate). Ce parcours couvre le socle commun aux deux : identité, réseau, données et opérations de sécurité. Le volet nouveau du SC-500, la **sécurisation des charges d'IA** (Microsoft Foundry, Defender pour l'IA, identités d'agents), n'est pas encore traité ici : complète-le avec le guide d'étude officiel SC-500 sur Microsoft Learn.
+:::
+
+La sécurité n'est pas une fonctionnalité qu'on ajoute à la fin : c'est une **façon de concevoir**. L'examen **SC-500** (Cloud and AI Security Engineer) en fait un métier — identité, réseau, données, opérations. Ce premier guide pose le **modèle mental** et les **ancres** concrètes que toute la suite réutilise.
 
 Fidèle à la méthode, on ancre les concepts **en local et pour de vrai** avec **miniblue** : on stocke un secret dans un **coffre Key Vault** (live), on crée une **identité managée** — l'authentification **sans mot de passe** avec un vrai **principalId** (live), on voit l'**anti-pattern** des **clés partagées** de stockage (pourquoi les éviter), on durcit un **réseau** qui **refuse par défaut** (NSG en Terraform, **appliqué en vrai**), et on installe un **garde-fou policy-as-code** (`checkov`) qui **bloque** une ressource non sûre. On termine par la **ligne de base de sécurité** et le **secure score** — mesurer sa posture.
 
@@ -49,7 +53,11 @@ Fidèle à la méthode, on ancre les concepts **en local et pour de vrai** avec 
 :::
 
 :::lang en
-Security isn't a feature you add at the end: it's a **way of designing**. The **AZ-500** exam (Azure Security Engineer) makes it a profession — identity, network, data, operations. This first guide lays the **mental model** and the concrete **anchors** the whole track reuses.
+:::note
+Since August 31, 2026, Microsoft has replaced the Azure Security Engineer exam (ex-AZ-500) with **SC-500** (Cloud and AI Security Engineer Associate). This track covers the foundation shared by both: identity, network, data and security operations. SC-500's new area, **securing AI workloads** (Microsoft Foundry, Defender for AI, agent identities), is not covered here yet: complete it with the official SC-500 study guide on Microsoft Learn.
+:::
+
+Security isn't a feature you add at the end: it's a **way of designing**. The **SC-500** exam (Cloud and AI Security Engineer) makes it a profession — identity, network, data, operations. This first guide lays the **mental model** and the concrete **anchors** the whole track reuses.
 
 True to the method, we ground the concepts **locally and for real** with **miniblue**: we store a secret in a **Key Vault** (live), create a **managed identity** — **passwordless** authentication with a real **principalId** (live), see the **shared-keys** storage **anti-pattern** (why to avoid them), harden a **network** that **denies by default** (NSG in Terraform, **applied for real**), and install a **policy-as-code guardrail** (`checkov`) that **blocks** an unsafe resource. We finish with the **security baseline** and the **secure score** — measuring your posture.
 
@@ -441,11 +449,11 @@ azlocal identity list --resource-group rg-securite 2>/dev/null | python3 -c "imp
 ```
 
 :::lang fr
-**✅ Vérification :** la table récapitule les **couches** (Identité, Réseau, Données, Gouvernance), leur **contrôle** et la **propriété CIA** servie ; puis les vérifs affichent `✅ coffre : secret présent` et `✅ identité : 1 identité(s) managée(s)`. Chaque couche est **indépendante** : compromettre le réseau ne donne pas le secret (au coffre) ; voler une identité sans droit ne sert à rien (moindre privilège). C'est **ça**, la défense en profondeur — et c'est la structure de tout le track AZ-500 : **identité**, **réseau**, **données**, **opérations**.
+**✅ Vérification :** la table récapitule les **couches** (Identité, Réseau, Données, Gouvernance), leur **contrôle** et la **propriété CIA** servie ; puis les vérifs affichent `✅ coffre : secret présent` et `✅ identité : 1 identité(s) managée(s)`. Chaque couche est **indépendante** : compromettre le réseau ne donne pas le secret (au coffre) ; voler une identité sans droit ne sert à rien (moindre privilège). C'est **ça**, la défense en profondeur — et c'est la structure de tout le track SC-500 : **identité**, **réseau**, **données**, **opérations**.
 :::
 
 :::lang en
-**✅ Check:** the table recaps the **layers** (Identity, Network, Data, Governance), their **control** and the **CIA property** served; then the checks show `✅ coffre : secret présent` and `✅ identité : 1 identité(s) managée(s)`. Each layer is **independent**: compromising the network doesn't yield the secret (in the vault); stealing an identity with no rights is useless (least privilege). That **is** defense in depth — and it's the structure of the whole AZ-500 track: **identity**, **network**, **data**, **operations**.
+**✅ Check:** the table recaps the **layers** (Identity, Network, Data, Governance), their **control** and the **CIA property** served; then the checks show `✅ coffre : secret présent` and `✅ identité : 1 identité(s) managée(s)`. Each layer is **independent**: compromising the network doesn't yield the secret (in the vault); stealing an identity with no rights is useless (least privilege). That **is** defense in depth — and it's the structure of the whole SC-500 track: **identity**, **network**, **data**, **operations**.
 :::
 
 ### step-07
@@ -490,11 +498,11 @@ azlocal group delete --name rg-securite >/dev/null 2>&1 && echo "rg-securite sup
 ```
 
 :::lang fr
-**✅ Vérification :** le script affiche `Secure score (maison) : 5/6 contrôles = 83%` avec la liste cochée, et pointe le **❌** (clés partagées encore actives) comme **prochaine recommandation** — exactement la logique de **Defender for Cloud** : un score, des recommandations priorisées, une posture qui **s'améliore**. Puis `Destroy complete!` et `rg-securite supprimé` nettoient le lab. Tu tiens le **modèle mental** (CIA, défense en profondeur, Zero Trust, responsabilité partagée) et les **ancres** (coffre, identité, réseau, policy). La suite du track AZ-500 : l'**identité** en profondeur (Entra ID, RBAC, PIM), puis le **réseau**, les **données**, et les **opérations de sécurité**.
+**✅ Vérification :** le script affiche `Secure score (maison) : 5/6 contrôles = 83%` avec la liste cochée, et pointe le **❌** (clés partagées encore actives) comme **prochaine recommandation** — exactement la logique de **Defender for Cloud** : un score, des recommandations priorisées, une posture qui **s'améliore**. Puis `Destroy complete!` et `rg-securite supprimé` nettoient le lab. Tu tiens le **modèle mental** (CIA, défense en profondeur, Zero Trust, responsabilité partagée) et les **ancres** (coffre, identité, réseau, policy). La suite du track SC-500 : l'**identité** en profondeur (Entra ID, RBAC, PIM), puis le **réseau**, les **données**, et les **opérations de sécurité**.
 :::
 
 :::lang en
-**✅ Check:** the script shows `Secure score (maison) : 5/6 contrôles = 83%` with the checked list, and points to the **❌** (shared keys still active) as the **next recommendation** — exactly **Defender for Cloud**'s logic: a score, prioritized recommendations, a posture that **improves**. Then `Destroy complete!` and `rg-securite supprimé` clean the lab. You hold the **mental model** (CIA, defense in depth, Zero Trust, shared responsibility) and the **anchors** (vault, identity, network, policy). Next in the AZ-500 track: **identity** in depth (Entra ID, RBAC, PIM), then **network**, **data**, and **security operations**.
+**✅ Check:** the script shows `Secure score (maison) : 5/6 contrôles = 83%` with the checked list, and points to the **❌** (shared keys still active) as the **next recommendation** — exactly **Defender for Cloud**'s logic: a score, prioritized recommendations, a posture that **improves**. Then `Destroy complete!` and `rg-securite supprimé` clean the lab. You hold the **mental model** (CIA, defense in depth, Zero Trust, shared responsibility) and the **anchors** (vault, identity, network, policy). Next in the SC-500 track: **identity** in depth (Entra ID, RBAC, PIM), then **network**, **data**, and **security operations**.
 :::
 
 ## pitfalls
@@ -558,13 +566,13 @@ You've succeeded if:
 ## next
 
 :::lang fr
-- **Suivant :** *Azure — sécurité de l'identité (AZ-500)* — Entra ID, RBAC, moindre privilège, PIM, accès conditionnel.
+- **Suivant :** *Azure — sécurité de l'identité (SC-500)* — Entra ID, RBAC, moindre privilège, PIM, accès conditionnel.
 - **Réviser :** *Azure — identité & gouvernance (AZ-104)* pour les bases RBAC.
 - **S'entraîner :** reprends une infra d'un guide précédent et calcule son **secure score** maison ; corrige le premier ❌.
 :::
 
 :::lang en
-- **Next:** *Azure — identity security (AZ-500)* — Entra ID, RBAC, least privilege, PIM, conditional access.
+- **Next:** *Azure — identity security (SC-500)* — Entra ID, RBAC, least privilege, PIM, conditional access.
 - **Review:** *Azure — identity & governance (AZ-104)* for RBAC basics.
 - **Practice:** take an earlier guide's infra and compute its homemade **secure score**; fix the first ❌.
 :::
@@ -646,7 +654,7 @@ checkov -d infra          # fails if a security rule is violated (CKV_AZURE_*)
 ## resources
 
 :::lang fr
-- **AZ-500** : Microsoft Certified Azure Security Engineer Associate — objectifs officiels, Microsoft Learn.
+- **SC-500** : Microsoft Certified: Cloud and AI Security Engineer Associate — objectifs officiels, Microsoft Learn.
 - **Microsoft Cloud Security Benchmark** : la ligne de base des contrôles Azure — Microsoft Learn.
 - **Zero Trust** : les principes et l'architecture de référence Microsoft — learn.microsoft.com/security/zero-trust.
 - **Key Vault & identités managées** : secrets, jetons sans mot de passe — Microsoft Learn.
@@ -655,7 +663,7 @@ checkov -d infra          # fails if a security rule is violated (CKV_AZURE_*)
 :::
 
 :::lang en
-- **AZ-500**: Microsoft Certified Azure Security Engineer Associate — official objectives, Microsoft Learn.
+- **SC-500**: Microsoft Certified: Cloud and AI Security Engineer Associate — official objectives, Microsoft Learn.
 - **Microsoft Cloud Security Benchmark**: the baseline of Azure controls — Microsoft Learn.
 - **Zero Trust**: Microsoft's principles and reference architecture — learn.microsoft.com/security/zero-trust.
 - **Key Vault & managed identities**: secrets, passwordless tokens — Microsoft Learn.

@@ -45,7 +45,7 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** : on **constate
 **Quand ce n'est PAS le bon choix :**
 
 - Tu n'as pas les fondations réseau/DNS → fais *Azure — réseau fondamentaux (AZ-700)*.
-- Tu cherches le durcissement **données** (chiffrement) → c'est l'**AZ-500** ; ici c'est l'**accès réseau** privé.
+- Tu cherches le durcissement **données** (chiffrement) → c'est le **SC-500** ; ici c'est l'**accès réseau** privé.
 :::
 
 :::lang en
@@ -58,7 +58,7 @@ True to the method, we practice **locally and for real**: we **observe the publi
 **When it's NOT the right choice:**
 
 - You lack the network/DNS foundations → do *Azure — network fundamentals (AZ-700)*.
-- You want **data** hardening (encryption) → that's **AZ-500**; here it's private **network access**.
+- You want **data** hardening (encryption) → that's **SC-500**; here it's private **network access**.
 :::
 
 ## objectives

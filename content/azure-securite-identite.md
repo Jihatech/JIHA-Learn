@@ -6,8 +6,8 @@ order: 77
 status: published
 
 # — Titres & accroches (bilingue) —
-title_fr: "Azure — sécurité de l'identité (AZ-500) : RBAC, accès conditionnel, PIM"
-title_en: "Azure — identity security (AZ-500): RBAC, conditional access, PIM"
+title_fr: "Azure — sécurité de l'identité (SC-500) : RBAC, accès conditionnel, PIM"
+title_en: "Azure — identity security (SC-500): RBAC, conditional access, PIM"
 tagline_fr: "moindre privilège, vérifier explicitement, élévation juste-à-temps."
 tagline_en: "least privilege, verify explicitly, just-in-time elevation."
 
@@ -29,14 +29,18 @@ concepts_en: [identity, entra-id, rbac, least-privilege, managed-identity, condi
 access: premium
 
 # — Partage social (Open Graph) —
-og_description_fr: "Sécuriser l'identité pour l'AZ-500, en local et pour de vrai : l'identité managée sans mot de passe (live sur miniblue, principalId réel), le RBAC au moindre privilège écrit et validé en Bicep (attribution du rôle intégré Key Vault Secrets User, portée minimale), un moteur d'accès conditionnel exécutable (vérifier explicitement : MFA pour les rôles privilégiés, emplacement approuvé, appareil conforme), le PIM juste-à-temps modélisé (éligible ≠ actif, activation avec MFA + justification, expiration), le flux Key Vault sans mot de passe, et une revue d'accès qui débusque le sur-privilège. Sans compte cloud.",
-og_description_en: "Securing identity for AZ-500, locally and for real: passwordless managed identity (live on miniblue, real principalId), least-privilege RBAC written and validated in Bicep (assigning the built-in Key Vault Secrets User role, minimal scope), a runnable conditional-access engine (verify explicitly: MFA for privileged roles, approved location, compliant device), just-in-time PIM modeled (eligible ≠ active, activation with MFA + justification, expiry), the passwordless Key Vault flow, and an access review that surfaces over-privilege. No cloud account."
+og_description_fr: "Sécuriser l'identité pour le SC-500, en local et pour de vrai : l'identité managée sans mot de passe (live sur miniblue, principalId réel), le RBAC au moindre privilège écrit et validé en Bicep (attribution du rôle intégré Key Vault Secrets User, portée minimale), un moteur d'accès conditionnel exécutable (vérifier explicitement : MFA pour les rôles privilégiés, emplacement approuvé, appareil conforme), le PIM juste-à-temps modélisé (éligible ≠ actif, activation avec MFA + justification, expiration), le flux Key Vault sans mot de passe, et une revue d'accès qui débusque le sur-privilège. Sans compte cloud.",
+og_description_en: "Securing identity for SC-500, locally and for real: passwordless managed identity (live on miniblue, real principalId), least-privilege RBAC written and validated in Bicep (assigning the built-in Key Vault Secrets User role, minimal scope), a runnable conditional-access engine (verify explicitly: MFA for privileged roles, approved location, compliant device), just-in-time PIM modeled (eligible ≠ active, activation with MFA + justification, expiry), the passwordless Key Vault flow, and an access review that surfaces over-privilege. No cloud account."
 ---
 
 ## intro
 
 :::lang fr
-« L'identité est le nouveau périmètre. » Dans le cloud, la première ligne de défense n'est plus le pare-feu réseau mais **qui** accède à **quoi**. L'**AZ-500** en fait un pilier majeur : **Entra ID**, **RBAC**, **accès conditionnel**, **PIM**. Ce guide te donne les réflexes du **moindre privilège** et du **Zero Trust** côté identité.
+:::note
+Depuis le 31 août 2026, Microsoft a remplacé l'examen Azure Security Engineer (ex-AZ-500) par le **SC-500** (Cloud and AI Security Engineer Associate). Ce parcours couvre le socle commun aux deux : identité, réseau, données et opérations de sécurité. Le volet nouveau du SC-500, la **sécurisation des charges d'IA** (Microsoft Foundry, Defender pour l'IA, identités d'agents), n'est pas encore traité ici : complète-le avec le guide d'étude officiel SC-500 sur Microsoft Learn.
+:::
+
+« L'identité est le nouveau périmètre. » Dans le cloud, la première ligne de défense n'est plus le pare-feu réseau mais **qui** accède à **quoi**. Le **SC-500** en fait un pilier majeur : **Entra ID**, **RBAC**, **accès conditionnel**, **PIM**. Ce guide te donne les réflexes du **moindre privilège** et du **Zero Trust** côté identité.
 
 Fidèle à la méthode, on pratique **en local et pour de vrai** : on crée une **identité managée** sans mot de passe (live sur **miniblue**, avec un vrai **principalId**), on écrit et **valide** une attribution **RBAC** au **moindre privilège** en **Bicep** (le rôle intégré *Key Vault Secrets User*, sur une **portée minimale**). Puis on **exécute** un **moteur d'accès conditionnel** (vérifier explicitement : MFA pour les rôles privilégiés, emplacement approuvé, appareil conforme) et un modèle **PIM** juste-à-temps (**éligible ≠ actif**, activation avec MFA + justification, **expiration**). On relie le tout au **flux Key Vault sans mot de passe**, et on **débusque le sur-privilège** avec une **revue d'accès**.
 
@@ -44,12 +48,16 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** : on crée une 
 
 **Quand ce n'est PAS le bon choix :**
 
-- Tu n'as pas le modèle mental (CIA, Zero Trust) → fais *Azure — sécurité fondamentaux (AZ-500)*.
+- Tu n'as pas le modèle mental (CIA, Zero Trust) → fais *Azure — sécurité fondamentaux (SC-500)*.
 - Tu cherches l'identité **applicative** (OAuth, OIDC dans ton code) → ici c'est l'identité **de la plateforme**.
 :::
 
 :::lang en
-"Identity is the new perimeter." In the cloud, the first line of defense is no longer the network firewall but **who** accesses **what**. **AZ-500** makes it a major pillar: **Entra ID**, **RBAC**, **conditional access**, **PIM**. This guide gives you the reflexes of **least privilege** and identity-side **Zero Trust**.
+:::note
+Since August 31, 2026, Microsoft has replaced the Azure Security Engineer exam (ex-AZ-500) with **SC-500** (Cloud and AI Security Engineer Associate). This track covers the foundation shared by both: identity, network, data and security operations. SC-500's new area, **securing AI workloads** (Microsoft Foundry, Defender for AI, agent identities), is not covered here yet: complete it with the official SC-500 study guide on Microsoft Learn.
+:::
+
+"Identity is the new perimeter." In the cloud, the first line of defense is no longer the network firewall but **who** accesses **what**. **SC-500** makes it a major pillar: **Entra ID**, **RBAC**, **conditional access**, **PIM**. This guide gives you the reflexes of **least privilege** and identity-side **Zero Trust**.
 
 True to the method, we practice **locally and for real**: we create a passwordless **managed identity** (live on **miniblue**, with a real **principalId**), we write and **validate** a least-privilege **RBAC** assignment in **Bicep** (the built-in *Key Vault Secrets User* role, on a **minimal scope**). Then we **run** a **conditional-access engine** (verify explicitly: MFA for privileged roles, approved location, compliant device) and a just-in-time **PIM** model (**eligible ≠ active**, activation with MFA + justification, **expiry**). We tie it to the **passwordless Key Vault flow**, and **surface over-privilege** with an **access review**.
 
@@ -57,7 +65,7 @@ True to the method, we practice **locally and for real**: we create a passwordle
 
 **When it's NOT the right choice:**
 
-- You lack the mental model (CIA, Zero Trust) → do *Azure — security fundamentals (AZ-500)*.
+- You lack the mental model (CIA, Zero Trust) → do *Azure — security fundamentals (SC-500)*.
 - You want **application** identity (OAuth, OIDC in your code) → here it's **platform** identity.
 :::
 
@@ -90,13 +98,13 @@ By the end of this guide, you can:
 ## prerequisites
 
 :::lang fr
-- Le guide **Azure — sécurité fondamentaux (AZ-500)** (CIA, Zero Trust, ancres).
+- Le guide **Azure — sécurité fondamentaux (SC-500)** (CIA, Zero Trust, ancres).
 - Le **lab local** : **miniblue** démarré, `azlocal` sur le `PATH`, **Bicep CLI** (`az bicep install` ou binaire), **Python 3**.
 - **Aucun compte cloud** : identité managée live, RBAC validé en Bicep, accès conditionnel/PIM exécutés en local.
 :::
 
 :::lang en
-- The **Azure — security fundamentals (AZ-500)** guide (CIA, Zero Trust, anchors).
+- The **Azure — security fundamentals (SC-500)** guide (CIA, Zero Trust, anchors).
 - The **local lab**: **miniblue** started, `azlocal` on `PATH`, **Bicep CLI** (`az bicep install` or binary), **Python 3**.
 - **No cloud account**: managed identity live, RBAC validated in Bicep, conditional access/PIM run locally.
 :::
@@ -225,11 +233,11 @@ bicep build rbac.bicep --stdout 2>/dev/null \
 ```
 
 :::lang fr
-**✅ Vérification :** la sortie affiche `RBAC compile -> ARM OK, ressource: Microsoft.Authorization/roleAssignments`. L'attribution est **valide** : elle donne à ton `principalId` le rôle **Key Vault Secrets User** — **lire les secrets, rien d'autre**. Remarque les trois pièces : le **principal** (qui), le **roleDefinitionId** (quoi — ici un rôle **intégré étroit**), et la **portée** (où — le groupe de ressources). ⚠️ miniblue n'**exécute** pas les attributions (404) : on les **valide** en Bicep et on les **déploie** sur du vrai Azure. Le principe — **rôle minimal, portée minimale** — est le cœur de l'AZ-500.
+**✅ Vérification :** la sortie affiche `RBAC compile -> ARM OK, ressource: Microsoft.Authorization/roleAssignments`. L'attribution est **valide** : elle donne à ton `principalId` le rôle **Key Vault Secrets User** — **lire les secrets, rien d'autre**. Remarque les trois pièces : le **principal** (qui), le **roleDefinitionId** (quoi — ici un rôle **intégré étroit**), et la **portée** (où — le groupe de ressources). ⚠️ miniblue n'**exécute** pas les attributions (404) : on les **valide** en Bicep et on les **déploie** sur du vrai Azure. Le principe — **rôle minimal, portée minimale** — est le cœur du SC-500.
 :::
 
 :::lang en
-**✅ Check:** the output shows `RBAC compile -> ARM OK, ressource: Microsoft.Authorization/roleAssignments`. The assignment is **valid**: it gives your `principalId` the **Key Vault Secrets User** role — **read secrets, nothing else**. Note the three pieces: the **principal** (who), the **roleDefinitionId** (what — here a **narrow built-in** role), and the **scope** (where — the resource group). ⚠️ miniblue doesn't **execute** assignments (404): we **validate** them in Bicep and **deploy** them to real Azure. The principle — **minimal role, minimal scope** — is the heart of AZ-500.
+**✅ Check:** the output shows `RBAC compile -> ARM OK, ressource: Microsoft.Authorization/roleAssignments`. The assignment is **valid**: it gives your `principalId` the **Key Vault Secrets User** role — **read secrets, nothing else**. Note the three pieces: the **principal** (who), the **roleDefinitionId** (what — here a **narrow built-in** role), and the **scope** (where — the resource group). ⚠️ miniblue doesn't **execute** assignments (404): we **validate** them in Bicep and **deploy** them to real Azure. The principle — **minimal role, minimal scope** — is the heart of SC-500.
 :::
 
 ### step-03
@@ -455,11 +463,11 @@ rm -f /tmp/principal.txt
 ```
 
 :::lang fr
-**✅ Vérification :** la table récapitule les **cinq leviers** de l'identité sécurisée, puis `rg-identite supprime` nettoie le lab. Tu tiens le pilier **identité** de l'AZ-500 : *identité managée* (sans mot de passe), *RBAC* au moindre privilège (validé en Bicep), *accès conditionnel* (vérifier explicitement), *PIM* (juste-à-temps) et *revue d'accès* (contre l'accumulation). Chaque levier réduit la surface d'attaque **avant** qu'un incident n'arrive. La suite du track AZ-500 : la sécurité **réseau** (segmentation, pare-feu, points de terminaison privés), puis les **données** et les **opérations**.
+**✅ Vérification :** la table récapitule les **cinq leviers** de l'identité sécurisée, puis `rg-identite supprime` nettoie le lab. Tu tiens le pilier **identité** du SC-500 : *identité managée* (sans mot de passe), *RBAC* au moindre privilège (validé en Bicep), *accès conditionnel* (vérifier explicitement), *PIM* (juste-à-temps) et *revue d'accès* (contre l'accumulation). Chaque levier réduit la surface d'attaque **avant** qu'un incident n'arrive. La suite du track SC-500 : la sécurité **réseau** (segmentation, pare-feu, points de terminaison privés), puis les **données** et les **opérations**.
 :::
 
 :::lang en
-**✅ Check:** the table recaps the **five levers** of secure identity, then `rg-identite supprime` cleans the lab. You hold the **identity** pillar of AZ-500: *managed identity* (passwordless), least-privilege *RBAC* (validated in Bicep), *conditional access* (verify explicitly), *PIM* (just-in-time) and *access review* (against accumulation). Each lever shrinks the attack surface **before** an incident happens. Next in the AZ-500 track: **network** security (segmentation, firewall, private endpoints), then **data** and **operations**.
+**✅ Check:** the table recaps the **five levers** of secure identity, then `rg-identite supprime` cleans the lab. You hold the **identity** pillar of SC-500: *managed identity* (passwordless), least-privilege *RBAC* (validated in Bicep), *conditional access* (verify explicitly), *PIM* (just-in-time) and *access review* (against accumulation). Each lever shrinks the attack surface **before** an incident happens. Next in the SC-500 track: **network** security (segmentation, firewall, private endpoints), then **data** and **operations**.
 :::
 
 ## pitfalls
@@ -523,14 +531,14 @@ You've succeeded if:
 ## next
 
 :::lang fr
-- **Suivant :** *Azure — sécurité réseau (AZ-500)* — segmentation, pare-feu, points de terminaison privés, DDoS.
-- **Réviser :** *Azure — sécurité fondamentaux (AZ-500)* pour le Zero Trust.
+- **Suivant :** *Azure — sécurité réseau (SC-500)* — segmentation, pare-feu, points de terminaison privés, DDoS.
+- **Réviser :** *Azure — sécurité fondamentaux (SC-500)* pour le Zero Trust.
 - **S'entraîner :** ajoute une règle d'accès conditionnel (heure ouvrée) à `acces.py`, et un niveau d'**approbation** au PIM.
 :::
 
 :::lang en
-- **Next:** *Azure — network security (AZ-500)* — segmentation, firewall, private endpoints, DDoS.
-- **Review:** *Azure — security fundamentals (AZ-500)* for Zero Trust.
+- **Next:** *Azure — network security (SC-500)* — segmentation, firewall, private endpoints, DDoS.
+- **Review:** *Azure — security fundamentals (SC-500)* for Zero Trust.
 - **Practice:** add a conditional-access rule (business hours) to `acces.py`, and an **approval** step to PIM.
 :::
 
@@ -611,7 +619,7 @@ Maintain           : access review (remove over-privilege / dormant)
 :::lang fr
 - **Microsoft Entra ID** : identités, principals de service, identités managées — Microsoft Learn.
 - **Azure RBAC** : rôles intégrés, attributions, portée — learn.microsoft.com/azure/role-based-access-control.
-- **Accès conditionnel** : signaux, décisions, MFA — Microsoft Learn (AZ-500).
+- **Accès conditionnel** : signaux, décisions, MFA — Microsoft Learn (SC-500).
 - **Privileged Identity Management (PIM)** : rôles éligibles, activation, revues — Microsoft Learn.
 - **Access Reviews** : campagnes de revue d'accès Entra ID — Microsoft Learn.
 - **Identités managées & Key Vault** : accès sans mot de passe — Microsoft Learn.
@@ -620,7 +628,7 @@ Maintain           : access review (remove over-privilege / dormant)
 :::lang en
 - **Microsoft Entra ID**: identities, service principals, managed identities — Microsoft Learn.
 - **Azure RBAC**: built-in roles, assignments, scope — learn.microsoft.com/azure/role-based-access-control.
-- **Conditional access**: signals, decisions, MFA — Microsoft Learn (AZ-500).
+- **Conditional access**: signals, decisions, MFA — Microsoft Learn (SC-500).
 - **Privileged Identity Management (PIM)**: eligible roles, activation, reviews — Microsoft Learn.
 - **Access Reviews**: Entra ID access-review campaigns — Microsoft Learn.
 - **Managed identities & Key Vault**: passwordless access — Microsoft Learn.

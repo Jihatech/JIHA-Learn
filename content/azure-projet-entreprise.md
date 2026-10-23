@@ -534,11 +534,11 @@ terraform destroy -auto-approve
 ```
 
 :::lang fr
-**✅ Vérification :** les `azlocal ... delete` renvoient `Deleted`, et `terraform destroy` affiche `Destroy complete! Resources: 8 destroyed.`. Ta zone est entièrement retirée — **plus aucune ressource**. Tu as bouclé le cycle **créer → utiliser → détruire** sur une infrastructure **complète et sécurisée**, en local, à coût zéro. **Tu tiens ton projet de CV AZ-104.** La suite et fin du track : **passer en réel** (vrai compte, `apply`, garde-fous de coût) et la **certification AZ-104**. Après quoi le parcours Azure continue : architecte (AZ-305), DevOps (AZ-400), sécurité (AZ-500), réseau (AZ-700).
+**✅ Vérification :** les `azlocal ... delete` renvoient `Deleted`, et `terraform destroy` affiche `Destroy complete! Resources: 8 destroyed.`. Ta zone est entièrement retirée — **plus aucune ressource**. Tu as bouclé le cycle **créer → utiliser → détruire** sur une infrastructure **complète et sécurisée**, en local, à coût zéro. **Tu tiens ton projet de CV AZ-104.** La suite et fin du track : **passer en réel** (vrai compte, `apply`, garde-fous de coût) et la **certification AZ-104**. Après quoi le parcours Azure continue : architecte (AZ-305), DevOps (AZ-400), sécurité (SC-500), réseau (AZ-700).
 :::
 
 :::lang en
-**✅ Check:** the `azlocal ... delete` return `Deleted`, and `terraform destroy` shows `Destroy complete! Resources: 8 destroyed.`. Your zone is fully removed — **no resource left**. You closed the **create → use → destroy** cycle on a **complete, secure** infrastructure, locally, at zero cost. **You hold your AZ-104 CV project.** The track's finale: **going real** (real account, `apply`, cost guardrails) and the **AZ-104 certification**. After which the Azure path continues: architect (AZ-305), DevOps (AZ-400), security (AZ-500), networking (AZ-700).
+**✅ Check:** the `azlocal ... delete` return `Deleted`, and `terraform destroy` shows `Destroy complete! Resources: 8 destroyed.`. Your zone is fully removed — **no resource left**. You closed the **create → use → destroy** cycle on a **complete, secure** infrastructure, locally, at zero cost. **You hold your AZ-104 CV project.** The track's finale: **going real** (real account, `apply`, cost guardrails) and the **AZ-104 certification**. After which the Azure path continues: architect (AZ-305), DevOps (AZ-400), security (SC-500), networking (AZ-700).
 :::
 
 ## pitfalls
@@ -611,14 +611,14 @@ Seven boxes = you have a defensible AZ-104 **enterprise project**. Next up: goin
 La fin du track AZ-104, puis la suite du parcours Azure :
 
 1. **Azure — passer en réel** : créer un vrai compte/abonnement, brancher les identifiants, poser des garde-fous de coût, faire un vrai `terraform apply` de cette zone, puis `destroy`. Et la **certification AZ-104**.
-2. Ensuite : **AZ-305** (architecte), **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau) — le labo miniblue te resservira partout.
+2. Ensuite : **AZ-305** (architecte), **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau) — le labo miniblue te resservira partout.
 :::
 
 :::lang en
 The end of the AZ-104 track, then the Azure path continues:
 
 1. **Azure — going real**: create a real account/subscription, wire credentials, set cost guardrails, run a real `terraform apply` of this zone, then `destroy`. And the **AZ-104 certification**.
-2. Then: **AZ-305** (architect), **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking) — the miniblue lab will serve you everywhere.
+2. Then: **AZ-305** (architect), **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking) — the miniblue lab will serve you everywhere.
 :::
 
 ## cheatsheet

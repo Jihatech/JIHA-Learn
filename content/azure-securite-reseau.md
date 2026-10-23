@@ -6,8 +6,8 @@ order: 78
 status: published
 
 # — Titres & accroches (bilingue) —
-title_fr: "Azure — sécurité réseau (AZ-500) : segmentation, pare-feu, WAF"
-title_en: "Azure — network security (AZ-500): segmentation, firewall, WAF"
+title_fr: "Azure — sécurité réseau (SC-500) : segmentation, pare-feu, WAF"
+title_en: "Azure — network security (SC-500): segmentation, firewall, WAF"
 tagline_fr: "segmenter, refuser par défaut, filtrer la sortie, bloquer les attaques."
 tagline_en: "segment, deny by default, filter egress, block attacks."
 
@@ -29,14 +29,18 @@ concepts_en: [network, segmentation, nsg, micro-segmentation, firewall, egress, 
 access: premium
 
 # — Partage social (Open Graph) —
-og_description_fr: "Sécuriser le réseau pour l'AZ-500, en local et pour de vrai : segmenter un réseau en tiers (VNet + sous-réseaux web/app/data avec NSG, déployés live sur miniblue), comprendre la logique d'évaluation NSG (priorité croissante, première règle qui matche, refus implicite) avec un évaluateur exécutable, la micro-segmentation qui isole les tiers (le web ne parle PAS directement au data), le contrôle de sortie (pare-feu à liste blanche de FQDN contre l'exfiltration), les points de terminaison privés (garder le PaaS hors d'Internet), et un WAF + rate-limiter qui bloquent injections et abus. Sans compte cloud.",
-og_description_en: "Securing the network for AZ-500, locally and for real: segmenting a network into tiers (VNet + web/app/data subnets with NSGs, deployed live on miniblue), understanding NSG evaluation logic (ascending priority, first matching rule, implicit deny) with a runnable evaluator, micro-segmentation isolating tiers (web does NOT talk directly to data), egress control (an FQDN-allowlist firewall against exfiltration), private endpoints (keeping PaaS off the internet), and a WAF + rate-limiter blocking injections and abuse. No cloud account."
+og_description_fr: "Sécuriser le réseau pour le SC-500, en local et pour de vrai : segmenter un réseau en tiers (VNet + sous-réseaux web/app/data avec NSG, déployés live sur miniblue), comprendre la logique d'évaluation NSG (priorité croissante, première règle qui matche, refus implicite) avec un évaluateur exécutable, la micro-segmentation qui isole les tiers (le web ne parle PAS directement au data), le contrôle de sortie (pare-feu à liste blanche de FQDN contre l'exfiltration), les points de terminaison privés (garder le PaaS hors d'Internet), et un WAF + rate-limiter qui bloquent injections et abus. Sans compte cloud.",
+og_description_en: "Securing the network for SC-500, locally and for real: segmenting a network into tiers (VNet + web/app/data subnets with NSGs, deployed live on miniblue), understanding NSG evaluation logic (ascending priority, first matching rule, implicit deny) with a runnable evaluator, micro-segmentation isolating tiers (web does NOT talk directly to data), egress control (an FQDN-allowlist firewall against exfiltration), private endpoints (keeping PaaS off the internet), and a WAF + rate-limiter blocking injections and abuse. No cloud account."
 ---
 
 ## intro
 
 :::lang fr
-Après l'identité, le **réseau**. Même avec une identité parfaite, un réseau **plat** (tout communique avec tout) offre à un attaquant un **terrain de jeu** : une machine compromise atteint tout le reste. L'**AZ-500** attend que tu saches **segmenter**, **refuser par défaut**, **filtrer la sortie** et **bloquer les attaques**. C'est la couche **réseau** de la défense en profondeur.
+:::note
+Depuis le 31 août 2026, Microsoft a remplacé l'examen Azure Security Engineer (ex-AZ-500) par le **SC-500** (Cloud and AI Security Engineer Associate). Ce parcours couvre le socle commun aux deux : identité, réseau, données et opérations de sécurité. Le volet nouveau du SC-500, la **sécurisation des charges d'IA** (Microsoft Foundry, Defender pour l'IA, identités d'agents), n'est pas encore traité ici : complète-le avec le guide d'étude officiel SC-500 sur Microsoft Learn.
+:::
+
+Après l'identité, le **réseau**. Même avec une identité parfaite, un réseau **plat** (tout communique avec tout) offre à un attaquant un **terrain de jeu** : une machine compromise atteint tout le reste. Le **SC-500** attend que tu saches **segmenter**, **refuser par défaut**, **filtrer la sortie** et **bloquer les attaques**. C'est la couche **réseau** de la défense en profondeur.
 
 Fidèle à la méthode, on pratique **en local et pour de vrai** : on **segmente** un réseau en tiers (VNet + sous-réseaux **web/app/data** avec NSG, déployés **live** sur **miniblue**), on **décortique la logique d'évaluation NSG** (priorité croissante, **première règle** qui matche, **refus implicite**) avec un évaluateur **exécutable**, on met en place la **micro-segmentation** (le tier web ne parle **pas** directement au tier data), on **contrôle la sortie** (un pare-feu à **liste blanche de FQDN** contre l'exfiltration), on garde le PaaS **hors d'Internet** avec les **points de terminaison privés**, et on installe un **WAF + rate-limiter** qui **bloquent** injections et abus.
 
@@ -49,7 +53,11 @@ Fidèle à la méthode, on pratique **en local et pour de vrai** : on **segmente
 :::
 
 :::lang en
-After identity, the **network**. Even with perfect identity, a **flat** network (everything talks to everything) hands an attacker a **playground**: one compromised machine reaches everything else. **AZ-500** expects you to **segment**, **deny by default**, **filter egress** and **block attacks**. It's the **network** layer of defense in depth.
+:::note
+Since August 31, 2026, Microsoft has replaced the Azure Security Engineer exam (ex-AZ-500) with **SC-500** (Cloud and AI Security Engineer Associate). This track covers the foundation shared by both: identity, network, data and security operations. SC-500's new area, **securing AI workloads** (Microsoft Foundry, Defender for AI, agent identities), is not covered here yet: complete it with the official SC-500 study guide on Microsoft Learn.
+:::
+
+After identity, the **network**. Even with perfect identity, a **flat** network (everything talks to everything) hands an attacker a **playground**: one compromised machine reaches everything else. **SC-500** expects you to **segment**, **deny by default**, **filter egress** and **block attacks**. It's the **network** layer of defense in depth.
 
 True to the method, we practice **locally and for real**: we **segment** a network into tiers (VNet + **web/app/data** subnets with NSGs, deployed **live** on **miniblue**), we **dissect NSG evaluation logic** (ascending priority, **first matching** rule, **implicit deny**) with a **runnable** evaluator, we set up **micro-segmentation** (the web tier does **not** talk directly to the data tier), we **control egress** (an **FQDN-allowlist** firewall against exfiltration), we keep PaaS **off the internet** with **private endpoints**, and we install a **WAF + rate-limiter** that **block** injections and abuse.
 
@@ -90,13 +98,13 @@ By the end of this guide, you can:
 ## prerequisites
 
 :::lang fr
-- Le guide **Azure — sécurité de l'identité (AZ-500)** et *Azure — réseau (AZ-104)*.
+- Le guide **Azure — sécurité de l'identité (SC-500)** et *Azure — réseau (AZ-104)*.
 - Le **lab local** : **miniblue** démarré, **Terraform**, `SSL_CERT_FILE=$HOME/.miniblue/cert.pem`, `azlocal` sur le `PATH`.
 - **Python 3**. **Aucun compte cloud** : segmentation live, évaluateurs/pare-feu/WAF exécutés en local.
 :::
 
 :::lang en
-- The **Azure — identity security (AZ-500)** guide and *Azure — networking (AZ-104)*.
+- The **Azure — identity security (SC-500)** guide and *Azure — networking (AZ-104)*.
 - The **local lab**: **miniblue** started, **Terraform**, `SSL_CERT_FILE=$HOME/.miniblue/cert.pem`, `azlocal` on `PATH`.
 - **Python 3**. **No cloud account**: segmentation live, evaluators/firewall/WAF run locally.
 :::
@@ -512,11 +520,11 @@ cd reseau && terraform destroy -auto-approve -no-color 2>&1 | grep -E "Destroy c
 ```
 
 :::lang fr
-**✅ Vérification :** la table récapitule les **six leviers** réseau, puis `Destroy complete! Resources: 6 destroyed` nettoie le lab. Tu tiens le pilier **réseau** de l'AZ-500 : **segmenter** (tiers), **refuser par défaut** (NSG), **cloisonner** (micro-segmentation), **filtrer la sortie** (egress), **retirer d'Internet** (points privés) et **filtrer l'applicatif** (WAF/DDoS). Chaque couche **contient** un attaquant qui aurait franchi la précédente. La suite du track AZ-500 : la sécurité des **données** (chiffrement, coffre de clés, rotation), puis les **opérations de sécurité** (Defender, Sentinel, politiques).
+**✅ Vérification :** la table récapitule les **six leviers** réseau, puis `Destroy complete! Resources: 6 destroyed` nettoie le lab. Tu tiens le pilier **réseau** du SC-500 : **segmenter** (tiers), **refuser par défaut** (NSG), **cloisonner** (micro-segmentation), **filtrer la sortie** (egress), **retirer d'Internet** (points privés) et **filtrer l'applicatif** (WAF/DDoS). Chaque couche **contient** un attaquant qui aurait franchi la précédente. La suite du track SC-500 : la sécurité des **données** (chiffrement, coffre de clés, rotation), puis les **opérations de sécurité** (Defender, Sentinel, politiques).
 :::
 
 :::lang en
-**✅ Check:** the table recaps the **six network levers**, then `Destroy complete! Resources: 6 destroyed` cleans the lab. You hold the **network** pillar of AZ-500: **segment** (tiers), **deny by default** (NSG), **compartmentalize** (micro-segmentation), **filter egress**, **remove from the Internet** (private endpoints) and **filter the application** (WAF/DDoS). Each layer **contains** an attacker who crossed the previous one. Next in the AZ-500 track: **data** security (encryption, key vault, rotation), then **security operations** (Defender, Sentinel, policies).
+**✅ Check:** the table recaps the **six network levers**, then `Destroy complete! Resources: 6 destroyed` cleans the lab. You hold the **network** pillar of SC-500: **segment** (tiers), **deny by default** (NSG), **compartmentalize** (micro-segmentation), **filter egress**, **remove from the Internet** (private endpoints) and **filter the application** (WAF/DDoS). Each layer **contains** an attacker who crossed the previous one. Next in the SC-500 track: **data** security (encryption, key vault, rotation), then **security operations** (Defender, Sentinel, policies).
 :::
 
 ## pitfalls
@@ -580,13 +588,13 @@ You've succeeded if:
 ## next
 
 :::lang fr
-- **Suivant :** *Azure — sécurité des données (AZ-500)* — chiffrement au repos/en transit, coffre de clés, rotation.
+- **Suivant :** *Azure — sécurité des données (SC-500)* — chiffrement au repos/en transit, coffre de clés, rotation.
 - **Réviser :** *Azure — réseau (AZ-104)* pour VNet/NSG.
 - **S'entraîner :** ajoute une règle NSG de **plus faible priorité** qui **masque** une règle Allow, et observe l'effet dans `nsg.py`.
 :::
 
 :::lang en
-- **Next:** *Azure — data security (AZ-500)* — encryption at rest/in transit, key vault, rotation.
+- **Next:** *Azure — data security (SC-500)* — encryption at rest/in transit, key vault, rotation.
 - **Review:** *Azure — networking (AZ-104)* for VNet/NSG.
 - **Practice:** add a **lower-priority** NSG rule that **shadows** an Allow rule, and observe the effect in `nsg.py`.
 :::
@@ -662,7 +670,7 @@ DDoS/rate-limit    cap requests per client (L3/4 and L7)
 - **Azure Firewall** : règles d'application (FQDN), règles réseau, egress — Microsoft Learn.
 - **Points de terminaison privés & Private Link** : PaaS sans exposition publique — Microsoft Learn.
 - **Application Gateway WAF / Front Door** : OWASP, protection applicative — Microsoft Learn.
-- **Azure DDoS Protection** : L3/L4 volumétrique, bonnes pratiques — Microsoft Learn (AZ-500).
+- **Azure DDoS Protection** : L3/L4 volumétrique, bonnes pratiques — Microsoft Learn (SC-500).
 - **miniblue** : émulateur Azure local (community, non officiel) — github.com/moabukar/miniblue.
 :::
 
@@ -671,7 +679,7 @@ DDoS/rate-limit    cap requests per client (L3/4 and L7)
 - **Azure Firewall**: application rules (FQDN), network rules, egress — Microsoft Learn.
 - **Private endpoints & Private Link**: PaaS with no public exposure — Microsoft Learn.
 - **Application Gateway WAF / Front Door**: OWASP, application protection — Microsoft Learn.
-- **Azure DDoS Protection**: L3/L4 volumetric, best practices — Microsoft Learn (AZ-500).
+- **Azure DDoS Protection**: L3/L4 volumetric, best practices — Microsoft Learn (SC-500).
 - **miniblue**: local Azure emulator (community, unofficial) — github.com/moabukar/miniblue.
 :::
 

@@ -421,16 +421,16 @@ PARCOURS AZURE / AZURE PATH
   AZ-104   Administrateur (fait) / Administrator (done)      <- tu es ici / you are here
   AZ-305   Architecte de solutions / Solutions Architect
   AZ-400   Ingénieur DevOps / DevOps Engineer
-  AZ-500   Ingénieur sécurité / Security Engineer
+  SC-500   Ingénieur sécurité / Security Engineer
   AZ-700   Ingénieur réseau / Network Engineer
 ```
 
 :::lang fr
-**✅ Vérification :** tu situes ta progression. Tu as le **socle** (fondamentaux + administrateur) : projets & abonnements, réseau, stockage, calcul, identité & gouvernance, IaC (Terraform + Bicep), et la discipline de coût. La suite ajoute la **conception** (AZ-305), l'**automatisation** (AZ-400), la **sécurité** (AZ-500) et le **réseau avancé** (AZ-700) — tous déployables/validables en local sur miniblue avec la méthode de ce parcours. **Félicitations : tu tiens l'AZ-104 de bout en bout.**
+**✅ Vérification :** tu situes ta progression. Tu as le **socle** (fondamentaux + administrateur) : projets & abonnements, réseau, stockage, calcul, identité & gouvernance, IaC (Terraform + Bicep), et la discipline de coût. La suite ajoute la **conception** (AZ-305), l'**automatisation** (AZ-400), la **sécurité** (SC-500) et le **réseau avancé** (AZ-700) — tous déployables/validables en local sur miniblue avec la méthode de ce parcours. **Félicitations : tu tiens l'AZ-104 de bout en bout.**
 :::
 
 :::lang en
-**✅ Check:** you can place your progress. You have the **base** (fundamentals + administrator): projects & subscriptions, networking, storage, compute, identity & governance, IaC (Terraform + Bicep), and cost discipline. The next steps add **design** (AZ-305), **automation** (AZ-400), **security** (AZ-500) and **advanced networking** (AZ-700) — all deployable/validatable locally on miniblue with this path's method. **Congratulations: you hold AZ-104 end to end.**
+**✅ Check:** you can place your progress. You have the **base** (fundamentals + administrator): projects & subscriptions, networking, storage, compute, identity & governance, IaC (Terraform + Bicep), and cost discipline. The next steps add **design** (AZ-305), **automation** (AZ-400), **security** (SC-500) and **advanced networking** (AZ-700) — all deployable/validatable locally on miniblue with this path's method. **Congratulations: you hold AZ-104 end to end.**
 :::
 
 ## pitfalls
@@ -504,7 +504,7 @@ Tu as terminé le track **AZ-104 — Administrateur Azure** ! 🎉
 
 1. **Certification AZ-104** : entraîne-toi sur des **examens blancs**, révise les **choix de service**, les **rôles RBAC**, les **niveaux de stockage** et le **coût des VM**.
 2. **Ton CV** : mets en avant la **zone d'atterrissage** (réseau segmenté, gouvernance, IaC).
-3. **La suite du parcours Azure** : **AZ-305** (architecte), **AZ-400** (DevOps), **AZ-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
+3. **La suite du parcours Azure** : **AZ-305** (architecte), **AZ-400** (DevOps), **SC-500** (sécurité), **AZ-700** (réseau) — même méthode, même labo miniblue.
 :::
 
 :::lang en
@@ -512,7 +512,7 @@ You've finished the **AZ-104 — Azure Administrator** track! 🎉
 
 1. **AZ-104 certification**: practice on **mock exams**, revise **service choices**, **RBAC roles**, **storage tiers** and **VM cost**.
 2. **Your CV**: highlight the **landing zone** (segmented network, governance, IaC).
-3. **The rest of the Azure path**: **AZ-305** (architect), **AZ-400** (DevOps), **AZ-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
+3. **The rest of the Azure path**: **AZ-305** (architect), **AZ-400** (DevOps), **SC-500** (security), **AZ-700** (networking) — same method, same miniblue lab.
 :::
 
 ## cheatsheet

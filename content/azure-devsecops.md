@@ -45,7 +45,7 @@ Fidèle à la méthode, on le fait **en vrai et en local**, avec des outils **op
 **Quand ce n'est PAS le bon choix :**
 
 - Tu n'as pas encore de pipeline IaC → fais d'abord *Azure — l'IaC dans les pipelines (AZ-400)*.
-- Tu cherches la sécurité **runtime** (Defender, WAF) → c'est plutôt l'**AZ-500** ; ici c'est la sécurité **de la pipeline**.
+- Tu cherches la sécurité **runtime** (Defender, WAF) → c'est plutôt le **SC-500** ; ici c'est la sécurité **de la pipeline**.
 :::
 
 :::lang en
@@ -58,7 +58,7 @@ True to the method, we do it **for real and locally**, with standard **open-sour
 **When it's NOT the right choice:**
 
 - You don't have an IaC pipeline yet → do *Azure — IaC in pipelines (AZ-400)* first.
-- You want **runtime** security (Defender, WAF) → that's more **AZ-500**; here it's **pipeline** security.
+- You want **runtime** security (Defender, WAF) → that's more **SC-500**; here it's **pipeline** security.
 :::
 
 ## objectives
