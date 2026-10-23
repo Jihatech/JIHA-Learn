@@ -3,6 +3,8 @@ name: Build & deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Valide aussi les PR de contenu (build + lint strict), sans déployer.
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -32,7 +34,7 @@ jobs:
             for (const g of m.guides) if (g.status === 'published') console.log(g.id);
           "); do
             echo "→ building $id"
-            node build.mjs "$id"
+            node build.mjs "$id" --strict
           done
 
       - name: Disable Jekyll
@@ -44,6 +46,7 @@ jobs:
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

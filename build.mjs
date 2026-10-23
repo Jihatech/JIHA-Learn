@@ -759,12 +759,19 @@ function lintGuide(fm, sections, manifest) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(fm.id || ''))
     issues.push(`[A] id invalide: "${fm.id}" (attendu kebab-case sans accent)`);
 
+  // A. le guide existe dans le manifeste (source de vérité de la structure)
+  const self = manifest.guides.find(g => g.id === fm.id);
+  if (!self) issues.push(`[A] guide absent du manifeste guides.json: ${fm.id}`);
+  // L'ordre de référence est celui du MANIFESTE : le champ `order` du
+  // front-matter est une copie qui peut dériver (renumérotation du catalogue).
+  const order = self ? self.order : fm.order;
+
   // A. prerequisites cohérents
   for (const p of fm.prerequisites || []) {
     const ref = manifest.guides.find(g => g.id === p);
     if (!ref) issues.push(`[A] prerequisite inconnu dans le manifeste: ${p}`);
-    else if (ref.order >= fm.order)
-      issues.push(`[A] prerequisite "${p}" (order ${ref.order}) >= ce guide (order ${fm.order})`);
+    else if (ref.order >= order)
+      issues.push(`[A] prerequisite "${p}" (order ${ref.order}) >= ce guide (order ${order})`);
   }
   // A. next cohérents
   for (const n of fm.next || []) {
@@ -935,7 +942,7 @@ ${guidesHtml}
 
 /* -------------------- Main -------------------- */
 function main() {
-  const guideId = process.argv[2] || 'vaultwarden';
+  const guideId = process.argv.slice(2).find(a => !a.startsWith('--')) || 'vaultwarden';
 
   const guidePath = join(ROOT, 'content', `${guideId}.md`);
   const manifestPath = join(ROOT, 'guides.json');
@@ -960,6 +967,21 @@ function main() {
     console.warn('\n[lint] avertissements:');
     for (const i of issues) console.warn('   - ' + i);
   } else log('lint OK');
+
+  // --strict (CI) : [A] parcours et [E] bilingue cassent la plateforme
+  // (liens, prérequis, pages à moitié traduites) => échec. [C] (schéma
+  // obligatoire) reste un avertissement visible, dette éditoriale.
+  if (process.argv.includes('--strict')) {
+    const gh = process.env.GITHUB_ACTIONS === 'true';
+    const blocking = issues.filter(i => i.startsWith('[A]') || i.startsWith('[E]'));
+    if (gh) for (const i of issues.filter(i => !blocking.includes(i)))
+      console.log(`::warning file=content/${guideId}.md::${i}`);
+    if (blocking.length) {
+      for (const i of blocking)
+        console.error(gh ? `::error file=content/${guideId}.md::${i}` : `[strict] ${i}`);
+      process.exit(1);
+    }
+  }
 
   const html = renderPage({ fm, body: sections, manifest, config, logoSvg });
 
