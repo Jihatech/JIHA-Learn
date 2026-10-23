@@ -52,6 +52,8 @@ La méthode JIHA-Learn ancre tout **en local** (miniblue, sans compte cloud). Un
 
 Recommandation : **C**, en signalant explicitement dans chaque étape ce qui est simulé et ce qui est réel.
 
+**Décision (2026-10-23) : option C retenue.** Chaque étape indique `local` ou `abonnement d'essai (optionnel)`. Une étape optionnelle commence par un avertissement de coût et se termine par le nettoyage des ressources.
+
 ## Plan proposé (par priorité)
 
 1. **`azure-securite-ia`** (nouveau) : le seul domaine à 0 % et la raison d'être du SC-500. Prérequis : `azure-securite-identite`.
