@@ -173,8 +173,8 @@ Launch two containers (no `--network` → default bridge) and look:
 :::
 
 ```bash
-docker run -d --name c1 alpine sleep 1000
-docker run -d --name c2 alpine sleep 1000
+docker run -d --name c1 alpine:3.20 sleep 1000
+docker run -d --name c2 alpine:3.20 sleep 1000
 docker network inspect bridge --format '{{range .Containers}}{{.Name}}={{.IPv4Address}} {{end}}'
 ```
 
@@ -202,7 +202,7 @@ docker network inspect bridge --format '{{range .Containers}}{{.Name}}={{.IPv4Ad
 
 ```bash
 docker exec c1 ping -c 2 c2                         # ÉCHOUE : pas de DNS par nom / FAILS: no DNS by name
-IP2=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' c2)
+IP2=$(docker inspect -f '{{.NetworkSettings.Networks.bridge.IPAddress}}' c2)
 docker exec c1 ping -c 2 "$IP2"                     # MARCHE : par IP / WORKS: by IP
 ```
 
@@ -231,7 +231,7 @@ docker exec c1 ping -c 2 "$IP2"                     # MARCHE : par IP / WORKS: b
 ```bash
 docker network create appnet                       # bridge utilisateur (DNS interne activé) / user bridge (internal DNS)
 docker run -d --name web --network appnet nginx:1.27-alpine
-docker run --rm --network appnet alpine ping -c 2 web    # joint "web" PAR NOM / reaches "web" BY NAME
+docker run --rm --network appnet alpine:3.20 ping -c 2 web    # joint "web" PAR NOM / reaches "web" BY NAME
 ```
 
 :::lang fr
@@ -285,8 +285,8 @@ docker port web-pub                              # récapitule les publications 
 :::
 
 ```bash
-docker run --rm --network host alpine ip addr    # VOIT les interfaces de l'HÔTE / SEES the HOST's interfaces
-docker run --rm --network none alpine ip addr    # ne voit QUE lo / sees ONLY lo
+docker run --rm --network host alpine:3.20 ip addr    # VOIT les interfaces de l'HÔTE / SEES the HOST's interfaces
+docker run --rm --network none alpine:3.20 ip addr    # ne voit QUE lo / sees ONLY lo
 ```
 
 :::lang fr
@@ -435,11 +435,11 @@ docker network ls ; docker network inspect NOM
 # Réseau utilisateur = DNS par nom / user network = DNS by name
 docker network create appnet
 docker run -d --name web --network appnet nginx:1.27-alpine
-docker run --rm --network appnet alpine ping -c1 web       # résout par NOM / resolves by NAME
+docker run --rm --network appnet alpine:3.20 ping -c1 web       # résout par NOM / resolves by NAME
 
 # Publication de ports / port publishing  (EXPOSE ne publie RIEN / publishes NOTHING)
-docker run -d -p 8080:80 web              # -p HÔTE:CONTENEUR   (-P = tous, aléatoire / all, random)
-docker run -d -p 127.0.0.1:8080:80 web    # restreint à localhost / restrict to localhost
+docker run -d -p 8080:80 nginx:1.27-alpine              # -p HÔTE:CONTENEUR   (-P = tous, aléatoire / all, random)
+docker run -d -p 127.0.0.1:8080:80 nginx:1.27-alpine    # restreint à localhost / restrict to localhost
 docker port CONTENEUR
 
 # host / none

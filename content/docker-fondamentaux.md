@@ -99,7 +99,7 @@ Tu dois avoir :
 - Une aisance en **ligne de commande Linux** (`cd`, `ls`, éditer un fichier) — sinon, repasse par le guide sur la ligne de commande.
 - Une **machine Linux** (native ou VM), macOS, ou Windows avec WSL2 (installe Ubuntu via WSL2 si besoin).
 - **Docker Engine installé** — suis le [guide officiel d'installation](https://docs.docker.com/engine/install/) pour ton OS.
-- `docker --version` qui répond, et `docker run hello-world` qui fonctionne.
+- `docker --version` qui répond, et `sudo docker run hello-world` qui fonctionne (sans `sudo` une fois l'étape ci-dessous faite).
 
 ⚠️ **Sur Linux**, ajoute ton utilisateur au groupe `docker` pour éviter d'utiliser `sudo` à chaque commande :
 :::
@@ -110,7 +110,7 @@ You should have:
 - Comfort with the **Linux command line** (`cd`, `ls`, editing a file) — if not, go back through the command-line guide.
 - A **Linux machine** (native or VM), macOS, or Windows with WSL2 (install Ubuntu via WSL2 if needed).
 - **Docker Engine installed** — follow the [official installation guide](https://docs.docker.com/engine/install/) for your OS.
-- `docker --version` responding, and `docker run hello-world` working.
+- `docker --version` responding, and `sudo docker run hello-world` working (no `sudo` needed once the step below is done).
 
 ⚠️ **On Linux**, add your user to the `docker` group to avoid typing `sudo` before every command:
 :::
@@ -120,11 +120,11 @@ sudo usermod -aG docker $USER
 ```
 
 :::lang fr
-Puis déconnexion/reconnexion. Sinon, tu mettras `sudo` devant chaque `docker ...` ci-dessous.
+Puis déconnexion/reconnexion (sous WSL : ferme et rouvre le terminal ; ou tape `newgrp docker` pour l'appliquer tout de suite). Sinon, tu mettras `sudo` devant chaque `docker ...` ci-dessous.
 :::
 
 :::lang en
-Then log out and back in. Otherwise, prefix every `docker ...` command below with `sudo`.
+Then log out and back in (on WSL: close and reopen the terminal; or run `newgrp docker` to apply it right away). Otherwise, prefix every `docker ...` command below with `sudo`.
 :::
 
 ## concepts
@@ -241,13 +241,13 @@ docker rm web
 :::lang fr
 **Objectif.** Exposer un port du conteneur sur ta machine.
 
-**🤔 Pourquoi `8080:80` ?** Syntaxe `HOTE:CONTENEUR`. Le conteneur expose le port 80 (nginx écoute là), on le mappe au port 8080 de ta machine. Tu pourrais mettre `80:80`, mais il faut être root pour les ports sous 1024 — d'où la convention `8080`.
+**🤔 Pourquoi `8080:80` ?** Syntaxe `HOTE:CONTENEUR`. Le conteneur expose le port 80 (nginx écoute là), on le mappe au port 8080 de ta machine. Tu pourrais mettre `80:80` (c'est le démon Docker, qui tourne en root, qui ouvre le port), mais le port 80 de ta machine est souvent déjà pris ou réservé à un futur reverse proxy : d'où la convention `8080`.
 :::
 
 :::lang en
 **Goal.** Expose a container port on your machine.
 
-**🤔 Why `8080:80`?** The syntax is `HOST:CONTAINER`. The container exposes port 80 (nginx listens there); we map it to port 8080 on your machine. You could use `80:80`, but ports below 1024 require root — hence the `8080` convention.
+**🤔 Why `8080:80`?** The syntax is `HOST:CONTAINER`. The container exposes port 80 (nginx listens there); we map it to port 8080 on your machine. You could use `80:80` (the Docker daemon, running as root, opens the port), but port 80 on your machine is often already taken or kept for a future reverse proxy: hence the `8080` convention.
 :::
 
 ```bash
@@ -322,6 +322,7 @@ docker run -d --name db \
   -e POSTGRES_USER=alice \
   -e POSTGRES_DB=mabase \
   postgres:16
+sleep 5   # Postgres met quelques secondes à démarrer / Postgres takes a few seconds to start
 ```
 
 :::lang fr
@@ -370,11 +371,12 @@ First, the problem test:
 docker exec -it db psql -U alice -d mabase -c "CREATE TABLE test (id INT);"
 docker rm -f db
 docker run -d --name db -e POSTGRES_PASSWORD=monsecret -e POSTGRES_USER=alice -e POSTGRES_DB=mabase postgres:16
+sleep 5
 docker exec -it db psql -U alice -d mabase -c "\dt"
 ```
 
 :::lang fr
-**Résultat :** ta table `test` n'existe plus. Sans volume, les données meurent avec le conteneur.
+**Résultat :** ta table `test` n'existe plus pour le nouveau conteneur. Sans volume **nommé**, Postgres écrit dans un volume anonyme propre à *ce* conteneur : le suivant en reçoit un autre, vide, et l'ancien reste orphelin sur ton disque (`docker volume ls` le montre, l'étape 8 le nettoie).
 
 La solution — un **volume nommé** :
 
@@ -382,7 +384,7 @@ La solution — un **volume nommé** :
 :::
 
 :::lang en
-**Result:** your `test` table is gone. Without a volume, data dies with the container.
+**Result:** your `test` table is gone for the new container. Without a **named** volume, Postgres writes into an anonymous volume tied to *that* container: the next one gets another, empty one, and the old one stays orphaned on your disk (`docker volume ls` shows it, step 8 cleans it up).
 
 The fix — a **named volume**:
 
@@ -397,6 +399,7 @@ docker run -d --name db \
   -e POSTGRES_DB=mabase \
   -v db-data:/var/lib/postgresql/data \
   postgres:16
+sleep 5   # Postgres met quelques secondes à démarrer / Postgres takes a few seconds to start
 ```
 
 :::lang fr
@@ -475,7 +478,13 @@ docker exec -it client wget -qO- http://api
 - `:1.0` : c'est le **tag** de l'image. Sans tag, c'est `latest` par défaut — et comme pour tout service en prod, **toujours tagger explicitement**.
 - `--rm` : supprime le conteneur dès qu'il termine. Utile pour les tests one-shot.
 
-Crée `Dockerfile` :
+Place-toi dans un dossier dédié (sinon `docker build .` envoie tout ton `$HOME` comme contexte de build) :
+
+```bash
+mkdir -p ~/mon-app && cd ~/mon-app
+```
+
+Crée `Dockerfile` (par exemple avec `nano Dockerfile`) :
 :::
 
 :::lang en
@@ -487,7 +496,13 @@ Crée `Dockerfile` :
 - `:1.0`: that's the image **tag**. Without a tag it defaults to `latest` — and as with any production service, **always tag explicitly**.
 - `--rm`: removes the container as soon as it exits. Handy for one-shot tests.
 
-Create `Dockerfile`:
+Work in a dedicated folder (otherwise `docker build .` sends your whole `$HOME` as the build context):
+
+```bash
+mkdir -p ~/mon-app && cd ~/mon-app
+```
+
+Create `Dockerfile` (for instance with `nano Dockerfile`):
 :::
 
 ```dockerfile
@@ -523,7 +538,7 @@ docker run --rm mon-app:1.0
 ```
 
 :::lang fr
-**✅ Vérification :** la sortie affiche `Hello from my custom image!`, et `docker images` liste `mon-app` avec le tag `1.0`.
+**✅ Vérification :** la sortie affiche `Hello from my custom image!`, et `docker images` liste `mon-app:1.0`.
 :::
 
 :::lang en
@@ -552,11 +567,11 @@ docker system df              # combien tout ça pèse / how much it all weighs
 ```
 
 :::lang fr
-⚠️ **Les deux commandes suivantes sont destructives.** `docker system prune` supprime les conteneurs arrêtés et les images non taggées — irréversible. La variante `-a --volumes` supprime en plus **toutes les images inutilisées et tous les volumes non rattachés à un conteneur**. Si un volume contient des données précieuses non rattachées (ex. tu as fait `docker rm` sans relancer le conteneur), ces données **disparaissent définitivement**. Vérifie `docker volume ls` avant.
+⚠️ **Les deux commandes suivantes sont destructives.** `docker system prune` supprime les conteneurs arrêtés et les images non taggées — irréversible. La variante `-a --volumes` supprime en plus **toutes les images inutilisées et les volumes anonymes non rattachés** à un conteneur. Depuis Docker Engine 23, les volumes **nommés** (comme `db-data`) sont épargnés : c'est `docker volume prune -a` ou `docker volume rm` qui les supprime, **définitivement**. Vérifie `docker volume ls` avant.
 :::
 
 :::lang en
-⚠️ **The next two commands are destructive.** `docker system prune` removes stopped containers and untagged images — irreversibly. The `-a --volumes` variant additionally removes **all unused images and all volumes not attached to a container**. If a volume holds valuable data that isn't attached (e.g. you ran `docker rm` without restarting the container), that data is **gone for good**. Check `docker volume ls` first.
+⚠️ **The next two commands are destructive.** `docker system prune` removes stopped containers and untagged images — irreversibly. The `-a --volumes` variant additionally removes **all unused images and the anonymous volumes not attached** to a container. Since Docker Engine 23, **named** volumes (like `db-data`) are spared: `docker volume prune -a` or `docker volume rm` is what deletes them, **for good**. Check `docker volume ls` first.
 :::
 
 ```bash
@@ -568,11 +583,11 @@ docker system prune -a --volumes
 ```
 
 :::lang fr
-**✅ Vérification :** `docker system df` montre un espace récupéré (colonne `RECLAIMABLE` en baisse), et ton volume `db-data` est toujours listé par `docker volume ls` **si** le conteneur `db` tournait encore au moment du prune.
+**✅ Vérification :** `docker system df` montre un espace récupéré (colonne `RECLAIMABLE` en baisse), et ton volume `db-data` est toujours listé par `docker volume ls` (volume nommé : `prune --volumes` ne retire que les volumes anonymes, comme l'orphelin de l'étape 5).
 :::
 
 :::lang en
-**✅ Check:** `docker system df` shows reclaimed space (the `RECLAIMABLE` column went down), and your `db-data` volume is still listed by `docker volume ls` **if** the `db` container was still running when you pruned.
+**✅ Check:** `docker system df` shows reclaimed space (the `RECLAIMABLE` column went down), and your `db-data` volume is still listed by `docker volume ls` (a named volume: `prune --volumes` only removes anonymous ones, like the step 5 orphan).
 :::
 
 ## pitfalls
@@ -689,7 +704,7 @@ docker pull nginx:1.27             # télécharger / download
 docker system df                   # qui pèse quoi / what weighs what
 docker volume ls                   # lister les volumes AVANT de nettoyer / list volumes BEFORE cleaning
 docker system prune                # doux / gentle
-docker system prune -a --volumes   # ⚠️ agressif : supprime volumes non utilisés / aggressive: removes unused volumes
+docker system prune -a --volumes   # ⚠️ agressif : images inutilisées + volumes anonymes / aggressive: unused images + anonymous volumes
 ```
 
 ## resources

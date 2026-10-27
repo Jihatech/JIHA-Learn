@@ -182,10 +182,10 @@ Create the volume, write into it from a container, **delete** the container, rea
 
 ```bash
 docker volume create appdata
-docker run --rm -v appdata:/data alpine sh -c "echo 'donnée persistante' > /data/note.txt"
+docker run --rm -v appdata:/data alpine:3.20 sh -c "echo 'donnée persistante' > /data/note.txt"
 # le conteneur ci-dessus est déjà supprimé (--rm) ; la donnée, elle, reste
 # the container above is already gone (--rm); the data stays
-docker run --rm -v appdata:/data alpine cat /data/note.txt      # -> "donnée persistante"
+docker run --rm -v appdata:/data alpine:3.20 cat /data/note.txt      # -> "donnée persistante"
 docker volume inspect appdata --format '{{.Mountpoint}}'         # où Docker le range / where Docker stores it
 ```
 
@@ -243,7 +243,7 @@ curl -s localhost:8080                       # -> "Bind mount v2" (reflété en 
 :::
 
 ```bash
-docker run -d --name cache --tmpfs /scratch alpine sleep 600
+docker run -d --name cache --tmpfs /scratch alpine:3.20 sleep 600
 docker exec cache sh -c "echo secret > /scratch/token ; ls -l /scratch"   # écrit en RAM / writes in RAM
 docker exec cache df -h /scratch                     # type tmpfs / filesystem tmpfs
 docker restart cache
@@ -274,12 +274,12 @@ docker exec cache ls /scratch                        # VIDE : effacé au redéma
 
 ```bash
 # même volume, deux écritures / same volume, two spellings
-docker run --rm -v appdata:/data alpine ls /data
-docker run --rm --mount type=volume,source=appdata,target=/data alpine ls /data
+docker run --rm -v appdata:/data alpine:3.20 ls /data
+docker run --rm --mount type=volume,source=appdata,target=/data alpine:3.20 ls /data
 
 # LA différence sur un bind mount vers un chemin INEXISTANT / THE difference on a MISSING host path
-docker run --rm -v "$(pwd)/inexistant":/x alpine ls /x         # -v CRÉE un dossier vide / -v CREATES an empty dir
-docker run --rm --mount type=bind,source="$(pwd)/inexistant2",target=/x alpine ls /x || \
+docker run --rm -v "$(pwd)/inexistant":/x alpine:3.20 ls /x         # -v CRÉE un dossier vide / -v CREATES an empty dir
+docker run --rm --mount type=bind,source="$(pwd)/inexistant2",target=/x alpine:3.20 ls /x || \
   echo "--mount ÉCHOUE si la source n'existe pas / --mount FAILS if the source doesn't exist"
 ```
 
@@ -306,12 +306,12 @@ docker run --rm --mount type=bind,source="$(pwd)/inexistant2",target=/x alpine l
 :::
 
 ```bash
-docker run -d --name producteur -v shared:/out alpine \
+docker run -d --name producteur -v shared:/out alpine:3.20 \
   sh -c "while true; do date > /out/heure.txt; sleep 2; done"
 sleep 1                                                    # laisse le producteur écrire une 1re fois / let the producer write once
-docker run --rm -v shared:/in alpine cat /in/heure.txt     # lit ce que l'autre écrit / reads what the other writes
+docker run --rm -v shared:/in alpine:3.20 cat /in/heure.txt     # lit ce que l'autre écrit / reads what the other writes
 sleep 3
-docker run --rm -v shared:/in alpine cat /in/heure.txt     # valeur mise à jour / updated value
+docker run --rm -v shared:/in alpine:3.20 cat /in/heure.txt     # valeur mise à jour / updated value
 ```
 
 :::lang fr
@@ -338,23 +338,23 @@ docker run --rm -v shared:/in alpine cat /in/heure.txt     # valeur mise à jour
 
 ```bash
 # SAUVEGARDE : volume -> archive .tar.gz sur l'hôte / BACKUP: volume -> .tar.gz on the host
-docker run --rm -v appdata:/data -v "$(pwd)":/backup alpine \
+docker run --rm -v appdata:/data -v "$(pwd)":/backup alpine:3.20 \
   tar czf /backup/appdata.tar.gz -C /data .
 ls -lh appdata.tar.gz
 
 # RESTAURATION dans un nouveau volume / RESTORE into a new volume
 docker volume create appdata-restore
-docker run --rm -v appdata-restore:/data -v "$(pwd)":/backup alpine \
+docker run --rm -v appdata-restore:/data -v "$(pwd)":/backup alpine:3.20 \
   tar xzf /backup/appdata.tar.gz -C /data
-docker run --rm -v appdata-restore:/data alpine cat /data/note.txt   # -> "donnée persistante"
+docker run --rm -v appdata-restore:/data alpine:3.20 cat /data/note.txt   # -> "donnée persistante"
 ```
 
 :::lang fr
-**✅ Vérification :** la sauvegarde produit `appdata.tar.gz` sur l'hôte (l'archive du contenu du volume `appdata`, monté en lecture dans un conteneur `alpine` jetable + le dossier hôte monté en `/backup`). La restauration extrait cette archive dans un **nouveau** volume `appdata-restore`, et le `cat` final y retrouve **`donnée persistante`** — la donnée a voyagé **volume → archive → nouveau volume**. C'est **le** motif de sauvegarde des volumes Docker (il n'existe pas de `docker volume backup` natif). `docker volume prune` supprime enfin les volumes **inutilisés**. *(Nettoyage — le conteneur AVANT son volume : `docker rm -f producteur 2>/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz`.)*
+**✅ Vérification :** la sauvegarde produit `appdata.tar.gz` sur l'hôte (l'archive du contenu du volume `appdata`, monté en lecture dans un conteneur `alpine` jetable + le dossier hôte monté en `/backup`). La restauration extrait cette archive dans un **nouveau** volume `appdata-restore`, et le `cat` final y retrouve **`donnée persistante`** — la donnée a voyagé **volume → archive → nouveau volume**. C'est **le** motif de sauvegarde des volumes Docker (il n'existe pas de `docker volume backup` natif). `docker volume prune` supprime les volumes **anonymes** inutilisés ; `docker volume prune -a` supprime aussi les volumes **nommés** inutilisés (⚠️ irréversible : leurs données sont perdues). *(Nettoyage — le conteneur AVANT son volume : `docker rm -f producteur 2>/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz`.)*
 :::
 
 :::lang en
-**✅ Check:** the backup produces `appdata.tar.gz` on the host (the archive of the `appdata` volume's content, mounted read into a throwaway `alpine` container + the host folder mounted at `/backup`). The restore extracts that archive into a **new** `appdata-restore` volume, and the final `cat` finds **`donnée persistante`** there — the data traveled **volume → archive → new volume**. That's **the** Docker volume backup pattern (there's no native `docker volume backup`). `docker volume prune` finally removes **unused** volumes. *(Cleanup — the container BEFORE its volume: `docker rm -f producteur 2>/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz`.)*
+**✅ Check:** the backup produces `appdata.tar.gz` on the host (the archive of the `appdata` volume's content, mounted read into a throwaway `alpine` container + the host folder mounted at `/backup`). The restore extracts that archive into a **new** `appdata-restore` volume, and the final `cat` finds **`donnée persistante`** there — the data traveled **volume → archive → new volume**. That's **the** Docker volume backup pattern (there's no native `docker volume backup`). `docker volume prune` removes unused **anonymous** volumes; `docker volume prune -a` also removes unused **named** volumes (⚠️ irreversible: their data is lost). *(Cleanup — the container BEFORE its volume: `docker rm -f producteur 2>/dev/null ; docker volume rm appdata appdata-restore shared ; rm -f appdata.tar.gz`.)*
 :::
 
 ## pitfalls
@@ -370,7 +370,7 @@ docker run --rm -v appdata-restore:/data alpine cat /data/note.txt   # -> "donn�
 
 **5. Attendre que `tmpfs` persiste.** Il est **volatil** (RAM) : perdu à l'arrêt. Ne t'en sers **pas** pour des données à conserver.
 
-**6. Supprimer un conteneur en pensant supprimer son volume.** Le volume **survit** (`docker rm` ne le touche pas ; `docker rm -v` supprime les volumes **anonymes** seulement). Nettoie avec `docker volume prune`/`rm`.
+**6. Supprimer un conteneur en pensant supprimer son volume.** Le volume **survit** (`docker rm` ne le touche pas ; `docker rm -v` supprime les volumes **anonymes** seulement). Nettoie avec `docker volume rm NOM` (ou `docker volume prune -a` pour tous les volumes inutilisés, nommés compris).
 
 **7. Croire à un chemin hôte identique partout.** Un bind mount `$(pwd)/site` dépend de **ta** machine — non reproductible ailleurs. Pour du portable → volume nommé.
 :::
@@ -386,7 +386,7 @@ docker run --rm -v appdata-restore:/data alpine cat /data/note.txt   # -> "donn�
 
 **5. Expecting `tmpfs` to persist.** It's **volatile** (RAM): lost on stop. Do **not** use it for data to keep.
 
-**6. Deleting a container thinking it deletes its volume.** The volume **survives** (`docker rm` doesn't touch it; `docker rm -v` removes **anonymous** volumes only). Clean up with `docker volume prune`/`rm`.
+**6. Deleting a container thinking it deletes its volume.** The volume **survives** (`docker rm` doesn't touch it; `docker rm -v` removes **anonymous** volumes only). Clean up with `docker volume rm NAME` (or `docker volume prune -a` for all unused volumes, named ones included).
 
 **7. Assuming an identical host path everywhere.** A bind mount `$(pwd)/site` depends on **your** machine — not reproducible elsewhere. For portability → named volume.
 :::
@@ -463,10 +463,10 @@ docker run --tmpfs /chemin img
 docker run -v shared:/a img1 ; docker run -v shared:/b img2
 
 # Sauvegarde / backup  (pas de commande native / no native command)
-docker run --rm -v NOM:/data -v "$(pwd)":/backup alpine tar czf /backup/vol.tar.gz -C /data .
-docker run --rm -v NOM2:/data -v "$(pwd)":/backup alpine tar xzf /backup/vol.tar.gz -C /data
+docker run --rm -v NOM:/data -v "$(pwd)":/backup alpine:3.20 tar czf /backup/vol.tar.gz -C /data .
+docker run --rm -v NOM2:/data -v "$(pwd)":/backup alpine:3.20 tar xzf /backup/vol.tar.gz -C /data
 
-docker volume prune                    # supprime les volumes inutilisés / remove unused
+docker volume prune -a                 # ⚠️ TOUS les volumes inutilisés, nommés compris / ALL unused volumes, named included
 ```
 
 ## resources

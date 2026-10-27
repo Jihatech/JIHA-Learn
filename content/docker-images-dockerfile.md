@@ -185,8 +185,10 @@ echo "print('bonjour')" > app.py
 cat > Dockerfile <<'EOF'
 FROM python:3.12-slim
 WORKDIR /app
-COPY app.py .                 # <- le code (change souvent) AVANT / code (changes often) BEFORE
-RUN pip install --no-cache-dir requests   # <- les deps (changent rarement) APRÈS / deps AFTER
+# <- le code (change souvent) AVANT / code (changes often) BEFORE
+COPY app.py .
+# <- les deps (changent rarement) APRÈS / deps AFTER
+RUN pip install --no-cache-dir requests
 CMD ["python", "app.py"]
 EOF
 
@@ -221,14 +223,14 @@ docker build -t demo:v2 .            # rebuild
 # CMD seul : entièrement remplaçable / CMD only: fully replaceable
 printf 'FROM alpine:3.20\nCMD ["echo", "défaut CMD"]\n' > Dockerfile.cmd
 docker build -t t-cmd -f Dockerfile.cmd .
-docker run t-cmd                 # -> "défaut CMD"
-docker run t-cmd echo autre      # -> "autre" (CMD entièrement écrasé) / CMD fully overridden
+docker run --rm t-cmd            # -> "défaut CMD"
+docker run --rm t-cmd echo autre # -> "autre" (CMD entièrement écrasé) / CMD fully overridden
 
 # ENTRYPOINT + CMD : programme fixe + args par défaut / fixed program + default args
 printf 'FROM alpine:3.20\nENTRYPOINT ["echo"]\nCMD ["défaut arg"]\n' > Dockerfile.ep
 docker build -t t-ep -f Dockerfile.ep .
-docker run t-ep                  # -> "défaut arg"
-docker run t-ep bonjour          # -> "bonjour" (seul l'ARGUMENT change) / only the ARGUMENT changes
+docker run --rm t-ep             # -> "défaut arg"
+docker run --rm t-ep bonjour     # -> "bonjour" (seul l'ARGUMENT change) / only the ARGUMENT changes
 ```
 
 :::lang fr
@@ -256,8 +258,10 @@ docker run t-ep bonjour          # -> "bonjour" (seul l'ARGUMENT change) / only 
 ```bash
 cat > Dockerfile.vars <<'EOF'
 FROM nginx:1.27-alpine
-ARG VERSION=dev                 # variable de BUILD (absente de l'image finale) / BUILD var
-ENV APP_VERSION=$VERSION         # persistée DANS l'image / persisted IN the image
+# variable de BUILD (absente de l'image finale) / BUILD var
+ARG VERSION=dev
+# persistée DANS l'image / persisted IN the image
+ENV APP_VERSION=$VERSION
 RUN echo "build de la version $VERSION" > /usr/share/nginx/html/index.html
 HEALTHCHECK --interval=5s --timeout=3s CMD wget -qO- localhost/ || exit 1
 EOF
@@ -311,21 +315,23 @@ RUN go mod init app && CGO_ENABLED=0 go build -o /app .
 
 # --- étape 2 : finale (minimale) / stage 2: final (minimal) ---
 FROM alpine:3.20
-COPY --from=build /app /app          # ne copie QUE le binaire / copies ONLY the binary
+# ne copie QUE le binaire / copies ONLY the binary
+COPY --from=build /app /app
 EXPOSE 8080
 ENTRYPOINT ["/app"]
 EOF
 docker build -t t-multi -f Dockerfile.multi .
 
+docker pull -q golang:1.22-alpine            # BuildKit ne garde pas l'image de build en local / BuildKit doesn't keep the build-stage image locally
 docker images | grep -E 'golang|t-multi'    # compare les tailles / compare the sizes
 ```
 
 :::lang fr
-**✅ Vérification :** `docker images` montre que **`golang:1.22-alpine`** pèse plusieurs centaines de Mo, tandis que **`t-multi`** ne fait que **~15-20 Mo** (Alpine + le binaire). L'image finale **ne contient ni Go, ni les sources** — le `COPY --from=build` n'a repris **que** le binaire compilé. Lance-la (`docker run -d -p 8080:8080 t-multi` puis `curl localhost:8080`) : elle sert la page. **Le multi-stage** est la technique n°1 pour des images de prod légères, rapides à distribuer et à faible surface d'attaque. *(Nettoyage : `docker rm -f $(docker ps -aq --filter ancestor=t-multi) 2>/dev/null`.)*
+**✅ Vérification :** `docker images` montre que **`golang:1.22-alpine`** pèse plusieurs centaines de Mo, tandis que **`t-multi`** ne fait que **~8 Mo compressés, ~25 Mo sur disque** (colonnes `CONTENT SIZE` et `DISK USAGE` : Alpine + le binaire). L'image finale **ne contient ni Go, ni les sources** — le `COPY --from=build` n'a repris **que** le binaire compilé. Lance-la (`docker run -d -p 8080:8080 t-multi` puis `curl localhost:8080`) : elle sert la page. **Le multi-stage** est la technique n°1 pour des images de prod légères, rapides à distribuer et à faible surface d'attaque. *(Nettoyage : `docker rm -f $(docker ps -aq --filter ancestor=t-multi) 2>/dev/null`.)*
 :::
 
 :::lang en
-**✅ Check:** `docker images` shows that **`golang:1.22-alpine`** weighs several hundred MB, while **`t-multi`** is only **~15-20 MB** (Alpine + the binary). The final image contains **neither Go nor the sources** — the `COPY --from=build` took **only** the compiled binary. Run it (`docker run -d -p 8080:8080 t-multi` then `curl localhost:8080`): it serves the page. **Multi-stage** is the #1 technique for lightweight production images, fast to distribute and low attack surface. *(Cleanup: `docker rm -f $(docker ps -aq --filter ancestor=t-multi) 2>/dev/null`.)*
+**✅ Check:** `docker images` shows that **`golang:1.22-alpine`** weighs several hundred MB, while **`t-multi`** is only **~8 MB compressed, ~25 MB on disk** (`CONTENT SIZE` and `DISK USAGE` columns: Alpine + the binary). The final image contains **neither Go nor the sources** — the `COPY --from=build` took **only** the compiled binary. Run it (`docker run -d -p 8080:8080 t-multi` then `curl localhost:8080`): it serves the page. **Multi-stage** is the #1 technique for lightweight production images, fast to distribute and low attack surface. *(Cleanup: `docker rm -f $(docker ps -aq --filter ancestor=t-multi) 2>/dev/null`.)*
 :::
 
 ### step-05
@@ -365,18 +371,19 @@ docker builder prune -f                      # vide le cache de build / clears t
 :::lang fr
 **Objectif.** Distribuer une image : un **registre local**, et l'export **`save`/`load`**.
 
-**🤔 Ton propre Docker Hub.** L'image `registry:2` est un registre complet. On la lance, on **tague** notre image pour ce registre, on la **pousse**, et on la **retire**. Puis l'alternative hors-ligne `save`/`load`.
+**🤔 Ton propre Docker Hub.** L'image `registry:2.8.3` est un registre complet. On la lance, on **tague** notre image pour ce registre, on la **pousse**, et on la **retire**. Puis l'alternative hors-ligne `save`/`load`.
 :::
 
 :::lang en
 **Goal.** Distribute an image: a **local registry**, and the **`save`/`load`** export.
 
-**🤔 Your own Docker Hub.** The `registry:2` image is a full registry. We run it, **tag** our image for it, **push** it, and **pull** it. Then the offline `save`/`load` alternative.
+**🤔 Your own Docker Hub.** The `registry:2.8.3` image is a full registry. We run it, **tag** our image for it, **push** it, and **pull** it. Then the offline `save`/`load` alternative.
 :::
 
+```bash
 # NB : port hôte 5001 (sur macOS, 5000 est pris par AirPlay Receiver)
 # NB: host port 5001 (on macOS, 5000 is taken by AirPlay Receiver)
-docker run -d -p 5001:5000 --name registry registry:2      # registre local, exposé sur :5001 / local registry on :5001
+docker run -d -p 5001:5000 --name registry registry:2.8.3      # registre local, exposé sur :5001 / local registry on :5001
 
 docker tag t-multi localhost:5001/monapp:1.0               # tag = registre/nom:version / registry/name:version
 docker push localhost:5001/monapp:1.0                       # POUSSE vers le registre / PUSH
@@ -389,11 +396,11 @@ docker load -i monapp.tar                                   # réimporte / re-im
 ```
 
 :::lang fr
-**✅ Vérification :** `docker push localhost:5001/monapp:1.0` téléverse l'image dans **ton** registre (`registry:2`) ; après avoir retiré le **tag** local, `docker pull` le **restaure** depuis le registre — la boucle **push/pull** complète, comme avec Docker Hub, mais chez toi. *(Les couches étant déjà présentes localement, le pull affiche « Already exists » : la preuve du round-trip est le push réussi puis le pull sans erreur, pas un re-téléchargement.)* Le **tag** encode la destination : `registre/nom:version`. En parallèle, `docker save`/`load` transporte une image en **archive `.tar`** sans aucun réseau (utile en environnement isolé). Tu sais **distribuer** tes images de trois façons : Hub public, registre privé, archive. *(Nettoyage : `docker rm -f registry ; rm -f monapp.tar`.)*
+**✅ Vérification :** `docker push localhost:5001/monapp:1.0` téléverse l'image dans **ton** registre (`registry:2.8.3`) ; après avoir retiré le **tag** local, `docker pull` le **restaure** depuis le registre — la boucle **push/pull** complète, comme avec Docker Hub, mais chez toi. *(Les couches étant déjà présentes localement, le pull ne retélécharge aucune couche : il affiche seulement « Digest » et « Status: Downloaded newer image ». La preuve du round-trip est le push réussi puis le pull sans erreur, pas un re-téléchargement.)* Le **tag** encode la destination : `registre/nom:version`. En parallèle, `docker save`/`load` transporte une image en **archive `.tar`** sans aucun réseau (utile en environnement isolé). Tu sais **distribuer** tes images de trois façons : Hub public, registre privé, archive. *(Nettoyage : `docker rm -f registry ; rm -f monapp.tar`.)*
 :::
 
 :::lang en
-**✅ Check:** `docker push localhost:5001/monapp:1.0` uploads the image to **your** registry (`registry:2`); after dropping the local **tag**, `docker pull` **restores** it from the registry — the full **push/pull** loop, like with Docker Hub, but at home. *(Since the layers are already present locally, the pull prints "Already exists": the round-trip proof is the successful push then the error-free pull, not a re-download.)* The **tag** encodes the destination: `registry/name:version`. In parallel, `docker save`/`load` moves an image as a **`.tar` archive** with no network (useful in an isolated environment). You know how to **distribute** your images three ways: public Hub, private registry, archive. *(Cleanup: `docker rm -f registry ; rm -f monapp.tar`.)*
+**✅ Check:** `docker push localhost:5001/monapp:1.0` uploads the image to **your** registry (`registry:2.8.3`); after dropping the local **tag**, `docker pull` **restores** it from the registry — the full **push/pull** loop, like with Docker Hub, but at home. *(Since the layers are already present locally, the pull downloads no layer: it only prints "Digest" and "Status: Downloaded newer image". The round-trip proof is the successful push then the error-free pull, not a re-download.)* The **tag** encodes the destination: `registry/name:version`. In parallel, `docker save`/`load` moves an image as a **`.tar` archive** with no network (useful in an isolated environment). You know how to **distribute** your images three ways: public Hub, private registry, archive. *(Cleanup: `docker rm -f registry ; rm -f monapp.tar`.)*
 :::
 
 ## pitfalls
@@ -509,7 +516,7 @@ docker image prune -f ; docker builder prune -f
 
 # Distribution
 docker tag IMG registre/nom:tag ; docker push registre/nom:tag ; docker pull ...
-docker run -d -p 5001:5000 registry:2      # registre local (5001 : macOS AirPlay tient :5000) / local registry
+docker run -d -p 5001:5000 registry:2.8.3      # registre local (5001 : macOS AirPlay tient :5000) / local registry
 docker save IMG -o img.tar ; docker load -i img.tar   # hors-ligne / offline
 ```
 
@@ -518,14 +525,14 @@ docker save IMG -o img.tar ; docker load -i img.tar   # hors-ligne / offline
 :::lang fr
 - [Référence du Dockerfile](https://docs.docker.com/reference/dockerfile/) — toutes les instructions.
 - [Builds multi-stage](https://docs.docker.com/build/building/multi-stage/) et [bonnes pratiques d'image](https://docs.docker.com/build/building/best-practices/).
-- [Le registre `registry:2`](https://hub.docker.com/_/registry) et [`docker save`/`load`](https://docs.docker.com/reference/cli/docker/image/save/).
+- [Le registre `registry:2.8.3`](https://hub.docker.com/_/registry) et [`docker save`/`load`](https://docs.docker.com/reference/cli/docker/image/save/).
 - Domaine **DCA « Image Creation, Management, and Registry »** (~20 %).
 :::
 
 :::lang en
 - [Dockerfile reference](https://docs.docker.com/reference/dockerfile/) — all instructions.
 - [Multi-stage builds](https://docs.docker.com/build/building/multi-stage/) and [image best practices](https://docs.docker.com/build/building/best-practices/).
-- [The `registry:2` registry](https://hub.docker.com/_/registry) and [`docker save`/`load`](https://docs.docker.com/reference/cli/docker/image/save/).
+- [The `registry:2.8.3` registry](https://hub.docker.com/_/registry) and [`docker save`/`load`](https://docs.docker.com/reference/cli/docker/image/save/).
 - **DCA "Image Creation, Management, and Registry"** domain (~20%).
 :::
 

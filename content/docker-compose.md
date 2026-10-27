@@ -95,7 +95,7 @@ By the end of this guide, you'll know how to:
 Tu dois avoir :
 
 - Le guide **Docker fondamentaux** terminé : tu sais ce qu'est une image, un conteneur, un volume, et tu as déjà lancé un `docker run`.
-- Le plugin **Docker Compose v2** installé — `docker compose version` doit répondre. Il est inclus par défaut dans Docker Desktop et Docker Engine récents.
+- Le plugin **Docker Compose** (v2 ou plus récent, par exemple `v5.x`) installé : `docker compose version` doit répondre. Il est inclus par défaut dans Docker Desktop et Docker Engine récents.
 - Une aisance de base en **ligne de commande Linux** (`cd`, `nano`/`vim`, `ls`).
 
 ⚠️ Note importante : **`docker-compose`** (avec tiret) est l'ancien outil Python, déprécié. **`docker compose`** (sans tiret) est le plugin officiel actuel. Dans ce guide — et partout ailleurs — on utilise toujours **le sans-tiret**.
@@ -105,7 +105,7 @@ Tu dois avoir :
 You should have:
 
 - The **Docker fundamentals** guide completed: you know what an image, a container and a volume are, and you've already run a `docker run`.
-- The **Docker Compose v2** plugin installed — `docker compose version` must answer. It ships by default with Docker Desktop and recent Docker Engine.
+- The **Docker Compose** plugin (v2 or newer, e.g. `v5.x`) installed: `docker compose version` must answer. It ships by default with Docker Desktop and recent Docker Engine.
 - Basic comfort with the **Linux command line** (`cd`, `nano`/`vim`, `ls`).
 
 ⚠️ Important note: **`docker-compose`** (with a hyphen) is the old Python tool, deprecated. **`docker compose`** (no hyphen) is the current official plugin. In this guide — and everywhere else — we always use **the hyphen-less one**.
@@ -206,9 +206,12 @@ services:
       WORDPRESS_DB_USER: wp
       WORDPRESS_DB_PASSWORD: wpsecret
       WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp-data:/var/www/html
 
 volumes:
   db-data:
+  wp-data:
 ```
 
 :::lang fr
@@ -216,6 +219,7 @@ Deux détails à bien voir :
 
 - `WORDPRESS_DB_HOST: db` → grâce au réseau automatique de la stack et à son DNS interne, le nom du service `db` **est** l'adresse de la base. Aucune IP à connaître.
 - `depends_on: [db]` → démarre `wordpress` **après** `db`… mais ⚠️ ne garantit pas que la base soit *prête*, juste *démarrée*. On corrigera ça à l'étape 6.
+- `wp-data:/var/www/html` → l'image WordPress déclare ce dossier comme volume : sans volume **nommé**, ses médias, thèmes et extensions partiraient dans un volume anonyme orphelin à chaque `down`.
 - Les mots de passe en dur dans le YAML sont **provisoires** — on les sortira dans `.env` à l'étape 4.
 
 **✅ Vérification :**
@@ -226,6 +230,7 @@ Two details worth noticing:
 
 - `WORDPRESS_DB_HOST: db` → thanks to the stack's automatic network and internal DNS, the `db` service name **is** the database address. No IP to know.
 - `depends_on: [db]` → starts `wordpress` **after** `db`… but ⚠️ doesn't guarantee the database is *ready*, only *started*. We'll fix that in step 6.
+- `wp-data:/var/www/html` → the WordPress image declares this folder as a volume: without a **named** volume, its media, themes and plugins would end up in an orphaned anonymous volume on every `down`.
 - The hard-coded passwords in the YAML are **temporary** — we'll move them to `.env` in step 4.
 
 **✅ Check:**
@@ -262,7 +267,7 @@ docker compose ps
 # Les 2 services doivent être "Up"
 ```
 
-Puis ouvre `http://localhost:8080` dans ton navigateur : tu dois voir la page d'installation de WordPress. Si `db` redémarre en boucle, regarde ses logs : `docker compose logs db`.
+Attends une vingtaine de secondes (MariaDB initialise sa base au premier démarrage ; avant, WordPress affiche « Erreur lors de la connexion à la base de données »), puis ouvre `http://localhost:8080` : tu dois voir la page d'installation de WordPress. **Va au bout de l'installation** (titre, compte admin) : l'étape 3 vérifie qu'elle survit. Si `db` redémarre en boucle, regarde ses logs : `docker compose logs db`.
 :::
 
 :::lang en
@@ -273,7 +278,7 @@ docker compose ps
 # Both services should be "Up"
 ```
 
-Then open `http://localhost:8080` in your browser: you should see the WordPress install page. If `db` keeps restarting, check its logs: `docker compose logs db`.
+Wait about twenty seconds (MariaDB initializes its database on first start; before that, WordPress shows "Error establishing a database connection"), then open `http://localhost:8080`: you should see the WordPress install page. **Complete the installation** (title, admin account): step 3 checks that it survives. If `db` keeps restarting, check its logs: `docker compose logs db`.
 :::
 
 ### step-03
@@ -353,11 +358,11 @@ MARIADB_PASSWORD=wpsecret
 ```
 
 :::lang fr
-Puis modifie le service `db` dans `compose.yaml` pour interpoler ces variables :
+Puis modifie le service `db` dans `compose.yaml` pour interpoler ces variables (et dans `wordpress`, remplace `WORDPRESS_DB_PASSWORD: wpsecret` par `WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}` : même mot de passe, une seule source) :
 :::
 
 :::lang en
-Then edit the `db` service in `compose.yaml` to interpolate those variables:
+Then edit the `db` service in `compose.yaml` to interpolate those variables (and in `wordpress`, replace `WORDPRESS_DB_PASSWORD: wpsecret` with `WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}`: same password, single source):
 :::
 
 ```yaml
@@ -464,6 +469,8 @@ Then in `compose.yaml`, attach **only** `wordpress` to the shared network (and k
       WORDPRESS_DB_USER: wp
       WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}
       WORDPRESS_DB_NAME: ${MARIADB_DATABASE}
+    volumes:
+      - wp-data:/var/www/html
     networks:
       - default
       - proxy
@@ -542,12 +549,15 @@ services:
       WORDPRESS_DB_USER: ${MARIADB_USER}
       WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}
       WORDPRESS_DB_NAME: ${MARIADB_DATABASE}
+    volumes:
+      - wp-data:/var/www/html
     networks:
       - default
       - proxy
 
 volumes:
   db-data:
+  wp-data:
 
 networks:
   proxy:

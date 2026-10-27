@@ -95,7 +95,7 @@ By the end of this path, you'll know how to:
 :::lang fr
 Tu dois avoir :
 
-- Un **terminal accessible** : Linux natif, macOS, ou WSL2 sur Windows. Si tu n'en as pas → installe Ubuntu via WSL2 (10 minutes, Microsoft Store).
+- Un **terminal accessible** : Linux natif ou WSL2 sur Windows. Sur macOS, la plupart des commandes marchent, mais certaines options diffèrent (`ps --sort`, `ss`, `apt`). Si tu n'en as pas → installe Ubuntu via WSL2 (10 minutes, Microsoft Store).
 - Un **éditeur texte** que tu sais ouvrir et fermer — `nano` suffit, il est installé partout, on commencera avec ça.
 - **Une heure libre** pour démarrer, et la patience d'expérimenter.
 
@@ -105,7 +105,7 @@ Tu dois avoir :
 :::lang en
 You need:
 
-- An **accessible terminal**: native Linux, macOS, or WSL2 on Windows. If you don't have one → install Ubuntu through WSL2 (10 minutes, Microsoft Store).
+- An **accessible terminal**: native Linux or WSL2 on Windows. On macOS most commands work, but some options differ (`ps --sort`, `ss`, `apt`). If you don't have one → install Ubuntu through WSL2 (10 minutes, Microsoft Store).
 - A **text editor** you know how to open and close — `nano` is enough, it's installed everywhere, and that's what we'll start with.
 - **One free hour** to get going, plus the patience to experiment.
 
@@ -208,7 +208,7 @@ ls -la
 - Les raccourcis te font éditer ta ligne sans souris ni flèches.
 - Les redirections t'ouvrent la philosophie Unix : composer des petits outils.
 
-**Mini-défi** : liste tous les fichiers `.log` de `/var/log/` en redirigeant les erreurs de permission vers `/dev/null` ; affiche les 5 dernières lignes de ton historique ; crée 10 fichiers `test1.txt` à `test10.txt` en une seule commande ; retrouve une commande tapée plus tôt avec `Ctrl-R`.
+**Mini-défi** : trouve tous les fichiers `.log` sous `/var/log/` (sous-dossiers compris) en redirigeant les erreurs de permission vers `/dev/null` ; affiche les 5 dernières commandes de ton historique ; crée 10 fichiers `test1.txt` à `test10.txt` en une seule commande ; retrouve une commande tapée plus tôt avec `Ctrl-R`.
 
 Solution :
 :::
@@ -223,24 +223,24 @@ Solution :
 - Shortcuts let you edit your line without mouse or arrow keys.
 - Redirections open up the Unix philosophy: composing small tools.
 
-**Mini-challenge:** list every `.log` file in `/var/log/` while redirecting permission errors to `/dev/null`; show the last 5 lines of your history; create 10 files `test1.txt` through `test10.txt` in a single command; find an earlier command with `Ctrl-R`.
+**Mini-challenge:** find every `.log` file under `/var/log/` (subfolders included) while redirecting permission errors to `/dev/null`; show your last 5 commands from history; create 10 files `test1.txt` through `test10.txt` in a single command; find an earlier command with `Ctrl-R`.
 
 Solution:
 :::
 
 ```bash
-ls /var/log/*.log 2>/dev/null
-tail -n 5 ~/.bash_history
+find /var/log -name "*.log" 2>/dev/null
+history 5
 cd ~/playground && touch test{1..10}.txt
 # Ctrl-R puis tape un fragment / then type a fragment, Enter pour exécuter / to run
 ```
 
 :::lang fr
-**✅ Vérification :** le `ls` n'affiche **aucune** erreur « Permission denied » (elles partent dans `/dev/null`), `ls test*.txt` montre exactement 10 fichiers, et `Ctrl-R` te retrouve une vieille commande en 3 frappes.
+**✅ Vérification :** lancé sans `2>/dev/null`, le `find` affiche des « Permission denied » (dossiers comme `/var/log/private`) ; avec, il n'en reste **aucune**. `history 5` montre tes dernières commandes (le fichier `~/.bash_history`, lui, n'est écrit qu'à la fermeture du terminal : sur une machine neuve il n'existe pas encore). `ls test*.txt` montre exactement 10 fichiers, et `Ctrl-R` te retrouve une vieille commande en 3 frappes.
 :::
 
 :::lang en
-**✅ Check:** the `ls` shows **no** "Permission denied" error (they go to `/dev/null`), `ls test*.txt` shows exactly 10 files, and `Ctrl-R` finds an old command of yours in 3 keystrokes.
+**✅ Check:** run without `2>/dev/null`, the `find` prints "Permission denied" errors (folders like `/var/log/private`); with it, **none** are left. `history 5` shows your latest commands (the `~/.bash_history` file is only written when the terminal closes: on a fresh machine it doesn't exist yet). `ls test*.txt` shows exactly 10 files, and `Ctrl-R` finds an old command of yours in 3 keystrokes.
 :::
 
 ### step-03
@@ -270,6 +270,7 @@ Solution:
 :::
 
 ```bash
+sudo apt update && sudo apt install -y jq   # jq n'est pas installé d'office / not installed by default
 grep -c bash /etc/passwd
 awk -F: '{print $1}' /etc/passwd
 awk -F: '{print $NF}' /etc/passwd | sort | uniq -c | sort -rn | head -5
@@ -277,11 +278,11 @@ curl -s https://api.github.com/users/torvalds | jq .public_repos
 ```
 
 :::lang fr
-**✅ Vérification :** chaque one-liner rend un résultat plausible (des nombres, des noms d'utilisateurs, un classement de shells), et surtout : tu sais **expliquer chaque segment** du pipeline `sort | uniq -c | sort -rn | head -5` à voix haute. Si `jq` manque : `sudo apt install jq` (Debian/Ubuntu).
+**✅ Vérification :** chaque one-liner rend un résultat plausible (des nombres, des noms d'utilisateurs, un classement de shells), et surtout : tu sais **expliquer chaque segment** du pipeline `sort | uniq -c | sort -rn | head -5` à voix haute. Si le bonus affiche `null`, regarde la réponse brute (`curl -s https://api.github.com/users/torvalds | jq .`) : « API rate limit exceeded » veut dire que ton adresse IP a dépassé le quota de l'API GitHub (60 requêtes par heure sans compte). Réessaie plus tard.
 :::
 
 :::lang en
-**✅ Check:** every one-liner returns a plausible result (numbers, usernames, a shell ranking), and above all: you can **explain each segment** of the `sort | uniq -c | sort -rn | head -5` pipeline out loud. If `jq` is missing: `sudo apt install jq` (Debian/Ubuntu).
+**✅ Check:** every one-liner returns a plausible result (numbers, usernames, a shell ranking), and above all: you can **explain each segment** of the `sort | uniq -c | sort -rn | head -5` pipeline out loud. If the bonus prints `null`, look at the raw response (`curl -s https://api.github.com/users/torvalds | jq .`): "API rate limit exceeded" means your IP went over the GitHub API quota (60 requests per hour without an account). Try again later.
 :::
 
 ### step-04
@@ -291,7 +292,7 @@ curl -s https://api.github.com/users/torvalds | jq .public_repos
 
 **🤔 Pourquoi c'est essentiel pour la suite ?** Tous les guides self-hosting de cette plateforme te feront installer des services qui parfois cassent. Savoir investiguer (`ps`, `top`/`htop`, `df`, `du`, `lsof`, `journalctl`, `dmesg`) c'est la différence entre « ça marche pas, j'abandonne » et « OK, je vois ce qui se passe ».
 
-**Mini-défi** : quel process consomme le plus de RAM sur ta machine ? Quel pourcentage de ton disque `/` est utilisé ? Quel est le dossier le plus volumineux dans ton `$HOME` ? Quel port utilise le service SSH ?
+**Mini-défi** : quel process consomme le plus de RAM sur ta machine ? Quel pourcentage de ton disque `/` est utilisé ? Quel est le dossier le plus volumineux dans ton `$HOME` ? Quel port utilise le service SSH, s'il est installé ?
 
 Solution :
 :::
@@ -301,7 +302,7 @@ Solution :
 
 **🤔 Why is this essential for what comes next?** Every self-hosting guide on this platform will have you install services that sometimes break. Knowing how to investigate (`ps`, `top`/`htop`, `df`, `du`, `lsof`, `journalctl`, `dmesg`) is the difference between "it doesn't work, I give up" and "OK, I can see what's going on".
 
-**Mini-challenge:** which process eats the most RAM on your machine? What percentage of your `/` disk is used? What's the biggest folder in your `$HOME`? Which port does the SSH service use?
+**Mini-challenge:** which process eats the most RAM on your machine? What percentage of your `/` disk is used? What's the biggest folder in your `$HOME`? Which port does the SSH service use, if it is installed?
 
 Solution:
 :::
@@ -314,11 +315,11 @@ sudo ss -tlnp | grep sshd    # ou / or: grep -i port /etc/ssh/sshd_config
 ```
 
 :::lang fr
-**✅ Vérification :** tu réponds aux 4 questions avec des valeurs concrètes (un nom de process, un pourcentage, un dossier, un numéro de port — 22 par défaut). Bonus : tu comprends pourquoi le `2>/dev/null` évite le bruit des dossiers non lisibles.
+**✅ Vérification :** tu réponds aux 4 questions avec des valeurs concrètes (un nom de process, un pourcentage, un dossier, un numéro de port : 22 par défaut, ou aucune sortie si aucun serveur SSH n'est installé, ce qui est courant sur un poste Ubuntu Desktop ou WSL). Bonus : tu comprends pourquoi le `2>/dev/null` évite le bruit des dossiers non lisibles.
 :::
 
 :::lang en
-**✅ Check:** you answer all 4 questions with concrete values (a process name, a percentage, a folder, a port number — 22 by default). Bonus: you understand why `2>/dev/null` silences the noise from unreadable folders.
+**✅ Check:** you answer all 4 questions with concrete values (a process name, a percentage, a folder, a port number: 22 by default, or no output if no SSH server is installed, which is common on Ubuntu Desktop or WSL). Bonus: you understand why `2>/dev/null` silences the noise from unreadable folders.
 :::
 
 ## pitfalls

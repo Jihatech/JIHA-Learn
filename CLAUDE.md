@@ -40,6 +40,7 @@ Ajouter ou renuméroter une étape ici impose de mettre à jour ce fichier, sino
 ```bash
 node build.mjs <id> --strict   # échoue sur [A] parcours et [E] bilingue
 node scripts/check-exams.mjs   # échoue si un examen retiré est cité
+node scripts/check-code.mjs    # échoue sur ``` déséquilibrés, commentaire en fin d'instruction Dockerfile, image sans tag
 ```
 
 Examens retirés : `retired-exams.json` (code, date, remplaçant, source officielle).
@@ -48,6 +49,13 @@ La filière sécurité Azure prépare désormais au **SC-500** ; son volet IA re
 
 `[C]` (schéma manquant dans `concepts`) reste un avertissement : c'est une dette
 à corriger, pas un blocage. Dettes connues : `cicd-gitlab-local`, `terraform-localstack`.
+
+## Rejouer un guide comme un étudiant
+
+Une commande qui « a l'air juste » ne suffit pas : en octobre 2026, le rejeu de la filière Docker
+sur une Ubuntu vierge a trouvé 3 Dockerfile qui ne buildaient pas et 4 explications fausses sur
+Docker 29. Pour tout guide nouveau ou modifié, rejoue ses commandes sur une machine neuve
+(conteneur Ubuntu privilégié, `/var/lib/docker` sur un volume) avant publication.
 
 ## Règles de travail
 
