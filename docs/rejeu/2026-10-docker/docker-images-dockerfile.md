@@ -1,0 +1,33 @@
+# Rejeu : docker-images-dockerfile
+Verdict : ❌ bloquant
+Machine : Ubuntu 24.04 vierge (rb-images) · Durée réelle : ~15 min (annoncée 175) · Étapes rejouées : 6/6
+
+Prérequis appliqué (chaîne docker-compose → docker-fondamentaux) : Docker Engine installé via le dépôt apt officiel (lien du guide docker-fondamentaux : docker-ce 29.9.2, buildx 0.38.1, compose v5.6.1) + `sudo usermod -aG docker $USER`. Démon lancé à la main (`dockerd &`, pas de systemd : limite du bac à sable).
+
+## Écarts
+| # | Étape | Gravité (bloquant/majeur/mineur) | Constat (commande + sortie réelle, courte) | Correctif proposé (texte exact à remplacer → nouveau texte) |
+|---|---|---|---|---|
+| 1 | step-01 | bloquant | Le Dockerfile contient des commentaires en fin d'instruction ; un Dockerfile n'accepte `#` qu'en début de ligne. `docker build -t demo:v1 .` → `ERROR: failed to solve: cannot copy to non-directory: .../app/BEFORE` (COPY prend `#`, `<-`, `le`, ..., `BEFORE` pour des sources/une destination). L'étape entière (et donc le guide) ne peut pas démarrer. | `COPY app.py .                 # <- le code (change souvent) AVANT / code (changes often) BEFORE` → `# <- le code (change souvent) AVANT / code (changes often) BEFORE` puis, ligne suivante, `COPY app.py .` ; pareil pour `RUN pip install --no-cache-dir requests   # <- les deps ...` (commentaire sur sa propre ligne au-dessus). |
+| 2 | step-03 | bloquant | Même bug : `ENV APP_VERSION=$VERSION         # persistée DANS l'image ...` → `ERROR: failed to solve: Syntax error - can't find = in "#". Must be of the form: name=value`. Ensuite `docker run -d --name web t-vars` → `pull access denied for t-vars`. La ligne `ARG VERSION=dev   # ...` passe sans erreur mais déclare des ARG parasites (`#`, `variable`...) : faux silencieux. | Mettre les deux commentaires sur leur propre ligne : `# variable de BUILD (absente de l'image finale) / BUILD var` + `ARG VERSION=dev` ; `# persistée DANS l'image / persisted IN the image` + `ENV APP_VERSION=$VERSION`. Après correction : `printenv APP_VERSION` → `1.4`, `printenv VERSION` → rc=1, `Up 8 seconds (healthy)` : conforme. |
+| 3 | step-04 | bloquant | Même bug : `COPY --from=build /app /app          # ne copie QUE le binaire ...` → `ERROR: lstat /#: no such file or directory`. Après correction : build OK, `curl localhost:8080` → `Hello depuis un binaire Go statique`. | `COPY --from=build /app /app          # ne copie QUE le binaire / copies ONLY the binary` → `# ne copie QUE le binaire / copies ONLY the binary` + ligne suivante `COPY --from=build /app /app`. |
+| 4 | step-04 | majeur | `docker images \| grep -E 'golang\|t-multi'` n'affiche que `t-multi:latest ... 23.1MB 7.67MB` : l'image de base d'un stage n'est pas enregistrée comme image locale par BuildKit (Docker 29, magasin containerd), donc la comparaison promise (« golang pèse plusieurs centaines de Mo ») est impossible. Après `docker pull golang:1.22-alpine` : `golang:1.22-alpine 349MB 73.5MB`. De plus Docker 29 affiche deux colonnes `DISK USAGE` / `CONTENT SIZE` (23.1MB / 7.67MB), pas une taille unique « ~15-20 Mo ». | Remplacer `docker images \| grep -E 'golang\|t-multi'    # compare les tailles / compare the sizes` → `docker pull -q golang:1.22-alpine   # l'image de build n'est pas gardée en local par BuildKit / BuildKit doesn't keep the build-stage image` + `docker images \| grep -E 'golang\|t-multi'`. Et dans la vérification : `ne fait que **~15-20 Mo**` → `ne fait que **~8 Mo compressés / ~25 Mo sur disque** (colonnes CONTENT SIZE / DISK USAGE)` (idem EN). |
+| 5 | step-06 | majeur | Le bloc de code de step-06 n'a pas de fence ouvrante ```` ```bash ```` (lignes 377-387 du .md) : `# NB : port hôte 5001...` sera rendu comme titre H1 et les commandes comme du texte, et la fence fermante ```` ``` ```` ouvre un bloc de code non fermé qui avale la suite de la page. Les commandes elles-mêmes fonctionnent (push/pull rc=0, save/load OK). | Insérer une ligne ```` ```bash ```` juste avant `# NB : port hôte 5001 (sur macOS, 5000 est pris par AirPlay Receiver)`. |
+| 6 | step-06 | mineur | La vérification annonce « le pull affiche « Already exists » ». Sortie réelle de `docker pull localhost:5001/monapp:1.0` : `Digest: sha256:d1d6...` / `Status: Downloaded newer image for localhost:5001/monapp:1.0`, aucune ligne « Already exists ». | `le pull affiche « Already exists »` → `le pull ne retélécharge aucune couche (seulement « Digest » et « Status: Downloaded newer image »)` (EN : `the pull prints "Already exists"` → `the pull downloads no layer (only "Digest" and "Status: Downloaded newer image")`). |
+| 7 | step-02 | mineur | `docker run t-cmd` / `docker run t-ep` sans `--rm` laissent 4 conteneurs arrêtés (`docker system df` → `Containers 4 0 ... 100%`), jamais nettoyés par le guide. | Ajouter `--rm` aux quatre `docker run t-cmd` / `docker run t-ep` (ex. `docker run --rm t-cmd`). |
+| 8 | step-06 | mineur | `registry:2` est un tag flottant (majeur seulement) ; la section B demande des versions pinées. | `registry:2` → `registry:2.8.3` (dans step-06 et la cheatsheet). |
+
+## Non testable ici
+- step-01 : `pip install requests` échoue dans le build (`SSLError ... CERTIFICATE_VERIFY_FAILED ... self-signed certificate in certificate chain`) car le certificat du proxy du bac à sable n'est pas approuvé à l'intérieur des conteneurs de build. Contourné en ajoutant pour le test seulement `ENV PIP_TRUSTED_HOST="pypi.org files.pythonhosted.org"` après `FROM`. Ensuite le comportement du cache est exactement celui annoncé (v2 : `RUN pip install` réexécuté ; après inversion v4 : `RUN pip install ... CACHED`, seul `COPY` retourne ; `touch app.py` : tout `CACHED`). Pas un bug du guide.
+- Prérequis : `$USER` est vide sous `docker exec`, `sudo usermod -aG docker $USER` a affiché l'aide de usermod ; refait avec `etudiant`. Limite du bac à sable (pas de session de login), pas un bug du guide.
+
+## QCM
+- step-01 : OK
+- step-02 : OK
+- step-03 : OK
+- step-04 : OK
+- step-05 : OK
+- step-06 : OK
+
+## Leçon pour CHECKLIST section B (si nouveau type d'erreur)
+- **Pas de commentaire en fin de ligne dans un Dockerfile.** `#` n'est un commentaire qu'en début de ligne : `COPY a b  # note` ou `ENV K=V  # note` cassent le build (ou, pour `ARG`, déclarent des variables parasites en silence). Toute annotation bilingue dans un Dockerfile/heredoc va sur sa propre ligne. Vérifier en buildant réellement chaque Dockerfile du guide.
+- **Tout bloc de commandes est entre fences.** Vérifier que chaque ```` ``` ```` fermant a son ```` ```bash ```` ouvrant (un bloc sans ouverture rend `# commentaire` en titre H1 et avale la fin de la page).

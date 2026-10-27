@@ -207,6 +207,7 @@ curl -s localhost:8080 | grep -i nginx   # le service répond / the service answ
 docker service scale web=5               # passe à 5 répliques / scale to 5
 # self-healing : tue une tâche, Swarm la recrée / kill a task, Swarm recreates it
 docker rm -f "$(docker ps -q -f name=web | head -1)"
+sleep 3   # laisse Swarm constater la tâche morte / let Swarm notice the dead task
 # attends que Swarm recrée la tâche (jusqu'à ~10 s) / wait for Swarm to recreate the task
 for i in $(seq 10); do docker service ls | grep -q '5/5' && break; sleep 1; done
 docker service ls                        # toujours 5/5 (une tâche recréée) / still 5/5 (one recreated)
@@ -237,9 +238,9 @@ docker service ls                        # toujours 5/5 (une tâche recréée) /
 ```bash
 docker service update \
   --image nginx:1.26-alpine \
-  --update-parallelism 1 --update-delay 3s \
+  --update-parallelism 1 --update-delay 3s --detach \
   web
-docker service ps web --format '{{.Name}} {{.Image}} {{.CurrentState}}' | head   # tâches en cours de bascule / tasks flipping
+watch -n1 "docker service ps web --format '{{.Name}} {{.Image}} {{.CurrentState}}'"   # bascule en direct, Ctrl+C quand tout est en 1.26 / live flip, Ctrl+C when all on 1.26
 
 # rollback : revenir à l'image précédente / revert to the previous image
 docker service rollback web
@@ -345,7 +346,7 @@ services:
 ```
 
 ```bash
-docker stack deploy -c stack.yml monapp
+docker stack deploy --detach=false -c stack.yml monapp   # attend que les tâches tournent / waits for tasks
 docker stack services monapp          # les services du stack / the stack's services
 docker stack ps monapp                 # les tâches / the tasks
 curl -s localhost:8081 | grep -i nginx
@@ -364,7 +365,7 @@ curl -s localhost:8081 | grep -i nginx
 :::lang fr
 **1. Confondre conteneur et service.** En Swarm, `docker run` reste local au nœud ; c'est **`docker service`** qui orchestre (répliques, self-healing, répartition). Ne mélange pas les deux mondes.
 
-**2. `deploy:` ignoré par `docker compose up`.** La section `deploy:` (replicas, update_config) n'est prise en compte que par **Swarm** (`docker stack deploy`), **pas** par `docker compose up`. À l'inverse, certaines clés Compose (`build`, `depends_on`) sont ignorées en Swarm.
+**2. `deploy:` ignoré par `docker compose up`.** Une partie de `deploy:` (`update_config`, `rollback_config`, `placement`) n'est appliquée que par **Swarm** (`docker stack deploy`) ; `docker compose up` respecte `replicas` et `resources` mais ignore le reste. À l'inverse, certaines clés Compose (`build`, `depends_on`) sont ignorées en Swarm.
 
 **3. Mettre un secret en `ENV` en Swarm.** Alors que les **secrets Swarm** existent (chiffrés, en fichier). Utilise `docker secret` + `--secret`, jamais `-e`.
 
@@ -380,7 +381,7 @@ curl -s localhost:8081 | grep -i nginx
 :::lang en
 **1. Confusing container and service.** In Swarm, `docker run` stays local to the node; it's **`docker service`** that orchestrates (replicas, self-healing, spreading). Don't mix the two worlds.
 
-**2. `deploy:` ignored by `docker compose up`.** The `deploy:` section (replicas, update_config) is honored only by **Swarm** (`docker stack deploy`), **not** by `docker compose up`. Conversely, some Compose keys (`build`, `depends_on`) are ignored in Swarm.
+**2. `deploy:` ignored by `docker compose up`.** Part of `deploy:` (`update_config`, `rollback_config`, `placement`) is applied only by **Swarm** (`docker stack deploy`); `docker compose up` honors `replicas` and `resources` but ignores the rest. Conversely, some Compose keys (`build`, `depends_on`) are ignored in Swarm.
 
 **3. Putting a secret in `ENV` in Swarm.** While **Swarm secrets** exist (encrypted, as a file). Use `docker secret` + `--secret`, never `-e`.
 
@@ -466,7 +467,7 @@ docker network create -d overlay --attachable appnet
 printf 'val' | docker secret create NOM - ; docker service create --secret NOM ...   # -> /run/secrets/NOM
 
 # Stacks (Compose + section deploy:)
-docker stack deploy -c stack.yml monapp
+docker stack deploy --detach=false -c stack.yml monapp   # attend que les tâches tournent / waits for tasks
 docker stack services monapp ; docker stack ps monapp ; docker stack rm monapp
 ```
 
@@ -499,7 +500,7 @@ docker stack services monapp ; docker stack ps monapp ; docker stack rm monapp
 
 **Impossible de supprimer un réseau overlay.** Un service y est encore attaché. Supprime d'abord les services (`docker service rm`), puis le réseau.
 
-**`deploy:` ne fait rien.** Tu as lancé `docker compose up` (qui **ignore** `deploy:`). Pour Swarm, c'est **`docker stack deploy -c fichier.yml nom`**.
+**`deploy:` ne fait rien.** Tu as lancé `docker compose up`, qui ignore la partie orchestration de `deploy:` (`update_config`, `placement`…). Pour Swarm, c'est **`docker stack deploy -c fichier.yml nom`**.
 :::
 
 :::lang en
@@ -513,5 +514,5 @@ docker stack services monapp ; docker stack ps monapp ; docker stack rm monapp
 
 **Can't delete an overlay network.** A service is still attached. Remove the services first (`docker service rm`), then the network.
 
-**`deploy:` does nothing.** You ran `docker compose up` (which **ignores** `deploy:`). For Swarm, it's **`docker stack deploy -c file.yml name`**.
+**`deploy:` does nothing.** You ran `docker compose up`, which ignores the orchestration part of `deploy:` (`update_config`, `placement`…). For Swarm, it's **`docker stack deploy -c file.yml name`**.
 :::

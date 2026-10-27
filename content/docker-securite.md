@@ -126,7 +126,7 @@ Le **moindre privilège** décline plusieurs couches de défense.
 
 **Les secrets.** **Ne jamais** mettre un mot de passe/clé dans une **variable d'environnement** ni dans l'image : les `ENV` sont **visibles** (`docker inspect`, `/proc`, les logs). Les vraies solutions : les **secrets Docker** (chiffrés, montés en fichier — Swarm/Compose), les **secrets de build** (`RUN --mount=type=secret`, non persistés en couche), ou un gestionnaire externe (Vault).
 
-**L'analyse & la confiance.** Une image tirée du net peut contenir des **failles connues** (CVE) : on la **scanne** (**`docker scout`**, **Trivy**). Et pour garantir qu'une image est **authentique** (non altérée), le **Docker Content Trust** (`DOCKER_CONTENT_TRUST=1`) n'autorise que les images **signées**.
+**L'analyse & la confiance.** Une image tirée du net peut contenir des **failles connues** (CVE) : on la **scanne** (**`docker scout`**, **Trivy**). Et pour garantir qu'une image est **authentique** (non altérée), on vérifie sa **signature**. L'ancien **Docker Content Trust** (`DOCKER_CONTENT_TRUST=1`, Notary v1) a été retiré par Docker en 2025 et n'a plus d'effet sur Docker Engine 29 ; on signe et vérifie aujourd'hui avec **cosign** (Sigstore) ou **Notation**.
 :::
 
 :::lang en
@@ -142,7 +142,7 @@ Le **moindre privilège** décline plusieurs couches de défense.
 
 **Secrets.** **Never** put a password/key in an **environment variable** nor in the image: `ENV`s are **visible** (`docker inspect`, `/proc`, logs). The real solutions: **Docker secrets** (encrypted, mounted as a file — Swarm/Compose), **build secrets** (`RUN --mount=type=secret`, not persisted in a layer), or an external manager (Vault).
 
-**Scanning & trust.** An image pulled from the net may contain **known vulnerabilities** (CVEs): you **scan** it (**`docker scout`**, **Trivy**). And to guarantee an image is **authentic** (untampered), **Docker Content Trust** (`DOCKER_CONTENT_TRUST=1`) allows only **signed** images.
+**Scanning & trust.** An image pulled from the net may contain **known vulnerabilities** (CVEs): you **scan** it (**`docker scout`**, **Trivy**). And to guarantee an image is **authentic** (untampered), you check its **signature**. The old **Docker Content Trust** (`DOCKER_CONTENT_TRUST=1`, Notary v1) was retired by Docker in 2025 and has no effect on Docker Engine 29; today images are signed and verified with **cosign** (Sigstore) or **Notation**.
 :::
 
 :::figure docker-security
@@ -278,6 +278,7 @@ docker stats --no-stream borne          # colonne MEM USAGE / LIMIT -> .../ 64Mi
 docker run --rm --pids-limit=5 alpine:3.20 sh -c \
   'for i in $(seq 20); do /bin/sleep 30 & done; wait' 2>&1 | grep -m1 -i "can't fork\|resource" \
   && echo "-> pids-limit a bloqué des forks / pids-limit blocked forks"
+docker rm -f borne   # nettoyage / cleanup
 ```
 
 :::lang fr
@@ -333,23 +334,25 @@ docker rm -f fuite
 
 ```bash
 # Option A (portable, aucune install) : Trivy via conteneur / portable, no install: Trivy in a container
-docker run --rm aquasec/trivy image --severity HIGH,CRITICAL nginx:1.27-alpine
+docker run --rm aquasec/trivy:0.76.1 image --severity HIGH,CRITICAL nginx:1.27-alpine
 
-# Option B : docker scout — livré avec Docker Desktop ; sur Docker CE, plugin à installer
+# Option B : docker scout — livré avec Docker Desktop ; sur Docker CE, plugin à installer (+ docker login) :
+#   curl -fsSL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh -o install-scout.sh && sh install-scout.sh
 # Option B: docker scout — bundled with Docker Desktop; on Docker CE, a plugin to install
 docker scout quickview nginx:1.27-alpine        # résumé des vulnérabilités par sévérité / vuln summary by severity
 # docker scout cves nginx:1.27-alpine           # le détail des CVE / the CVE details
 
 # Content trust : n'autoriser que les images SIGNÉES / only allow SIGNED images
-# export DOCKER_CONTENT_TRUST=1   (puis docker pull/run échoue sur une image non signée)
+# DOCKER_CONTENT_TRUST=1 (Notary v1) : retiré par Docker en 2025, sans effet sur Docker Engine 29 / retired in 2025, no effect on Engine 29
+# Signature moderne / modern signing : cosign verify <image>  (Sigstore)
 ```
 
 :::lang fr
-**✅ Vérification :** Trivy (ou `docker scout`) affiche un **tableau des vulnérabilités** par sévérité (`CRITICAL`/`HIGH`/…) — tu vois **combien** de failles connues traînent dans l'image et lesquelles. C'est le réflexe **avant de mettre en prod** : une image « qui marche » peut être criblée de CVE. Enfin, **`DOCKER_CONTENT_TRUST=1`** impose de ne tirer/lancer que des images **signées** (authenticité + intégrité) — les images officielles de Docker Hub le sont. Scanner (les failles) et signer (l'authenticité) sont les deux volets de la **confiance dans les images**. *(`docker scout` est livré avec **Docker Desktop** ; sur **Docker CE** il faut l'installer, et certaines fonctions demandent une connexion. **Trivy** fonctionne partout, sans compte.)*
+**✅ Vérification :** Trivy (ou `docker scout`) affiche un **tableau des vulnérabilités** par sévérité (`CRITICAL`/`HIGH`/…) — tu vois **combien** de failles connues traînent dans l'image et lesquelles. C'est le réflexe **avant de mettre en prod** : une image « qui marche » peut être criblée de CVE. Enfin, le **Docker Content Trust** (`DOCKER_CONTENT_TRUST=1`) imposait de ne tirer que des images **signées** ; Docker l'a **retiré en 2025** et il n'a plus d'effet sur Docker Engine 29 (la commande `docker trust` n'existe plus). Retiens le principe, authenticité et intégrité par signature, et ses outils actuels : **cosign** ou **Notation**. Scanner (les failles) et signer (l'authenticité) sont les deux volets de la **confiance dans les images**. *(`docker scout` est livré avec **Docker Desktop** ; sur **Docker CE** il faut l'installer, et certaines fonctions demandent une connexion. **Trivy** fonctionne partout, sans compte.)*
 :::
 
 :::lang en
-**✅ Check:** `docker scout quickview` (or Trivy) shows a **vulnerability table** by severity (`CRITICAL`/`HIGH`/…) — you see **how many** known flaws linger in the image and which. It's the reflex **before going to prod**: an image "that works" can be riddled with CVEs. Finally, **`DOCKER_CONTENT_TRUST=1`** enforces pulling/running only **signed** images (authenticity + integrity) — Docker Hub's official images are. Scanning (the flaws) and signing (the authenticity) are the two sides of **image trust**. *(`docker scout` is bundled with **Docker Desktop**; on **Docker CE** you must install it, and some features require a sign-in. **Trivy** works everywhere, no account.)*
+**✅ Check:** `docker scout quickview` (or Trivy) shows a **vulnerability table** by severity (`CRITICAL`/`HIGH`/…) — you see **how many** known flaws linger in the image and which. It's the reflex **before going to prod**: an image "that works" can be riddled with CVEs. Finally, **Docker Content Trust** (`DOCKER_CONTENT_TRUST=1`) used to enforce pulling only **signed** images; Docker **retired it in 2025** and it has no effect on Docker Engine 29 (the `docker trust` command is gone). Keep the principle, authenticity and integrity through signatures, and its current tools: **cosign** or **Notation**. Scanning (the flaws) and signing (the authenticity) are the two sides of **image trust**. *(`docker scout` is bundled with **Docker Desktop**; on **Docker CE** you must install it, and some features require a sign-in. **Trivy** works everywhere, no account.)*
 :::
 
 ## pitfalls
@@ -461,8 +464,8 @@ docker run --security-opt=no-new-privileges img
 #   -> secrets Docker (fichier), RUN --mount=type=secret (build), Vault
 
 # Scan & confiance / trust  (Trivy = portable ; scout = Docker Desktop)
-docker run --rm aquasec/trivy image IMG   # ou / or : docker scout quickview IMG
-export DOCKER_CONTENT_TRUST=1     # n'autorise que les images signées / only signed images
+docker run --rm aquasec/trivy:0.76.1 image IMG   # ou / or : docker scout quickview IMG
+cosign verify IMG                 # vérifie la signature (Sigstore) ; DCT est retiré / verify signature; DCT is retired
 ```
 
 ## resources
@@ -492,7 +495,7 @@ export DOCKER_CONTENT_TRUST=1     # n'autorise que les images signées / only si
 
 **`--pids-limit` / `--memory` : le conteneur est tué (`OOMKilled`).** Il dépasse la limite. Augmente-la si c'est légitime, ou corrige la fuite ; regarde `docker stats` et `docker inspect --format '{{.State.OOMKilled}}'`.
 
-**`docker scout` est inconnu ou demande de me connecter.** Sur **Docker CE**, `docker scout` n'est **pas** installé par défaut (il est livré avec Docker Desktop), et certaines fonctions requièrent un compte. Utilise **Trivy** (`docker run --rm aquasec/trivy image IMG`) qui fonctionne partout, sans compte.
+**`docker scout` est inconnu ou demande de me connecter.** Sur **Docker CE**, `docker scout` n'est **pas** installé par défaut (il est livré avec Docker Desktop), et certaines fonctions requièrent un compte. Utilise **Trivy** (`docker run --rm aquasec/trivy:0.76.1 image IMG`) qui fonctionne partout, sans compte.
 
 **`--privileged` était plus simple.** Oui, mais il ouvre tout. Trouve la **capability précise** ou le **device** requis et n'accorde que lui (`--cap-add`, `--device`).
 :::
@@ -506,7 +509,7 @@ export DOCKER_CONTENT_TRUST=1     # n'autorise que les images signées / only si
 
 **`--pids-limit` / `--memory`: the container is killed (`OOMKilled`).** It exceeds the limit. Raise it if legitimate, or fix the leak; check `docker stats` and `docker inspect --format '{{.State.OOMKilled}}'`.
 
-**`docker scout` is unknown or asks me to sign in.** On **Docker CE**, `docker scout` is **not** installed by default (it's bundled with Docker Desktop), and some features require an account. Use **Trivy** (`docker run --rm aquasec/trivy image IMG`), which works everywhere, no account.
+**`docker scout` is unknown or asks me to sign in.** On **Docker CE**, `docker scout` is **not** installed by default (it's bundled with Docker Desktop), and some features require an account. Use **Trivy** (`docker run --rm aquasec/trivy:0.76.1 image IMG`), which works everywhere, no account.
 
 **`--privileged` was simpler.** Yes, but it opens everything. Find the **precise capability** or **device** required and grant only that (`--cap-add`, `--device`).
 :::

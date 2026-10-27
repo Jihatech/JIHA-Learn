@@ -127,7 +127,7 @@ mkdir atelier-stack && cd atelier-stack && git init
 **L'architecture cible.** On assemble, du code à la prod, ce que la track a enseigné :
 
 1. **L'image** (guide images) — le code de l'API, compilé en **multi-stage** (binaire dans une image Alpine minuscule), **durci** : utilisateur **non-root**, **`HEALTHCHECK`** intégré.
-2. **La distribution** (guide images) — l'image **taguée** et **poussée** dans un **registre local** (`registry:2`) : la source dont Swarm tirera l'image.
+2. **La distribution** (guide images) — l'image **taguée** et **poussée** dans un **registre local** (`registry:2.8.3`) : la source dont Swarm tirera l'image.
 3. **L'orchestration** (guide Swarm) — une **stack** décrit tout : le service **API répliqué** (3 tâches), un **tier de données Redis** avec un **volume** persistant, sur un réseau **overlay**.
 4. **La sécurité** (guide sécurité) — un **secret Swarm** (chiffré, monté en `/run/secrets`), des **limites de ressources**, l'utilisateur non-root de l'image.
 5. **L'exploitation** (guide Swarm) — une politique de **mise à jour progressive** (`update_config`) et le **rollback** en un geste.
@@ -139,7 +139,7 @@ mkdir atelier-stack && cd atelier-stack && git init
 **The target architecture.** We assemble, from code to prod, what the track taught:
 
 1. **The image** (images guide) — the API's code, compiled in **multi-stage** (binary in a tiny Alpine image), **hardened**: **non-root** user, built-in **`HEALTHCHECK`**.
-2. **Distribution** (images guide) — the image **tagged** and **pushed** to a **local registry** (`registry:2`): the source Swarm will pull the image from.
+2. **Distribution** (images guide) — the image **tagged** and **pushed** to a **local registry** (`registry:2.8.3`): the source Swarm will pull the image from.
 3. **Orchestration** (Swarm guide) — a **stack** describes it all: the **replicated API** service (3 tasks), a **Redis data tier** with a persistent **volume**, on an **overlay** network.
 4. **Security** (security guide) — a **Swarm secret** (encrypted, mounted at `/run/secrets`), **resource limits**, the image's non-root user.
 5. **Operations** (Swarm guide) — a **rolling-update** policy (`update_config`) and one-gesture **rollback**.
@@ -257,17 +257,17 @@ sleep 2 ; curl -s localhost:8080 ; docker rm -f test
 :::
 
 ```bash
-docker run -d -p 5001:5000 --name registry registry:2      # registre local (5001 : macOS AirPlay tient :5000)
+docker run -d -p 5001:5000 --name registry registry:2.8.3      # registre local (5001 : macOS AirPlay tient :5000)
 docker tag atelier-api:1.0 localhost:5001/atelier-api:1.0
 docker push localhost:5001/atelier-api:1.0
 ```
 
 :::lang fr
-**✅ Vérification :** `docker push` téléverse l'image dans ton registre `registry:2` sur `localhost:5001`. C'est **la source** dont la stack tirera l'API : dans le YAML, on référencera `localhost:5001/atelier-api:1.0`. Sur un cluster mono-nœud, le daemon (qui héberge le registre et exécute Swarm) y accède directement. *(Sur un vrai cluster multi-nœuds, chaque nœud devrait joindre le registre — via une adresse routable, pas `localhost`.)*
+**✅ Vérification :** `docker push` téléverse l'image dans ton registre `registry:2.8.3` sur `localhost:5001`. C'est **la source** dont la stack tirera l'API : dans le YAML, on référencera `localhost:5001/atelier-api:1.0`. Sur un cluster mono-nœud, le daemon (qui héberge le registre et exécute Swarm) y accède directement. *(Sur un vrai cluster multi-nœuds, chaque nœud devrait joindre le registre — via une adresse routable, pas `localhost`.)*
 :::
 
 :::lang en
-**✅ Check:** `docker push` uploads the image to your `registry:2` registry on `localhost:5001`. That's **the source** the stack will pull the API from: in the YAML, we'll reference `localhost:5001/atelier-api:1.0`. On a single-node cluster, the daemon (hosting the registry and running Swarm) accesses it directly. *(On a real multi-node cluster, each node would need to reach the registry — via a routable address, not `localhost`.)*
+**✅ Check:** `docker push` uploads the image to your `registry:2.8.3` registry on `localhost:5001`. That's **the source** the stack will pull the API from: in the YAML, we'll reference `localhost:5001/atelier-api:1.0`. On a single-node cluster, the daemon (hosting the registry and running Swarm) accesses it directly. *(On a real multi-node cluster, each node would need to reach the registry — via a routable address, not `localhost`.)*
 :::
 
 ### step-03
@@ -337,7 +337,7 @@ services:
           memory: 64M
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     networks:
       - backend
     volumes:
@@ -378,7 +378,7 @@ volumes:
 :::
 
 ```bash
-docker stack deploy -c stack.yml atelier
+docker stack deploy --detach=false -c stack.yml atelier
 docker stack services atelier                 # atelier_api 3/3, atelier_redis 1/1
 # attends que l'API soit prête / wait for the API to be ready
 for i in $(seq 15); do curl -sf localhost:8080 >/dev/null && break; sleep 2; done
@@ -419,6 +419,7 @@ curl -s localhost:8080                                    # -> "Atelier API v2 .
 # rollback : revenir à la 1.0 en un geste / one-gesture rollback to 1.0
 docker service rollback atelier_api
 curl -s localhost:8080                                    # -> "Atelier API v1 ..."
+sed -i 's/Atelier API v2/Atelier API v1/' main.go          # le dépôt reste aligné sur la 1.0 déployée / keep the repo aligned with deployed 1.0
 ```
 
 :::lang fr
@@ -449,7 +450,7 @@ curl -s localhost:8080                                    # -> "Atelier API v1 .
     #
     # Architecture
     # - image : Dockerfile multi-stage (Go -> Alpine), non-root + HEALTHCHECK
-    # - registre : registry:2 sur localhost:5001
+    # - registre : registry:2.8.3 sur localhost:5001
     # - stack : api (x3, secret, overlay, limits, rolling update) + redis (volume)
     # - secret : api_token (docker secret, monté en /run/secrets)
     #
@@ -457,7 +458,7 @@ curl -s localhost:8080                                    # -> "Atelier API v1 .
     #   docker build -t localhost:5001/atelier-api:1.0 . && docker push localhost:5001/atelier-api:1.0
     #   docker swarm init
     #   printf '...' | docker secret create api_token -
-    #   docker stack deploy -c stack.yml atelier
+    #   docker stack deploy --detach=false -c stack.yml atelier
     #   curl localhost:8080
     #
     # Exploitation
@@ -493,7 +494,7 @@ curl -s localhost:8080                                    # -> "Atelier API v1 .
 :::
 
 ```bash
-docker stack deploy -c stack.yml atelier         # re-déploiement idempotent : Swarm applique le diff (aucune tâche recréée) / idempotent: Swarm applies the diff (no tasks recreated)
+docker stack deploy --detach=false -c stack.yml atelier         # re-déploiement idempotent : Swarm applique le diff (aucune tâche recréée) / idempotent: Swarm applies the diff (no tasks recreated)
 docker stack services atelier                     # toujours 3/3 + 1/1 / still 3/3 + 1/1
 
 cat > .gitignore <<'EOF'
@@ -507,14 +508,14 @@ git add . && git commit -m "Atelier API : image multi-stage durcie + stack Swarm
 **✅ Vérification :** un second `docker stack deploy` ne change rien (l'état voulu est déjà atteint) — **reproductible et idempotent**. Le `git commit` fige ton livrable (`main.go`, `Dockerfile`, `stack.yml`, `README.md`). **Pousse le dépôt sur GitHub et mets le lien sur ton CV.**
 
 **🧹 Ménage :**
-`docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2>/dev/null ; docker volume rm redis-data 2>/dev/null ; docker rm -f registry 2>/dev/null ; docker swarm leave --force`.
+`docker stack rm atelier ; while docker ps -q -f name=atelier_ | grep -q . ; do sleep 1 ; done ; docker secret rm api_token ; docker volume rm atelier_redis-data ; docker rm -f -v registry ; docker swarm leave --force` (⚠️ `docker volume rm` détruit définitivement les données Redis ; le volume porte le préfixe de la stack).
 :::
 
 :::lang en
 **✅ Check:** a second `docker stack deploy` changes nothing (the desired state is already reached) — **reproducible and idempotent**. The `git commit` freezes your deliverable (`main.go`, `Dockerfile`, `stack.yml`, `README.md`). **Push the repo to GitHub and put the link on your CV.**
 
 **🧹 Cleanup:**
-`docker stack rm atelier ; sleep 3 ; docker secret rm api_token 2>/dev/null ; docker volume rm redis-data 2>/dev/null ; docker rm -f registry 2>/dev/null ; docker swarm leave --force`.
+`docker stack rm atelier ; while docker ps -q -f name=atelier_ | grep -q . ; do sleep 1 ; done ; docker secret rm api_token ; docker volume rm atelier_redis-data ; docker rm -f -v registry ; docker swarm leave --force` (⚠️ `docker volume rm` permanently destroys the Redis data; the volume carries the stack prefix).
 :::
 
 ## pitfalls
@@ -526,7 +527,7 @@ git add . && git commit -m "Atelier API : image multi-stage durcie + stack Swarm
 
 **3. Mettre le secret dans le YAML ou une `ENV`.** Utilise un **secret Swarm** (`external: true` + `docker secret create`), monté en fichier. Ne committe **jamais** le secret.
 
-**4. `deploy:` sous `docker compose up`.** La section `deploy:` n'est honorée que par **`docker stack deploy`** (Swarm), pas par `docker compose up`. Ce projet est une **stack**, pas un `compose up`.
+**4. `deploy:` sous `docker compose up`.** `update_config`, `restart_policy` et `placement` ne sont appliqués que par **`docker stack deploy`** (Swarm) ; `docker compose up` applique `replicas` et `resources` (ici : 3 API sur le même port 8080, en conflit). Ce projet est une **stack**, pas un `compose up`.
 
 **5. Référencer `localhost:5001` sur un cluster multi-nœuds.** Les workers ne joignent pas ton `localhost`. En mono-nœud c'est OK ; en multi-nœuds, un registre à adresse routable.
 
@@ -542,7 +543,7 @@ git add . && git commit -m "Atelier API : image multi-stage durcie + stack Swarm
 
 **3. Putting the secret in the YAML or an `ENV`.** Use a **Swarm secret** (`external: true` + `docker secret create`), mounted as a file. **Never** commit the secret.
 
-**4. `deploy:` under `docker compose up`.** The `deploy:` section is honored only by **`docker stack deploy`** (Swarm), not by `docker compose up`. This project is a **stack**, not a `compose up`.
+**4. `deploy:` under `docker compose up`.** `update_config`, `restart_policy` and `placement` are applied only by **`docker stack deploy`** (Swarm); `docker compose up` applies `replicas` and `resources` (here: 3 APIs on the same port 8080, clashing). This project is a **stack**, not a `compose up`.
 
 **5. Referencing `localhost:5001` on a multi-node cluster.** Workers can't reach your `localhost`. Single-node is fine; multi-node needs a routable-address registry.
 
@@ -612,7 +613,7 @@ Stack project cheat sheet.
 ```bash
 # Image & registre / image & registry
 docker build -t localhost:5001/atelier-api:1.0 .
-docker run -d -p 5001:5000 --name registry registry:2
+docker run -d -p 5001:5000 --name registry registry:2.8.3
 docker push localhost:5001/atelier-api:1.0
 
 # Swarm & secret
@@ -620,7 +621,7 @@ docker swarm init
 printf 'val' | docker secret create api_token -
 
 # Stack
-docker stack deploy -c stack.yml atelier
+docker stack deploy --detach=false -c stack.yml atelier
 docker stack services atelier ; docker service ps atelier_api
 
 # Exploitation / operations
@@ -628,7 +629,7 @@ docker service update --image localhost:5001/atelier-api:1.1 atelier_api   # rol
 docker service rollback atelier_api                                         # rollback
 
 # Nettoyage / cleanup
-docker stack rm atelier ; sleep 3 ; docker secret rm api_token ; docker volume rm redis-data ; docker rm -f registry ; docker swarm leave --force
+docker stack rm atelier ; while docker ps -q -f name=atelier_ | grep -q . ; do sleep 1 ; done ; docker secret rm api_token ; docker volume rm atelier_redis-data ; docker rm -f -v registry ; docker swarm leave --force
 ```
 
 ## resources
@@ -636,14 +637,14 @@ docker stack rm atelier ; sleep 3 ; docker secret rm api_token ; docker volume r
 :::lang fr
 - Les **cinq guides** de la track Docker (chaque étape en approfondit un).
 - [Déployer un stack sur Swarm](https://docs.docker.com/engine/swarm/stack-deploy/) et la [référence Compose `deploy`](https://docs.docker.com/reference/compose-file/deploy/).
-- [Secrets Swarm](https://docs.docker.com/engine/swarm/secrets/) et [le registre `registry:2`](https://hub.docker.com/_/registry).
+- [Secrets Swarm](https://docs.docker.com/engine/swarm/secrets/) et [le registre `registry:2.8.3`](https://hub.docker.com/_/registry).
 - Objectifs **DCA** (les six domaines de l'examen).
 :::
 
 :::lang en
 - The **five guides** of the Docker track (each step deepens one).
 - [Deploy a stack on Swarm](https://docs.docker.com/engine/swarm/stack-deploy/) and the [Compose `deploy` reference](https://docs.docker.com/reference/compose-file/deploy/).
-- [Swarm secrets](https://docs.docker.com/engine/swarm/secrets/) and [the `registry:2` registry](https://hub.docker.com/_/registry).
+- [Swarm secrets](https://docs.docker.com/engine/swarm/secrets/) and [the `registry:2.8.3` registry](https://hub.docker.com/_/registry).
 - **DCA** objectives (the exam's six domains).
 :::
 
