@@ -227,19 +227,22 @@ sudo mkdir -p /srv/atelier
 UUID=$(sudo blkid -s UUID -o value /dev/vg_atelier/data)
 # nofail : un disque loopback n'est PAS ré-attaché au boot -> ne pas bloquer le démarrage
 # nofail: a loopback disk is NOT re-attached at boot -> don't block startup
+[ -n "$UUID" ] || { echo "UUID vide : le volume n'existe pas, on s'arrête / empty UUID: no volume, stopping" >&2; false; }
 echo "UUID=$UUID  /srv/atelier  ext4  defaults,nofail  0  2" | sudo tee -a /etc/fstab
+sudo findmnt --verify                           # aucune ligne [E] attendue / expect no [E] line
 sudo mount -a                                   # monte via fstab / mount via fstab
+findmnt /srv/atelier                            # doit montrer le volume LVM / must show the LVM volume
 
 # partage d'équipe : groupe atelier + SGID (héritage de groupe) / team sharing: group + SGID
 sudo chgrp atelier /srv/atelier && sudo chmod 2775 /srv/atelier
 ```
 
 :::lang fr
-**✅ Vérification :** `df -h /srv/atelier` montre le volume LVM **monté** (~750 Mo). Un `sudo mount -a` **sans erreur** valide ta ligne `fstab` (par **UUID**, stable). *(Note : notre disque est un **loopback** — il n'est pas ré-attaché automatiquement au redémarrage, d'où le **`nofail`** qui évite de bloquer le boot ; sur un **vrai** disque, la ligne UUID remonterait toute seule. Pour persister le loopback, on l'ajouterait au provisionnement.)* `ls -ld /srv/atelier` affiche `drwxrwsr-x … atelier` : le **SGID** (`s`) fait que tout fichier créé par un membre de l'équipe **appartient au groupe `atelier`** — le répertoire partagé collaboratif. Les données de l'app vivront ici, **séparées** du système, sur un volume qu'on pourra agrandir (LVM).
+**✅ Vérification :** `df -h /srv/atelier` montre le volume LVM **monté** (~750 Mo). Avec `nofail`, `mount -a` **ne signale pas** une ligne fausse : c'est `sudo findmnt --verify` (aucune ligne `[E]`) **et** `findmnt /srv/atelier` (qui montre `/dev/mapper/vg_atelier-data`) qui valident ta ligne `fstab` (par **UUID**, stable). *(Note : notre disque est un **loopback** — il n'est pas ré-attaché automatiquement au redémarrage, d'où le **`nofail`** qui évite de bloquer le boot ; sur un **vrai** disque, la ligne UUID remonterait toute seule. Pour persister le loopback, on l'ajouterait au provisionnement.)* `ls -ld /srv/atelier` affiche `drwxrwsr-x … atelier` : le **SGID** (`s`) fait que tout fichier créé par un membre de l'équipe **appartient au groupe `atelier`** — le répertoire partagé collaboratif. Les données de l'app vivront ici, **séparées** du système, sur un volume qu'on pourra agrandir (LVM).
 :::
 
 :::lang en
-**✅ Check:** `df -h /srv/atelier` shows the LVM volume **mounted** (~750 MB). A `sudo mount -a` **with no error** validates your `fstab` line (by **UUID**, stable). *(Note: our disk is a **loopback** — it isn't re-attached automatically at reboot, hence the **`nofail`** that keeps boot from blocking; on a **real** disk, the UUID line would remount on its own. To persist the loopback, you'd add it to provisioning.)* `ls -ld /srv/atelier` shows `drwxrwsr-x … atelier`: the **SGID** (`s`) makes every file created by a team member **belong to the `atelier` group** — the collaborative shared directory. The app's data will live here, **separate** from the system, on a volume you can grow (LVM).
+**✅ Check:** `df -h /srv/atelier` shows the LVM volume **mounted** (~750 MB). With `nofail`, `mount -a` **doesn't report** a wrong line: `sudo findmnt --verify` (no `[E]` line) **and** `findmnt /srv/atelier` (showing `/dev/mapper/vg_atelier-data`) are what validate your `fstab` line (by **UUID**, stable). *(Note: our disk is a **loopback** — it isn't re-attached automatically at reboot, hence the **`nofail`** that keeps boot from blocking; on a **real** disk, the UUID line would remount on its own. To persist the loopback, you'd add it to provisioning.)* `ls -ld /srv/atelier` shows `drwxrwsr-x … atelier`: the **SGID** (`s`) makes every file created by a team member **belong to the `atelier` group** — the collaborative shared directory. The app's data will live here, **separate** from the system, on a volume you can grow (LVM).
 :::
 
 ### step-03
@@ -276,7 +279,7 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now atelier              # démarre ET active au boot / start AND enable at boot
 systemctl status atelier --no-pager | head -5
-curl -s localhost:8080 | grep Atelier            # l'app répond / the app answers
+sleep 1; curl -s localhost:8080 | grep Atelier   # le temps que Python ouvre le port / give Python time to open the port
 ```
 
 :::lang fr
@@ -309,17 +312,23 @@ src="/srv/atelier"
 dest="/var/backups/atelier"
 mkdir -p "$dest"
 horodatage=$(date +%Y%m%d-%H%M%S)
-tar czf "$dest/atelier-$horodatage.tar.gz" -C "$src" .
+tmp="$dest/.atelier-$horodatage.tar.gz.part"
+trap 'rm -f "$tmp"' EXIT
+tar czf "$tmp" -C "$src" .
+mv "$tmp" "$dest/atelier-$horodatage.tar.gz"   # l'archive n'apparaît qu'en cas de succès / archive appears only on success
 # ne garde que les 7 dernières / keep only the last 7
 ls -1t "$dest"/atelier-*.tar.gz | tail -n +8 | xargs -r rm --
 echo "sauvegarde OK: $dest/atelier-$horodatage.tar.gz"
 EOF
 chmod +x ~/atelier-runbook/scripts/backup.sh
+# root n'exécute jamais un script qu'un utilisateur peut modifier : on déploie une copie root
+# root never runs a script a user can edit: deploy a root-owned copy
+sudo install -m 0755 -o root -g root ~/atelier-runbook/scripts/backup.sh /usr/local/sbin/atelier-backup.sh
 
 sudo tee /etc/systemd/system/atelier-backup.service >/dev/null <<EOF
 [Service]
 Type=oneshot
-ExecStart=$HOME/atelier-runbook/scripts/backup.sh
+ExecStart=/usr/local/sbin/atelier-backup.sh
 EOF
 sudo tee /etc/systemd/system/atelier-backup.timer >/dev/null <<'EOF'
 [Timer]
@@ -362,6 +371,7 @@ ls -lh /var/backups/atelier/                      # l'archive est là / the arch
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
 cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes localhost 'echo clé OK'   # TESTE la clé AVANT de couper les mots de passe / TEST the key BEFORE disabling passwords
 
 # durcissement sshd / sshd hardening
 # nom en 00- : sshd applique la PREMIÈRE valeur trouvée ; on passe DEVANT le
@@ -439,37 +449,41 @@ sudo ~/atelier-runbook/scripts/healthcheck.sh ; echo "verdict = $?"
 :::lang fr
 **Objectif.** Documenter — transformer le serveur en **livrable de CV** : le **runbook**.
 
-**🤔 Le runbook fait la moitié de la valeur.** Un `README.md` qui explique **quoi**, **pourquoi**, et **comment reconstruire**. Crée-le en suivant ce plan (chaque titre devient une section `##`) :
+**🤔 Le runbook fait la moitié de la valeur.** Un `README.md` qui explique **quoi**, **pourquoi**, et **comment reconstruire**. Crée-le avec ce squelette, puis complète chaque section :
 :::
 
 :::lang en
 **Goal.** Document — turn the server into a **CV deliverable**: the **runbook**.
 
-**🤔 The runbook is half the value.** A `README.md` explaining **what**, **why**, and **how to rebuild**. Create it following this outline (each heading becomes a `##` section):
+**🤔 The runbook is half the value.** A `README.md` explaining **what**, **why**, and **how to rebuild**. Create it from this skeleton, then fill in each section:
 :::
 
-    # Atelier Média — runbook du serveur applicatif
-    #
-    # Serveur Ubuntu multi-utilisateur, provisionné et durci (LPIC-1).
-    #
-    # Architecture
-    # - Équipe : groupe 'atelier' + sudo au moindre privilège (restart du service)
-    # - Données : volume LVM (vg_atelier/data) monté sur /srv/atelier (UUID, SGID)
-    # - Service : atelier.service (web sur :8080, user www-data)
-    # - Sauvegarde : backup.sh + atelier-backup.timer (quotidien, rotation 7)
-    # - Sécurité : SSH par clés + sshd durci + ufw (deny, SSH + 8080)
-    # - Ops : scripts/provision.sh (idempotent) + scripts/healthcheck.sh
-    #
-    # Exploitation
-    # - État : sudo scripts/healthcheck.sh
-    # - Sauvegarde manuelle : sudo systemctl start atelier-backup.service
-    # - Restaurer : tar xzf /var/backups/atelier/<archive> -C /srv/atelier
-    # - Redémarrer l'app (équipe) : sudo systemctl restart atelier
-    #
-    # Décisions
-    # - LVM -> extensible sans re-partition ; données hors système
-    # - moindre privilège (sudo ciblé, service en www-data, ufw deny)
-    # - tout scripté (provision.sh) -> reconstructible à l'identique
+```bash
+cat > ~/atelier-runbook/README.md <<'EOF'
+# Atelier Média — runbook du serveur applicatif
+
+Serveur Ubuntu multi-utilisateur, provisionné et durci (LPIC-1).
+
+## Architecture
+- Équipe : groupe 'atelier' + sudo au moindre privilège (restart du service)
+- Données : volume LVM (vg_atelier/data) monté sur /srv/atelier (UUID, SGID)
+- Service : atelier.service (web sur :8080, user www-data)
+- Sauvegarde : /usr/local/sbin/atelier-backup.sh + atelier-backup.timer (quotidien, rotation 7)
+- Sécurité : SSH par clés + sshd durci + ufw (deny, SSH + 8080)
+- Ops : scripts/provision.sh (idempotent) + scripts/healthcheck.sh
+
+## Exploitation
+- État : sudo scripts/healthcheck.sh
+- Sauvegarde manuelle : sudo systemctl start atelier-backup.service
+- Restaurer : sudo tar xzf /var/backups/atelier/<archive> -C /srv/atelier
+- Redémarrer l'app (équipe) : sudo systemctl restart atelier
+
+## Décisions
+- LVM : extensible sans re-partition ; données hors système
+- Moindre privilège : sudo ciblé, service en www-data, ufw deny
+- Tout scripté (provision.sh) : reconstructible à l'identique
+EOF
+```
 
 :::lang fr
 **✅ Vérification :** ton dépôt a un `README.md` (architecture, exploitation, décisions) et un dossier `scripts/` (backup, healthcheck, et le provision.sh de l'étape suivante). Ouvre-le comme un recruteur : en deux minutes, comprend-on **ce que fait le serveur, comment l'exploiter, et pourquoi les choix sont bons** ? Si oui, c'est un livrable **vendable** — un runbook, l'artefact quotidien d'un vrai sysadmin.
@@ -535,7 +549,7 @@ git add . && git commit -m "Atelier Média : serveur Ubuntu durci (users, LVM, s
 ## pitfalls
 
 :::lang fr
-**1. Une faute dans `fstab` bloque le boot.** Toujours `sudo mount -a` **avant** de considérer la ligne comme bonne. Le montage par **UUID** évite les surprises de nommage.
+**1. Une faute dans `fstab` bloque le boot.** Toujours `sudo findmnt --verify` puis `sudo mount -a` **avant** de considérer la ligne comme bonne (avec `nofail`, `mount -a` seul ne voit pas l'erreur). Le montage par **UUID** évite les surprises de nommage.
 
 **2. Faire tourner le service en root.** Un service exposé (web sur :8080) doit tourner en utilisateur **non privilégié** (`User=www-data`). Root = toute la machine compromise si l'app est piégée.
 
@@ -551,7 +565,7 @@ git add . && git commit -m "Atelier Média : serveur Ubuntu durci (users, LVM, s
 :::
 
 :::lang en
-**1. A mistake in `fstab` blocks boot.** Always `sudo mount -a` **before** considering the line good. Mounting by **UUID** avoids naming surprises.
+**1. A mistake in `fstab` blocks boot.** Always `sudo findmnt --verify` then `sudo mount -a` **before** considering the line good (with `nofail`, `mount -a` alone doesn't see the error). Mounting by **UUID** avoids naming surprises.
 
 **2. Running the service as root.** An exposed service (web on :8080) must run as an **unprivileged** user (`User=www-data`). Root = the whole machine compromised if the app is exploited.
 
@@ -632,7 +646,7 @@ sudo visudo -cf /etc/sudoers.d/atelier
 
 # Stockage LVM / LVM storage
 sudo pvcreate DEV ; sudo vgcreate vg_atelier DEV ; sudo lvcreate -L 800M -n data vg_atelier
-# fstab: UUID=...  /srv/atelier  ext4  defaults  0  2   -> sudo mount -a
+# fstab: UUID=...  /srv/atelier  ext4  defaults,nofail  0  2   -> sudo findmnt --verify && sudo mount -a
 sudo chgrp atelier /srv/atelier ; sudo chmod 2775 /srv/atelier   # SGID d'équipe
 
 # Service & sauvegarde / service & backup
@@ -671,7 +685,7 @@ scripts/provision.sh                 # idempotent
 
 **`curl localhost:8080` : connection refused.** Le service ne tourne pas (`systemctl status atelier`) ou n'a pas démarré (`daemon-reload` oublié après création de l'unit).
 
-**`sudo mount -a` échoue.** Ta ligne `fstab` est mauvaise (UUID erroné). Corrige **avant** tout reboot ; `findmnt --verify` aide.
+**`sudo mount -a` échoue.** Ta ligne `fstab` est mauvaise (UUID erroné). Corrige **avant** tout reboot. Avec `nofail`, `mount -a` n'échoue même pas : c'est `findmnt --verify` qui signale l'UUID erroné.
 
 **Le service ne peut pas lire `/srv/atelier` (`www-data`).** Le dossier n'est pas accessible à `www-data`. Les permissions `2775` + groupe `atelier` suffisent en lecture ; sinon vérifie le propriétaire/les droits.
 
@@ -685,7 +699,7 @@ scripts/provision.sh                 # idempotent
 
 **`curl localhost:8080`: connection refused.** The service isn't running (`systemctl status atelier`) or didn't start (`daemon-reload` forgotten after creating the unit).
 
-**`sudo mount -a` fails.** Your `fstab` line is wrong (bad UUID). Fix it **before** any reboot; `findmnt --verify` helps.
+**`sudo mount -a` fails.** Your `fstab` line is wrong (bad UUID). Fix it **before** any reboot. With `nofail`, `mount -a` doesn't even fail: `findmnt --verify` is what reports the bad UUID.
 
 **The service can't read `/srv/atelier` (`www-data`).** The folder isn't accessible to `www-data`. The `2775` permissions + `atelier` group are enough for reading; otherwise check the owner/rights.
 

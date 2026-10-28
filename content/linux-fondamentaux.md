@@ -99,7 +99,7 @@ Tu dois avoir :
 - Un **environnement Linux sur ta machine**, au choix :
   - **Linux natif** (Ubuntu, Debian, Fedora…) — idéal ;
   - **Windows + WSL2** — installe Ubuntu (`wsl --install`) ;
-  - **macOS** — certaines commandes (`ip`, `systemctl`, `apt`) sont propres à Linux : fais ce guide dans une **VM Ubuntu**. Avec Multipass : `brew install --cask multipass`, puis `multipass launch --name lab` et enfin `multipass shell lab` pour entrer dans la VM (c'est là que tu tapes les commandes du guide).
+  - **macOS** — certaines commandes (`ip`, `systemctl`, `apt`) sont propres à Linux : fais ce guide dans une **VM Ubuntu**. Avec Multipass : installe-le depuis https://canonical.com/multipass/install (ou `brew install --cask multipass` si tu as déjà Homebrew), puis `multipass launch --name lab` et enfin `multipass shell lab` pour entrer dans la VM (c'est là que tu tapes les commandes du guide).
 - Un compte utilisateur **normal** (pas root) avec les droits `sudo` — c'est le cas par défaut sur une install desktop/WSL.
 - Un **éditeur en terminal** : `nano` est présent presque partout (sinon `sudo apt install -y nano`). On s'en sert pour créer des fichiers.
 
@@ -113,7 +113,7 @@ You should have:
 - A **Linux environment on your machine**, one of:
   - **Native Linux** (Ubuntu, Debian, Fedora…) — ideal;
   - **Windows + WSL2** — install Ubuntu (`wsl --install`);
-  - **macOS** — some commands (`ip`, `systemctl`, `apt`) are Linux-specific: do this guide in an **Ubuntu VM**. With Multipass: `brew install --cask multipass`, then `multipass launch --name lab` and finally `multipass shell lab` to enter the VM (that's where you type the guide's commands).
+  - **macOS** — some commands (`ip`, `systemctl`, `apt`) are Linux-specific: do this guide in an **Ubuntu VM**. With Multipass: install it from https://canonical.com/multipass/install (or `brew install --cask multipass` if you already have Homebrew), then `multipass launch --name lab` and finally `multipass shell lab` to enter the VM (that's where you type the guide's commands).
 - A **normal user** account (not root) with `sudo` rights — the default on a desktop/WSL install.
 - A **terminal editor**: `nano` is present almost everywhere (otherwise `sudo apt install -y nano`). We'll use it to create files.
 
@@ -210,7 +210,7 @@ cd ~ && pwd              # retour à ton dossier perso / back to your home direc
 ls -l /etc/hostname           # une ligne détaillée / one detailed line
 stat /etc/hostname            # métadonnées complètes / full metadata
 file /etc/hostname            # de quel type de fichier s'agit-il ? / what kind of file is it?
-find /etc -name "*.conf" -type f | head   # chercher par nom / search by name
+find /etc -name "*.conf" -type f 2>/dev/null | head   # chercher par nom ; 2>/dev/null masque les « Permission denied » normaux / search by name; 2>/dev/null hides the normal "Permission denied"
 ```
 
 :::lang fr
@@ -241,24 +241,24 @@ We'll create a file, inspect it, then make it executable two ways (symbolic and 
 
 ```bash
 echo 'echo "Bonjour depuis mon script"' > demo.sh
-ls -l demo.sh                 # -rw-r--r-- : pas exécutable / not executable
+ls -l demo.sh                 # -rw-rw-r-- (Ubuntu) ou -rw-r--r-- : pas de x / no x
 ./demo.sh                     # → Permission denied (attendu / expected)
 
 chmod u+x demo.sh             # symbolique : +x pour le propriétaire (user) / symbolic: +x for the owner
 ./demo.sh                     # → ça marche / it works
 
 chmod 644 demo.sh             # octal : on retire le x / octal: remove the x
-ls -l demo.sh                 # de retour à -rw-r--r-- / back to -rw-r--r--
+ls -l demo.sh                 # maintenant -rw-r--r-- (644), quel que soit le départ / now -rw-r--r-- (644), whatever the start
 ```
 
 :::lang fr
-**✅ Vérification :** après `chmod u+x`, `ls -l demo.sh` montre `-rwxr--r--` et `./demo.sh` affiche ton message. Tu viens de vivre, puis résoudre, un `Permission denied`.
+**✅ Vérification :** après `chmod u+x`, `ls -l demo.sh` montre un `x` dans le premier triplet (`-rwxrw-r--` sur Ubuntu, `-rwxr--r--` ailleurs) et `./demo.sh` affiche ton message. Les droits de départ dépendent du **umask** : `umask` affiche `0002` sur Ubuntu (le groupe garde `w`, d'où `rw-rw-r--`), `0022` sur d'autres systèmes (`rw-r--r--`). Tu viens de vivre, puis résoudre, un `Permission denied`.
 
 ⚠️ **Ne fais jamais `chmod 777`.** C'est le réflexe du débutant paniqué (« je mets tous les droits, comme ça ça passe »). `777` = tout le monde peut lire, écrire **et exécuter** — un trou de sécurité béant. Donne le **droit minimum** nécessaire : `644` pour un fichier de données, `755` pour un exécutable ou un dossier.
 :::
 
 :::lang en
-**✅ Check:** after `chmod u+x`, `ls -l demo.sh` shows `-rwxr--r--` and `./demo.sh` prints your message. You just lived through, then fixed, a `Permission denied`.
+**✅ Check:** after `chmod u+x`, `ls -l demo.sh` shows an `x` in the first triplet (`-rwxrw-r--` on Ubuntu, `-rwxr--r--` elsewhere) and `./demo.sh` prints your message. The starting permissions depend on the **umask**: `umask` prints `0002` on Ubuntu (the group keeps `w`, hence `rw-rw-r--`), `0022` on other systems (`rw-r--r--`). You just lived through, then fixed, a `Permission denied`.
 
 ⚠️ **Never `chmod 777`.** It's the panicked beginner's reflex ("I grant all rights so it just works"). `777` = everyone can read, write **and execute** — a gaping security hole. Grant the **minimum right** needed: `644` for a data file, `755` for an executable or a directory.
 :::
@@ -471,11 +471,11 @@ chmod +x bilan.sh
 ```
 
 :::lang fr
-**✅ Vérification :** le script affiche ton utilisateur, l'espace disque de `/`, la mémoire et ton IP. **Le `#!/usr/bin/env bash` du début (le "shebang")** dit au système quel interpréteur utiliser — sans lui, le noyau ne sait pas que c'est du bash.
+**✅ Vérification :** le script affiche ton utilisateur, l'espace disque de `/`, la mémoire et ton IP. **Le `#!/usr/bin/env bash` du début (le "shebang")** dit au système quel interpréteur utiliser — sans lui, le noyau ne sait pas quel interpréteur lancer : ton shell se rabat alors sur lui-même (c'est pour ça que `demo.sh` a marché à l'étape 3), mais lancé depuis cron, un autre shell ou un autre programme, le script échoue ou part avec le mauvais interpréteur.
 :::
 
 :::lang en
-**✅ Check:** the script prints your user, the disk space of `/`, memory, and your IP. **The `#!/usr/bin/env bash` at the top (the "shebang")** tells the system which interpreter to use — without it, the kernel doesn't know it's bash.
+**✅ Check:** the script prints your user, the disk space of `/`, memory, and your IP. **The `#!/usr/bin/env bash` at the top (the "shebang")** tells the system which interpreter to use — without it, the kernel doesn't know which interpreter to start: your shell then falls back on itself (that's why `demo.sh` worked in step 3), but run from cron, another shell or another program, the script fails or runs with the wrong interpreter.
 :::
 
 ## pitfalls

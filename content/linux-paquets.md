@@ -155,7 +155,7 @@ In each family, **two tool levels**:
 - **High-level** (`apt`, `dnf`): it talks to **repositories** (servers hosting packages), **downloads** what's needed and **resolves dependencies** automatically. The everyday tool.
 - **Low-level** (`dpkg`, `rpm`): it acts on **one package file** already present and queries the **local database** (what's installed). It **doesn't resolve** dependencies and **doesn't go** to the network. The diagnostics and manual-install tool.
 
-**Repositories** are declared in `/etc/apt/sources.list` and the `/etc/apt/sources.list.d/` folder. `apt update` **downloads the index** of those repos (what and which version is available) — it touches **no** installed package. `apt upgrade` then applies updates. Never confuse the two.
+**Repositories** are declared in `/etc/apt/sources.list` and the `/etc/apt/sources.list.d/` folder (Ubuntu 24.04+ puts `ubuntu.sources` there, in **deb822** format). `apt update` **downloads the index** of those repos (what and which version is available) — it touches **no** installed package. `apt upgrade` then applies updates. Never confuse the two.
 
 **Remove vs purge.** `apt remove` removes the software **but keeps its configuration files**; `apt purge` removes **everything, config included**. A classic exam distinction.
 
@@ -309,18 +309,18 @@ sudo apt-mark unhold tree          # dégèle / unfreeze
 :::lang fr
 **Objectif.** Traduire vers la **famille RHEL** (`dnf`/`rpm`) — la référence d'examen.
 
-**🤔 Même logique, autres commandes.** LPIC-1 exige de connaître **les deux** familles. La structure est identique (haut niveau `dnf` qui résout, bas niveau `rpm` qui enquête) ; seuls les mots changent. Ce tableau est à **mémoriser** :
+**🤔 Même logique, autres commandes.** LPIC-1 exige de connaître **les deux** familles. La structure est identique (haut niveau `dnf` qui résout, bas niveau `rpm` qui enquête) ; seuls les mots changent. Ce tableau est à **mémoriser**, **à lire, pas à coller** : chaque ligne contient deux commandes :
 :::
 
 :::lang en
 **Goal.** Translate to the **RHEL family** (`dnf`/`rpm`) — the exam reference.
 
-**🤔 Same logic, other commands.** LPIC-1 requires knowing **both** families. The structure is identical (high-level `dnf` that resolves, low-level `rpm` that investigates); only the words change. This table is to be **memorized**:
+**🤔 Same logic, other commands.** LPIC-1 requires knowing **both** families. The structure is identical (high-level `dnf` that resolves, low-level `rpm` that investigates); only the words change. This table is to be **memorized**, **read, not pasted**: each line holds two commands.
 :::
 
-```bash
+```text
 # Debian (apt/dpkg)              # RHEL (dnf/rpm)                  # rôle / role
-apt update                       # (dnf vérifie à chaque appel)    # rafraîchir l'index / refresh index
+apt update                       dnf makecache                    # rafraîchir l'index (dnf le fait aussi seul quand son cache expire) / refresh index (dnf also does it when its cache expires)
 apt search motif                 dnf search motif                 # chercher / search
 apt show paquet                  dnf info paquet                  # décrire / describe
 sudo apt install paquet          sudo dnf install paquet          # installer / install

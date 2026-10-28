@@ -125,7 +125,7 @@ sudo apt install -y acl
 
 **Groupe primaire vs secondaires.** Chaque utilisateur a **un** groupe **primaire** (le GID de `/etc/passwd`, appliqué aux nouveaux fichiers qu'il crée) et **zéro ou plusieurs** groupes **secondaires** (appartenances additionnelles). Le piège fatal : `usermod -G` **remplace** toute la liste des secondaires ; il faut `usermod -aG` (**a**ppend) pour **ajouter** sans effacer les autres.
 
-**Les permissions, trois niveaux × trois droits.** Pour chaque fichier : **propriétaire** (u), **groupe** (g), **autres** (o), chacun avec **r**(4) **w**(2) **x**(1). On les note en **octal** (`chmod 640`) ou en **symbolique** (`chmod u+x,g-w`). Le **`umask`** définit les droits **retirés** par défaut aux nouveaux fichiers (umask `022` → fichiers `644`, dossiers `755`).
+**Les permissions, trois niveaux × trois droits.** Pour chaque fichier : **propriétaire** (u), **groupe** (g), **autres** (o), chacun avec **r**(4) **w**(2) **x**(1). On les note en **octal** (`chmod 640`) ou en **symbolique** (`chmod u+x,g-w`). Le **`umask`** définit les droits **retirés** par défaut aux nouveaux fichiers (umask `022` → fichiers `644`, dossiers `755` ; Ubuntu utilise `002` → `664`/`775`).
 
 **Les permissions spéciales** (le 4ᵉ chiffre octal) :
 
@@ -147,7 +147,7 @@ sudo apt install -y acl
 
 **Primary vs secondary group.** Each user has **one** **primary** group (the GID in `/etc/passwd`, applied to new files they create) and **zero or more** **secondary** groups (extra memberships). The fatal trap: `usermod -G` **replaces** the entire secondary list; you need `usermod -aG` (**a**ppend) to **add** without wiping the others.
 
-**Permissions, three levels × three rights.** For each file: **owner** (u), **group** (g), **others** (o), each with **r**(4) **w**(2) **x**(1). Written in **octal** (`chmod 640`) or **symbolic** (`chmod u+x,g-w`). The **`umask`** defines the rights **removed** by default from new files (umask `022` → files `644`, dirs `755`).
+**Permissions, three levels × three rights.** For each file: **owner** (u), **group** (g), **others** (o), each with **r**(4) **w**(2) **x**(1). Written in **octal** (`chmod 640`) or **symbolic** (`chmod u+x,g-w`). The **`umask`** defines the rights **removed** by default from new files (umask `022` → files `644`, dirs `755`; Ubuntu uses `002` → `664`/`775`).
 
 **Special permissions** (the 4th octal digit):
 
@@ -249,16 +249,16 @@ groups alice                              # même info, plus court / same info, 
 
 ```bash
 sudo chage -l alice                 # affiche la politique d'âge actuelle / show current aging policy
-sudo chage -M 90 -W 7 alice         # max 90 jours, avertit 7 jours avant / max 90 days, warn 7 days before
+sudo chage -M 90 -W 14 alice        # max 90 jours, avertit 14 jours avant / max 90 days, warn 14 days before
 sudo chage -l alice                 # vérifie le changement / verify the change
 ```
 
 :::lang fr
-**✅ Vérification :** le premier `chage -l alice` montre la politique par défaut (`Maximum number of days` = **99999**, soit « en pratique jamais » ; les champs d'**expiration** affichent `never`) ; après `chage -M 90 -W 7`, `Maximum number of days between password change` passe à **90** et l'avertissement à **7**. Ces valeurs vivent dans `/etc/shadow` (champs de vieillissement). C'est ainsi qu'on impose une **rotation** des mots de passe sur un parc.
+**✅ Vérification :** le premier `chage -l alice` montre la politique par défaut (`Maximum number of days` = **99999**, soit « en pratique jamais » ; les champs d'**expiration** affichent `never`) ; après `chage -M 90 -W 14`, `Maximum number of days between password change` passe à **90** et l'avertissement passe de **7** (défaut) à **14**. Ces valeurs vivent dans `/etc/shadow` (champs de vieillissement). C'est ainsi qu'on impose une **rotation** des mots de passe sur un parc.
 :::
 
 :::lang en
-**✅ Check:** the first `chage -l alice` shows the default policy (`Maximum number of days` = **99999**, i.e. "effectively never"; the **expiry** fields read `never`); after `chage -M 90 -W 7`, `Maximum number of days between password change` becomes **90** and the warning **7**. These values live in `/etc/shadow` (aging fields). That's how you enforce password **rotation** across a fleet.
+**✅ Check:** the first `chage -l alice` shows the default policy (`Maximum number of days` = **99999**, i.e. "effectively never"; the **expiry** fields read `never`); after `chage -M 90 -W 14`, `Maximum number of days between password change` becomes **90** and the warning goes from **7** (default) to **14**. These values live in `/etc/shadow` (aging fields). That's how you enforce password **rotation** across a fleet.
 :::
 
 ### step-04
@@ -282,9 +282,9 @@ ls -l demo.txt              # -rw-r-----
 chmod u+x,o+r demo.txt      # symbolique : ajoute x au proprio, r aux autres / symbolic
 ls -l demo.txt              # -rwxr--r--
 
-umask                       # le masque courant (souvent 0022) / current mask
+umask                       # le masque courant (0002 sur Ubuntu, 0022 ailleurs) / current mask (0002 on Ubuntu, 0022 elsewhere)
 umask 027 ; touch masked.txt ; ls -l masked.txt   # 0640 : le masque retire g+w et o+rwx
-umask 022                   # remets la valeur usuelle / restore usual value
+umask 0002                  # remets la valeur d'Ubuntu (celle affichée plus haut) / restore Ubuntu's value (the one shown above)
 ```
 
 :::lang fr
@@ -346,19 +346,21 @@ find /usr/bin -perm -4000 -type f 2>/dev/null
 
 ```bash
 sudo useradd -m bob
-cd /tmp && touch rapport.txt && chmod 640 rapport.txt   # groupe: lecture seule / group: read-only
+sudo mkdir -p /srv/lab && sudo chown $USER: /srv/lab   # pas /tmp : voir la vérification / not /tmp: see the check
+cd /srv/lab && touch rapport.txt && chmod 640 rapport.txt   # groupe: lecture seule / group: read-only
 
 sudo setfacl -m u:alice:rw rapport.txt      # alice précisément : lecture-écriture / alice specifically: rw
 getfacl rapport.txt                          # affiche l'ACL / show the ACL
 ls -l rapport.txt                            # noter le '+' à la fin des permissions / note the trailing '+'
+sudo -u alice sh -c 'echo ok >> /srv/lab/rapport.txt' && cat rapport.txt   # alice écrit grâce à l'ACL / alice writes thanks to the ACL
 ```
 
 :::lang fr
-**✅ Vérification :** `getfacl rapport.txt` liste une entrée **`user:alice:rw-`** en plus des permissions classiques — `alice` a l'écriture que ni le groupe ni les autres n'ont, **sans** être propriétaire. Le `ls -l` affiche un **`+`** après les droits (`-rw-rw----+`), signal visuel d'une ACL. **⚠️ Le masque ACL :** `ls` affiche `rw-` sur le triplet **groupe** parce qu'il montre le **masque ACL** (créé automatiquement par `setfacl`, il **plafonne** les droits effectifs des entrées ACL), **pas** le vrai droit de groupe — qui reste `group::r--`, visible seulement dans `getfacl`. Ce masque est un concept d'examen LPIC-1. `bob`, lui, n'a ni entrée ACL ni appartenance : il reste soumis aux droits « autres » (aucun). Les ACL = des droits **chirurgicaux**, par utilisateur/groupe nommé, quand les trois niveaux classiques ne suffisent pas.
+**✅ Vérification :** `getfacl rapport.txt` liste une entrée **`user:alice:rw-`** en plus des permissions classiques — `alice` a l'écriture que ni le groupe ni les autres n'ont, **sans** être propriétaire, et le `cat` final le prouve (`ok`). Pourquoi pas `/tmp` ? Ubuntu y active `fs.protected_regular` : dans un dossier partagé « sticky », un utilisateur ne peut pas écrire dans le fichier d'un autre, même avec une ACL qui l'autorise. Le `ls -l` affiche un **`+`** après les droits (`-rw-rw----+`), signal visuel d'une ACL. **⚠️ Le masque ACL :** `ls` affiche `rw-` sur le triplet **groupe** parce qu'il montre le **masque ACL** (créé automatiquement par `setfacl`, il **plafonne** les droits effectifs des entrées ACL), **pas** le vrai droit de groupe — qui reste `group::r--`, visible seulement dans `getfacl`. Ce masque est un concept d'examen LPIC-1. `bob`, lui, n'a ni entrée ACL ni appartenance : il reste soumis aux droits « autres » (aucun). Les ACL = des droits **chirurgicaux**, par utilisateur/groupe nommé, quand les trois niveaux classiques ne suffisent pas.
 :::
 
 :::lang en
-**✅ Check:** `getfacl rapport.txt` lists a **`user:alice:rw-`** entry on top of the classic permissions — `alice` has the write that neither group nor others have, **without** being owner. `ls -l` shows a **`+`** after the rights (`-rw-rw----+`), the visual sign of an ACL. **⚠️ The ACL mask:** `ls` shows `rw-` on the **group** triad because it displays the **ACL mask** (auto-created by `setfacl`; it **caps** the effective rights of ACL entries), **not** the real group right — which stays `group::r--`, visible only in `getfacl`. This mask is an LPIC-1 exam concept. `bob` has neither an ACL entry nor membership: he stays subject to the "others" rights (none). ACLs = **surgical** rights, per named user/group, when the three classic levels aren't enough.
+**✅ Check:** `getfacl rapport.txt` lists a **`user:alice:rw-`** entry on top of the classic permissions — `alice` has the write that neither group nor others have, **without** being owner, and the final `cat` proves it (`ok`). Why not `/tmp`? Ubuntu enables `fs.protected_regular` there: in a shared "sticky" folder, a user can't write to another user's file, even with an ACL that allows it. `ls -l` shows a **`+`** after the rights (`-rw-rw----+`), the visual sign of an ACL. **⚠️ The ACL mask:** `ls` shows `rw-` on the **group** triad because it displays the **ACL mask** (auto-created by `setfacl`; it **caps** the effective rights of ACL entries), **not** the real group right — which stays `group::r--`, visible only in `getfacl`. This mask is an LPIC-1 exam concept. `bob` has neither an ACL entry nor membership: he stays subject to the "others" rights (none). ACLs = **surgical** rights, per named user/group, when the three classic levels aren't enough.
 :::
 
 ### step-07
@@ -377,18 +379,21 @@ ls -l rapport.txt                            # noter le '+' à la fin des permis
 
 ```bash
 # visudo édite le fichier ET valide la syntaxe avant d'enregistrer / edits AND validates before saving
-echo 'alice ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart ssh' | sudo tee /etc/sudoers.d/alice
-sudo visudo -cf /etc/sudoers.d/alice        # -c = check : "parsed OK" attendu / -c = check: expect "parsed OK"
+echo 'alice ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart cron' > /tmp/alice.sudoers
+sudo visudo -cf /tmp/alice.sudoers          # -c = check : "parsed OK" attendu AVANT d'installer / expect "parsed OK" BEFORE installing
+sudo install -m 0440 -o root -g root /tmp/alice.sudoers /etc/sudoers.d/alice
 
 sudo -l -U alice                            # liste ce qu'alice a le droit de faire en sudo / what alice may sudo
+sudo -u alice sudo -n /usr/bin/systemctl restart cron && echo "délégation OK / delegation OK"
+sudo -u alice sudo -n /usr/bin/systemctl stop cron    # refusé : hors de la règle / refused: not in the rule
 ```
 
 :::lang fr
-**✅ Vérification :** `visudo -cf /etc/sudoers.d/alice` répond **`parsed OK`** (syntaxe valide — c'est **le** garde-fou : ne jamais éditer sudoers avec un éditeur brut). `sudo -l -U alice` affiche exactement **une** permission : `systemctl restart ssh`, en `NOPASSWD`. `alice` peut redémarrer ce service **sans mot de passe** mais **ne peut rien faire d'autre** en root. C'est le **moindre privilège** : on délègue une action précise, pas les clés du royaume. *(Toujours `/etc/sudoers.d/` + `visudo`, jamais un `nano /etc/sudoers` direct : une faute de syntaxe peut casser tout `sudo`.)*
+**✅ Vérification :** `visudo -cf /tmp/alice.sudoers` répond **`parsed OK`** (syntaxe valide — c'est **le** garde-fou : ne jamais éditer sudoers avec un éditeur brut). `sudo -l -U alice` affiche exactement **une** permission : `systemctl restart cron`, en `NOPASSWD` ; alice peut redémarrer cron, mais le `stop` est refusé. `alice` peut redémarrer ce service **sans mot de passe** mais **ne peut rien faire d'autre** en root. C'est le **moindre privilège** : on délègue une action précise, pas les clés du royaume. *(Toujours `/etc/sudoers.d/` + `visudo`, jamais un `nano /etc/sudoers` direct : une faute de syntaxe peut casser tout `sudo`.)*
 :::
 
 :::lang en
-**✅ Check:** `visudo -cf /etc/sudoers.d/alice` answers **`parsed OK`** (valid syntax — **the** safeguard: never edit sudoers with a raw editor). `sudo -l -U alice` shows exactly **one** permission: `systemctl restart ssh`, as `NOPASSWD`. `alice` can restart that service **without a password** but **can't do anything else** as root. That's **least privilege**: you delegate a precise action, not the keys to the kingdom. *(Always `/etc/sudoers.d/` + `visudo`, never a direct `nano /etc/sudoers`: a syntax error can break all of `sudo`.)*
+**✅ Check:** `visudo -cf /tmp/alice.sudoers` answers **`parsed OK`** (valid syntax — **the** safeguard: never edit sudoers with a raw editor). `sudo -l -U alice` shows exactly **one** permission: `systemctl restart cron`, as `NOPASSWD`; alice can restart cron, but `stop` is refused. `alice` can restart that service **without a password** but **can't do anything else** as root. That's **least privilege**: you delegate a precise action, not the keys to the kingdom. *(Always `/etc/sudoers.d/` + `visudo`, never a direct `nano /etc/sudoers`: a syntax error can break all of `sudo`.)*
 :::
 
 ## pitfalls
@@ -466,7 +471,7 @@ La suite de la track Linux → LPIC-1 :
 4. **Scripting shell (bash)** — variables, conditions, boucles, fonctions.
 5. **Projet d'entreprise** — provisionner et durcir un serveur Linux multi-utilisateur.
 
-**Ménage :** supprime les comptes de test et les fichiers créés — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs ; sudo rm -f /etc/sudoers.d/alice ; sudo rm -rf /tmp/partage /tmp/demo.txt /tmp/masked.txt /tmp/rapport.txt`.
+**Ménage :** supprime les comptes de test et les fichiers créés — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs ; sudo rm -f /etc/sudoers.d/alice ; sudo rm -rf /tmp/partage /tmp/demo.txt /tmp/masked.txt /srv/lab /tmp/alice.sudoers`.
 :::
 
 :::lang en
@@ -478,7 +483,7 @@ The rest of the Linux → LPIC-1 track:
 4. **Shell scripting (bash)** — variables, conditionals, loops, functions.
 5. **Enterprise project** — provision and harden a multi-user Linux server.
 
-**Cleanup:** delete the test accounts and created files — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs ; sudo rm -f /etc/sudoers.d/alice ; sudo rm -rf /tmp/partage /tmp/demo.txt /tmp/masked.txt /tmp/rapport.txt`.
+**Cleanup:** delete the test accounts and created files — `sudo userdel -r alice ; sudo userdel -r bob ; sudo groupdel devs ; sudo rm -f /etc/sudoers.d/alice ; sudo rm -rf /tmp/partage /tmp/demo.txt /tmp/masked.txt /srv/lab /tmp/alice.sudoers`.
 :::
 
 ## cheatsheet
@@ -498,7 +503,7 @@ Users & permissions cheat sheet.
 # Utilisateurs & groupes / users & groups
 sudo useradd -m -s /bin/bash NOM ; sudo passwd NOM ; sudo userdel -r NOM
 sudo groupadd GRP ; sudo usermod -aG GRP NOM     # -aG = AJOUTE (pas -G !) / ADD (not -G!)
-id NOM ; groups NOM ; sudo chage -l NOM ; sudo chage -M 90 -W 7 NOM
+id NOM ; groups NOM ; sudo chage -l NOM ; sudo chage -M 90 -W 14 NOM
 
 # Permissions
 chmod 640 f       # octal (absolu)      chmod u+x,g-w f   # symbolique (relatif)
