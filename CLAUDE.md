@@ -55,7 +55,8 @@ La filière sécurité Azure prépare désormais au **SC-500** ; son volet IA re
 Une commande qui « a l'air juste » ne suffit pas : en octobre 2026, le rejeu de la filière Docker
 sur une Ubuntu vierge a trouvé 3 Dockerfile qui ne buildaient pas et 4 explications fausses sur
 Docker 29. Pour tout guide nouveau ou modifié, rejoue ses commandes sur une machine neuve
-(conteneur Ubuntu privilégié, `/var/lib/docker` sur un volume) avant publication.
+avant publication. Outillage et consignes : `tools/rejeu/` (`new-vm.sh` pour les guides
+système avec systemd, `new-box.sh` pour les conteneurs, `BRIEF.md` pour la méthode et le rapport).
 
 ## Règles de travail
 
