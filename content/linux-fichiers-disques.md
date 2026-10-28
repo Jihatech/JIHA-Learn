@@ -97,7 +97,7 @@ Tu dois avoir :
 
 - Les guides **fondamentaux**, **paquets** et **permissions** acquis.
 - Un système **Ubuntu** avec `sudo`. Pour ce guide (opérations bloc), une **VM Multipass** est le plus sûr : `multipass launch --name lab` puis `multipass shell lab`. *(WSL2 : `losetup`/LVM peuvent être limités selon le noyau — préfère une VM.)*
-- Les outils LVM :
+- Les outils LVM et de partitionnement :
 :::
 
 :::lang en
@@ -105,11 +105,11 @@ You should have:
 
 - The **fundamentals**, **packages** and **permissions** guides under your belt.
 - An **Ubuntu** system with `sudo`. For this guide (block operations), a **Multipass VM** is safest: `multipass launch --name lab` then `multipass shell lab`. *(WSL2: `losetup`/LVM may be limited depending on the kernel — prefer a VM.)*
-- The LVM tools:
+- The LVM and partitioning tools:
 :::
 
 ```bash
-sudo apt update && sudo apt install -y lvm2
+sudo apt update && sudo apt install -y lvm2 parted
 ```
 
 ## concepts
@@ -195,7 +195,7 @@ We'll go: FHS & disk usage → virtual disk & partition → mkfs & mount → fst
 ls /                        # les répertoires FHS : etc, var, usr, home, boot, dev, proc… / the FHS dirs
 lsblk                       # les périphériques bloc et leurs points de montage / block devices & mounts
 df -h                       # espace par système de fichiers monté / space per mounted filesystem
-du -sh /var/log             # taille cumulée d'un répertoire / cumulative size of a directory
+sudo du -sh /var/log        # taille cumulée d'un répertoire / cumulative size of a directory
 ```
 
 :::lang fr
@@ -287,6 +287,7 @@ UUID=$(sudo blkid -s UUID -o value "${LOOP}p1")     # l'UUID de la partition / t
 echo "UUID=$UUID"
 
 # nofail = ne bloque pas le boot si absent (utile pour un disque loopback) / don't block boot if missing
+[ -n "$UUID" ] || { echo "UUID vide : reviens aux étapes 2-3 avant de toucher fstab / empty UUID: go back to steps 2-3" >&2; false; }
 echo "UUID=$UUID  /mnt/data  ext4  defaults,nofail  0  2" | sudo tee -a /etc/fstab
 
 sudo umount /mnt/data 2>/dev/null ; sudo mount -a    # relit fstab et monte tout / re-read fstab & mount all
@@ -374,20 +375,20 @@ sudo lvcreate -L 200M -n lv_data vg_lab   # taille un volume de 200 Mo / carve a
 
 sudo mkfs.ext4 /dev/vg_lab/lv_data
 sudo mkdir -p /mnt/lv && sudo mount /dev/vg_lab/lv_data /mnt/lv
-df -h /mnt/lv                             # ~200 Mo / ~200 MB
+df -h /mnt/lv                             # ~170 Mo (200 Mo moins les métadonnées ext4) / ~170 MB
 
 # Étendre à chaud : +200 Mo, sans démonter / grow live: +200 MB, without unmounting
 sudo lvextend -L +200M /dev/vg_lab/lv_data
 sudo resize2fs /dev/vg_lab/lv_data        # étend le système de fichiers dans le LV agrandi / grow the FS
-df -h /mnt/lv                             # ~400 Mo, toujours monté / ~400 MB, still mounted
+df -h /mnt/lv                             # ~350 Mo, toujours monté / ~350 MB, still mounted
 ```
 
 :::lang fr
-**✅ Vérification :** après `lvcreate`, `df -h /mnt/lv` montre ~200 Mo. Après `lvextend -L +200M` **puis** `resize2fs`, le **même point de montage** affiche ~400 Mo — **sans jamais démonter**, sans re-partitionner. C'est le gain décisif de LVM : agrandir un volume en production, à chaud. Retiens les deux temps : **`lvextend`** agrandit le volume logique, **`resize2fs`** étend le système de fichiers *à l'intérieur* (l'un sans l'autre ne suffit pas). `sudo vgs` et `sudo lvs` résument l'état.
+**✅ Vérification :** après `lvcreate`, `df -h /mnt/lv` montre ~170 Mo (200 Mo moins les métadonnées ext4). Après `lvextend -L +200M` **puis** `resize2fs`, le **même point de montage** affiche ~350 Mo — **sans jamais démonter**, sans re-partitionner. C'est le gain décisif de LVM : agrandir un volume en production, à chaud. Retiens les deux temps : **`lvextend`** agrandit le volume logique, **`resize2fs`** étend le système de fichiers *à l'intérieur* (l'un sans l'autre ne suffit pas). `sudo vgs` et `sudo lvs` résument l'état.
 :::
 
 :::lang en
-**✅ Check:** after `lvcreate`, `df -h /mnt/lv` shows ~200 MB. After `lvextend -L +200M` **then** `resize2fs`, the **same mount point** shows ~400 MB — **without ever unmounting**, without repartitioning. That's LVM's decisive win: growing a volume in production, live. Remember the two steps: **`lvextend`** grows the logical volume, **`resize2fs`** grows the filesystem *inside* it (one without the other isn't enough). `sudo vgs` and `sudo lvs` summarize the state.
+**✅ Check:** after `lvcreate`, `df -h /mnt/lv` shows ~170 MB (200 MB minus ext4 metadata). After `lvextend -L +200M` **then** `resize2fs`, the **same mount point** shows ~350 MB — **without ever unmounting**, without repartitioning. That's LVM's decisive win: growing a volume in production, live. Remember the two steps: **`lvextend`** grows the logical volume, **`resize2fs`** grows the filesystem *inside* it (one without the other isn't enough). `sudo vgs` and `sudo lvs` summarize the state.
 :::
 
 ## pitfalls
@@ -405,7 +406,7 @@ df -h /mnt/lv                             # ~400 Mo, toujours monté / ~400 MB, 
 
 **6. Formater le disque au lieu de la partition.** `mkfs.ext4 /dev/loop0` (le disque) **détruit la table de partitions**. On formate la **partition** : `/dev/loop0p1`.
 
-**7. Oublier de démonter avant de détacher un loopback.** `losetup -d` sur un périphérique encore monté échoue. Ordre : `umount` → `losetup -d`.
+**7. Oublier de démonter avant de détacher un loopback.** `losetup -d` sur un périphérique encore monté ne renvoie pas d'erreur : il programme seulement le détachement, qui n'aura lieu qu'au démontage. Ordre propre : `umount` → `losetup -d`, puis `losetup -a` pour vérifier.
 :::
 
 :::lang en
@@ -421,7 +422,7 @@ df -h /mnt/lv                             # ~400 Mo, toujours monté / ~400 MB, 
 
 **6. Formatting the disk instead of the partition.** `mkfs.ext4 /dev/loop0` (the disk) **destroys the partition table**. You format the **partition**: `/dev/loop0p1`.
 
-**7. Forgetting to unmount before detaching a loopback.** `losetup -d` on a still-mounted device fails. Order: `umount` → `losetup -d`.
+**7. Forgetting to unmount before detaching a loopback.** `losetup -d` on a still-mounted device returns no error: it only schedules the detach, which happens at unmount. Clean order: `umount` → `losetup -d`, then `losetup -a` to check.
 :::
 
 ## success
@@ -465,7 +466,7 @@ La suite de la track Linux → LPIC-1 :
 4. **Projet d'entreprise** — provisionner et durcir un serveur Linux multi-utilisateur.
 
 **Ménage :** démonte et détache tout —
-`sudo umount /mnt/data /mnt/lv ; sudo swapoff /swapfile 2>/dev/null ; sudo vgremove -f vg_lab ; sudo pvremove -f "$P1" "$P2" ; sudo losetup -D ; sudo sed -i '\#/mnt/data#d' /etc/fstab ; rm -f ~/disk.img ~/pv1.img ~/pv2.img ; sudo rm -f /swapfile`.
+`cd ~ ; sudo umount /mnt/data /mnt/lv ; sudo swapoff /swapfile 2>/dev/null ; sudo vgremove -f vg_lab ; sudo pvremove -f "$P1" "$P2" ; sudo losetup -d "$LOOP" "$P1" "$P2" ; sudo sed -i '\#/mnt/data#d' /etc/fstab ; rm -f ~/disk.img ~/pv1.img ~/pv2.img ; sudo rm -f /swapfile`.
 :::
 
 :::lang en
@@ -477,7 +478,7 @@ The rest of the Linux → LPIC-1 track:
 4. **Enterprise project** — provision and harden a multi-user Linux server.
 
 **Cleanup:** unmount and detach everything —
-`sudo umount /mnt/data /mnt/lv ; sudo swapoff /swapfile 2>/dev/null ; sudo vgremove -f vg_lab ; sudo pvremove -f "$P1" "$P2" ; sudo losetup -D ; sudo sed -i '\#/mnt/data#d' /etc/fstab ; rm -f ~/disk.img ~/pv1.img ~/pv2.img ; sudo rm -f /swapfile`.
+`cd ~ ; sudo umount /mnt/data /mnt/lv ; sudo swapoff /swapfile 2>/dev/null ; sudo vgremove -f vg_lab ; sudo pvremove -f "$P1" "$P2" ; sudo losetup -d "$LOOP" "$P1" "$P2" ; sudo sed -i '\#/mnt/data#d' /etc/fstab ; rm -f ~/disk.img ~/pv1.img ~/pv2.img ; sudo rm -f /swapfile`.
 :::
 
 ## cheatsheet
@@ -538,7 +539,7 @@ sudo pvs ; sudo vgs ; sudo lvs
 ## troubleshooting
 
 :::lang fr
-**`losetup: cannot find an unused loop device`.** Rare ; détache d'anciens loopbacks (`losetup -a` pour lister, `sudo losetup -D` pour tout détacher) ou vérifie que tu es dans une VM (pas un conteneur sans `/dev/loop*`).
+**`losetup: cannot find an unused loop device`.** Rare ; détache d'anciens loopbacks (`losetup -a` pour lister, `sudo losetup -d /dev/loopN` pour détacher les tiens ; évite `-D`, qui détache aussi ceux des snaps) ou vérifie que tu es dans une VM (pas un conteneur sans `/dev/loop*`).
 
 **`${LOOP}p1` n'existe pas après le partitionnement.** Il manque le `-P` à `losetup` (scan des partitions) : `sudo losetup -d "$LOOP"` puis ré-attache avec `sudo losetup --show -fP ~/disk.img`. Ou force la relecture : `sudo partprobe "$LOOP"`.
 
@@ -552,7 +553,7 @@ sudo pvs ; sudo vgs ; sudo lvs
 :::
 
 :::lang en
-**`losetup: cannot find an unused loop device`.** Rare; detach old loopbacks (`losetup -a` to list, `sudo losetup -D` to detach all) or check you're in a VM (not a container without `/dev/loop*`).
+**`losetup: cannot find an unused loop device`.** Rare; detach old loopbacks (`losetup -a` to list, `sudo losetup -d /dev/loopN` to detach yours; avoid `-D`, which also detaches the snaps' ones) or check you're in a VM (not a container without `/dev/loop*`).
 
 **`${LOOP}p1` doesn't exist after partitioning.** `losetup` is missing `-P` (partition scan): `sudo losetup -d "$LOOP"` then re-attach with `sudo losetup --show -fP ~/disk.img`. Or force a re-read: `sudo partprobe "$LOOP"`.
 

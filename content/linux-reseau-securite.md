@@ -244,11 +244,11 @@ sudo sed -i '/monserveur.test/d' /etc/hosts    # nettoie l'entrée / clean up th
 ```
 
 :::lang fr
-**✅ Vérification :** `grep '^hosts:' /etc/nsswitch.conf` montre l'ordre — sur 24.04 avec systemd-resolved, souvent `files resolve [!UNAVAIL=return] dns`. L'essentiel : **`files` est en premier** → **`/etc/hosts` d'abord**, puis la résolution DNS. Preuve : `getent hosts monserveur.test` renvoie **`203.0.113.42`** — l'IP bidon qu'on a mise dans `/etc/hosts`, **sans** jamais toucher au DNS (elle n'existe pas sur Internet). En face, `dig +short example.com` interroge **directement** le DNS et renvoie une vraie IP publique. Distinction d'examen : **`getent`** suit **nsswitch** (hosts + dns), **`dig`** court-circuite et parle **au DNS**.
+**✅ Vérification :** `grep '^hosts:' /etc/nsswitch.conf` montre l'ordre — sur Ubuntu 24.04 serveur, en général `files dns` (le module `dns` passe par `/etc/resolv.conf`, donc par systemd-resolved en `127.0.0.53`) ; sur d'autres distributions, `files resolve [!UNAVAIL=return] dns`. L'essentiel : **`files` est en premier** → **`/etc/hosts` d'abord**, puis la résolution DNS. Preuve : `getent hosts monserveur.test` renvoie **`203.0.113.42`** — l'IP bidon qu'on a mise dans `/etc/hosts`, **sans** jamais toucher au DNS (elle n'existe pas sur Internet). En face, `dig +short example.com` interroge **directement** le DNS et renvoie une vraie IP publique. Distinction d'examen : **`getent`** suit **nsswitch** (hosts + dns), **`dig`** court-circuite et parle **au DNS**.
 :::
 
 :::lang en
-**✅ Check:** `grep '^hosts:' /etc/nsswitch.conf` shows the order — on 24.04 with systemd-resolved, often `files resolve [!UNAVAIL=return] dns`. The key point: **`files` is first** → **`/etc/hosts` first**, then DNS resolution. Proof: `getent hosts monserveur.test` returns **`203.0.113.42`** — the bogus IP we put in `/etc/hosts`, **without** ever touching DNS (it doesn't exist on the Internet). Meanwhile, `dig +short example.com` queries **DNS directly** and returns a real public IP. Exam distinction: **`getent`** follows **nsswitch** (hosts + dns), **`dig`** bypasses it and talks **to DNS**.
+**✅ Check:** `grep '^hosts:' /etc/nsswitch.conf` shows the order — on an Ubuntu 24.04 server, usually `files dns` (the `dns` module goes through `/etc/resolv.conf`, hence systemd-resolved on `127.0.0.53`); on other distributions, `files resolve [!UNAVAIL=return] dns`. The key point: **`files` is first** → **`/etc/hosts` first**, then DNS resolution. Proof: `getent hosts monserveur.test` returns **`203.0.113.42`** — the bogus IP we put in `/etc/hosts`, **without** ever touching DNS (it doesn't exist on the Internet). Meanwhile, `dig +short example.com` queries **DNS directly** and returns a real public IP. Exam distinction: **`getent`** follows **nsswitch** (hosts + dns), **`dig`** bypasses it and talks **to DNS**.
 :::
 
 ### step-04
@@ -274,6 +274,14 @@ ssh -o StrictHostKeyChecking=accept-new localhost hostname   # se connecte par C
 ```
 
 :::lang fr
+*Si `ssh-keygen` demande `Overwrite (y/n)?`, réponds **n** : tu as déjà une clé, réutilise-la (saute la première ligne).*
+:::
+
+:::lang en
+*If `ssh-keygen` asks `Overwrite (y/n)?`, answer **n**: you already have a key, reuse it (skip the first line).*
+:::
+
+:::lang fr
 **✅ Vérification :** `ssh localhost hostname` renvoie le nom de la VM **sans te demander de mot de passe** — l'authentification s'est faite **par clé** : le serveur a vérifié que ta clé privée correspond à la publique posée dans `authorized_keys`. Les **permissions strictes** (`700` sur `~/.ssh`, `600` sur `authorized_keys`) sont **obligatoires** : SSH **refuse** les clés si le dossier est trop ouvert (sécurité). Tu as le socle de tout accès serveur moderne : **des clés, pas des mots de passe**.
 :::
 
@@ -286,13 +294,13 @@ ssh -o StrictHostKeyChecking=accept-new localhost hostname   # se connecte par C
 :::lang fr
 **Objectif.** **Durcir** le serveur SSH : pas de root, pas de mots de passe.
 
-⚠️ **Filet de sécurité.** On désactive l'auth par mot de passe : **assure-toi d'abord que ta clé marche** (étape 4 ✅). Dans une VM, la console reste de toute façon accessible. On écrit une surcharge dans `sshd_config.d/` (propre) :
+⚠️ **Filet de sécurité.** On désactive l'auth par mot de passe : **assure-toi d'abord que ta clé marche depuis le poste d'où tu te connectes**. La clé de l'étape 4 ne sert qu'au test `localhost`. Sur un serveur distant : depuis TON poste, `ssh-copy-id user@serveur`, puis ouvre un **second terminal** et vérifie `ssh -o PasswordAuthentication=no user@serveur` ; garde ta session actuelle ouverte jusqu'à ce que ce test réussisse après le `reload`. Si tu te connectes en **root**, crée d'abord un utilisateur sudo avec ta clé (`adduser`, `usermod -aG sudo`, `ssh-copy-id`) et teste-le : `PermitRootLogin no` coupe tout accès root direct. Dans une VM Multipass, `multipass shell` reste accessible. On écrit une surcharge dans `sshd_config.d/` (propre) :
 :::
 
 :::lang en
 **Goal.** **Harden** the SSH server: no root, no passwords.
 
-⚠️ **Safety net.** We disable password auth: **make sure your key works first** (step 4 ✅). In a VM, the console stays accessible anyway. We write an override in `sshd_config.d/` (clean):
+⚠️ **Safety net.** We disable password auth: **make sure your key works from the machine you connect from**. Step 4's key only serves the `localhost` test. On a remote server: from YOUR machine, `ssh-copy-id user@server`, then open a **second terminal** and check `ssh -o PasswordAuthentication=no user@server`; keep your current session open until that test passes after the `reload`. If you log in as **root**, first create a sudo user with your key (`adduser`, `usermod -aG sudo`, `ssh-copy-id`) and test it: `PermitRootLogin no` cuts all direct root access. In a Multipass VM, `multipass shell` stays available. We write an override in `sshd_config.d/` (clean):
 :::
 
 ```bash
@@ -323,31 +331,32 @@ sudo sshd -T | grep -iE 'permitrootlogin|passwordauthentication'   # confirme le
 :::lang fr
 **Objectif.** Fermer tout sauf l'essentiel avec le **pare-feu `ufw`**.
 
-⚠️ **Ordre vital.** **Autorise SSH AVANT d'activer** le pare-feu, sinon tu te coupes l'accès. (Dans une VM, la console te sauve — mais prends le réflexe.)
+⚠️ **Ordre vital.** **Autorise SSH AVANT d'activer** le pare-feu, sinon tu te coupes l'accès. (Dans une VM, la console te sauve — mais prends le réflexe.) Si SSH n'écoute pas sur le port 22, remplace `ufw allow OpenSSH` par `sudo ufw allow <port>/tcp`.
 :::
 
 :::lang en
 **Goal.** Close everything but the essentials with the **`ufw` firewall**.
 
-⚠️ **Vital order.** **Allow SSH BEFORE enabling** the firewall, or you cut off your own access. (In a VM the console saves you — but build the reflex.)
+⚠️ **Vital order.** **Allow SSH BEFORE enabling** the firewall, or you cut off your own access. (In a VM the console saves you — but build the reflex.) If SSH doesn't listen on port 22, replace `ufw allow OpenSSH` with `sudo ufw allow <port>/tcp`.
 :::
 
 ```bash
-sudo ufw allow OpenSSH             # AUTORISE le SSH d'abord ! (port 22) / ALLOW SSH first! (port 22)
+sudo ss -tlnp | grep -E 'sshd|systemd'   # vérifie le port SSH RÉEL d'abord / check the REAL SSH port first
+sudo ufw allow OpenSSH             # AUTORISE le SSH d'abord ! (port 22 ; sinon : sudo ufw allow <port>/tcp) / ALLOW SSH first! (port 22; otherwise: sudo ufw allow <port>/tcp)
 sudo ufw default deny incoming     # politique : tout refuser en entrée / policy: deny all inbound
 sudo ufw default allow outgoing    # ...autoriser la sortie / ...allow outbound
-sudo ufw --force enable            # active le pare-feu / enable the firewall
+sudo ufw enable                    # répond « y » en connaissance de cause / answer "y" knowingly
 sudo ufw status verbose            # règles actives / active rules
 ```
 
 :::lang fr
-**✅ Vérification :** `sudo ufw status verbose` montre **`Default: deny (incoming), allow (outgoing)`** et une règle **`OpenSSH   ALLOW   Anywhere`**. Résultat : **seul** le port 22 (SSH) est joignable de l'extérieur ; tout le reste est **fermé**. C'est le principe **deny par défaut, allow l'exception** — la posture de sécurité de base d'un serveur. `ufw` traduit ça en règles **`nftables`** dans le noyau. *(Pour désactiver : `sudo ufw disable`.)*
+**✅ Vérification :** `sudo ufw status verbose` montre **`Default: deny (incoming), allow (outgoing)`** et une règle **`22/tcp (OpenSSH)   ALLOW IN   Anywhere`** (et sa jumelle `(v6)` si la machine a IPv6). Résultat : **seul** le port 22 (SSH) est joignable de l'extérieur ; tout le reste est **fermé**. C'est le principe **deny par défaut, allow l'exception** — la posture de sécurité de base d'un serveur. `ufw` traduit ça en règles **`nftables`** dans le noyau. *(Pour désactiver : `sudo ufw disable`.)*
 
 **🤔 Aller plus loin.** En prod, on ajoute souvent **`fail2ban`** (`sudo apt install fail2ban`) : il surveille les logs SSH et **bannit** temporairement les IP qui multiplient les échecs — une défense contre le *brute-force*, complémentaire des clés et du pare-feu.
 :::
 
 :::lang en
-**✅ Check:** `sudo ufw status verbose` shows **`Default: deny (incoming), allow (outgoing)`** and an **`OpenSSH   ALLOW   Anywhere`** rule. Result: **only** port 22 (SSH) is reachable from outside; everything else is **closed**. That's the **default deny, allow the exception** principle — a server's baseline security posture. `ufw` translates this into **`nftables`** rules in the kernel. *(To disable: `sudo ufw disable`.)*
+**✅ Check:** `sudo ufw status verbose` shows **`Default: deny (incoming), allow (outgoing)`** and a **`22/tcp (OpenSSH)   ALLOW IN   Anywhere`** rule (and its `(v6)` twin if the machine has IPv6). Result: **only** port 22 (SSH) is reachable from outside; everything else is **closed**. That's the **default deny, allow the exception** principle — a server's baseline security posture. `ufw` translates this into **`nftables`** rules in the kernel. *(To disable: `sudo ufw disable`.)*
 
 **🤔 Going further.** In prod, you often add **`fail2ban`** (`sudo apt install fail2ban`): it watches SSH logs and temporarily **bans** IPs that rack up failures — a defense against *brute-force*, complementing keys and the firewall.
 :::
@@ -421,6 +430,8 @@ La suite de la track Linux → LPIC-1 :
 
 1. **Scripting shell (bash)** — variables, conditions, boucles, fonctions.
 2. **Projet d'entreprise** — provisionner et durcir un serveur Linux multi-utilisateur (l'aboutissement : tout ce que tu viens d'apprendre, assemblé).
+
+**Ménage (pour revenir à l'état initial) :** `sudo ufw disable ; sudo rm -f /etc/ssh/sshd_config.d/00-durcissement.conf ; sudo sshd -t && sudo systemctl reload ssh`.
 :::
 
 :::lang en
@@ -428,6 +439,8 @@ The rest of the Linux → LPIC-1 track:
 
 1. **Shell scripting (bash)** — variables, conditionals, loops, functions.
 2. **Enterprise project** — provision and harden a multi-user Linux server (the culmination: everything you just learned, assembled).
+
+**Cleanup (to return to the initial state):** `sudo ufw disable ; sudo rm -f /etc/ssh/sshd_config.d/00-durcissement.conf ; sudo sshd -t && sudo systemctl reload ssh`.
 :::
 
 ## cheatsheet

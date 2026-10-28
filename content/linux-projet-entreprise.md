@@ -384,10 +384,11 @@ EOF
 sudo sshd -t && sudo systemctl reload ssh        # VALIDE puis recharge / VALIDATE then reload
 
 # pare-feu : SSH d'abord, puis l'app, puis deny par défaut / firewall: SSH first, then app, then default deny
+sudo ss -tlnp | grep -E 'sshd|systemd'   # port SSH réel ; s'il n'est pas 22 : sudo ufw allow <port>/tcp / real SSH port
 sudo ufw allow OpenSSH
 sudo ufw allow 8080/tcp
 sudo ufw default deny incoming && sudo ufw default allow outgoing
-sudo ufw --force enable
+sudo ufw enable                          # répond « y » en connaissance de cause / answer "y" knowingly
 sudo ufw status verbose
 ```
 

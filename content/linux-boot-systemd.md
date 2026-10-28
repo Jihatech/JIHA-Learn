@@ -193,11 +193,11 @@ systemd-analyze blame | head # les units les plus lentes au démarrage / slowest
 ```
 
 :::lang fr
-**✅ Vérification :** `ps -p 1` confirme que le processus **PID 1** est **`systemd`** — l'`init` qui a orchestré tout le démarrage. `systemctl get-default` renvoie ta target de boot (souvent `graphical.target` sur un poste, `multi-user.target` sur un serveur). `systemd-analyze` donne le temps de boot, et `blame` classe les units par lenteur — l'outil pour diagnostiquer un démarrage lent. Tu vois la chaîne aboutir : firmware → GRUB → noyau → **systemd** → target.
+**✅ Vérification :** `ps -p 1` confirme que le processus **PID 1** est **`systemd`** — l'`init` qui a orchestré tout le démarrage. `systemctl get-default` renvoie ta target de boot (souvent `graphical.target`, même sur un serveur Ubuntu sans bureau : sans paquets graphiques, cela revient à `multi-user.target` ; un admin peut fixer `sudo systemctl set-default multi-user.target`). `systemd-analyze` donne le temps de boot, et `blame` classe les units par lenteur — l'outil pour diagnostiquer un démarrage lent. Tu vois la chaîne aboutir : firmware → GRUB → noyau → **systemd** → target.
 :::
 
 :::lang en
-**✅ Check:** `ps -p 1` confirms process **PID 1** is **`systemd`** — the `init` that orchestrated the whole boot. `systemctl get-default` returns your boot target (often `graphical.target` on a desktop, `multi-user.target` on a server). `systemd-analyze` gives boot time, and `blame` ranks units by slowness — the tool to diagnose a slow boot. You see the chain land: firmware → GRUB → kernel → **systemd** → target.
+**✅ Check:** `ps -p 1` confirms process **PID 1** is **`systemd`** — the `init` that orchestrated the whole boot. `systemctl get-default` returns your boot target (often `graphical.target`, even on an Ubuntu server without a desktop: with no graphical packages it amounts to `multi-user.target`; an admin can set `sudo systemctl set-default multi-user.target`). `systemd-analyze` gives boot time, and `blame` ranks units by slowness — the tool to diagnose a slow boot. You see the chain land: firmware → GRUB → kernel → **systemd** → target.
 :::
 
 ### step-02
@@ -279,21 +279,21 @@ sudo systemctl unmask hello         # lève l'interdiction / lift the ban
 :::lang fr
 **Objectif.** Lire et **filtrer** les logs avec **`journalctl`**.
 
-**🤔 Un journal unique.** systemd centralise **tous** les logs. L'art, c'est de **filtrer** pour ne voir que ce qui compte. Interroge ton service :
+**🤔 Un journal unique.** systemd centralise **tous** les logs. L'art, c'est de **filtrer** pour ne voir que ce qui compte. Interroge ton service *(sans `sudo`, seul un membre des groupes `adm` ou `systemd-journal` voit les logs système)* :
 :::
 
 :::lang en
 **Goal.** Read and **filter** logs with **`journalctl`**.
 
-**🤔 One journal.** systemd centralizes **all** logs. The art is to **filter** to see only what matters. Query your service:
+**🤔 One journal.** systemd centralizes **all** logs. The art is to **filter** to see only what matters. Query your service *(without `sudo`, only members of the `adm` or `systemd-journal` groups can see system logs)*:
 :::
 
 ```bash
-journalctl -u hello --no-pager | tail       # les logs de CE service / this service's logs
-journalctl -u hello -b --no-pager | tail     # ...depuis le démarrage courant / ...since the current boot
-journalctl -u hello --since "5 min ago" --no-pager | tail   # ...sur une fenêtre de temps / a time window
-journalctl -p err -b --no-pager | tail       # tout ce qui est de priorité "error" ce boot / errors this boot
-# journalctl -u hello -f                      # SUIVI temps réel (Ctrl+C pour sortir) / live follow (Ctrl+C)
+sudo journalctl -u hello --no-pager | tail  # les logs de CE service / this service's logs
+sudo journalctl -u hello -b --no-pager | tail # ...depuis le démarrage courant / ...since the current boot
+sudo journalctl -u hello --since "5 min ago" --no-pager | tail   # ...sur une fenêtre de temps / a time window
+sudo journalctl -p err -b --no-pager | tail  # tout ce qui est de priorité "error" ce boot / errors this boot
+# sudo journalctl -u hello -f                 # SUIVI temps réel (Ctrl+C pour sortir) / live follow (Ctrl+C)
 ```
 
 :::lang fr
@@ -330,8 +330,8 @@ sleep 600 & PID2=$!
 kill -SIGKILL $PID2         # arrêt brutal, non-ignorable / brutal, non-ignorable
 
 sleep 600 &                 # un dernier, pour la démo pgrep/pkill / one more, for the pgrep/pkill demo
-pgrep -a sleep              # le trouve PAR NOM (pas par PID) / find it BY NAME (not PID)
-pkill sleep                 # le tue par nom / kill it by name
+pgrep -af 'sleep 600'       # le trouve PAR NOM (pas par PID) / find it BY NAME (not PID)
+pkill -f 'sleep 600'        # le tue par nom, motif précis / kill it by name, precise pattern
 ```
 
 :::lang fr
@@ -406,7 +406,7 @@ WantedBy=timers.target
 EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now tick.timer
-systemctl list-timers tick.timer --no-pager     # le timer est armé / the timer is armed
+sleep 2 ; systemctl list-timers tick.timer --no-pager   # le timer est armé (NEXT renseigné) / armed (NEXT filled in)
 
 # 3) tâche UNIQUE différée avec at / one-off deferred task with at
 echo 'echo "at a tourné $(date)" >> /tmp/at.log' | at now + 1 minute
@@ -414,11 +414,11 @@ atq                                              # la file des tâches at / the 
 ```
 
 :::lang fr
-**✅ Vérification :** `systemctl list-timers` liste **`tick.timer`** avec son prochain déclenchement (`NEXT`) — le couple **`.timer` + `.service`** est l'équivalent systemd d'une ligne cron (après ~1 min, `/tmp/timer.log` se remplit). `atq` montre ta tâche `at` en attente ; après l'échéance, `/tmp/at.log` apparaît — `at` exécute **une seule fois**, à l'heure dite. Tu as les **trois** mécanismes de planification du LPIC-1 : **cron** (récurrent, historique), **timer systemd** (récurrent, moderne), **at** (ponctuel).
+**✅ Vérification :** `systemctl list-timers` liste **`tick.timer`** avec son prochain déclenchement (`NEXT`) ; `OnBootSec` étant déjà dépassé, le timer se déclenche une première fois tout de suite — le couple **`.timer` + `.service`** est l'équivalent systemd d'une ligne cron (après ~1 min, `/tmp/timer.log` se remplit). `atq` montre ta tâche `at` en attente ; après l'échéance, `/tmp/at.log` apparaît — `at` exécute **une seule fois**, à l'heure dite. Tu as les **trois** mécanismes de planification du LPIC-1 : **cron** (récurrent, historique), **timer systemd** (récurrent, moderne), **at** (ponctuel).
 :::
 
 :::lang en
-**✅ Check:** `systemctl list-timers` lists **`tick.timer`** with its next trigger (`NEXT`) — the **`.timer` + `.service`** pair is systemd's equivalent of a cron line (after ~1 min, `/tmp/timer.log` fills up). `atq` shows your pending `at` task; after it's due, `/tmp/at.log` appears — `at` runs **exactly once**, at the set time. You have the **three** LPIC-1 scheduling mechanisms: **cron** (recurring, historical), **systemd timer** (recurring, modern), **at** (one-off).
+**✅ Check:** `systemctl list-timers` lists **`tick.timer`** with its next trigger (`NEXT`); since `OnBootSec` is already past, the timer fires once right away — the **`.timer` + `.service`** pair is systemd's equivalent of a cron line (after ~1 min, `/tmp/timer.log` fills up). `atq` shows your pending `at` task; after it's due, `/tmp/at.log` appears — `at` runs **exactly once**, at the set time. You have the **three** LPIC-1 scheduling mechanisms: **cron** (recurring, historical), **systemd timer** (recurring, modern), **at** (one-off).
 :::
 
 ## pitfalls
@@ -495,7 +495,7 @@ La suite de la track Linux → LPIC-1 :
 3. **Projet d'entreprise** — provisionner et durcir un serveur Linux multi-utilisateur.
 
 **Ménage :** supprime le service, le timer et la tâche `at` de démo —
-`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo systemctl unmask hello 2>/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk '{print $1}') 2>/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log`.
+`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo systemctl unmask hello 2>/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk '{print $1}') 2>/dev/null ; rm -f /tmp/cron.log /tmp/at.log ; sudo rm -f /tmp/timer.log`.
 :::
 
 :::lang en
@@ -506,7 +506,7 @@ The rest of the Linux → LPIC-1 track:
 3. **Enterprise project** — provision and harden a multi-user Linux server.
 
 **Cleanup:** delete the demo service, timer and `at` task —
-`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo systemctl unmask hello 2>/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk '{print $1}') 2>/dev/null ; rm -f /tmp/cron.log /tmp/timer.log /tmp/at.log`.
+`sudo systemctl disable --now hello tick.timer 2>/dev/null ; sudo systemctl unmask hello 2>/dev/null ; sudo rm -f /usr/lib/systemd/system/hello.service /etc/systemd/system/tick.service /etc/systemd/system/tick.timer ; sudo systemctl daemon-reload ; atrm $(atq | awk '{print $1}') 2>/dev/null ; rm -f /tmp/cron.log /tmp/at.log ; sudo rm -f /tmp/timer.log`.
 :::
 
 ## cheatsheet
